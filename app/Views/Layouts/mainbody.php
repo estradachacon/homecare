@@ -34,7 +34,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
 
     <script type="text/javascript">
-        //var _url = "https://suplidoresdiversos.tec101cloud.net";
         var _date_format = "d/m/Y";
         var _backend_direction = "ltr";
         var _currency = "$";
@@ -133,9 +132,7 @@
             font-size: 16px;
         }
     </style>
-
 </head>
-
 
 <body class="sb-nav-fixed">
     <!-- Main Modal -->
@@ -148,7 +145,6 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-
                 <div class="alert alert-danger d-none m-3"></div>
                 <div class="alert alert-primary d-none m-3"></div>
                 <div class="modal-body overflow-hidden"></div>
@@ -167,7 +163,6 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-
                 <div class="alert alert-danger d-none m-3"></div>
                 <div class="alert alert-primary d-none m-3"></div>
                 <div class="modal-body overflow-hidden"></div>
@@ -183,11 +178,7 @@
     <!-- Preloader area end -->
 
     <!--Header Nav-->
-
     <nav class="sb-topnav navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
-
-
-
         <div class="container-fluid">
             <a class="navbar-brand text-md-center" href="#/dashboard">FC
                 Encomiendas</a>
@@ -208,10 +199,8 @@
 
         <ul class="navbar-nav ml-auto ml-md-0">
             <li class="nav-item dropdown animate-dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
-                    data-toggle="dropdown"
-                    aria-haspopup="true"
-                    aria-expanded="false">
+                <a class="nav-link dropdown-toggle d-flex align-items-center text-white" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
 
                     <!-- 1. Ícono de Usuario (con margen derecho para separarlo del nombre) -->
                     <i class="fa-solid fa-user mr-2"></i>
@@ -222,8 +211,7 @@
                     </span>
 
                     <!-- 3. Imagen de Perfil -->
-                    <img src="upload/profile/user.jpg" alt="user-image" height="42"
-                        class="rounded-circle shadow-sm">
+                    <img src="upload/profile/user.jpg" alt="user-image" height="42" class="rounded-circle shadow-sm">
                 </a>
 
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
@@ -246,193 +234,10 @@
     </nav>
     <!--End Header Nav-->
 
+    <!--Start layoutSidenav_nav-->
     <div id="layoutSidenav" class="container-fluid d-flex align-items-stretch">
-        <div id="layoutSidenav_nav">
-            <span class="close-mobile-nav"><i class="ti-close"></i></span>
-            <nav class="sb-sidenav accordion sb-sidenav-light" id="sidenavAccordion">
-
-                <div class="sidebar-user">
-
-                    <div
-                        style=" position: absolute; top: 0; background-color: #1d2744; width: 100%; left: 0; height: 69px; z-index: -1; border-radius: 6px 6px 0 0px;">
-                    </div>
-                    <a href="javascript: void(0);">
-
-                        <img class="logo" src="img/logo.jpg" alt="logo-company" height="60" class="shadow-sm">
-                        <span class="sidebar-user-name">Casa Matriz</span>
-                    </a>
-                </div>
-
-                <div class="sb-sidenav-menu">
-                    <div class="nav">
-                        <div class="sb-sidenav-menu-heading">NAVEGACION</div>
-
-                        <a class="nav-link" href="#">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-house"></i></div>
-                            Menú General
-                        </a>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-cash-register"></i></div>
-                            Cajas
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/cash">Lista de Cajas</a>
-                                <a class="nav-link" href="#/cash">Creación de
-                                    caja</a>
-                                <a class="nav-link" href="#/cash_movement">Movimientos de
-                                    caja</a>
-                                <a class="nav-link" href="#/cash_movement/create?cashmov_type=Closing">Corte
-                                    de caja</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-box-open"></i></div>
-                            Paquetería
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="sales" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/invoices/create">Registrar paquete</a>
-                                <a class="nav-link" href="#/invoices">Lista de
-                                    paquetes</a>
-
-                                <a class="nav-link" href="#/sales_returns">Devolución de
-                                    No retirados</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
-                            Remuneraciones
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="treasury" aria-labelledby="headingOne"
-                            data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
-                                <a class="nav-link" href="#/invoices/create">Remunerar paquetes</a>
-                                <a class="nav-link" href="#/invoices/create">Movimientos de caja actual</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#purchase_orders"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-bag-shopping"></i></div>
-                            Otros gastos
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="purchase_orders" aria-labelledby="headingOne"
-                            data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/purchase_orders">Lista de gastos</a>
-                                <a class="nav-link" href="#/purchase_returns">Tipos de gastos</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link" href="#">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-address-book"></i></div>
-                            Vendedores
-                        </a>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#accounts"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-file"></i></div>
-                            Solicitudes
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="accounts" aria-labelledby="headingOne"
-                            data-parent="#navAccordionTreasury">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/accounts">Reversión
-                                    de pagos</a>
-                                <a class="nav-link" href="#/accounts/create">Anular flete</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#reports"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-file-export"></i></div>
-                            Informes
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="reports" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/reports/account_statement">Informe de Remuneraciones</a>
-                                <a class="nav-link" href="#/reports/account_statement">Informe de Cobros de envio</a>
-                                <a class="nav-link" href="#/reports/account_statement">Informe de No retirados</a>
-                                <a class="nav-link" href="#/reports/account_statement">Informe de gastos</a>
-                                <a class="nav-link" href="#/reports/account_statement">Balance por rango de fechas</a>
-                            </nav>
-                        </div>
-
-                        <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-cog"></i></div>
-                            Ajustes del sistema
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="company_settings" aria-labelledby="headingOne"
-                            data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="#/admin/administration/general_settings">Configuración general</a>
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse"
-                                    data-target="#transactions" aria-expanded="false" aria-controls="collapseLayouts">
-                                    <div class="sb-nav-link-icon"><i class="fa-solid fa-store"></i></div>Sucursales
-                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                                </a>
-                                <div class="collapse" id="transactions" aria-labelledby="headingOne"
-                                    data-parent="#navAccordionTreasury">
-                                    <nav class="sb-sidenav-menu-nested nav">
-                                        <a class="nav-link"
-                                            href="#/income">Listado de
-                                            sucursales</a>
-                                        <a class="nav-link"
-                                            href="#/expense">Gastos</a>
-                                        <a class="nav-link"
-                                            href="#/transfer/create">Transferir</a>
-                                        <a class="nav-link"
-                                            href="#/income/calendar">Calendario
-                                            de ingresos</a>
-                                        <a class="nav-link"
-                                            href="#/expense/calendar">Calendario
-                                            de gastos</a>
-                                    </nav>
-                                </div>
-                                <a class="nav-link" href="#/admin/administration/general_settings">Ver
-                                    almacenamiento</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#staffs"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-users"></i></div>
-                            Gestión de usuarios
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="staffs" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="users">Lista de usuarios</a>
-                                <a class="nav-link" href="#/roles">Roles del
-                                    usuario</a>
-                            </nav>
-                        </div>
-
-                        <a class="nav-link" href="#/logs">
-                            <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
-                        </a>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <!--ENd layoutSidenav_nav-->
+        <?php include('sidebar.php'); ?>
+        <!--End layoutSidenav_nav-->
 
         <div id="layoutSidenav_content">
             <main>
@@ -461,16 +266,23 @@
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Print.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js" integrity="sha512-TKv+3cU8+2TrA6+6QbqR1hDXAhW/YPihLeIhK4P7Z4o+F1HgK0B3bxivXPV6d0+7bt4aZCkNpqFsC0mfFtYDXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js"
+        integrity="sha512-TKv+3cU8+2TrA6+6QbqR1hDXAhW/YPihLeIhK4P7Z4o+F1HgK0B3bxivXPV6d0+7bt4aZCkNpqFsC0mfFtYDXA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Pace.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha512-ihOkl4Ox8aTz6q7AD5xKGl6RZQ5Q9FvhToiLrP8FXbMtk7FbJFSVv21A9Te7EXv+T3Fg9vbvKUZejb2mEXH+WQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"
+        integrity="sha512-ihOkl4Ox8aTz6q7AD5xKGl6RZQ5Q9FvhToiLrP8FXbMtk7FbJFSVv21A9Te7EXv+T3Fg9vbvKUZejb2mEXH+WQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Clipboard.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js" integrity="sha512-VzH/jE6mSwNjNlAof3wFECXZJ81E0T2IzfI5wz3rDyM8X/oU2sja3xuv4eQ8A2UoD4EEmrEPhnUB4G0gNrbKfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"
+        integrity="sha512-VzH/jE6mSwNjNlAof3wFECXZJ81E0T2IzfI5wz3rDyM8X/oU2sja3xuv4eQ8A2UoD4EEmrEPhnUB4G0gNrbKfA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js" integrity="sha512-Q4nH9nkwd4KXjX4E3n4H1Z6XoPwaF+79iRyJ6RZz0p+Gx9A0OrMxGuNEm6ZQej+mrp1f3KxIolC0mG4HkZgVvQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"
+        integrity="sha512-Q4nH9nkwd4KXjX4E3n4H1Z6XoPwaF+79iRyJ6RZz0p+Gx9A0OrMxGuNEm6ZQej+mrp1f3KxIolC0mG4HkZgVvQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/es.min.js"></script>
-
 
 
     <!-- Datatable js -->
@@ -496,7 +308,7 @@
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        (function($) {
+        (function ($) {
 
             "use strict";
 
@@ -505,20 +317,10 @@
             document.documentElement.style.setProperty('--tab-active-bg', color);
             document.documentElement.style.setProperty('--tab-active-color', text_color);
 
-            //Show Success Message
-
-            //Show Single Error Message
-
-
-
         })(jQuery);
     </script>
 
     <!-- Custom JS -->
     <script src="<?php echo base_url('public/backend/assets/js/datatables/products-table.js'); ?>"></script>
-
-
-
 </body>
-
 </html>
