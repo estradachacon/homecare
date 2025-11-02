@@ -51,9 +51,7 @@ class AuthController extends BaseController
         }
 
         // Buscar por correo o nombre de usuario
-        $user = $userModel->where('email', $username)
-                          ->orWhere('user_name', $username)
-                          ->first();
+        $user_complete = $userModel->getUserWithRoleAndBranch($user['email']);
 
         if (!$user) {
             return $this->response->setJSON([
@@ -83,10 +81,13 @@ class AuthController extends BaseController
 
         // Guardar sesión - CORREGIDO: usar 'isLoggedIn' o 'logged_in' consistentemente
         $sessionData = [
-            'id'        => $user['id'],
-            'user_name' => $user['user_name'],
-            'email'     => $user['email'],
-            'role_id'   => $user['role_id'],
+            'id'        => $user_complete['id'],
+            'user_name' => $user_complete['user_name'],
+            'email'     => $user_complete['email'],
+            'role_id'   => $user_complete['role_id'],
+            'branch_id'   => $user_complete['branch_id'],
+            'branch_name'   => $user_complete['branch_name'],
+            'branch_direction'   => $user_complete['branch_direction'],
             'permisos'  => array_column($permisos, 'habilitado', 'nombre_accion'),
             'isLoggedIn' => true, // Cambiado para coincidir con tu filtro original
             'logged_in' => true   // O mantener este y cambiar el filtro

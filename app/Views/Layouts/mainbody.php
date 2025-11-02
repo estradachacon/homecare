@@ -1,3 +1,4 @@
+<?php $session = session(); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -200,46 +201,47 @@
 
             <ul class="navbar-nav ml-auto ml-md-0">
                 <li class="nav-item dropdown animate-dropdown">
-                    <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false">Casa Matriz</a>
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <a class="dropdown-item selected disabled" href="#/change-company/1">
-                            Casa Matriz</a>
-                        <a class="dropdown-item " href="#/change-company/15">
-                            BODEGA MEJICANOS</a>
-                        <a class="dropdown-item " href="#/change-company/16">
-                            SANTORINI</a>
-                        <a class="dropdown-item " href="#/change-company/17">
-                            COL. MEDICA</a>
-                    </div>
-                </li>
-            </ul>
+                    <a class="nav-link text-white"><?= esc($session->get('branch_name') ?? 'N/A') ?></a>
+        </div>
+        </li>
+        </ul>
 
-            <ul class="navbar-nav ml-auto ml-md-0">
-                <li class="nav-item dropdown animate-dropdown">
-                    <a class="nav-link dropdown-toggle" id="userDropdown" href="#" role="button" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-user"></i> Ricardo Fernandez
+        <ul class="navbar-nav ml-auto ml-md-0">
+            <li class="nav-item dropdown animate-dropdown">
+                <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
+                    data-toggle="dropdown"
+                    aria-haspopup="true"
+                    aria-expanded="false">
 
-                        <img src="upload/profile/user.jpg" alt="user-image" height="42"
-                            class="rounded-circle shadow-sm">
-                    </a>
+                    <!-- 1. Ícono de Usuario (con margen derecho para separarlo del nombre) -->
+                    <i class="fa-solid fa-user mr-2"></i>
 
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i>
-                            Mi perfil</a>
-                        <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i>
-                            Configuración de perfil</a>
-                        <a class="dropdown-item" href="#/profile/change_password"><i class="fa-solid fa-key"></i>
-                            Cambiar la contraseña</a>
+                    <!-- 2. Nombre del Usuario (envuelto en span para control) -->
+                    <span class="badge badge-primary mr-3 p-2 font-weight-large">
+                        <?= esc($session->get('user_name') ?? 'N/A') ?>
+                    </span>
 
-                        <a class="dropdown-item" href="#/admin/administration/general_settings"><i
-                                class="fa-solid fa-layer-group"></i> Ajustes del sistema</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#/logout"><i class="fa-solid fa-power-off"></i>
-                            Cerrar sesión</a>
-                    </div>
-                </li>
-            </ul>
+                    <!-- 3. Imagen de Perfil -->
+                    <img src="upload/profile/user.jpg" alt="user-image" height="42"
+                        class="rounded-circle shadow-sm">
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                    <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i>
+                        Mi perfil</a>
+                    <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i>
+                        Configuración de perfil</a>
+                    <a class="dropdown-item" href="#/profile/change_password"><i class="fa-solid fa-key"></i>
+                        Cambiar la contraseña</a>
+
+                    <a class="dropdown-item" href="#/admin/administration/general_settings"><i
+                            class="fa-solid fa-layer-group"></i> Ajustes del sistema</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i>
+                        Cerrar sesión</a>
+                </div>
+            </li>
+        </ul>
         </div>
     </nav>
     <!--End Header Nav-->
@@ -365,9 +367,9 @@
                                 <a class="nav-link" href="#/reports/account_statement">Informe de Cobros de envio</a>
                                 <a class="nav-link" href="#/reports/account_statement">Informe de No retirados</a>
                                 <a class="nav-link" href="#/reports/account_statement">Informe de gastos</a>
+                                <a class="nav-link" href="#/reports/account_statement">Balance por rango de fechas</a>
                             </nav>
                         </div>
-
 
                         <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 
@@ -464,7 +466,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js" integrity="sha512-ihOkl4Ox8aTz6q7AD5xKGl6RZQ5Q9FvhToiLrP8FXbMtk7FbJFSVv21A9Te7EXv+T3Fg9vbvKUZejb2mEXH+WQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- Clipboard.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js" integrity="sha512-VzH/jE6mSwNjNlAof3wFECXZJ81E0T2IzfI5wz3rDyM8X/oU2sja3xuv4eQ8A2UoD4EEmrEPhnUB4G0gNrbKfA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
+
     <!-- Moment.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js" integrity="sha512-Q4nH9nkwd4KXjX4E3n4H1Z6XoPwaF+79iRyJ6RZz0p+Gx9A0OrMxGuNEm6ZQej+mrp1f3KxIolC0mG4HkZgVvQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/es.min.js"></script>
@@ -481,7 +483,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.9.1/dist/pickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/i18n/es.js"></script>
-    
+
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.9.2/parsley.min.js"></script>
@@ -494,7 +496,7 @@
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        (function ($) {
+        (function($) {
 
             "use strict";
 
