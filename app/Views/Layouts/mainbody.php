@@ -27,9 +27,9 @@
     <!-- App Css -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@icon/themify-icons@1.0.6/themify-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.9.1/dist/themes/classic.min.css">
-    <link rel="stylesheet" href="backend/assets/css/styles.css">
-    <link rel="stylesheet" href="backend/assets/css/helper.css">
-    <link rel="stylesheet" href="backend/assets/css/timeline.css?v=1.0">
+    <link href="<?= base_url('backend/assets/css/styles.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('backend/assets/css/helper.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('backend/assets/css/timeline.css?v=1.0') ?>" rel="stylesheet">
     <!-- Modernizr -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
 
@@ -211,7 +211,7 @@
                     </span>
 
                     <!-- 3. Imagen de Perfil -->
-                    <img src="upload/profile/user.jpg" alt="user-image" height="42" class="rounded-circle shadow-sm">
+                    <img src="<?= base_url('upload/profile/user.jpg') ?>" alt="user-image" height="42" class="rounded-circle shadow-sm">
                 </a>
 
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
@@ -302,7 +302,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
 
     <!-- App js -->
-    <script src="backend/assets/js/scripts.js"></script>
+    <script src="<?= base_url('backend/assets/js/scripts.js') ?>"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/TableDnD/0.9.1/jquery.tablednd.js"
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
@@ -321,6 +321,6 @@
     </script>
 
     <!-- Custom JS -->
-    <script src="<?php echo base_url('public/backend/assets/js/datatables/products-table.js'); ?>"></script>
+    <script src="<?= base_url('backend/assets/js/datatables/products-table.js') ?>"></script>
 </body>
 </html>

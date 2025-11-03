@@ -77,7 +77,6 @@ class Cashier extends Migration
             ],
             [
                 'branch_id'         => 1, 
-                // 🚨 CORRECCIÓN: Quitada la coma del número.
                 'name'              => 'Caja secundaria (Default)',
                 'initial_balance'   => 1000.00, // Debe ser 1000.00, no 1,000.00
                 'current_balance'   => 0.00,

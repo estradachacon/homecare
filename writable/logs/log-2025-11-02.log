@@ -375,3 +375,432 @@ Stack trace:
 #12 C:\xampp\htdocs\fcencomiendas\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
 #13 {main}
 DEBUG - 2025-11-02 01:10:23 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 21:54:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-02 22:01:55 --> CSRF token verified.
+DEBUG - 2025-11-02 22:01:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:01:55 --> Login attempt: gerente
+DEBUG - 2025-11-02 22:01:55 --> User found: gerente@mail.com
+DEBUG - 2025-11-02 22:01:55 --> Password verify: true
+DEBUG - 2025-11-02 22:01:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:03:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:03:21 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:03:25 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:05:02 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:05:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:09:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:03 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:21 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:38 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:10:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:11:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:11:34 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:11:34 --> ErrorException: Undefined variable $branches
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 19.
+ 1 APPPATH\Views\cashier\new.php(19): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined variable $branches', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 19)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(31): view('cashier/new')
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:12:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:12:59 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:15:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:15:08 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:15:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:15:11 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:16:02 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:16:02 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:16:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:16:04 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:16:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:16:43 --> ErrorException: Undefined variable $branches
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 19.
+ 1 APPPATH\Views\cashier\new.php(19): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined variable $branches', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 19)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:17:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:17:01 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:17:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:17:26 --> ParseError: Unclosed '[' does not match ')'
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 2 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 3 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 4 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 5 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 6 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:17:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:17:32 --> Error: Cannot use object of type stdClass as array
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 SYSTEMPATH\View\View.php(226): include()
+ 2 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 3 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 4 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 5 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 6 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 7 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+10 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:17:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:17:44 --> ErrorException: Undefined property: stdClass::$name
+[Method: GET, Route: cashiers/new]
+in APPPATH\Views\cashier\new.php on line 20.
+ 1 APPPATH\Views\cashier\new.php(20): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$name', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php', 20)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:01 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:10 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:10 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:11 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:11 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:11 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:11 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:11 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:12 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:12 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:12 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:18:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-02 22:18:40 --> CodeIgniter\Exceptions\RuntimeException: View themes, no current section.
+[Method: GET, Route: cashiers/new]
+in SYSTEMPATH\View\View.php on line 430.
+ 1 APPPATH\Views\cashier\new.php(105): CodeIgniter\View\View->endSection()
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\cashier\\new.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('cashier/new', [], true)
+ 5 APPPATH\Controllers\CashierController.php(37): view('cashier/new', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\CashierController->new()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\CashierController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:22:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:25:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:26:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:09 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:19 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:20 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:20 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:20 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:29:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:34:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:34:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:34:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:38 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:35:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:37:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:37:31 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-02 22:38:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.

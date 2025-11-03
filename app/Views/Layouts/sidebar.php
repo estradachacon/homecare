@@ -9,7 +9,7 @@
                     </div>
                     <a href="javascript: void(0);">
 
-                        <img class="logo" src="img/logo.jpg" alt="logo-company" height="60" class="shadow-sm">
+                        <img class="logo" src="<?= base_url('img/logo.jpg') ?>" alt="logo-company" height="60" class="shadow-sm">
                         <span class="sidebar-user-name">Casa Matriz</span>
                     </a>
                 </div>

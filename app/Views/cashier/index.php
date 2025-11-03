@@ -5,7 +5,7 @@
         <div class="card">
             <div class="card-header d-flex align-items-center">
                 <h4 class="header-title">Lista de cajas</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('cashier/create') ?>"><i
+                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('cashiers/new') ?>"><i
                         class="fa-solid fa-plus"></i> Crear caja</a>
             </div>
             <div class="card-body">
@@ -54,11 +54,14 @@
                                         }
                                         ?>
                                         <span class="badge <?= $style['class'] ?> rounded-pill px-3 py-2">
-                                            <?php if ($status == 1): ?><span>Caja abierta</span><?php else: ?><span>Caja cerrada</span><?php endif; ?>
+                                            <?php if ($status == 1): ?><span>Caja abierta</span><?php else: ?><span>Caja
+                                                    cerrada</span><?php endif; ?>
                                         </span>
                                     </td>
 
                                     <td class="text-center">
+                                        <a href="<?= base_url('cashier/show/' . $cashier->id) ?>" class="btn btn-sm btn-primary"
+                                            title="Ver"><i class="fa-solid fa-eye"></i></a>
                                         <a href="<?= base_url('cashier/edit/' . $cashier->id) ?>" class="btn btn-sm btn-info"
                                             title="Editar"><i class="fa-solid fa-edit"></i></a>
                                         <button class="btn btn-sm btn-danger" title="Eliminar"><i
