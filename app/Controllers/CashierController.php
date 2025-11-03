@@ -12,28 +12,52 @@ class CashierController extends BaseController
     {
         $cashierModel = new CashierModel();
 
+        // 🏆 ESTA ES LA LÓGICA CORRECTA PARA CARGAR EL LISTADO 🏆
         $cashiers = $cashierModel
-            ->select('cashier.*, branches.branch_name AS branch_name')
-            // Usar 'cashier.*' trae todos los campos de cashier (incluyendo branch_id)
-            // y 'branches.name AS branch_name' añade el nombre de la sucursal con un alias claro.
-            ->join('branches', 'branches.id = cashier.branch_id', 'left')
+            // 1. Seleccionamos campos: Todos de cashier y los nombres de las tablas unidas
+            ->select('cashier.*, users.user_name, branches.branch_name') 
+            // 2. Unimos con users (LEFT JOIN para permitir cajas sin user_id)
+            ->join('users', 'users.id = cashier.user_id', 'left') 
+            // 3. Unimos con branches
+            ->join('branches', 'branches.id = cashier.branch_id')
             ->findAll();
 
         $data = [
-            'title' => 'Listado de cajas',
-            'cashiers' => $cashiers
+            'title' => 'Listado de Cajas',
+            'cashiers' => $cashiers // Pasamos la colección completa y enriquecida a la vista
         ];
+
+        // Retorna la vista de la tabla de listado
         return view('cashier/index', $data);
     }
 
     public function new()
     {
         $branchModel = new \App\Models\BranchModel();
+        $userModel = new \App\Models\UserModel();
         $branches = $branchModel->findAll();
+        $users = $userModel->findAll();
         $data = [
             'title' => 'Crear caja',
-            'branches' => $branches
+            'branches' => $branches,
+            'users' => $users
         ];
         return view('cashier/new', $data);
+    }
+
+    public function create()
+    {
+        $cashierModel = new CashierModel();
+
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'initial_balance' => $this->request->getPost('initial_balance'),
+            'branch_id' => $this->request->getPost('branch_id'),
+            'user_id' => $this->request->getPost('user_id'),
+        ];
+
+        $cashierModel->insert($data);
+
+        return redirect()->to('/cashiers')->with('success', 'Caja creada exitosamente.');
     }
 }

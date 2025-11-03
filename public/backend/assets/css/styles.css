@@ -11241,3 +11241,60 @@ a#userDropdown{
   background-color: #e6f7ff !important; /* Azul claro */
     transition: background-color 0.3s ease;
 }
+
+/* 1. Eliminar la apariencia por defecto de los navegadores */
+.form-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Para eliminar la flecha por defecto en IE/Edge */
+    &::-ms-expand {
+        display: none;
+    }
+}
+
+/* 2. Estilo base del select */
+.form-select {
+    width: 100%; /* O el ancho que necesites */
+    padding: 10px 15px;
+    height: 60%;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #495057; /* Texto oscuro */
+    background-color: #fff; /* Fondo blanco */
+    border: 1px solid #ced4da; /* Borde gris claro */
+    border-radius: 4px; /* Bordes redondeados */
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s; /* Transiciones suaves */
+}
+
+/* 3. Estilo al pasar el ratón o al enfocar (focus) */
+.form-select:hover {
+    border-color: #80bdff;
+}
+
+.form-select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Un sombreado azul sutil */
+}
+
+/* 4. Contenedor para la flecha personalizada */
+/* Es común envolver el select en un div para posicionar la flecha */
+.select-wrapper {
+    position: relative;
+    display: inline-block; /* O block, dependiendo de tu diseño */
+    width: 250px; /* Ancho del contenedor */
+}
+
+/* 5. Flecha personalizada (usando un carácter o SVG) */
+.select-wrapper::after {
+    content: '▼'; /* Puedes usar un carácter Unicode (ej: ▼) o un SVG */
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    pointer-events: none; /* Asegura que se pueda hacer clic en el select */
+    color: #495057; /* Color de la flecha */
+    font-size: 12px;
+}

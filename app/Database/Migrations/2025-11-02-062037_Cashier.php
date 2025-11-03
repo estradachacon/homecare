@@ -46,6 +46,11 @@ class Cashier extends Migration
                 'default' => 0, // 0 = Cerrada, 1 = Abierta
                 'comment' => 'Estado de la caja: abierta o cerrada',
             ],
+            'user_id' => [
+                'type'           => 'INT',
+                'constraint'     => 5,
+                'unsigned'       => true,
+            ],
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
@@ -59,6 +64,7 @@ class Cashier extends Migration
         // 2. Definición de llaves
         $this->forge->addKey('id', true); // Primary Key
         $this->forge->addKey('branch_id'); // Index para búsquedas rápidas por sucursal
+        $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('branch_id', 'branches', 'id', 'CASCADE', 'CASCADE');
 
         // 3. Crear la tabla
@@ -72,6 +78,7 @@ class Cashier extends Migration
                 'initial_balance'   => 0.00,
                 'current_balance'   => 0.00,
                 'is_open'           => 0,
+                'user_id'          => 1,
                 'created_at'        => date('Y-m-d H:i:s'), 
                 'updated_at'        => date('Y-m-d H:i:s'), 
             ],
@@ -81,6 +88,7 @@ class Cashier extends Migration
                 'initial_balance'   => 1000.00, // Debe ser 1000.00, no 1,000.00
                 'current_balance'   => 0.00,
                 'is_open'           => 0,
+                'user_id'          => 2,
                 'created_at'        => date('Y-m-d H:i:s'),
                 'updated_at'        => date('Y-m-d H:i:s'),
             ],

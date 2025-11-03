@@ -9,7 +9,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
     <!-- App favicon -->
-    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
+
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.min.css" rel="stylesheet" type="text/css" />
@@ -35,6 +36,7 @@
 
     <script type="text/javascript">
         var _date_format = "d/m/Y";
+        var _report_table = "";
         var _backend_direction = "ltr";
         var _currency = "$";
 
@@ -297,7 +299,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/i18n/es.js"></script>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.9.2/parsley.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
 
@@ -319,8 +320,5 @@
 
         })(jQuery);
     </script>
-
-    <!-- Custom JS -->
-    <script src="<?= base_url('backend/assets/js/datatables/products-table.js') ?>"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Nombre de caja</th>
+                            <th>Nombre de caja || Usuario Asignado</th>
                             <th>Sucursal</th>
                             <th>Monto inicial</th>
                             <th>Monto actual</th>
@@ -30,7 +30,7 @@
                             <?php foreach ($cashiers as $cashier): ?>
                                 <tr>
                                     <td><?= esc($cashier->id) ?></td>
-                                    <td><?= esc($cashier->name) ?></td>
+                                    <td class="text-center"><?= esc($cashier->name) ?> || <?= esc($cashier->user_name) ?></td>
 
                                     <td><?= esc($cashier->branch_name) ?></td>
 

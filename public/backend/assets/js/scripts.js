@@ -1282,8 +1282,6 @@
 		],
 	});
 
-	report_table.buttons().container().appendTo('#DataTables_Table_0_wrapper .col-md-6:eq(0)');
-
 	var report_table_format2 = $(".report-table-format2").DataTable({
 		responsive: true,
 		"bAutoWidth": false,
@@ -1327,8 +1325,6 @@
 		]
 		
 	});
-	
-	report_table_format2.buttons().container().appendTo('#DataTables_Table_0_wrapper .col-md-6:eq(0)');
 
 
 	//General Settings Page
@@ -1804,8 +1800,6 @@ $('body').on('change', '.visualizar-imagen', function() {
 });
 
 
-
-
 // TAX SELECTED INVOICE, RETURN INVOICES
 
 function taxSelected(element, afectarPrecio = true){
@@ -2264,3 +2258,7 @@ function escapeForHTML(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 }
+
+    document.getElementById('initial_balance').addEventListener('blur', function() {
+    this.value = parseFloat(this.value).toFixed(2);
+});
