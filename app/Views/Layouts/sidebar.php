@@ -34,8 +34,6 @@
                                 <a class="nav-link" href="/cashiers">Lista de Cajas</a>
                                 <a class="nav-link" href="/cashiers/new">Creación de
                                     caja</a>
-                                <a class="nav-link" href="#/cash_movement">Movimientos de
-                                    caja</a>
                                 <a class="nav-link" href="#/cash_movement/create?cashmov_type=Closing">Corte
                                     de caja</a>
                             </nav>
@@ -174,7 +172,7 @@
                             </nav>
                         </div>
 
-                        <a class="nav-link" href="#/logs">
+                        <a class="nav-link" href="/logs">
                             <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
                         </a>
                     </div>

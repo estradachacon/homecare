@@ -38,4 +38,5 @@ $routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Das
     $routes->presenter('branches', ['controller' => 'BranchController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
     // Mantenimiento de sistema
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
+    $routes->get('logs', 'BitacoraController::index');
 });

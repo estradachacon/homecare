@@ -1,0 +1,380 @@
+ERROR - 2025-11-04 12:55:33 --> Error connecting to the database: mysqli_sql_exception: No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión in C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php:201
+Stack trace:
+#0 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(201): mysqli->real_connect('localhost', 'root', Object(SensitiveParameterValue), 'dbfc', 3306, '', 0)
+#1 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(419): CodeIgniter\Database\MySQLi\Connection->connect(false)
+#2 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(614): CodeIgniter\Database\BaseConnection->initialize()
+#3 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(1525): CodeIgniter\Database\BaseConnection->query('SHOW TABLES FRO...')
+#4 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(1545): CodeIgniter\Database\BaseConnection->listTables()
+#5 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(768): CodeIgniter\Database\BaseConnection->tableExists('migrations')
+#6 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(162): CodeIgniter\Database\MigrationRunner->ensureTable()
+#7 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\fcencomiendas\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+
+Next CodeIgniter\Database\Exceptions\DatabaseException: No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión in C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php:246
+Stack trace:
+#0 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(419): CodeIgniter\Database\MySQLi\Connection->connect(false)
+#1 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(614): CodeIgniter\Database\BaseConnection->initialize()
+#2 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(1525): CodeIgniter\Database\BaseConnection->query('SHOW TABLES FRO...')
+#3 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(1545): CodeIgniter\Database\BaseConnection->listTables()
+#4 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(768): CodeIgniter\Database\BaseConnection->tableExists('migrations')
+#5 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(162): CodeIgniter\Database\MigrationRunner->ensureTable()
+#6 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#7 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#8 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#9 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#10 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#11 C:\xampp\htdocs\fcencomiendas\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#12 {main}
+ERROR - 2025-11-04 12:56:06 --> mysqli_sql_exception: Table 'roles' already exists in C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(327): mysqli->query('CREATE TABLE `r...', 0)
+#1 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `r...')
+#2 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `r...')
+#3 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `r...')
+#4 C:\xampp\htdocs\fcencomiendas\app\Database\Migrations\2025-10-23-030738_Roles.php(39): CodeIgniter\Database\Forge->createTable('roles')
+#5 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(876): App\Database\Migrations\Roles->up()
+#6 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MigrationRunner.php(182): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+#7 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Commands\Database\Migrate.php(85): CodeIgniter\Database\MigrationRunner->latest(NULL)
+#8 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run(Array)
+#9 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', Array)
+#10 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(388): CodeIgniter\CLI\Console->run()
+#11 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(133): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+#12 C:\xampp\htdocs\fcencomiendas\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+#13 {main}
+DEBUG - 2025-11-04 12:56:45 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 12:56:51 --> CSRF token verified.
+DEBUG - 2025-11-04 12:56:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 12:56:51 --> Login attempt: gerente
+DEBUG - 2025-11-04 12:56:51 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 12:56:51 --> Password verify: true
+DEBUG - 2025-11-04 12:56:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 12:57:17 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 12:57:28 --> CSRF token verified.
+DEBUG - 2025-11-04 12:57:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 12:57:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 12:57:51 --> CSRF token verified.
+DEBUG - 2025-11-04 12:57:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 12:57:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 12:58:24 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:05:41 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:27:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:27:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 13:27:15 --> CSRF token verified.
+DEBUG - 2025-11-04 13:27:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:27:15 --> Login attempt: gerente
+DEBUG - 2025-11-04 13:27:15 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 13:27:15 --> Password verify: true
+CRITICAL - 2025-11-04 13:27:15 --> ErrorException: Undefined array key "name"
+[Method: POST, Route: login]
+in APPPATH\Controllers\AuthController.php on line 101.
+ 1 APPPATH\Controllers\AuthController.php(101): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "name"', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Controllers\\AuthController.php', 101)
+ 2 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\AuthController->login()
+ 3 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\AuthController))
+ 4 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 7 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 13:27:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 13:27:55 --> CSRF token verified.
+DEBUG - 2025-11-04 13:27:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:27:55 --> Login attempt: gerente
+DEBUG - 2025-11-04 13:27:55 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 13:27:55 --> Password verify: true
+DEBUG - 2025-11-04 13:27:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:50:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:50:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:54:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 13:54:48 --> CSRF token verified.
+DEBUG - 2025-11-04 13:54:48 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 13:54:48 --> Login attempt: gerente
+DEBUG - 2025-11-04 13:54:48 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 13:54:48 --> Password verify: true
+DEBUG - 2025-11-04 13:54:48 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:01:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:02:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-04 14:02:01 --> ErrorException: Undefined array key "user_name"
+[Method: GET, Route: logs]
+in APPPATH\Views\bitacora\index.php on line 25.
+ 1 APPPATH\Views\bitacora\index.php(25): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "user_name"', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\bitacora\\index.php', 25)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\bitacora\\index.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('bitacora/index', [], true)
+ 5 APPPATH\Controllers\BitacoraController.php(22): view('bitacora/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 14:02:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:05:25 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:06:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:16:20 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-11-04 14:16:20 --> mysqli_sql_exception: Unknown column 'users.name' in 'field list' in C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(327): mysqli->query('SELECT `bitacor...', 0)
+#1 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacor...')
+#2 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacor...')
+#3 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacor...', Array, false)
+#4 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+#5 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+#6 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+#7 C:\xampp\htdocs\fcencomiendas\app\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+#8 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+#9 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+#10 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#11 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(363): CodeIgniter\CodeIgniter->run()
+#12 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+#13 C:\xampp\htdocs\fcencomiendas\public\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+#14 {main}
+CRITICAL - 2025-11-04 14:16:20 --> CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'users.name' in 'field list'
+[Method: GET, Route: logs]
+in SYSTEMPATH\Database\BaseConnection.php on line 684.
+ 1 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 2 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 4 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 5 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-11-04 14:16:20 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'users.name' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 332.
+ 1 SYSTEMPATH\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 2 SYSTEMPATH\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 4 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 6 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 7 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 8 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 9 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+10 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-11-04 14:16:20 --> [Caused by] mysqli_sql_exception: Unknown column 'users.name' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 327.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(327): mysqli->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 5 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 7 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 8 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 9 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+10 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+11 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 14:16:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-11-04 14:16:52 --> mysqli_sql_exception: Unknown column 'users.name' in 'field list' in C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php:327
+Stack trace:
+#0 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(327): mysqli->query('SELECT `bitacor...', 0)
+#1 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacor...')
+#2 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacor...')
+#3 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacor...', Array, false)
+#4 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+#5 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+#6 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+#7 C:\xampp\htdocs\fcencomiendas\app\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+#8 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+#9 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+#10 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#11 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(363): CodeIgniter\CodeIgniter->run()
+#12 C:\xampp\htdocs\fcencomiendas\vendor\codeigniter4\framework\system\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+#13 C:\xampp\htdocs\fcencomiendas\public\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+#14 {main}
+CRITICAL - 2025-11-04 14:16:52 --> CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'users.name' in 'field list'
+[Method: GET, Route: logs]
+in SYSTEMPATH\Database\BaseConnection.php on line 684.
+ 1 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 2 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 4 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 5 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-11-04 14:16:52 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'users.name' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 332.
+ 1 SYSTEMPATH\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 2 SYSTEMPATH\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 4 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 6 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 7 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 8 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 9 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+10 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2025-11-04 14:16:52 --> [Caused by] mysqli_sql_exception: Unknown column 'users.name' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 327.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(327): mysqli->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(729): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(646): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT `bitacora_sistema`.*, `users`.`name` as `usuario`
+FROM `bitacora_sistema`
+LEFT JOIN `users` ON `users`.`id` = `bitacora_sistema`.`user_id`
+ORDER BY `bitacora_sistema`.`created_at` DESC
+ LIMIT 10', [], false)
+ 5 SYSTEMPATH\Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(677): CodeIgniter\Model->doFindAll(10, 0)
+ 7 SYSTEMPATH\BaseModel.php(1281): CodeIgniter\BaseModel->findAll(10, 0)
+ 8 APPPATH\Controllers\BitacoraController.php(22): CodeIgniter\BaseModel->paginate(10)
+ 9 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+10 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+11 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 14:17:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:36 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 14:17:47 --> CSRF token verified.
+DEBUG - 2025-11-04 14:17:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:47 --> Login attempt: gerente
+DEBUG - 2025-11-04 14:17:47 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 14:17:47 --> Password verify: true
+DEBUG - 2025-11-04 14:17:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 14:17:57 --> CSRF token verified.
+DEBUG - 2025-11-04 14:17:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:17:57 --> Login attempt: gerente
+DEBUG - 2025-11-04 14:17:57 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 14:17:57 --> Password verify: true
+DEBUG - 2025-11-04 14:17:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:18 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:18 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 14:18:38 --> CSRF token verified.
+DEBUG - 2025-11-04 14:18:38 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:38 --> Login attempt: gerente
+DEBUG - 2025-11-04 14:18:38 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 14:18:38 --> Password verify: true
+DEBUG - 2025-11-04 14:18:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-11-04 14:18:53 --> CSRF token verified.
+DEBUG - 2025-11-04 14:18:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:53 --> Login attempt: gerente
+DEBUG - 2025-11-04 14:18:53 --> User found: gerente@mail.com
+DEBUG - 2025-11-04 14:18:53 --> Password verify: true
+DEBUG - 2025-11-04 14:18:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:18:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:19:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:19:38 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:19:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-04 14:19:47 --> ErrorException: Undefined variable $bitacoraModel
+[Method: GET, Route: logs]
+in APPPATH\Views\bitacora\index.php on line 60.
+ 1 APPPATH\Views\bitacora\index.php(60): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined variable $bitacoraModel', 'C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\bitacora\\index.php', 60)
+ 2 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\bitacora\\index.php')
+ 3 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('bitacora/index', [], true)
+ 5 APPPATH\Controllers\BitacoraController.php(29): view('bitacora/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 7 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+ 8 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 14:20:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-11-04 14:20:32 --> CodeIgniter\Pager\Exceptions\PagerException: "bootstrap_full" is not a valid Pager template.
+[Method: GET, Route: logs]
+in SYSTEMPATH\Pager\Pager.php on line 124.
+ 1 SYSTEMPATH\Pager\Pager.php(124): CodeIgniter\Pager\Exceptions\PagerException::forInvalidTemplate('bootstrap_full')
+ 2 SYSTEMPATH\Pager\Pager.php(87): CodeIgniter\Pager\Pager->displayLinks('default', 'bootstrap_full')
+ 3 APPPATH\Views\bitacora\index.php(60): CodeIgniter\Pager\Pager->links('default', 'bootstrap_full')
+ 4 SYSTEMPATH\View\View.php(226): include('C:\\xampp\\htdocs\\fcencomiendas\\app\\Views\\bitacora\\index.php')
+ 5 SYSTEMPATH\View\View.php(229): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 6 SYSTEMPATH\Common.php(1167): CodeIgniter\View\View->render('bitacora/index', [], true)
+ 7 APPPATH\Controllers\BitacoraController.php(29): view('bitacora/index', [...])
+ 8 SYSTEMPATH\CodeIgniter.php(933): App\Controllers\BitacoraController->index()
+ 9 SYSTEMPATH\CodeIgniter.php(507): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\BitacoraController))
+10 SYSTEMPATH\CodeIgniter.php(354): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(363): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+DEBUG - 2025-11-04 14:20:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:26:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+DEBUG - 2025-11-04 14:26:18 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.

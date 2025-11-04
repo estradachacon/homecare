@@ -26,20 +26,20 @@ class AuthController extends BaseController
         $username = $this->request->getPost('username');
         $password = $this->request->getPost('password');
 
-    // DEBUG: Ver qué está llegando
-    log_message('debug', 'Login attempt: ' . $username);
-    
-    $user = $userModel->where('email', $username)
-                      ->orWhere('user_name', $username)
-                      ->first();
+        // DEBUG: Ver qué está llegando
+        log_message('debug', 'Login attempt: ' . $username);
 
-    // DEBUG: Ver si encontró usuario
-    if ($user) {
-        log_message('debug', 'User found: ' . $user['email']);
-        log_message('debug', 'Password verify: ' . (password_verify($password, $user['user_password']) ? 'true' : 'false'));
-    } else {
-        log_message('debug', 'User NOT found');
-    }
+        $user = $userModel->where('email', $username)
+            ->orWhere('user_name', $username)
+            ->first();
+
+        // DEBUG: Ver si encontró usuario
+        if ($user) {
+            log_message('debug', 'User found: ' . $user['email']);
+            log_message('debug', 'Password verify: ' . (password_verify($password, $user['user_password']) ? 'true' : 'false'));
+        } else {
+            log_message('debug', 'User NOT found');
+        }
 
 
         // Validaciones básicas
@@ -92,8 +92,15 @@ class AuthController extends BaseController
             'isLoggedIn' => true, // Cambiado para coincidir con tu filtro original
             'logged_in' => true   // O mantener este y cambiar el filtro
         ];
-        
+
         $session->set($sessionData);
+
+        registrar_bitacora(
+            'Iniciar sesión',
+            'Autenticacion',
+            'El usuario ' . $user['user_name'] . ' inició sesión.',
+            $user['id']
+        );
 
         return $this->response->setJSON([
             'success' => true,
@@ -106,9 +113,19 @@ class AuthController extends BaseController
     {
         $session = session();
         $session->destroy();
+
+        $user_id = session('user_id');
+        $user_name = session('user_name');
+
+        registrar_bitacora(
+            'Cerrar sesión',
+            'Autenticacion',
+            'El usuario ' . $user_name . ' cerró sesión.',
+            $user_id
+        );
         return redirect()->to('/');
     }
-    
+
     // Método para mostrar el formulario de login
     public function showLogin()
     {
