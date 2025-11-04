@@ -30,7 +30,8 @@ $routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Das
         $routes->post('generate', 'ReportController::generate');
     }); 
     // Mantenimientos de cajas
-    $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'show', 'new', 'create', 'edit', 'update', 'delete']]);
+    $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'show', 'new', 'create', 'edit', 'update']]);
+    $routes->post('cashiers/delete', 'CashierController::delete');
     // Módulo de mantenimiento de usuarios
     $routes->presenter('users', ['controller' => 'UserController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
     // Módulo de mantenimiento de sucursales

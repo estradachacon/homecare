@@ -60,12 +60,16 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <a href="<?= base_url('cashier/show/' . $cashier->id) ?>" class="btn btn-sm btn-primary"
+                                        <a href="<?= base_url('cashiers/show/' . $cashier->id) ?>" class="btn btn-sm btn-primary"
                                             title="Ver"><i class="fa-solid fa-eye"></i></a>
-                                        <a href="<?= base_url('cashier/edit/' . $cashier->id) ?>" class="btn btn-sm btn-info"
+                                        <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>" class="btn btn-sm btn-info"
                                             title="Editar"><i class="fa-solid fa-edit"></i></a>
-                                        <button class="btn btn-sm btn-danger" title="Eliminar"><i
-                                                class="fa-solid fa-trash"></i></button>
+                                        <button
+                                            class="btn btn-danger btn-sm delete-btn"
+                                            data-id="<?= $cashier->id ?>"
+                                            type="button">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -76,5 +80,65 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: 'Esta acción no se puede deshacer.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                        const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
+
+                        fetch("<?= base_url('cashiers/delete') ?>", {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    [csrfHeader]: csrfToken // 👈 se envía el token CSRF
+                                },
+                                body: new URLSearchParams({
+                                    id: id
+                                })
+                            })
+
+                            .then(response => response.json())
+                            .then(data => {
+                                Swal.fire({
+                                    title: data.status === 'success' ? 'Éxito' : 'Error',
+                                    text: data.message,
+                                    icon: data.status,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+
+                                if (data.status === 'success') {
+                                    // Opcional: eliminar la fila visualmente sin recargar
+                                    const row = button.closest('tr');
+                                    if (row) row.remove();
+                                }
+                            })
+                            .catch(err => {
+                                Swal.fire('Error', 'Ocurrió un problema en la petición.', 'error');
+                            });
+                    }
+                });
+            });
+        });
+    });
+</script>
+
 
 <?= $this->endSection() ?>

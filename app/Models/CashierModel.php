@@ -11,7 +11,7 @@ class CashierModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'object';
     protected $protectFields    = true;
-    protected $allowedFields    = ['branch_id', 'name', 'initial_balance', 'current_balance', 'is_open'];
+    protected $allowedFields    = ['branch_id', 'name', 'initial_balance', 'current_balance', 'is_open', 'user_id'];
 
     // Dates
     protected $useTimestamps = true;

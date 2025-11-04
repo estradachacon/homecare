@@ -32,7 +32,7 @@
                         <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                             <nav class="sb-sidenav-menu-nested nav">
                                 <a class="nav-link" href="/cashiers">Lista de Cajas</a>
-                                <a class="nav-link" href="#/cash">Creación de
+                                <a class="nav-link" href="/cashiers/new">Creación de
                                     caja</a>
                                 <a class="nav-link" href="#/cash_movement">Movimientos de
                                     caja</a>

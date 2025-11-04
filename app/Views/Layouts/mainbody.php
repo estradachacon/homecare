@@ -7,6 +7,9 @@
     <title>FC Encomiendas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="csrf-token" content="<?= csrf_hash() ?>">
+    <meta name="csrf-header" content="<?= csrf_header() ?>">
+
 
     <!-- App favicon -->
     <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
@@ -262,7 +265,7 @@
         <!--End layoutSidenav_content-->
     </div>
     <!--End layoutSidenav-->
-
+    <?= $this->include('/layouts/toast') ?>
     <!-- Core Js  -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 4  -->
@@ -309,7 +312,7 @@
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        (function ($) {
+        (function($) {
 
             "use strict";
 
@@ -321,4 +324,5 @@
         })(jQuery);
     </script>
 </body>
+
 </html>
