@@ -57,7 +57,7 @@
     </div>
 
     <div class="d-flex justify-content-center mt-3">
-        <?= $pager->links() ?>
+        <?= $pager->links('default', 'bitacora_pagination') ?>
     </div>
 </div>
 

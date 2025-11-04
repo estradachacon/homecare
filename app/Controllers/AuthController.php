@@ -98,7 +98,7 @@ class AuthController extends BaseController
         registrar_bitacora(
             'Iniciar sesión',
             'Autenticacion',
-            'El usuario ' . $user['user_name'] . ' inició sesión.',
+            'Inició sesión.',
             $user['id']
         );
 
@@ -120,7 +120,7 @@ class AuthController extends BaseController
         registrar_bitacora(
             'Cerrar sesión',
             'Autenticacion',
-            'El usuario ' . $user_name . ' cerró sesión.',
+            'Cerró sesión.',
             $user_id
         );
         return redirect()->to('/');

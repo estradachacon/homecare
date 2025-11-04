@@ -2259,6 +2259,11 @@ function escapeForHTML(str) {
         .replace(/>/g, '&gt;');
 }
 
-    document.getElementById('initial_balance').addEventListener('blur', function() {
-    this.value = parseFloat(this.value).toFixed(2);
-});
+const initialBalance = document.getElementById('initial_balance');
+if (initialBalance) {
+    initialBalance.addEventListener('blur', function() {
+        if (this.value !== '') {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+    });
+}

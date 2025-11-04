@@ -270,24 +270,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Print.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js"
-        integrity="sha512-TKv+3cU8+2TrA6+6QbqR1hDXAhW/YPihLeIhK4P7Z4o+F1HgK0B3bxivXPV6d0+7bt4aZCkNpqFsC0mfFtYDXA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!-- Pace.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"
-        integrity="sha512-ihOkl4Ox8aTz6q7AD5xKGl6RZQ5Q9FvhToiLrP8FXbMtk7FbJFSVv21A9Te7EXv+T3Fg9vbvKUZejb2mEXH+WQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!-- Clipboard.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"
-        integrity="sha512-VzH/jE6mSwNjNlAof3wFECXZJ81E0T2IzfI5wz3rDyM8X/oU2sja3xuv4eQ8A2UoD4EEmrEPhnUB4G0gNrbKfA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <!-- Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"
-        integrity="sha512-Q4nH9nkwd4KXjX4E3n4H1Z6XoPwaF+79iRyJ6RZz0p+Gx9A0OrMxGuNEm6ZQej+mrp1f3KxIolC0mG4HkZgVvQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/es.min.js"></script>
 
 
     <!-- Datatable js -->
