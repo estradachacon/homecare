@@ -60,6 +60,8 @@ class CashierController extends Controller
      */
     public function create()
     {
+        helper(['form']);
+        $session = session();
         $data = [
             'name' => $this->request->getPost('name'),
             'initial_balance' => $this->request->getPost('initial_balance'),
@@ -68,7 +70,12 @@ class CashierController extends Controller
         ];
 
         $this->cashierModel->insert($data);
-
+        registrar_bitacora(
+            'Crear caja',
+            'Caja',
+            'Se creó una nueva caja.',
+            $session->get('user_id')
+        );
         return redirect()->to('/cashiers')->with('success', 'Caja creada exitosamente.');
     }
 
@@ -107,6 +114,8 @@ class CashierController extends Controller
      */
 public function update($id)
 {
+    helper(['form']);
+    $session = session();
     // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
     if (!$this->validate([
         'name' => 'required|min_length[3]|max_length[100]',
@@ -129,7 +138,12 @@ public function update($id)
     ];
 
     $this->cashierModel->update($id, $data);
-
+    registrar_bitacora(
+        'Editar caja',
+        'Caja',
+        'Se editó la caja con ID ' . esc($id) . '.',
+        $session->get('user_id')
+    );
     return redirect()->to('/cashiers')->with('success', 'Caja actualizada exitosamente.');
 }
 
