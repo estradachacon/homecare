@@ -265,7 +265,7 @@
         <!--End layoutSidenav_content-->
     </div>
     <!--End layoutSidenav-->
-    <?= $this->include('/layouts/toast') ?>
+    <?= $this->include('layouts/toast') ?>
     <!-- Core Js  -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 4  -->
