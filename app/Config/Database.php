@@ -50,7 +50,7 @@ class Database extends Config
             'time'     => 'H:i:s',
         ],
         'options'  => [
-            'SET time_zone' => 'America/El_Salvador',
+            MYSQLI_INIT_COMMAND => "SET time_zone = '-06:00'",
         ],
     ];
 
