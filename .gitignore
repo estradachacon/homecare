@@ -78,3 +78,8 @@ _modules/*
 
 /results/
 /phpunit*.xml
+
+# Ignorar archivos de entorno
+app/Config/App.php
+.env
+.env.*
