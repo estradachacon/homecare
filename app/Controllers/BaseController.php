@@ -52,7 +52,22 @@ abstract class BaseController extends Controller
         parent::initController($request, $response, $logger);
 
         // Preload any models, libraries, etc, here.
-        date_default_timezone_set(config('App')->appTimezone);
-        // E.g.: $this->session = service('session');
+        date_default_timezone_set('America/El_Salvador');
+
+        // 2) Forzar timezone en la conexión MySQL a -06:00 (más fiable en hosting compartido)
+        $db = \Config\Database::connect();
+
+        // simpleQuery funciona tanto para MySQLi como PDO en CI4
+        $db->simpleQuery("SET time_zone = '-06:00'");
+
+        // (Opcional) comprobar qué hora devuelve la BD y registrar en logs
+        try {
+            $row = $db->query("SELECT NOW() AS mysql_now")->getRow();
+            if ($row) {
+                log_message('info', 'MySQL NOW after SET time_zone: ' . $row->mysql_now);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error comprobando time_zone en la BD: ' . $e->getMessage());
+        }
     }
 }
