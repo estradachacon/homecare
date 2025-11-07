@@ -167,6 +167,9 @@
                     <nav class="sb-sidenav-menu-nested nav">
                         <a class="nav-link" href="users">Lista de usuarios</a>
                     </nav>
+                    <nav class="sb-sidenav-menu-nested nav">
+                        <a class="nav-link" href="roles">Roles</a>
+                    </nav>
                 </div>
 
                 <a class="nav-link" href="/logs">

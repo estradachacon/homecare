@@ -88,3 +88,4 @@ app/Config/App.php
 writable/logs/
 writable/session/
 writable/debugbar/
+
