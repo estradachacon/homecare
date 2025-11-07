@@ -16,9 +16,19 @@ $RECYCLE.BIN/
 # These should never be under version control,
 # as it poses a security risk.
 
+.env
+.env.*
+app/Config/App.php
+
 #-------------------------
-# Temporary Files
+# Temporary / Writable Files
 #-------------------------
+writable/logs/
+writable/session/
+writable/debugbar/
+writable/cache/
+writable/uploads/
+writable/temp/
 
 #-------------------------
 # User Guide Temp Files
@@ -32,29 +42,23 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 # Test Files
 #-------------------------
 tests/coverage*
-
-# Don't save phpunit under version control.
 phpunit
+/results/
+/phpunit*.xml
 
 #-------------------------
 # Composer
 #-------------------------
+vendor/
+composer.lock
 
 #-------------------------
 # IDE / Development Files
 #-------------------------
-
-# Modules Testing
 _modules/*
-
-# phpenv local config
 .php-version
-
-# Jetbrains editors (PHPStorm, etc)
 .idea/
 *.iml
-
-# NetBeans
 /nbproject/
 /build/
 /nbbuild/
@@ -63,8 +67,6 @@ _modules/*
 /nbactions.xml
 /nb-configuration.xml
 /.nb-gradle/
-
-# Sublime Text
 *.tmlanguage.cache
 *.tmPreferences.cache
 *.stTheme.cache
@@ -72,19 +74,4 @@ _modules/*
 *.sublime-project
 .phpintel
 /api/
-
-# Visual Studio Code
-.vscode/
-
-/results/
-/phpunit*.xml
-
-# Ignorar archivos de entorno
-app/Config/App.php
-.env
-.env.*
-
-# Ignorar logs y sesiones
-writable/logs/
-writable/session/
-writable/debugbar/
+/.vscode/
