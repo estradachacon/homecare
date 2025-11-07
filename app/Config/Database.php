@@ -49,6 +49,9 @@ class Database extends Config
             'datetime' => 'Y-m-d H:i:s',
             'time'     => 'H:i:s',
         ],
+        'options'  => [
+            'SET time_zone' => 'America/El_Salvador',
+        ],
     ];
 
     //    /**
