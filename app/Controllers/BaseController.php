@@ -56,9 +56,7 @@ abstract class BaseController extends Controller
 
         // 2) Forzar timezone en la conexión MySQL a -06:00 (más fiable en hosting compartido)
         $db = \Config\Database::connect();
-
-        // simpleQuery funciona tanto para MySQLi como PDO en CI4
-        $db->simpleQuery("SET time_zone = '-06:00'");
+        $db->query("SET time_zone = '-06:00'");
 
         // (Opcional) comprobar qué hora devuelve la BD y registrar en logs
         try {

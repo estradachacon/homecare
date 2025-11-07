@@ -16,6 +16,8 @@ if (!function_exists('registrar_bitacora')) {
             'referencia_id' => $referencia_id,
             'ip_address'   => $request->getIPAddress(),
             'user_agent'   => $request->getUserAgent()->getAgentString(),
+            'created_at'  => date('Y-m-d H:i:s'), // Hora local correcta
+            'updated_at'  => date('Y-m-d H:i:s'), // Hora local correcta
         ]);
         $db = \Config\Database::connect();
         $row = $db->query("SELECT @@session.time_zone AS tz, NOW() AS hora")->getRow();
