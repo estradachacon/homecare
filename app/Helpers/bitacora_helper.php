@@ -13,9 +13,12 @@ if (!function_exists('registrar_bitacora')) {
             'accion'       => $accion,
             'modulo'       => $modulo,
             'descripcion'  => $descripcion,
-            'referencia_id'=> $referencia_id,
+            'referencia_id' => $referencia_id,
             'ip_address'   => $request->getIPAddress(),
             'user_agent'   => $request->getUserAgent()->getAgentString(),
         ]);
+        $db = \Config\Database::connect();
+        $row = $db->query("SELECT @@session.time_zone AS tz, NOW() AS hora")->getRow();
+        log_message('info', "Bitácora timezone actual: {$row->tz} — Hora: {$row->hora}");
     }
 }
