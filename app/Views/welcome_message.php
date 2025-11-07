@@ -349,6 +349,7 @@
     <div class="further">
 
         <section>
+            <?php echo 'Hora actual del servidor: ' . date('Y-m-d H:i:s');?>
 
             <h1>Nuestras redes sociales</h1>
 
