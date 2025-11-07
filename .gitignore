@@ -83,3 +83,8 @@ _modules/*
 app/Config/App.php
 .env
 .env.*
+
+# Ignorar logs y sesiones
+writable/logs/
+writable/session/
+writable/debugbar/

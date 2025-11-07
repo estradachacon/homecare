@@ -1,8 +1,0 @@
-CRITICAL - 2025-10-24 06:16:07 --> ErrorException: date_default_timezone_set(): Timezone ID 'CST' is invalid
-[Method: GET, Route: /]
-in SYSTEMPATH\CodeIgniter.php on line 192.
- 1 [internal function]: CodeIgniter\Debug\Exceptions->errorHandler(8, 'date_default_timezone_set(): Timezone ID \'CST\' is invalid', 'C:\\xampp\\htdocs\\fcencomiendas\\vendor\\codeigniter4\\framework\\system\\CodeIgniter.php', 192)
- 2 SYSTEMPATH\CodeIgniter.php(192): date_default_timezone_set('CST')
- 3 SYSTEMPATH\Boot.php(350): CodeIgniter\CodeIgniter->initialize()
- 4 SYSTEMPATH\Boot.php(67): CodeIgniter\Boot::initializeCodeIgniter()
- 5 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
