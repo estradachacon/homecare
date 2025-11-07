@@ -52,7 +52,7 @@ abstract class BaseController extends Controller
         parent::initController($request, $response, $logger);
 
         // Preload any models, libraries, etc, here.
-        date_default_timezone_set('America/El_Salvador');
+        date_default_timezone_set(config('App')->appTimezone);
         // E.g.: $this->session = service('session');
     }
 }
