@@ -85,8 +85,15 @@ _modules/*
 app/Config/App.php
 .env
 .env.*
+env
+envBK
 
 # Ignorar logs y sesiones
+writable/*
+!writable/.htaccess
 writable/logs/
 writable/session/
 writable/debugbar/
+public/error_log
+public/info.php
+.gitignore copy
