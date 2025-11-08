@@ -96,4 +96,4 @@ writable/session/
 writable/debugbar/
 public/error_log
 public/info.php
-.gitignore copy
+.gitignore copy.htaccess
