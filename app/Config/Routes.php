@@ -10,11 +10,11 @@ $routes->get('/', 'Home::index');
 $routes->post('/login', 'AuthController::login');
 $routes->get('/logout', 'AuthController::logout');
 
-$routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Dashboard (requiere autenticación)
+$routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Dashboard (requiere autenticación)
     $routes->get('/dashboard', 'DashboardController::index'); // Página principal del dashboard
-    
+
     // Módulo de Pedidos
-    $routes->group('orders', function($routes) {
+    $routes->group('orders', function ($routes) {
         $routes->resource('orders', [
             'controller' => 'OrderController'
         ]);
@@ -22,13 +22,13 @@ $routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Das
         $routes->get('(:num)/invoice', 'OrderController::invoice/$1');
         $routes->post('(:num)/cancel', 'OrderController::cancel/$1');
     });
-    
+
     // Módulo de Reportes
-    $routes->group('reports', function($routes) {
+    $routes->group('reports', function ($routes) {
         $routes->get('sales', 'ReportController::sales');
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
-    }); 
+    });
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'show', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
@@ -41,5 +41,7 @@ $routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Das
     $routes->get('logs', 'BitacoraController::index');
     $routes->resource('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->get('sellers/search', 'SellerController::search');
     $routes->post('sellers/delete', 'SellerController::delete');
+    $routes->post('sellers/create-ajax', 'SellerController::createAjax');
 });

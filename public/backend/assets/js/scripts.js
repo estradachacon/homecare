@@ -2267,3 +2267,12 @@ if (initialBalance) {
         }
     });
 }
+
+    // Calcular flete pendiente en tiempo real
+    document.addEventListener('input', function() {
+        const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
+        const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
+        document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
+    });
+
+	

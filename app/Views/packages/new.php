@@ -1,5 +1,32 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+/* Estilo solo para el select2 del vendedor */
+#seller_id + .select2-container--bootstrap4 .select2-selection {
+    display: flex !important;
+    align-items: center;
+    height: calc(2.5rem + 2px) !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    color: #212529 !important;
+    background-color: #fff !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+/* Placeholder */
+#seller_id + .select2-container--bootstrap4 .select2-selection__placeholder {
+    color: #6c757d !important;
+}
+
+/* Focus igual que input de Bootstrap */
+#seller_id + .select2-container--bootstrap4.select2-container--focus .select2-selection {
+    border-color: #86b7fe !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+</style>
 
 <div class="row">
     <div class="col-md-12">
@@ -13,10 +40,13 @@
                     <?= csrf_field() ?>
 
                     <div class="row g-3">
-                        <!-- Vendedor -->
-                        <div class="col-md-6">
-                            <label class="form-label">Vendedor</label>
-                            <input type="text" name="vendedor" class="form-control" required>
+                        <!-- Select del vendedor -->
+                        <div class="col-md-6 mb-3">
+                            <label for="seller_id" class="form-label">Vendedor</label>
+                            <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;">
+                                <option value=""></option> 
+                            </select>
+                            <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
                         </div>
 
                         <!-- Cliente -->
@@ -150,12 +180,146 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form id="formCreateSeller">
+            <?= csrf_field() ?>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear nuevo vendedor</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="seller">Nombre</label>
+                        <input type="text" id="seller" name="seller" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tel_seller">Teléfono</label>
+                        <input type="text" id="tel_seller" name="tel_seller" class="form-control" minlength="8">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    // Calcular flete pendiente en tiempo real
-    document.addEventListener('input', function () {
-        const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
-        const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
-        document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
+
+</script>
+
+<script>
+    $('#formCreateSeller').on('submit', function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: '<?= base_url('sellers/create-ajax') ?>',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#modalCreateSeller').modal('hide');
+
+                    // Insertar vendedor en el select2 y seleccionarlo
+                    let newOption = new Option(response.data.text, response.data.id, true, true);
+                    $('#seller_id').append(newOption).trigger('change');
+
+                    Swal.fire('Éxito', 'Vendedor creado y seleccionado.', 'success');
+                } else {
+                    Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
+            }
+        });
+    });
+</script>
+<script>
+    window.addEventListener('load', function() {
+        
+        // Inicializar Select2
+        $('#seller_id').select2({
+            theme: 'bootstrap4',
+            placeholder: '🔍 Buscar vendedor...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('sellers/search') ?>', // <-- corregido
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data, params) {
+                    let results = data || [];
+
+                    // Si no hay resultados, mostrar opción para crear nuevo
+                    if (results.length === 0 && params.term && params.term.trim() !== '') {
+                        results.push({
+                            id: 'create_new',
+                            text: '➕ Crear nuevo vendedor'
+                        });
+                    }
+
+                    return {
+                        results: results
+                    };
+                },
+
+                cache: true
+            },
+            language: {
+                inputTooShort: () => 'Escribí para buscar...',
+                searching: () => 'Buscando...',
+                noResults: () => 'No se encontraron vendedores'
+            }
+        });
+
+        // Si selecciona "Crear nuevo vendedor"
+        $('#seller_id').on('select2:select', function(e) {
+            const selected = e.params.data;
+            if (selected.id === 'create_new') {
+                $('#seller_id').val(null).trigger('change');
+                $('#modalCreateSeller').modal('show');
+            }
+        });
+
+        // Guardar nuevo vendedor vía AJAX
+        $('#formCreateSeller').on('submit', function(e) {
+            e.preventDefault();
+
+            $.ajax({
+                url: '<?= base_url('sellers/create-ajax') ?>',
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $('#modalCreateSeller').modal('hide');
+
+                        const newOption = new Option(response.data.text, response.data.id, true, true);
+                        $('#seller_id').append(newOption).trigger('change');
+
+                        Swal.fire('Éxito', 'Vendedor creado y seleccionado.', 'success');
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
+                }
+            });
+        });
     });
 </script>
 

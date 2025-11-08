@@ -140,41 +140,6 @@
 </head>
 
 <body class="sb-nav-fixed">
-    <!-- Main Modal -->
-    <div id="main_modal" class="modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title mt-0"></h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="alert alert-danger d-none m-3"></div>
-                <div class="alert alert-primary d-none m-3"></div>
-                <div class="modal-body overflow-hidden"></div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Secondary Modal -->
-    <div id="secondary_modal" class="modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title mt-0 text-dark"></h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="alert alert-danger d-none m-3"></div>
-                <div class="alert alert-primary d-none m-3"></div>
-                <div class="modal-body overflow-hidden"></div>
-            </div>
-        </div>
-    </div>
-
     <!-- Preloader area start -->
     <div id="preloader">
         <div class="loader"></div>
@@ -279,11 +244,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
 
     <!-- App js -->
-    <script src="<?= base_url('backend/assets/js/scripts.js') ?>"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/TableDnD/0.9.1/jquery.tablednd.js"
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script>
 
+    <script src="<?= base_url('backend/assets/js/scripts.js') ?>"></script>
     <script type="text/javascript">
         (function($) {
 

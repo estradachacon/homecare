@@ -106,7 +106,7 @@ class SellerController extends BaseController
         return redirect()->to('/sellers')->with('success', 'Vendedor actualizado exitosamente.');
     }
 
-        public function delete()
+    public function delete()
     {
         helper(['form']);
         $session = session();
@@ -128,5 +128,80 @@ class SellerController extends BaseController
         }
 
         return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el vendedor.']);
+    }
+    public function search()
+    {
+        $term = trim($this->request->getGet('q') ?? '');
+
+        // Si el usuario no escribió nada, devolvemos un array vacío
+        if ($term === '') {
+            return $this->response->setJSON(['results' => []]);
+        }
+
+        $sellerModel = new SellerModel();
+
+        $results = $sellerModel
+            ->groupStart()
+            ->like('seller', $term)
+            ->orLike('id', $term)
+            ->groupEnd()
+            ->select('id, seller')
+            ->limit(10)
+            ->findAll();
+
+        $data = [];
+        foreach ($results as $row) {
+            $data[] = [
+                'id' => $row->id,
+                'text' => $row->seller,
+            ];
+        }
+
+        return $this->response->setJSON($data);
+    }
+
+
+public function createAjax()
+    {
+        $sellerModel = new SellerModel();
+        $session = session();
+        $data = [
+            'seller' => $this->request->getPost('seller'),
+            'telefono' => $this->request->getPost('tel_seller'),
+        ];
+
+        if (empty($data['seller'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'El nombre del vendedor es obligatorio.'
+            ]);
+        }
+
+        try {
+            $id = $sellerModel->insert($data);
+
+            if (!$id) {
+                throw new \Exception('No se pudo guardar el vendedor.');
+            }
+            registrar_bitacora(
+                'Creación de vendedor',
+                'Paquetería',
+                'Se creó el vendedor ' . esc($data['seller']) . ' en el registro de paquete.',
+                $session->get('user_id')
+            );
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => [
+                    'id' => $id,
+                    'text' => $data['seller']
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }

@@ -5,10 +5,11 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\PackageModel;
+use App\Models\SellerModel;
 
 class PackageController extends BaseController
 {
-protected $packageModel;
+    protected $packageModel;
 
     public function __construct()
     {
