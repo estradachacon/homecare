@@ -19,7 +19,7 @@
             <div class="nav">
                 <div class="sb-sidenav-menu-heading">NAVEGACION</div>
 
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="/dashboard">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-house"></i></div>
                     Menú General
                 </a>

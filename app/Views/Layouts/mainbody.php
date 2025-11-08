@@ -185,7 +185,7 @@
     <!--Header Nav-->
     <nav class="sb-topnav navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
         <div class="container-fluid">
-            <a class="navbar-brand text-md-center" href="#/dashboard">FC
+            <a class="navbar-brand text-md-center" href="/dashboard">FC
                 Encomiendas</a>
             <button class="btn btn-link btn-sm mr-auto" id="sidebarToggle" href="#">
                 <div class="lines">
@@ -216,7 +216,8 @@
                     </span>
 
                     <!-- 3. Imagen de Perfil -->
-                    <img src="<?= base_url('upload/profile/user.jpg') ?>" alt="user-image" height="42" class="rounded-circle shadow-sm">
+                    <img src="<?= base_url('upload/profile/user.jpg') ?>" alt="user-image" height="42"
+                        class="rounded-circle shadow-sm">
                 </a>
 
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
@@ -294,7 +295,7 @@
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        (function($) {
+        (function ($) {
 
             "use strict";
 
