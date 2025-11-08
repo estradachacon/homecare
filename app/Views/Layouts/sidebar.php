@@ -1,5 +1,5 @@
 <div id="layoutSidenav_nav">
-    <span class="close-mobile-nav"><i class="ti-close"></i></span>
+    <span class="close-mobile-nav"><i class="fa-solid fa-close"></i></span>
     <nav class="sb-sidenav accordion sb-sidenav-light" id="sidenavAccordion">
 
         <div class="sidebar-user">
