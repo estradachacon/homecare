@@ -27,9 +27,9 @@ class Database extends Config
     public array $default = [
         'DSN'          => '',
         'hostname'     => 'localhost',
-        'username'     => 'carytel_fcdb',
-        'password'     => 'Aleluya:_3',
-        'database'     => 'carytel_fcdb',
+        'username'     => 'root',
+        'password'     => '',
+        'database'     => 'dbfc',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,

@@ -29,4 +29,9 @@ protected $packageModel;
         }
         return view('packages/show', $data);
     }
+
+    public function new()
+    {
+        return view('packages/new');
+    }
 }

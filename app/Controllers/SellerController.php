@@ -54,40 +54,79 @@ class SellerController extends BaseController
         return redirect()->to('/sellers')->with('success', 'Vendedor creado correctamente.');
     }
 
-    public function delete($id = null)
+    public function edit($id)
+    {
+        // 1. Obtener la caja a editar
+        $seller = $this->sellerModel->find($id);
+
+        if (!$seller) {
+            return redirect()->to('/sellers')->with('error', 'Vendedor no encontrado.');
+        }
+
+        $data = [
+            'sellers' => $seller,
+        ];
+
+        // Se asume que tienes una vista en 'seller/edit'
+        return view('sellers/edit', $data);
+    }
+
+    /**
+     * Procesa y actualiza los datos de la caja.
+     * @param int $id El ID de la caja a actualizar (viene del segmento de la URL).
+     */
+    public function update($id)
     {
         helper(['form']);
         $session = session();
-        $sellerModel = new SellerModel();
-
-        // ✅ Detecta si es una petición AJAX
-        if ($this->request->isAJAX()) {
-            if (!$id || !$sellerModel->find($id)) {
-                return $this->response->setStatusCode(404)
-                    ->setJSON(['status' => 'error', 'message' => 'Vendedor no encontrado.']);
-            }
-
-            $sellerModel->delete($id);
-            registrar_bitacora(
-                'Borrar vendedor',
-                'Vendedores',
-                'Borró el vendedor con ID ' . esc($id) . '.',
-                $session->get('user_id')
-            );
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Vendedor eliminado correctamente.'
-            ]);
+        // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
+        if (!$this->validate([
+            'seller' => 'required|min_length[3]|max_length[100]',
+            'tel_seller' => 'required|numeric',
+        ])) {
+            // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
+            return redirect()->back()
+                ->withInput() // Mantiene los datos que el usuario ingresó
+                ->with('errors', $this->validator->getErrors()); // Envía los errores a la vista
         }
 
-        // 🚪 Si llega por método DELETE tradicional (por formulario, no AJAX)
-        $sellerModel->delete($id);
+        // 3. Si la validación es exitosa, se procede a la actualización
+        $data = [
+            'seller' => $this->request->getPost('seller'),
+            'tel_seller' => $this->request->getPost('tel_seller'),
+        ];
+
+        $this->sellerModel->update($id, $data);
+        registrar_bitacora(
+            'Se editó vendedor',
+            'Vendedores',
+            'Se editó el vendedor con ID ' . esc($id) . '.',
+            $session->get('user_id')
+        );
+        return redirect()->to('/sellers')->with('success', 'Vendedor actualizado exitosamente.');
+    }
+
+        public function delete()
+    {
+        helper(['form']);
+        $session = session();
+        $id = $this->request->getPost('id');
+        $cashierModel = new SellerModel();
+
+        if (!$id) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'ID inválido.']);
+        }
+
+        if ($cashierModel->delete($id)) {
             registrar_bitacora(
-                'Borrar vendedor',
+                'Eliminó vendedor',
                 'Vendedores',
-                'Borró el vendedor con ID ' . esc($id) . '.',
+                'Se eliminó el vendedor con ID ' . esc($id) . '.',
                 $session->get('user_id')
             );
-        return redirect()->to('/sellers')->with('success', 'Vendedor eliminado correctamente.');
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Registro de vendedor eliminado correctamente.']);
+        }
+
+        return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el vendedor.']);
     }
 }

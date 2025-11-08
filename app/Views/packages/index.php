@@ -6,7 +6,7 @@
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Paquetes</h4>
                 <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('packages/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Crear paquete</a>
+                        class="fa-solid fa-plus"></i> Nuevo</a>
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered table-hover">

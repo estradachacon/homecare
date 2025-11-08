@@ -11,7 +11,7 @@
 
                 <img class="logo" src="<?= base_url('img/logo.jpg') ?>" alt="logo-company" height="60"
                     class="shadow-sm">
-                <span class="sidebar-user-name">Casa Matriz</span>
+                <a class="nav-link text-dark"><?= esc($session->get('branch_name') ?? 'N/A') ?></a>
             </a>
         </div>
 

@@ -183,62 +183,52 @@
     <!-- Preloader area end -->
 
     <!--Header Nav-->
-    <nav class="sb-topnav navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
-        <div class="container-fluid">
-            <a class="navbar-brand text-md-center" href="/dashboard">FC
-                Encomiendas</a>
-            <button class="btn btn-link btn-sm mr-auto" id="sidebarToggle" href="#">
-                <div class="lines">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </button>
+    <nav class="navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
+        <div class="container-fluid d-flex justify-content-between">
 
-            <ul class="navbar-nav ml-auto ml-md-0">
-                <li class="nav-item dropdown animate-dropdown">
-                    <a class="nav-link text-white"><?= esc($session->get('branch_name') ?? 'N/A') ?></a>
-        </div>
-        </li>
-        </ul>
-
-        <ul class="navbar-nav ml-auto ml-md-0">
-            <li class="nav-item dropdown animate-dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center text-white" data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false">
-
-                    <!-- 1. Ícono de Usuario (con margen derecho para separarlo del nombre) -->
-                    <i class="fa-solid fa-user mr-2"></i>
-
-                    <!-- 2. Nombre del Usuario (envuelto en span para control) -->
-                    <span class="badge badge-primary mr-3 p-2 font-weight-large">
-                        <?= esc($session->get('user_name') ?? 'N/A') ?>
-                    </span>
-
-                    <!-- 3. Imagen de Perfil -->
-                    <img src="<?= base_url('upload/profile/user.jpg') ?>" alt="user-image" height="42"
-                        class="rounded-circle shadow-sm">
+            <!-- 🔹 IZQUIERDA: Logo + botón sidebar -->
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand mb-0 h5 mr-3" href="/dashboard">
+                    <strong>FC Encomiendas</strong>
                 </a>
+                <button class="btn btn-link btn-sm text-white" id="sidebarToggle">
+                    <div class="lines">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </button>
+            </div>
 
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                    <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i>
-                        Mi perfil</a>
-                    <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i>
-                        Configuración de perfil</a>
-                    <a class="dropdown-item" href="#/profile/change_password"><i class="fa-solid fa-key"></i>
-                        Cambiar la contraseña</a>
+            <!-- 🔹 DERECHA: Nombre de usuario + menú -->
+            <div class="d-flex align-items-center">
+                <span class="badge badge-primary mr-3 p-2">
+                    <?= esc($session->get('user_name') ?? 'N/A') ?>
+                </span>
 
-                    <a class="dropdown-item" href="#/admin/administration/general_settings"><i
-                            class="fa-solid fa-layer-group"></i> Ajustes del sistema</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i>
-                        Cerrar sesión</a>
+                <div class="dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
+                        href="#" id="userDropdown"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img src="<?= base_url('upload/profile/user.jpg') ?>"
+                            alt="user-image" height="40"
+                            class="rounded-circle shadow-sm">
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i> Mi perfil</a>
+                        <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i> Configuración</a>
+                        <a class="dropdown-item" href="#/profile/change_password"><i class="fa-solid fa-key"></i> Cambiar contraseña</a>
+                        <a class="dropdown-item" href="#/admin/administration/general_settings"><i class="fa-solid fa-layer-group"></i> Ajustes del sistema</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
+                    </div>
                 </div>
-            </li>
-        </ul>
+            </div>
         </div>
     </nav>
     <!--End Header Nav-->
+
 
     <!--Start layoutSidenav_nav-->
     <div id="layoutSidenav" class="container-fluid d-flex align-items-stretch">
@@ -295,7 +285,7 @@
         integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        (function ($) {
+        (function($) {
 
             "use strict";
 

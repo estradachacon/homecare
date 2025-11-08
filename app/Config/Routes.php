@@ -40,5 +40,6 @@ $routes->group('', ['filter' => 'auth'], function($routes) {    // Grupo del Das
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
     $routes->get('logs', 'BitacoraController::index');
     $routes->resource('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
-    $routes->resource('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
+    $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->post('sellers/delete', 'SellerController::delete');
 });

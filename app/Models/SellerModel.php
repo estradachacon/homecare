@@ -8,6 +8,7 @@ class SellerModel extends Model
 {
     protected $table = 'sellers';
     protected $primaryKey = 'id';
+    protected $returnType = 'object';
     protected $useTimestamps = true;
 
     protected $allowedFields = [

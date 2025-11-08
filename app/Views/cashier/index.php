@@ -32,7 +32,7 @@
                                 </div>
                                 <div class="details mt-2 d-none">
                                     <p><strong>ID:</strong> <?= esc($cashier->id) ?></p>
-                                    
+
                                     <p><strong>Monto actual:</strong> <?= esc($cashier->current_balance) ?></p>
                                     <p><strong>Estado:</strong>
                                         <?php if ($cashier->is_open): ?>Caja abierta<?php else: ?>Caja cerrada<?php endif; ?>
@@ -116,70 +116,71 @@
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Toggle detalles en móviles
-        document.querySelectorAll('.toggle-details').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const details = this.closest('.card').querySelector('.details');
-                details.classList.toggle('d-none');
-                this.textContent = details.classList.contains('d-none') ? 'Ver' : 'Ocultar';
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle detalles en móviles
+            document.querySelectorAll('.toggle-details').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const details = this.closest('.card').querySelector('.details');
+                    details.classList.toggle('d-none');
+                    this.textContent = details.classList.contains('d-none') ? 'Ver' : 'Ocultar';
+                });
             });
-        });
 
-        // Botones eliminar
-        const deleteButtons = document.querySelectorAll('.delete-btn');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const id = this.dataset.id;
-                Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: 'Esta acción no se puede deshacer.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                        const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
-                        fetch("<?= base_url('cashiers/delete') ?>", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-Requested-With': 'XMLHttpRequest',
-                                [csrfHeader]: csrfToken
-                            },
-                            body: new URLSearchParams({ id: id })
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                Swal.fire({
-                                    title: data.status === 'success' ? 'Éxito' : 'Error',
-                                    text: data.message,
-                                    icon: data.status,
-                                    timer: 2000,
-                                    showConfirmButton: false
+            // Botones eliminar
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: 'Esta acción no se puede deshacer.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                            const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
+                            fetch("<?= base_url('cashiers/delete') ?>", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        [csrfHeader]: csrfToken
+                                    },
+                                    body: new URLSearchParams({
+                                        id: id
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    Swal.fire({
+                                        title: data.status === 'success' ? 'Éxito' : 'Error',
+                                        text: data.message,
+                                        icon: data.status,
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                    if (data.status === 'success') {
+                                        const row = button.closest('tr');
+                                        if (row) row.remove();
+                                        setTimeout(() => {
+                                            window.location.reload();
+                                        }, 1500);
+                                    }
+                                })
+                                .catch(err => {
+                                    Swal.fire('Error', 'Ocurrió un problema en la petición.', 'error');
                                 });
-                                if (data.status === 'success') {
-                                    const row = button.closest('tr');
-                                    if (row) row.remove();
-                                    setTimeout(() => {
-                                        window.location.reload();
-                                    }, 1500);
-                                }
-                            })
-                            .catch(err => {
-                                Swal.fire('Error', 'Ocurrió un problema en la petición.', 'error');
-                            });
-                    }
+                        }
+                    });
                 });
             });
         });
-    });
-</script>
-<?= $this->endSection() ?>
+    </script>
+    <?= $this->endSection() ?>
