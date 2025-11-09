@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class SettledPointModel extends Model
 {
-    protected $table            = 'settledpoints';
+    protected $table            = 'settled_points';
     protected $primaryKey       = 'id';
     protected $returnType       = 'object';
     protected $protectFields    = true;

@@ -6,7 +6,7 @@ use CodeIgniter\Database\Migration;
 
 class SettledPoints extends Migration
 {
-public function up()
+    public function up()
     {
         $this->forge->addField([
             'id' => [
@@ -27,12 +27,25 @@ public function up()
                 'null' => false
             ],
             'days_configuration' => [
-                'type'       => 'ENUM',
+                'type' => 'ENUM',
                 'constraint' => [
-                    'Lunes', 'Martes', 'Miércoles',
-                    'Jueves', 'Viernes', 'Sábado', 'Domingo'
+                    'Lunes',
+                    'Martes',
+                    'Miércoles',
+                    'Jueves',
+                    'Viernes',
+                    'Sábado',
+                    'Domingo'
                 ],
                 'null' => false,
+            ],
+            'hora_inicio' => [
+                'type' => 'TIME',
+                'null' => true,
+            ],
+            'hora_fin' => [
+                'type' => 'TIME',
+                'null' => true,
             ],
             'created_at' => [
                 'type' => 'DATETIME',

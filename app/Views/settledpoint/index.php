@@ -4,7 +4,7 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex">
-                <h4 class="header-title">Puntos fijos</h4>
+                <h4 class="header-title">Listado de Puntos fijos</h4>
                 <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('settledpoint/new') ?>"><i
                         class="fa-solid fa-plus"></i> Nuevo</a>
             </div>
@@ -13,25 +13,24 @@
                     <thead>
                         <tr>
                             <th class="col-1">ID</th>
-                            <th class="col-7">Puntos</th>
-                            <th class="col-2">Ruta</th>
-                            <th class="col-2">Acciones</th>
-                            <th class="col-2">Configuración</th>
+                            <th class="col-7">Punto</th>
+                            <th class="col-2">Ruta relacionada</th>
+                            <th class="col-2">Dia de vista</th>
+                            <th class="col-2">Horario</th>
                             <th class="col-2">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($sellers)): ?>
-                            <?php foreach ($sellers as $seller): ?>
+                        <?php if (!empty($routes)): ?>
+                            <?php foreach ($routes as $route): ?>
                                 <tr>
-                                    <td class="text-center"><?= esc($seller->id) ?></td>
-                                    <td><?= esc($seller->seller) ?></td>
-                                    <td class="text-center"><?= esc($seller->tel_seller) ?></td>
-                                    <td class="text-center"><?= esc($seller->tel_seller) ?></td>
+                                    <td class="text-center"><?= esc($route->id) ?></td>
+                                    <td><?= esc($route->route_name) ?></td>
+                                    <td class="text-center"><?= esc($route->description) ?></td>
                                     <td>
-                                        <a href="<?= base_url('settledpoint/edit/' . $seller->id) ?>"
+                                        <a href="<?= base_url('routes/edit/' . $route->id) ?>"
                                             class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $seller->id ?>">
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $route->id ?>">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </td>
@@ -39,7 +38,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="text-center">No hay puntos fijos registrados</td>
+                                <td colspan="4" class="text-center">No hay rutas registradas</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -78,7 +77,7 @@
                     if (result.isConfirmed) {
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                         const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
-                        fetch("<?= base_url('sellers/delete') ?>", {
+                        fetch("<?= base_url('routes/delete') ?>", {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/x-www-form-urlencoded',

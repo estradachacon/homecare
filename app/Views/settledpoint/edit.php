@@ -5,35 +5,35 @@
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header d-flex">
-                <h4 class="header-title mb-0">Editar nombre: <?= esc($sellers->seller) ?></h4>
+                <h4 class="header-title mb-0">Editar ruta: <?= esc($routes->route_name) ?></h4>
             </div>
 
             <div class="card-body">
                 <!-- 1. Formulario apuntando al método update -->
-                <form action="<?= base_url('sellers/update/' . $sellers->id) ?>" method="post">
+                <form action="<?= base_url('routes/update/' . $routes->id) ?>" method="post">
                     <?= csrf_field() ?>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="seller" class="form-label">Nombre de vendedor</label>
+                            <label for="route_name" class="form-label">Nombre de la Ruta</label>
                             <input 
                                 type="text" 
                                 class="form-control" 
-                                id="seller" 
-                                name="seller" 
-                                value="<?= esc($sellers->seller) ?>" 
+                                id="route_name" 
+                                name="route_name" 
+                                value="<?= esc($routes->route_name) ?>" 
                                 required
                             >
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="tel_seller" class="form-label">Numero de telefono</label>
+                            <label for="description" class="form-label">Descripción</label>
                             <input 
-                                type="number" 
-                                name="tel_seller" 
-                                id="tel_seller"
+                                type="text" 
+                                name="description" 
+                                id="description"
                                 class="form-control text-end input-unit-cost" 
-                                value="<?= esc($sellers->tel_seller) ?>" 
+                                value="<?= esc($routes->description) ?>" 
                                 step="0.01" 
                                 required
                             >
