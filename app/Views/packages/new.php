@@ -26,6 +26,28 @@
     outline: 0 !important;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
 }
+/* Ocultamos el campo inicialmente */
+.retiro-paquete-container {
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Cuando se muestra */
+.retiro-paquete-container.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+.autosize-input {
+    overflow: hidden;      /* oculta scrollbar vertical */
+    resize: none;          /* evita que el usuario cambie tamaño manualmente */
+    min-height: 38px;      /* altura mínima */
+    line-height: 1.5;      /* buena legibilidad */
+    transition: height 0.2s ease; /* animación suave al crecer */
+    max-height: 146px; /* aprox 5 líneas */
+}
 </style>
 
 <div class="row">
@@ -33,7 +55,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
                 <h5 class=" header-title mb-0">Registrar nuevo paquete</h5>
-                <a href="<?= base_url('packages') ?>" class="btn btn-light btn-sm">Volver a la lista</a>
+                <a href="<?= base_url('packages') ?>" class="btn btn-light btn-sm">Volver</a>
             </div>
             <div class="card-body">
                 <form action="<?= base_url('packages/store') ?>" method="post" enctype="multipart/form-data">
@@ -58,24 +80,19 @@
                         <!-- Tipo de servicio -->
                         <div class="col-md-6">
                             <label class="form-label">Tipo de servicio</label>
-                            <select name="tipo_servicio" class="form-select" required>
+                            <select name="tipo_servicio" id="tipo_servicio" class="form-select" required>
                                 <option value="">Seleccione...</option>
-                                <option value="Entrega a domicilio">Entrega a domicilio</option>
-                                <option value="Retiro en sucursal">Retiro en sucursal</option>
-                                <option value="Envío express">Envío express</option>
+                                <option value="1">Punto fijo</option>
+                                <option value="2">Personalizado</option>
+                                <option value="3">Recolecta de paquete</option>
+                                <option value="4">Casillero</option>
                             </select>
                         </div>
 
                         <!-- Punto de retiro -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 retiro-paquete-container" id="retiro_paquete_container" style="display: none;">
                             <label class="form-label">Retiro del paquete</label>
-                            <input type="text" name="retiro_paquete" class="form-control" placeholder="Lugar de recogida" required>
-                        </div>
-
-                        <!-- Destino -->
-                        <div class="col-md-6">
-                            <label class="form-label">Destino</label>
-                            <input type="text" name="destino" class="form-control" placeholder="Ciudad o sucursal destino" required>
+                            <textarea id="retiro_paquete" name="retiro_paquete" class="form-control autosize-input" rows="1" placeholder="Lugar de recogida" required></textarea>
                         </div>
 
                         <!-- Punto fijo -->
@@ -86,11 +103,17 @@
                                 <!-- Llenar dinámicamente -->
                             </select>
                         </div>
+                        
+                        <!-- Destino -->
+                        <div class="col-md-6">
+                            <label class="form-label">Destino</label>
+                            <input type="text" name="destino" class="form-control" placeholder="Ciudad o sucursal destino" required>
+                        </div>
 
                         <!-- Dirección -->
                         <div class="col-12">
                             <label class="form-label">Dirección</label>
-                            <textarea name="direccion" class="form-control" rows="2" required></textarea>
+                            <textarea name="direccion" class="form-control autosize-input" rows="2"></textarea>
                         </div>
 
                         <!-- Fechas -->
@@ -209,10 +232,6 @@
         </form>
     </div>
 </div>
-
-<script>
-
-</script>
 
 <script>
     $('#formCreateSeller').on('submit', function(e) {

@@ -12,11 +12,11 @@
                 <table class="table table-bordered" id="users-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nombre de Sucursal</th>
-                            <th>Dirección</th>
+                            <th class="col-1">ID</th>
+                            <th class="col-5">Nombre de Sucursal</th>
+                            <th class="col-4">Dirección</th>
                             <th class="col-1">Estado</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-center col-1">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -27,7 +27,7 @@
                         <?php else: ?>
                             <?php foreach ($branches as $branch): ?>
                                 <tr>
-                                    <td><?= esc($branch->id) ?></td>
+                                    <td class="text-center"><?= esc($branch->id) ?></td>
                                     <td><?= esc($branch->branch_name) ?></td>
                                     <td><?= esc($branch->branch_direction) ?></td>
                                     <td class="text-center">

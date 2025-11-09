@@ -140,13 +140,6 @@
 </head>
 
 <body class="sb-nav-fixed">
-    <!-- Preloader area start -->
-    <div id="preloader">
-        <div class="loader"></div>
-        <div class="loading-text">Cargando...</div>
-    </div>
-    <!-- Preloader area end -->
-
     <!--Header Nav-->
     <nav class="navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
         <div class="container-fluid d-flex justify-content-between">

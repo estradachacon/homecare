@@ -2126,7 +2126,7 @@ pre code {
 .form-control {
   display: block;
   width: 100%;
-  height: calc(1.5em + 0.75rem + 7px);
+  height: calc(1.5em + 0.75rem + 5px);
   padding: 0.375rem 0.75rem;
   font-size: 1rem;
   font-weight: 300;
@@ -12368,7 +12368,7 @@ a#userDropdown {
   width: 100%;
   /* O el ancho que necesites */
   padding: 10px 15px;
-  height: 60%;
+  height: 55%;
   font-size: 16px;
   line-height: 1.5;
   color: #495057;

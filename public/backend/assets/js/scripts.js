@@ -124,36 +124,36 @@
 		let confirmText = $(this).data('confirmtext');
 		//Sweet Alert for delete action
 		Swal.fire({
-			title: title!=undefined?title:$lang_alert_title,
-			text: text!=undefined?text:$lang_alert_message,
+			title: title != undefined ? title : $lang_alert_title,
+			text: text != undefined ? text : $lang_alert_message,
 			icon: 'warning',
 			input: 'text',
-  			inputAttributes: {
-    			autocapitalize: 'off',
+			inputAttributes: {
+				autocapitalize: 'off',
 				required: 'required',
 				placeholder: 'Motivo de anulaciÃ³n'
-  			},
+			},
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: confirmText!=undefined?confirmText:$lang_confirm_button_text,
+			confirmButtonText: confirmText != undefined ? confirmText : $lang_confirm_button_text,
 			cancelButtonText: $lang_cancel_button_text
 		}).then((result) => {
 			if (result.isConfirmed) {
 				if (link != undefined) {
 					let arr = link.split('?');
-					if(arr.length > 1){
-						if(link[link.length-1] == '?'){
-							link = link+'swal_input='+result.value;
-						}else{
-							link = link+'&swal_input='+result.value;
-						}	
-					}else{
-						link = link+'?swal_input='+result.value;
+					if (arr.length > 1) {
+						if (link[link.length - 1] == '?') {
+							link = link + 'swal_input=' + result.value;
+						} else {
+							link = link + '&swal_input=' + result.value;
+						}
+					} else {
+						link = link + '?swal_input=' + result.value;
 					}
 					window.location.href = link;
-				}else{
-					$(this).closest('form').append("<input name='swal_input' type='hidden' value='"+result.value+"'/>").submit();
+				} else {
+					$(this).closest('form').append("<input name='swal_input' type='hidden' value='" + result.value + "'/>").submit();
 				}
 			}
 		});
@@ -168,36 +168,36 @@
 		let confirmText = $(this).data('confirmtext');
 		//Sweet Alert for delete action
 		Swal.fire({
-			title: title!=undefined?title:$lang_alert_title,
-			text: text!=undefined?text:$lang_alert_message,
+			title: title != undefined ? title : $lang_alert_title,
+			text: text != undefined ? text : $lang_alert_message,
 			icon: 'warning',
 			// input: 'text',
-  			// inputAttributes: {
-    		// 	autocapitalize: 'off',
+			// inputAttributes: {
+			// 	autocapitalize: 'off',
 			// 	required: 'required',
 			// 	placeholder: 'Motivo de anulaciÃ³n'
-  			// },
+			// },
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: confirmText!=undefined?confirmText:$lang_confirm_button_text,
+			confirmButtonText: confirmText != undefined ? confirmText : $lang_confirm_button_text,
 			cancelButtonText: $lang_cancel_button_text
 		}).then((result) => {
 			if (result.isConfirmed) {
 				if (link != undefined) {
 					let arr = link.split('?');
-					if(arr.length > 1){
-						if(link[link.length-1] == '?'){
-							link = link+'swal_input='+result.value;
-						}else{
-							link = link+'&swal_input='+result.value;
-						}	
-					}else{
-						link = link+'?swal_input='+result.value;
+					if (arr.length > 1) {
+						if (link[link.length - 1] == '?') {
+							link = link + 'swal_input=' + result.value;
+						} else {
+							link = link + '&swal_input=' + result.value;
+						}
+					} else {
+						link = link + '?swal_input=' + result.value;
 					}
 					window.location.href = link;
-				}else{
-					$(this).closest('form').append("<input name='swal_input' type='hidden' value='"+result.value+"'/>").submit();
+				} else {
+					$(this).closest('form').append("<input name='swal_input' type='hidden' value='" + result.value + "'/>").submit();
 				}
 			}
 		});
@@ -211,13 +211,13 @@
 		let confirmText = $(this).data('confirmtext');
 		//Sweet Alert for delete action
 		Swal.fire({
-			title: title!=undefined?title:$lang_alert_title,
-			text: text!=undefined?text:$lang_alert_message,
+			title: title != undefined ? title : $lang_alert_title,
+			text: text != undefined ? text : $lang_alert_message,
 			icon: 'warning',
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: confirmText!=undefined?confirmText:$lang_confirm_button_text,
+			confirmButtonText: confirmText != undefined ? confirmText : $lang_confirm_button_text,
 			cancelButtonText: $lang_cancel_button_text
 		}).then((result) => {
 			if (result.value) {
@@ -235,39 +235,39 @@
 		let confirmText = $(this).data('confirmtext');
 		//Sweet Alert for delete action
 		Swal.fire({
-			title: title!=undefined?title:$lang_alert_title,
-			text: text!=undefined?text:$lang_alert_message,
+			title: title != undefined ? title : $lang_alert_title,
+			text: text != undefined ? text : $lang_alert_message,
 			icon: 'warning',
 			showCancelButton: true,
 			confirmButtonColor: '#3085d6',
 			cancelButtonColor: '#d33',
-			confirmButtonText: confirmText!=undefined?confirmText:$lang_confirm_button_text,
+			confirmButtonText: confirmText != undefined ? confirmText : $lang_confirm_button_text,
 			cancelButtonText: $lang_cancel_button_text
 		}).then((result) => {
 			if (result.value) {
 
 				const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = link; // Set the form action to the delete URL
+				form.method = 'POST';
+				form.action = link; // Set the form action to the delete URL
 
-                // Create a hidden input for the request method
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'DELETE';
-                form.appendChild(methodInput);
+				// Create a hidden input for the request method
+				const methodInput = document.createElement('input');
+				methodInput.type = 'hidden';
+				methodInput.name = '_method';
+				methodInput.value = 'DELETE';
+				form.appendChild(methodInput);
 
-                // Add CSRF token (assuming you have it in a meta tag)
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = csrfToken;
-                form.appendChild(csrfInput);
+				// Add CSRF token (assuming you have it in a meta tag)
+				const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+				const csrfInput = document.createElement('input');
+				csrfInput.type = 'hidden';
+				csrfInput.name = '_token';
+				csrfInput.value = csrfToken;
+				form.appendChild(csrfInput);
 
-                // Append the form to the body and submit
-                document.body.appendChild(form);
-                form.submit();
+				// Append the form to the body and submit
+				document.body.appendChild(form);
+				form.submit();
 			}
 		});
 
@@ -285,8 +285,8 @@
 		messages: {
 			'default': 'Arrastre y suelte un archivo o haga clic aquÃ­',
 			'replace': 'Arrastre y suelte o haga clic aquÃ­ para reemplazar',
-			'remove':  'Quitar',
-			'error':   'Ooops, algo saliÃ³ mal!'
+			'remove': 'Quitar',
+			'error': 'Ooops, algo saliÃ³ mal!'
 		}
 	});
 
@@ -458,17 +458,17 @@
 						if (typeof $(this).data('display2') !== "undefined") {
 							display2 = "&display2=" + $(this).data('display2');
 						}
-						
+
 						if (typeof $(this).data('where') !== "undefined") {
 							where = "&where=" + $(this).data('where');
 						}
 
-						if($(this).closest('[role="dialog"]')[0] != undefined){
+						if ($(this).closest('[role="dialog"]')[0] != undefined) {
 							parent = $(this).closest('[role="dialog"] .modal-content');
 						}
 
-						items = "&items="+$(this).data('items');
-						order_note_id = "&order_note_id="+$(this).data('order-id');
+						items = "&items=" + $(this).data('items');
+						order_note_id = "&order_note_id=" + $(this).data('order-id');
 
 						$(this).select2({
 							dropdownParent: parent,
@@ -523,7 +523,7 @@
 		$('#main_modal').css("overflow-y", "auto");
 	});
 
-	$('#main_modal').on('hidden.bs.modal', function() {
+	$('#main_modal').on('hidden.bs.modal', function () {
 		setSelect2Ajax();
 	});
 
@@ -594,16 +594,16 @@
 						if (typeof $(this).data('display2') !== "undefined") {
 							display2 = "&display2=" + $(this).data('display2');
 						}
-						
+
 						if (typeof $(this).data('where') !== "undefined") {
 							where = "&where=" + $(this).data('where');
 						}
 
-						if($(this).closest('[role="dialog"]')[0] != undefined){
+						if ($(this).closest('[role="dialog"]')[0] != undefined) {
 							parent = $(this).closest('[role="dialog"] .modal-content');
 						}
 
-						order_note_id = "&order_note_id="+$(this).data('order-id');
+						order_note_id = "&order_note_id=" + $(this).data('order-id');
 
 						$(this).select2({
 							dropdownParent: parent,
@@ -738,7 +738,7 @@
 		return false;
 	});
 
-		//Ajax Modal Submit
+	//Ajax Modal Submit
 	$(document).on("submit", ".ajax-submit-noreload", function () {
 		var link = $(this).attr("action");
 		var reload = $(this).data('reload');
@@ -788,7 +788,7 @@
 							icon: 'success',
 							title: json['message']
 						});
-											
+
 						let table = $(json['table']).DataTable();
 						table.ajax.reload(null, false);
 
@@ -1323,7 +1323,7 @@
 		buttons: [
 			'excel'
 		]
-		
+
 	});
 
 
@@ -1368,11 +1368,11 @@
 	});
 
 	//Company Email Template
-	$(document).on('change', '#email_template_related_to', function(){
-		if($(this).val() == 'invoice'){
+	$(document).on('change', '#email_template_related_to', function () {
+		if ($(this).val() == 'invoice') {
 			$("#invoice-paremeter").removeClass('d-none');
 			$("#quotation-paremeter").addClass('d-none');
-		}else if($(this).val() == 'quotation'){
+		} else if ($(this).val() == 'quotation') {
 			$("#quotation-paremeter").removeClass('d-none');
 			$("#invoice-paremeter").addClass('d-none');
 		}
@@ -1396,105 +1396,105 @@
 		let inputAttributes = {
 			autocapitalize: 'off',
 			// placeholder: placeholder!=undefined?placeholder:'Comentario (opcional)',
-		  };
-	
-		  if (isRequiredInput !== undefined) {
+		};
+
+		if (isRequiredInput !== undefined) {
 			inputAttributes.required = 'required'
-		  }
-		  
-		let data =  new Map();
+		}
+
+		let data = new Map();
 		info.forEach(element => {
 			data.set(element.value, element.name);
 		});
 
-		  Swal.fire({		
-			title: title!=undefined?title:$lang_alert_title,
-			text: text!=undefined?text:$lang_alert_message,
-			input: hideinput===undefined?'select':null,
+		Swal.fire({
+			title: title != undefined ? title : $lang_alert_title,
+			text: text != undefined ? text : $lang_alert_message,
+			input: hideinput === undefined ? 'select' : null,
 			inputAttributes: inputAttributes,
 			inputPlaceholder: '-- Seleccionar --',
 			showCancelButton: true,
 			confirmButtonColor: "#1E2745",
 			cancelButtonColor: '#d33',
-			confirmButtonText: confirmText!=undefined?confirmText:'SÃ­',
+			confirmButtonText: confirmText != undefined ? confirmText : 'SÃ­',
 			cancelButtonText: $lang_cancel_button_text,
-			inputOptions:data,
+			inputOptions: data,
 			inputValidator: (value) => {
-			   return new Promise((resolve) => {
-				 if (value != '') {
-				   resolve();
-				 } else {
-				   resolve("Debe Seleccionar una opciÃ³n");
-				 }
-			   });
+				return new Promise((resolve) => {
+					if (value != '') {
+						resolve();
+					} else {
+						resolve("Debe Seleccionar una opciÃ³n");
+					}
+				});
 			}
 		}).then((result) => {
 			if (result.isConfirmed) {
 				if (isform === undefined) {
 					let arr = link.split('?');
-					if(arr.length > 1){
-						if(link[link.length-1] == '?'){
-							link = link+'swal_input='+result.value;
-						}else{
-							link = link+'&swal_input='+result.value;
-						}	
-					}else{
-						link = link+'?swal_input='+result.value;
+					if (arr.length > 1) {
+						if (link[link.length - 1] == '?') {
+							link = link + 'swal_input=' + result.value;
+						} else {
+							link = link + '&swal_input=' + result.value;
+						}
+					} else {
+						link = link + '?swal_input=' + result.value;
 					}
 					if (target !== undefined) {
 						var newWindow = window.open(link, '_blank');
 						newWindow.location.href = link;
-					}else{
-						if(response !== undefined){
-							
-						}else{
+					} else {
+						if (response !== undefined) {
+
+						} else {
 							window.location.href = link;
 						}
 					}
-	
-				}else{
-					let form = $(this).closest('form'); 
+
+				} else {
+					let form = $(this).closest('form');
 					form.attr('action', link)
-					form.append("<input name='swal_input' type='hidden' value='"+result.value+"'/>");
+					form.append("<input name='swal_input' type='hidden' value='" + result.value + "'/>");
 					form.trigger('submit');
 				}
 			}
 		});
-		  
-	
+
+
 		return false;
 	});
 
 	$(document).on('submit', '.loader-submit', function () {
-        loader_submit();
-    });
+		loader_submit();
+	});
 
-    $(document).on('click', '.loader-button', function () {
-        loader_submit();
-    });
+	$(document).on('click', '.loader-button', function () {
+		loader_submit();
+	});
 
 	$(document).on('select2:opening', '.block-select2-readonly', function (event) {
 		// funcion para evitar el despliegue de opciones de un select2 readonly por combinacion de teclas
-        if ($(this).attr('readonly') !== undefined) {
+		if ($(this).attr('readonly') !== undefined) {
 			event.preventDefault();
 		}
-    });
+	});
 
 	$(document).on('keyup', '.input-number-integer', function (event) {
 		let value = $(this).val();
 		// if (!/^\d*$/.test(value)) {
-			$(this).val(value.replace(/\D/g, ''));
+		$(this).val(value.replace(/\D/g, ''));
 		// }
 	});
 
-	$(document).on('input focus keydown', 'input[type="datetime-local"][readonly]', function(event) {
+	$(document).on('input focus keydown', 'input[type="datetime-local"][readonly]', function (event) {
 		// Verifica si el campo es de solo lectura y evita que el usuario interactÃºe con Ã©l
 		if ($(this).prop('readonly')) {
 			event.preventDefault();
 		}
 	});
 
-	$(document).on('input focus keydown', 'input[type="number"][readonly]', function(event) {
+	$(document).on('input focus keydown', 'input[type="number"][readonly]', function (event) {
 		// Verifica si el campo es de solo lectura y evita que el usuario interactÃºe con Ã©l
 		if ($(this).prop('readonly')) {
 			event.preventDefault();
@@ -1502,9 +1502,9 @@
 	});
 
 	//personalizar color
-	document.querySelectorAll('.color-picker').forEach(function(el, index) {
-		const defaultColor 	= el.getAttribute('data-default') || '#1D2744';
-		var input_hiden 	= el.getAttribute('data-input-id');
+	document.querySelectorAll('.color-picker').forEach(function (el, index) {
+		const defaultColor = el.getAttribute('data-default') || '#1D2744';
+		var input_hiden = el.getAttribute('data-input-id');
 
 		const pickr = Pickr.create({
 			el: el,
@@ -1532,9 +1532,9 @@
 			});
 		}
 	});
-	document.querySelectorAll('.text-color-picker').forEach(function(el, index) {
-		const defaultColor 	= el.getAttribute('data-default') || '#ffffff';
-		var input_hiden 	= el.getAttribute('data-input-id');
+	document.querySelectorAll('.text-color-picker').forEach(function (el, index) {
+		const defaultColor = el.getAttribute('data-default') || '#ffffff';
+		var input_hiden = el.getAttribute('data-input-id');
 
 		const pickr = Pickr.create({
 			el: el,
@@ -1563,22 +1563,22 @@
 		// Guardar color seleccionado al hacer clic en "Guardar" dentro del picker
 		if (input_hiden) {
 			pickr.on('save', (color) => {
-            const hex = color.toHEXA().toString().toLowerCase();
-            if (hex === '#000000' || hex === '#ffffff') {
-				document.getElementById(input_hiden).value = hex;            
-			} else {
-                alert('Solo se permite blanco o negro');
-            }
+				const hex = color.toHEXA().toString().toLowerCase();
+				if (hex === '#000000' || hex === '#ffffff') {
+					document.getElementById(input_hiden).value = hex;
+				} else {
+					alert('Solo se permite blanco o negro');
+				}
 
-            pickr.hide();
-        });
+				pickr.hide();
+			});
 		}
 	});
 })(jQuery);
 
-function setSelect2Ajax(clase = null, templateResult = undefined){
-	if ($(clase == null? ".select2-ajax":clase).length) {
-		$(clase == null? ".select2-ajax":clase).each(function (i, obj) {
+function setSelect2Ajax(clase = null, templateResult = undefined) {
+	if ($(clase == null ? ".select2-ajax" : clase).length) {
+		$(clase == null ? ".select2-ajax" : clase).each(function (i, obj) {
 
 			var display2 = "";
 			var display2label = "";
@@ -1592,28 +1592,28 @@ function setSelect2Ajax(clase = null, templateResult = undefined){
 			if (typeof $(this).data('display2') !== "undefined") {
 				display2 = "&display2=" + $(this).data('display2');
 			}
-			
+
 			// display2 es label concatenado ej = "item - label: 1234"
 			if (typeof $(this).data('display2label') !== "undefined") {
 				display2label = "&display2label=" + $(this).data('display2label');
 			}
-			
+
 			if (typeof $(this).data('where') !== "undefined") {
 				where = "&where=" + $(this).data('where');
 			}
-			
+
 			// where extra es la condicion real de la tabla consultada
 			if (typeof $(this).data('where_extra') !== "undefined") {
 				where_extra = "&where_extra=" + $(this).data('where_extra');
 			}
 
-			items = "&items="+$(this).data('items');
-			order_note_id = "&order_note_id="+$(this).data('order-id');
-			available = "&available="+$(this).data('available');
+			items = "&items=" + $(this).data('items');
+			order_note_id = "&order_note_id=" + $(this).data('order-id');
+			available = "&available=" + $(this).data('available');
 
 			let parent = null;
 
-			if($(this).closest('[role="dialog"]')[0] != undefined){
+			if ($(this).closest('[role="dialog"]')[0] != undefined) {
 				parent = $(this).closest('[role="dialog"] .modal-content');
 			}
 
@@ -1621,7 +1621,7 @@ function setSelect2Ajax(clase = null, templateResult = undefined){
 				dropdownParent: parent,
 				language: "es",
 				ajax: {
-					url: _url + '/ajax/get_table_data?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 +display2label + where + where_extra + items + order_note_id+available,
+					url: _url + '/ajax/get_table_data?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 + display2label + where + where_extra + items + order_note_id + available,
 					delay: 250,
 					dataType: 'json',
 					// processResults: function (data) {
@@ -1645,47 +1645,47 @@ function setSelect2Ajax(clase = null, templateResult = undefined){
 	}
 }
 
-function setSelect2CCF( clase = null, templateResult = undefined ){
+function setSelect2CCF(clase = null, templateResult = undefined) {
 
 	return new Promise((resolve, reject) => {
-		if ($(clase == null? ".select2_ajax":clase).length) {
-			$(clase == null? ".select2_ajax":clase).each(function (i, obj) {
-	
+		if ($(clase == null ? ".select2_ajax" : clase).length) {
+			$(clase == null ? ".select2_ajax" : clase).each(function (i, obj) {
+
 				var display2 = "";
 				var display2label = "";
 				var where = "";
 				var items = "";
 				var where_extra = "";
-	
+
 				// display2 es el valor del label concatenado ej = "item - label: valor"
 				if (typeof $(this).data('display2') !== "undefined") {
 					display2 = "&display2=" + $(this).data('display2');
 				}
-				
+
 				// display2 es label concatenado ej = "item - label: 1234"
 				if (typeof $(this).data('display2label') !== "undefined") {
 					display2label = "&display2label=" + $(this).data('display2label');
 				}
-				
+
 				if (typeof $(this).data('where') !== "undefined") {
 					where = "&where=" + $(this).data('where');
 				}
-				
+
 				where_extra = "&where_extra=" + $("#client_id").val();
-	
-				items = "&items="+$(this).data('items');
-	
+
+				items = "&items=" + $(this).data('items');
+
 				let parent = null;
-	
-				if($(this).closest('[role="dialog"]')[0] != undefined){
+
+				if ($(this).closest('[role="dialog"]')[0] != undefined) {
 					parent = $(this).closest('[role="dialog"] .modal-content');
 				}
-	
+
 				$(this).select2({
 					dropdownParent: parent,
 					language: "es",
 					ajax: {
-						url: _url + '/ajax/get_table_data_ccf?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 +display2label + where + where_extra + items,
+						url: _url + '/ajax/get_table_data_ccf?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 + display2label + where + where_extra + items,
 						delay: 250,
 						dataType: 'json',
 						data: function (params) {
@@ -1701,7 +1701,7 @@ function setSelect2CCF( clase = null, templateResult = undefined ){
 				});
 
 				resolve();
-	
+
 			});
 		}
 	});
@@ -1790,10 +1790,10 @@ function showRole(elem) {
 	window.location = _url + '/permission/control/' + $(elem).val();
 }
 
-$('body').on('change', '.visualizar-imagen', function() {
+$('body').on('change', '.visualizar-imagen', function () {
 	let reader = new FileReader();
 	let image = $(this).attr('previoContent');
-	reader.onload = function(){
+	reader.onload = function () {
 		$(image).attr("src", reader.result).show();
 	}
 	reader.readAsDataURL(event.target.files[0]);
@@ -1802,149 +1802,149 @@ $('body').on('change', '.visualizar-imagen', function() {
 
 // TAX SELECTED INVOICE, RETURN INVOICES
 
-function taxSelected(element, afectarPrecio = true){
-    var elem = $(element);
-    var line = $(elem).parent().parent().parent();
-    var line_total = $(line).find('.input-sub-total').val();
+function taxSelected(element, afectarPrecio = true) {
+	var elem = $(element);
+	var line = $(elem).parent().parent().parent();
+	var line_total = $(line).find('.input-sub-total').val();
 
-    var line_discount = parseFloat($(line).find('.input-discount').val());
-    var line_qnty = parseFloat($(line).find('.input-quantity').val());
-    
+	var line_discount = parseFloat($(line).find('.input-discount').val());
+	var line_qnty = parseFloat($(line).find('.input-quantity').val());
 
-    // descomentar linea si ya no se vera afectado el precio con el iva
-        //var line_unit_cost = parseFloat($(line).find('.input-unit-cost').val());
 
-        // comentar linea si ya no se vera afectado el precio con el iva
-        var line_unit_cost = parseFloat($(line).find('.input-product-price').val());
+	// descomentar linea si ya no se vera afectado el precio con el iva
+	//var line_unit_cost = parseFloat($(line).find('.input-unit-cost').val());
 
-        //Update TAX
-        var price_tax = 0;
-        var product_tax = 0;
-        var line_total = (line_qnty * line_unit_cost) - line_discount;
+	// comentar linea si ya no se vera afectado el precio con el iva
+	var line_unit_cost = parseFloat($(line).find('.input-product-price').val());
+
+	//Update TAX
+	var price_tax = 0;
+	var product_tax = 0;
+	var line_total = (line_qnty * line_unit_cost) - line_discount;
 
 
 
 	let fixedTaxAmount = 0;
-    $.each($(element).val(), function (index, value) {
-        var tax_rate = parseFloat($(elem).find('option[value="' + value + '"]').data('tax-rate'));
-        var tax_type = $(elem).find('option[value="' + value + '"]').data('tax-type');
+	$.each($(element).val(), function (index, value) {
+		var tax_rate = parseFloat($(elem).find('option[value="' + value + '"]').data('tax-rate'));
+		var tax_type = $(elem).find('option[value="' + value + '"]').data('tax-type');
 
-        if (tax_type == 'percent') {
-            // descomentar linea si ya no se vera afectado el precio con el iva
-            product_tax += (line_total / 100) * tax_rate;
-                
-            // comentar linea si ya no se vera afectado el precio con el iva
-            if(afectarPrecio) { price_tax += (line_unit_cost / 100) * tax_rate;}
-        } else if (tax_type == 'fixed') {
-            price_tax += 0;
-            product_tax += tax_rate;
-			if(afectarPrecio) { fixedTaxAmount += tax_rate;}
-        }
-    });
+		if (tax_type == 'percent') {
+			// descomentar linea si ya no se vera afectado el precio con el iva
+			product_tax += (line_total / 100) * tax_rate;
+
+			// comentar linea si ya no se vera afectado el precio con el iva
+			if (afectarPrecio) { price_tax += (line_unit_cost / 100) * tax_rate; }
+		} else if (tax_type == 'fixed') {
+			price_tax += 0;
+			product_tax += tax_rate;
+			if (afectarPrecio) { fixedTaxAmount += tax_rate; }
+		}
+	});
 
 
-        
-    // comentar linea si ya no se vera afectado el precio con el iva
+
+	// comentar linea si ya no se vera afectado el precio con el iva
 	// if($(line).find('.cambio_precio').val() == 0){
-		line_unit_cost += price_tax;
+	line_unit_cost += price_tax;
 	// }
-    line_unit_cost = parseFloat(line_unit_cost.toFixed(6));
-    // comentar linea si ya no se vera afectado el precio con el iva
-    $(line).find('.input-unit-cost').val(line_unit_cost.toFixed(6));
+	line_unit_cost = parseFloat(line_unit_cost.toFixed(6));
+	// comentar linea si ya no se vera afectado el precio con el iva
+	$(line).find('.input-unit-cost').val(line_unit_cost.toFixed(6));
 
-    line_total = ((line_qnty * line_unit_cost)+fixedTaxAmount) - line_discount;
+	line_total = ((line_qnty * line_unit_cost) + fixedTaxAmount) - line_discount;
 
-    $(line).find('.input-sub-total').val(line_total.toFixed(6));
+	$(line).find('.input-sub-total').val(line_total.toFixed(6));
 
-    $(line).find(".input-product-tax").val(product_tax);
+	$(line).find(".input-product-tax").val(product_tax);
 
-    update_summary();
+	update_summary();
 }
 
-function setSelectDataAjax(table, value, display, target, {display2 = '', where = '', where_extra = '', showSelectOption = true, display2label= ''}){
+function setSelectDataAjax(table, value, display, target, { display2 = '', where = '', where_extra = '', showSelectOption = true, display2label = '' }) {
 
-    if (where_extra != '') {
-        where_extra = '&where_extra='+where_extra;
-    }
+	if (where_extra != '') {
+		where_extra = '&where_extra=' + where_extra;
+	}
 
 	if (display2 != "") {
 		display2 = "&display2=" + display2;
 	}
-	
+
 	if (display2label != "") {
 		display2label = "&display2label=" + display2label;
 	}
-	
+
 	if (where !== "") {
 		where = "&where=" + where;
 	}
-    $.ajax({
-        method: "GET",
-        url: '/ajax/get_table_data?no_paginate=1&table=' + table + '&value=' + value + '&display=' + display + display2 + where+where_extra,
-        beforeSend: function () {
-            $("#preloader").css("display", "block");
-        }, success: function (data) {
-            $("#preloader").css("display", "none");
-            
-            let options = ``;
-            if (showSelectOption) {
-                options += `<option value="" disable selected>Seleccione</option>`;
-            }
-            data.forEach(element => {
-                options += `<option value="${element.id}">${element.text}</option>`;
-            });
+	$.ajax({
+		method: "GET",
+		url: '/ajax/get_table_data?no_paginate=1&table=' + table + '&value=' + value + '&display=' + display + display2 + where + where_extra,
+		beforeSend: function () {
+			$("#preloader").css("display", "block");
+		}, success: function (data) {
+			$("#preloader").css("display", "none");
 
-            $(target).html(options);
-        },
-        error: function (request, status, error) {
-            console.log(request);
-        }
-    });
+			let options = ``;
+			if (showSelectOption) {
+				options += `<option value="" disable selected>Seleccione</option>`;
+			}
+			data.forEach(element => {
+				options += `<option value="${element.id}">${element.text}</option>`;
+			});
+
+			$(target).html(options);
+		},
+		error: function (request, status, error) {
+			console.log(request);
+		}
+	});
 }
 
-function setSelectedDataAjax(table, value, display, target, {display2 = '', where = '', where_extra = '', showSelectOption = true, display2label= ''}, valueSelected=null, order_note_id = null){
+function setSelectedDataAjax(table, value, display, target, { display2 = '', where = '', where_extra = '', showSelectOption = true, display2label = '' }, valueSelected = null, order_note_id = null) {
 
-    if (where_extra != '') {
-        where_extra = '&where_extra='+where_extra;
-    }
+	if (where_extra != '') {
+		where_extra = '&where_extra=' + where_extra;
+	}
 
 	if (display2 != "") {
 		display2 = "&display2=" + display2;
 	}
-	
+
 	if (display2label != "") {
 		display2label = "&display2label=" + display2label;
 	}
-	
+
 	if (where !== "") {
 		where = "&where=" + where;
 	}
 
-    $.ajax({
-        method: "GET",
-        url: '/ajax/get_table_data?no_paginate=1&table=' + table + '&value=' + value + '&display=' + display + display2 + where+where_extra + '&order_note_id='+order_note_id,
-        beforeSend: function () {
-            $("#preloader").css("display", "block");
-        }, success: function (data) {
-            $("#preloader").css("display", "none");
-            
-            let options = ``;
-            if (showSelectOption ) {
-                options += `<option value="" disable selected>Seleccione</option>`;
-            }
-            data.forEach(element => {
+	$.ajax({
+		method: "GET",
+		url: '/ajax/get_table_data?no_paginate=1&table=' + table + '&value=' + value + '&display=' + display + display2 + where + where_extra + '&order_note_id=' + order_note_id,
+		beforeSend: function () {
+			$("#preloader").css("display", "block");
+		}, success: function (data) {
+			$("#preloader").css("display", "none");
+
+			let options = ``;
+			if (showSelectOption) {
+				options += `<option value="" disable selected>Seleccione</option>`;
+			}
+			data.forEach(element => {
 				if (valueSelected != null && element.id == valueSelected) {
 					options += `<option value="${element.id}" selected>${element.text}</option>`;
 				}
-                options += `<option value="${element.id}">${element.text}</option>`;
-            });
+				options += `<option value="${element.id}">${element.text}</option>`;
+			});
 
-            $(target).html(options);
-        },
-        error: function (request, status, error) {
-            console.log(request);
-        }
-    });
+			$(target).html(options);
+		},
+		error: function (request, status, error) {
+			console.log(request);
+		}
+	});
 }
 
 $(document).on('click', '.confirm-alert', function () {
@@ -1959,7 +1959,7 @@ $(document).on('click', '.confirm-alert', function () {
 
 	let inputAttributes = {
 		autocapitalize: 'off',
-		placeholder: placeholder!=undefined?placeholder:'Comentario (opcional)'
+		placeholder: placeholder != undefined ? placeholder : 'Comentario (opcional)'
 	};
 
 	if (isRequiredInput !== undefined) {
@@ -1967,36 +1967,36 @@ $(document).on('click', '.confirm-alert', function () {
 	}
 
 	Swal.fire({
-		title: title!=undefined?title:$lang_alert_title,
-		text: text!=undefined?text:$lang_alert_message,
+		title: title != undefined ? title : $lang_alert_title,
+		text: text != undefined ? text : $lang_alert_message,
 		icon: 'question',
-		input: hideinput===undefined?'text':null,
+		input: hideinput === undefined ? 'text' : null,
 		inputAttributes: inputAttributes,
 		showCancelButton: true,
 		confirmButtonColor: '#3085d6',
 		cancelButtonColor: '#d33',
-		confirmButtonText: confirmText!=undefined?confirmText:'SÃ­',
+		confirmButtonText: confirmText != undefined ? confirmText : 'SÃ­',
 		cancelButtonText: $lang_cancel_button_text
 	}).then((result) => {
 		if (result.isConfirmed) {
 			if (isform === undefined) {
 				loader_submit();
 				let arr = link.split('?');
-				if(arr.length > 1){
-					if(link[link.length-1] == '?'){
-						link = link+'swal_input='+result.value;
-					}else{
-						link = link+'&swal_input='+result.value;
+				if (arr.length > 1) {
+					if (link[link.length - 1] == '?') {
+						link = link + 'swal_input=' + result.value;
+					} else {
+						link = link + '&swal_input=' + result.value;
 					}
-				}else{
-					link = link+'?swal_input='+result.value;
+				} else {
+					link = link + '?swal_input=' + result.value;
 				}
 				window.location.href = link;
-			}else{
+			} else {
 				loader_submit();
 				let form = $(this).closest('form');
 				form.attr('action', link)
-				form.append("<input name='swal_input' type='hidden' value='"+result.value+"'/>");
+				form.append("<input name='swal_input' type='hidden' value='" + result.value + "'/>");
 				form.trigger('submit');
 			}
 		}
@@ -2004,24 +2004,24 @@ $(document).on('click', '.confirm-alert', function () {
 
 });
 
-function loader_submit(){
-    const imageUrl = _url+"/backend/images/loader_circle.gif";
-    const loaderHtml = `
+function loader_submit() {
+	const imageUrl = _url + "/backend/images/loader_circle.gif";
+	const loaderHtml = `
         <div style="text-align: center;">
             <img src="${imageUrl}" width="80" height="80" alt="Cargando..." />
             <div style="margin-top: 10px;">Estamos procesando tu solicitud. Por favor, espera un momento.</div>
         </div>
     `;
-    Swal.fire({
-        title: 'Cargando...',
-        html: loaderHtml,
-        allowOutsideClick: false,
-        showConfirmButton:false,
-        // didOpen: () => {
-        //     Swal.showLoading();
-        // },
+	Swal.fire({
+		title: 'Cargando...',
+		html: loaderHtml,
+		allowOutsideClick: false,
+		showConfirmButton: false,
+		// didOpen: () => {
+		//     Swal.showLoading();
+		// },
 
-    });
+	});
 }
 
 $(document).on('click', '.tracking-alert', function () {
@@ -2054,7 +2054,7 @@ $(document).on('click', '.tracking-alert', function () {
 				confirmButtonText: 'Entendido',
 				confirmButtonColor: '#3085d6'
 			});
-			return;  
+			return;
 		}
 	}
 	if (typeof is_all_prepared !== 'undefined') {
@@ -2067,37 +2067,37 @@ $(document).on('click', '.tracking-alert', function () {
 				confirmButtonText: 'Entendido',
 				confirmButtonColor: '#3085d6'
 			});
-			return;  
+			return;
 		}
 	}
 
 	Swal.fire({
-		title: title!=undefined?title:$lang_alert_title,
-		text: text!=undefined?text:$lang_alert_message,
+		title: title != undefined ? title : $lang_alert_title,
+		text: text != undefined ? text : $lang_alert_message,
 		icon: 'question',
 		// input: hideinput===undefined?'text':null,
 		// inputAttributes: inputAttributes,
 		showCancelButton: true,
 		confirmButtonColor: '#3085d6',
 		cancelButtonColor: '#d33',
-		confirmButtonText: confirmText!=undefined?confirmText:'SÃ­',
+		confirmButtonText: confirmText != undefined ? confirmText : 'SÃ­',
 		cancelButtonText: $lang_cancel_button_text
 	}).then((result) => {
 		if (result.isConfirmed) {
 			if (isform === undefined) {
 				loader_submit();
 				let arr = link.split('?');
-				if(arr.length > 1){
-					if(link[link.length-1] == '?'){
+				if (arr.length > 1) {
+					if (link[link.length - 1] == '?') {
 						link = link;
-					}else{
+					} else {
 						link = link;
 					}
-				}else{
+				} else {
 					link = link;
 				}
 				window.location.href = link;
-			}else{
+			} else {
 				loader_submit();
 				let form = $(this).closest('form');
 				form.attr('action', link)
@@ -2109,9 +2109,9 @@ $(document).on('click', '.tracking-alert', function () {
 
 });
 
-function setSelect2AjaxBarCode(clase = null, templateResult = undefined, facturar = false){
-	if ($(clase == null? ".selectpicker_ajax":clase).length) {
-		$(clase == null? ".selectpicker_ajax":clase).each(function (i, obj) {
+function setSelect2AjaxBarCode(clase = null, templateResult = undefined, facturar = false) {
+	if ($(clase == null ? ".selectpicker_ajax" : clase).length) {
+		$(clase == null ? ".selectpicker_ajax" : clase).each(function (i, obj) {
 
 			var display2 = "";
 			var display2label = "";
@@ -2123,26 +2123,26 @@ function setSelect2AjaxBarCode(clase = null, templateResult = undefined, factura
 			if (typeof $(this).data('display2') !== "undefined") {
 				display2 = "&display2=" + $(this).data('display2');
 			}
-			
+
 			// display2 es label concatenado ej = "item - label: 1234"
 			if (typeof $(this).data('display2label') !== "undefined") {
 				display2label = "&display2label=" + $(this).data('display2label');
 			}
-			
+
 			if (typeof $(this).data('where') !== "undefined") {
 				where = "&where=" + $(this).data('where');
 			}
-			
+
 			// where extra es la condicion real de la tabla consultada
 			if (typeof $(this).data('where_extra') !== "undefined") {
 				where_extra = "&where_extra=" + $(this).data('where_extra');
 			}
 
-			items = "&items="+$(this).data('items');
+			items = "&items=" + $(this).data('items');
 
 			let parent = null;
 
-			if($(this).closest('[role="dialog"]')[0] != undefined){
+			if ($(this).closest('[role="dialog"]')[0] != undefined) {
 				parent = $(this).closest('[role="dialog"] .modal-content');
 			}
 
@@ -2153,7 +2153,7 @@ function setSelect2AjaxBarCode(clase = null, templateResult = undefined, factura
 				language: "es",
 				multiple: true,
 				ajax: {
-					url: _url + '/ajax/get_table_data?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 +display2label + where + where_extra + items,
+					url: _url + '/ajax/get_table_data?table=' + $(this).data('table') + '&value=' + $(this).data('value') + '&display=' + $(this).data('display') + display2 + display2label + where + where_extra + items,
 					delay: 50,
 					dataType: 'json',
 					// processResults: function (data) {
@@ -2169,25 +2169,25 @@ function setSelect2AjaxBarCode(clase = null, templateResult = undefined, factura
 						// };
 					},
 
-					processResults: function(data, params) {
+					processResults: function (data, params) {
 
-						let results = $.map(data.results, function(item) {
+						let results = $.map(data.results, function (item) {
 							return {
 								id: item.id,
 								text: item.text
 							};
 						});
-			
-						if( results.length === 1 && $select.val().length === 0 ){
+
+						if (results.length === 1 && $select.val().length === 0) {
 							$select.append(new Option(results[0].text, results[0].id, true, true)).trigger('change');
 
 							$select.next().find('.select2-search__field').val(null).trigger('change');
 
 							$select.select2('destroy');
-	
+
 							setSelect2AjaxBarCode(null, undefined, true);
 						}
-			
+
 						return {
 							results: results,
 							pagination: {
@@ -2203,76 +2203,112 @@ function setSelect2AjaxBarCode(clase = null, templateResult = undefined, factura
 			});
 
 
-			if( facturar ){
-				$select.select2('open'); 
+			if (facturar) {
+				$select.select2('open');
 			}
 		});
 	}
 }
 
 // funcion para procesar el estado
-function subproduct_types_config(type){
-	var badge 	= '';
-	var name 	= '';
+function subproduct_types_config(type) {
+	var badge = '';
+	var name = '';
 
 	switch (type) {
 		case 'principal':
-			name 	= 'Principal';
-			badge 	= '<span class="badge badge-format-sm badge-primary">'+name+'</span>';
+			name = 'Principal';
+			badge = '<span class="badge badge-format-sm badge-primary">' + name + '</span>';
 			break;
 		case 'sub-producto':
-			name 	= 'Sub-Producto';
-			badge 	= '<span class="badge badge-format-sm badge-secondary">'+name+'</span>';
+			name = 'Sub-Producto';
+			badge = '<span class="badge badge-format-sm badge-secondary">' + name + '</span>';
 			break;
-	
+
 		default:
-		
+
 			break;
 	}
 
 	return {
-		'name' : name,
-		'badge' : badge,
+		'name': name,
+		'badge': badge,
 	}
 }
 
-function initializeTooltip(){
+function initializeTooltip() {
 	const tooltips_list = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    
+
 	tooltips_list.forEach(function (tooltipTriggerEl) {
-      	new bootstrap.Tooltip(tooltipTriggerEl, {
+		new bootstrap.Tooltip(tooltipTriggerEl, {
 			trigger: 'hover',
 			html: true,
 			container: 'body',      // Esto asegura que el tooltip no se quede atrapado en un contenedor con overflow
 			boundary: 'window'      // Esto evita que el tooltip se corte o se coloque fuera de la ventana
 		});
-    });
+	});
 }
 
 //funcion para escapar caracteres especiales en HTML
 function escapeForHTML(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+	return String(str)
+		.replace(/&/g, '&amp;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
 }
 
 const initialBalance = document.getElementById('initial_balance');
 if (initialBalance) {
-    initialBalance.addEventListener('blur', function() {
-        if (this.value !== '') {
-            this.value = parseFloat(this.value).toFixed(2);
-        }
-    });
+	initialBalance.addEventListener('blur', function () {
+		if (this.value !== '') {
+			this.value = parseFloat(this.value).toFixed(2);
+		}
+	});
 }
 
-    // Calcular flete pendiente en tiempo real
-    document.addEventListener('input', function() {
-        const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
-        const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
-        document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
+// Calcular flete pendiente en tiempo real
+document.addEventListener('input', function () {
+	const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
+	const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
+	document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const tipoServicio = document.getElementById('tipo_servicio');
+    const retiroContainer = document.getElementById('retiro_paquete_container');
+    const retiroInput = document.getElementById('retiro_paquete');
+
+    tipoServicio.addEventListener('change', function () {
+        if (this.value === '3') {
+            // Mostrar con animación
+            retiroContainer.style.display = 'block';
+            setTimeout(() => retiroContainer.classList.add('show'), 10);
+            retiroInput.required = true;
+        } else {
+            // Ocultar con animación
+            retiroContainer.classList.remove('show');
+            retiroInput.required = false;
+            retiroInput.value = '';
+            setTimeout(() => retiroContainer.style.display = 'none', 300); // esperar a que termine la transición
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const textarea = document.getElementById('retiro_paquete');
+
+    function autoResize(el) {
+        el.style.height = 'auto';              // reinicia altura
+        el.style.height = el.scrollHeight + 'px'; // ajusta a contenido
+    }
+
+    textarea.addEventListener('input', function() {
+        autoResize(this);
     });
 
-	
+    // Por si ya tiene texto al cargar
+    autoResize(textarea);
+});
