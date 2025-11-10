@@ -27,7 +27,7 @@
                                     <td class="text-center"><?= esc($settledPoint->id) ?></td>
                                     <td><?= esc($settledPoint->point_name) ?></td>
                                     <td class="text-center"><?= esc($settledPoint->ruta_id) ?></td>
-                                    <td class="text-center"><?= esc($settledPoint->days_configuration) ?></td>
+                                    <td class="text-center"><?= "nuew"//esc($settledPoint->days_configuration)  ?></td>
                                     <td class="text-center"><?= esc($settledPoint->hora_inicio . ' - ' . $settledPoint->hora_fin) ?></td>
                                     <td>
                                         <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"

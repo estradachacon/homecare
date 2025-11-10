@@ -37,6 +37,27 @@ public function up()
 
         $this->forge->addKey('id', true);
         $this->forge->createTable('routes');
+                $data = [
+            [
+                'route_name'         => 'Occidente',
+                'description'        => 'Zona occidental',
+            ],
+            [
+                'route_name'         => 'Oriente',
+                'description'        => 'Zona oriental',
+            ],
+            [
+                'route_name'         => 'Norte',
+                'description'        => 'Zona norte',
+            ],
+            [
+                'route_name'         => 'Sur',
+                'description'        => 'Zona sur',
+            ],
+        ];
+
+        // 🚨 CAMBIO CLAVE: Usamos insertBatch() para inserción múltiple.
+        $this->db->table('routes')->insertBatch($data);
     }
 
     public function down()

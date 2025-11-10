@@ -124,15 +124,17 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <?php for ($i = 0; $i < 7; $i++): ?>
+                                        <?php
+                                        $days = ['mon', 'tus', 'wen', 'thu', 'fri', 'sat', 'sun'];
+                                        foreach ($days as $day):
+                                        ?>
                                             <td>
                                                 <div class="form-check form-switch day-switch">
-                                                    <input type="checkbox" class="form-check-input" id="day<?= $i ?>"
-                                                        name="days_configuration[]" value="1" checked>
-                                                    <input type="hidden" name="days_configuration_hidden[]" value="0">
+                                                    <input type="hidden" name="<?= $day ?>" value="0">
+                                                    <input type="checkbox" class="form-check-input" id="<?= $day ?>" name="<?= $day ?>" value="1">
                                                 </div>
                                             </td>
-                                        <?php endfor; ?>
+                                        <?php endforeach; ?>
                                     </tr>
                                 </tbody>
                             </table>
@@ -166,13 +168,13 @@
     </div>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('settledPointForm');
         const textarea = document.querySelector('.autosize-input');
         // Seleccionamos todos los checkboxes de la configuración de días
         const daySwitches = document.querySelectorAll('.day-switch input[type="checkbox"]');
 
-        form.addEventListener('submit', async function (event) {
+        form.addEventListener('submit', async function(event) {
             event.preventDefault(); // Detiene envío real
 
             // --- Validación Bootstrap ---
@@ -182,9 +184,6 @@
                 return; // Detiene si no pasa la validación
             }
             form.classList.add('was-validated');
-
-            // 1. CREAR EL ARRAY DE DÍAS (0s y 1s)
-            const days_configuration_array = Array.from(daySwitches).map(sw => sw.checked ? 1 : 0);
 
             // 2. CAPTURAR EL RESTO DE DATOS
             const formData = new FormData(form);
@@ -198,33 +197,28 @@
                     data[key] = value;
                 }
             });
-
-            // 3. AÑADIR EL ARRAY DE DÍAS SIMPLE AL OBJETO DE DATOS
-            // Usaremos el nombre 'days_configuration' que esperaría el controlador.
-            data['days_configuration'] = days_configuration_array;
-
             // Formatear para visualización y portapapeles
-            const formatted = JSON.stringify(data, null, 2);
+            //const formatted = JSON.stringify(data, null, 2);
 
             // --- Intentar copiar al clipboard (Tu código original de copia) ---
-            try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(formatted);
-                    alert("📋 Datos copiados al portapapeles:\n\n" + formatted);
-                } else {
-                    // fallback para HTTP o navegadores viejos
-                    const temp = document.createElement('textarea');
-                    temp.value = formatted;
-                    document.body.appendChild(temp);
-                    temp.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(temp);
-                    alert("📋 Datos copiados (fallback):\n\n" + formatted);
-                }
-            } catch (err) {
-                console.error("❌ Error copiando al portapapeles:", err);
-                alert("⚠️ No se pudo copiar automáticamente.\nPodés copiarlo manualmente:\n\n" + formatted);
-            }
+            // try {
+            //     if (navigator.clipboard && window.isSecureContext) {
+            //         await navigator.clipboard.writeText(formatted);
+            //         alert("📋 Datos copiados al portapapeles:\n\n" + formatted);
+            //     } else {
+            //         // fallback para HTTP o navegadores viejos
+            //         const temp = document.createElement('textarea');
+            //         temp.value = formatted;
+            //         document.body.appendChild(temp);
+            //         temp.select();
+            //         document.execCommand('copy');
+            //         document.body.removeChild(temp);
+            //         alert("📋 Datos copiados (fallback):\n\n" + formatted);
+            //     }
+            // } catch (err) {
+            //     console.error("❌ Error copiando al portapapeles:", err);
+            //     alert("⚠️ No se pudo copiar automáticamente.\nPodés copiarlo manualmente:\n\n" + formatted);
+            // }
             form.submit();
         });
 
@@ -248,7 +242,7 @@
 </script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const switches = document.querySelectorAll('.day-switch input[type="checkbox"]');
 
         switches.forEach(sw => {

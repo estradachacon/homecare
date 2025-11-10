@@ -13,8 +13,8 @@
                     <thead>
                         <tr>
                             <th class="col-1">ID</th>
-                            <th class="col-7">Ruta</th>
-                            <th class="col-2">Descripción</th>
+                            <th class="col-5">Ruta</th>
+                            <th class="col-4">Descripción</th>
                             <th class="col-2">Acciones</th>
                         </tr>
                     </thead>

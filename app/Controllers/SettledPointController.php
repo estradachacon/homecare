@@ -43,7 +43,6 @@ class SettledPointController extends BaseController
         $rules = [
             'point_name' => 'required|min_length[3]',
             'ruta_id' => 'required|integer',
-            'days_configuration' => 'required',
             'hora_inicio' => 'required',
             'hora_fin' => 'required',
             'description' => 'permit_empty|string',

@@ -26,9 +26,39 @@ class SettledPoints extends Migration
                 'unsigned' => true,
                 'null' => false
             ],
-            'days_configuration' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
+            'mon' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'tus' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'wen' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'thu' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'fri' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'sat' => [
+                'type' => 'INT',
+                'constraint' => 11,
+                'null' => false,
+            ],
+            'sun' => [
+                'type' => 'INT',
+                'constraint' => 11,
                 'null' => false,
             ],
             'hora_inicio' => [

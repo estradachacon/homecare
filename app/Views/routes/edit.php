@@ -35,7 +35,6 @@
                                 class="form-control text-end input-unit-cost" 
                                 value="<?= esc($routes->description) ?>" 
                                 step="0.01" 
-                                required
                             >
                         </div>
                     </div>
