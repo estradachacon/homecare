@@ -92,19 +92,21 @@ class SettledPointController extends BaseController
 
     public function edit($id)
     {
+        $routes = $this->routeModel->findAll();
         // 1. Obtener la caja a editar
-        $seller = $this->sellerModel->find($id);
+        $settledPoint = $this->settledPointModel->find($id);
 
-        if (!$seller) {
-            return redirect()->to('/sellers')->with('error', 'Vendedor no encontrado.');
+        if (!$settledPoint) {
+        return redirect()->to('/settledPoint')->with('error', 'Punto fijo no encontrado.');
         }
 
         $data = [
-            'sellers' => $seller,
+            'rutas' => $routes,
+            'settledPoint' => $settledPoint,
         ];
 
         // Se asume que tienes una vista en 'seller/edit'
-        return view('sellers/edit', $data);
+        return view('settledpoint/edit', $data);
     }
 
     /**
