@@ -67,17 +67,17 @@
 
             <div class="card-body">
                 <!-- Formulario apuntando al método update -->
-                <form action="<?= base_url('settledPoint/update/' . $settledPoint->id) ?>" method="post">
+                <form action="<?= base_url('settledpoint/update/' . $settledPoint->id) ?>" method="post">
                     <?= csrf_field() ?>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="route_name" class="form-label">Nombre del Punto fijo</label>
+                            <label for="point_name" class="form-label">Nombre del Punto fijo</label>
                             <input
                                 type="text"
                                 class="form-control"
-                                id="route_name"
-                                name="route_name"
+                                id="point_name"
+                                name="point_name"
                                 value="<?= esc($settledPoint->point_name) ?>"
                                 required>
                         </div>

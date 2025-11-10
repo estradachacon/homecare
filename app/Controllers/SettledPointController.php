@@ -120,9 +120,18 @@ class SettledPointController extends BaseController
         // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
         if (
             !$this->validate([
-                'seller' => 'required|min_length[3]|max_length[100]',
-                'tel_seller' => 'required|numeric',
-            ])
+            'point_name' => 'required|min_length[3]',
+            'ruta_id' => 'required|integer',
+            'mon' => 'required|integer',
+            'tus' => 'required|integer',
+            'wen' => 'required|integer',
+            'thu' => 'required|integer',
+            'fri' => 'required|integer',
+            'sat' => 'required|integer',
+            'sun' => 'required|integer',
+            'hora_inicio' => 'required',
+            'hora_fin' => 'required',
+        ])
         ) {
             // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
             return redirect()->back()
@@ -132,18 +141,28 @@ class SettledPointController extends BaseController
 
         // 3. Si la validación es exitosa, se procede a la actualización
         $data = [
-            'seller' => $this->request->getPost('seller'),
-            'tel_seller' => $this->request->getPost('tel_seller'),
+            'point_name' => $this->request->getPost('point_name'),
+            'ruta_id' => $this->request->getPost('ruta_id'),
+            'mon' => $this->request->getPost('mon'),
+            'tus' => $this->request->getPost('tus'),
+            'wen' => $this->request->getPost('wen'),
+            'thu' => $this->request->getPost('thu'),
+            'fri' => $this->request->getPost('fri'),
+            'sat' => $this->request->getPost('sat'),
+            'sun' => $this->request->getPost('sun'),
+            'hora_inicio' => $this->request->getPost('hora_inicio'),
+            'hora_fin' => $this->request->getPost('hora_fin'),
         ];
 
-        $this->sellerModel->update($id, $data);
+        $this->settledPointModel->update($id, $data);
+
         registrar_bitacora(
-            'Se editó vendedor',
-            'Vendedores',
-            'Se editó el vendedor con ID ' . esc($id) . '.',
+            'Se editó Punto Fijo',
+            'Destinos',
+            'Se editó el punto fijo con ID ' . esc($id) . '.',
             $session->get('user_id')
         );
-        return redirect()->to('/sellers')->with('success', 'Vendedor actualizado exitosamente.');
+        return redirect()->to('/settledpoint')->with('success', 'Punto fijo actualizado exitosamente.');
     }
 
     public function delete()
