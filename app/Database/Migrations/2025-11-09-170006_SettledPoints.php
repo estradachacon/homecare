@@ -27,16 +27,8 @@ class SettledPoints extends Migration
                 'null' => false
             ],
             'days_configuration' => [
-                'type' => 'ENUM',
-                'constraint' => [
-                    'Lunes',
-                    'Martes',
-                    'Miércoles',
-                    'Jueves',
-                    'Viernes',
-                    'Sábado',
-                    'Domingo'
-                ],
+                'type' => 'VARCHAR',
+                'constraint' => 255,
                 'null' => false,
             ],
             'hora_inicio' => [

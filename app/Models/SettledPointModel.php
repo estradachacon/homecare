@@ -10,7 +10,7 @@ class SettledPointModel extends Model
     protected $primaryKey       = 'id';
     protected $returnType       = 'object';
     protected $protectFields    = true;
-    protected $allowedFields    = ['point_name', 'ruta_id', 'days_configuration'];
+    protected $allowedFields    = ['point_name', 'ruta_id', 'days_configuration', 'hora_inicio', 'hora_fin'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';

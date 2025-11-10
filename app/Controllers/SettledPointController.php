@@ -5,14 +5,17 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\SettledPointModel;
+use App\Models\RouteModel;
 
 class SettledPointController extends BaseController
 {
     protected $settledPointModel;
+    protected $routeModel;
 
     public function __construct()
     {
         $this->settledPointModel = new SettledPointModel();
+        $this->routeModel = new RouteModel();
     }
 
     public function index()
@@ -23,8 +26,15 @@ class SettledPointController extends BaseController
 
     public function new()
     {
-        return view('settledpoint/create');
+        $routes = $this->routeModel->findAll();
+
+        $data = [
+            'title' => 'Crear caja',
+            'rutas' => $routes,
+        ];
+        return view('settledpoint/create', $data);
     }
+
 
     public function create()
     {
@@ -32,14 +42,32 @@ class SettledPointController extends BaseController
         $session = session();
         $rules = [
             'point_name' => 'required|min_length[3]',
+            'ruta_id' => 'required|integer',
+            'days_configuration' => 'required',
+            'hora_inicio' => 'required',
+            'hora_fin' => 'required',
+            'description' => 'permit_empty|string',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        // --- CORRECCIÓN DE LOS DÍAS ---
+        $checkedDays = $this->request->getPost('days_configuration') ?? [];
+        $days_configuration = [];
+
+        for ($i = 0; $i < 7; $i++) {
+            $days_configuration[$i] = (isset($checkedDays[$i]) && $checkedDays[$i] == '1') ? 1 : 0;
+        }
+
         $this->settledPointModel->save([
             'point_name' => $this->request->getPost('point_name'),
+            'ruta_id' => $this->request->getPost('ruta_id'),
+            'days_configuration' => json_encode($days_configuration),
+            'hora_inicio' => $this->request->getPost('hora_inicio'),
+            'hora_fin' => $this->request->getPost('hora_fin'),
+            'description' => $this->request->getPost('description'),
         ]);
 
         registrar_bitacora(
@@ -78,10 +106,12 @@ class SettledPointController extends BaseController
         helper(['form']);
         $session = session();
         // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
-        if (!$this->validate([
-            'seller' => 'required|min_length[3]|max_length[100]',
-            'tel_seller' => 'required|numeric',
-        ])) {
+        if (
+            !$this->validate([
+                'seller' => 'required|min_length[3]|max_length[100]',
+                'tel_seller' => 'required|numeric',
+            ])
+        ) {
             // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
             return redirect()->back()
                 ->withInput() // Mantiene los datos que el usuario ingresó
@@ -109,23 +139,23 @@ class SettledPointController extends BaseController
         helper(['form']);
         $session = session();
         $id = $this->request->getPost('id');
-        $cashierModel = new SellerModel();
+        $settledPointModel = new SettledPointModel();
 
         if (!$id) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'ID inválido.']);
         }
 
-        if ($cashierModel->delete($id)) {
+        if ($settledPointModel->delete($id)) {
             registrar_bitacora(
-                'Eliminó vendedor',
-                'Vendedores',
-                'Se eliminó el vendedor con ID ' . esc($id) . '.',
+                'Eliminó punto fijo',
+                'Destinos',
+                'Se eliminó el punto fijo con ID ' . esc($id) . '.',
                 $session->get('user_id')
             );
-            return $this->response->setJSON(['status' => 'success', 'message' => 'Registro de vendedor eliminado correctamente.']);
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Registro de punto fijo eliminado correctamente.']);
         }
 
-        return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el vendedor.']);
+        return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el punto fijo.']);
     }
     public function search()
     {
@@ -159,7 +189,7 @@ class SettledPointController extends BaseController
     }
 
 
-public function createAjax()
+    public function createAjax()
     {
         $sellerModel = new SellerModel();
         $session = session();

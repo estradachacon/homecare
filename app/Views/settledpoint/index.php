@@ -21,16 +21,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($routes)): ?>
-                            <?php foreach ($routes as $route): ?>
+                        <?php if (!empty($settledPoints)): ?>
+                            <?php foreach ($settledPoints as $settledPoint): ?>
                                 <tr>
-                                    <td class="text-center"><?= esc($route->id) ?></td>
-                                    <td><?= esc($route->route_name) ?></td>
-                                    <td class="text-center"><?= esc($route->description) ?></td>
+                                    <td class="text-center"><?= esc($settledPoint->id) ?></td>
+                                    <td><?= esc($settledPoint->point_name) ?></td>
+                                    <td class="text-center"><?= esc($settledPoint->ruta_id) ?></td>
+                                    <td class="text-center"><?= esc($settledPoint->days_configuration) ?></td>
+                                    <td class="text-center"><?= esc($settledPoint->hora_inicio . ' - ' . $settledPoint->hora_fin) ?></td>
                                     <td>
-                                        <a href="<?= base_url('routes/edit/' . $route->id) ?>"
+                                        <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"
                                             class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $route->id ?>">
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $settledPoint->id ?>">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </td>
@@ -38,7 +40,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="text-center">No hay rutas registradas</td>
+                                <td colspan="6" class="text-center">No hay puntos fijos registrados</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -77,7 +79,7 @@
                     if (result.isConfirmed) {
                         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                         const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
-                        fetch("<?= base_url('routes/delete') ?>", {
+                        fetch("<?= base_url('settledpoint/delete') ?>", {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/x-www-form-urlencoded',
