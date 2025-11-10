@@ -46,7 +46,11 @@ class AuthController extends BaseController
         if (empty($username) || empty($password)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Usuario y contraseña son requeridos.'
+                'message' => 'Usuario y contraseña son requeridos.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ]
             ]);
         }
 
@@ -56,7 +60,11 @@ class AuthController extends BaseController
         if (!$user) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Usuario no encontrado.'
+                'message' => 'Usuario no encontrado.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ]
             ]);
         }
 
@@ -64,7 +72,11 @@ class AuthController extends BaseController
         if (!password_verify($password, $user['user_password'])) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Contraseña incorrecta.'
+                'message' => 'Contraseña incorrecta.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ]
             ]);
         }
 
@@ -72,7 +84,11 @@ class AuthController extends BaseController
         if (isset($user['activo']) && $user['activo'] != 1) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Usuario inactivo.'
+                'message' => 'Usuario inactivo.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ]
             ]);
         }
 
@@ -81,14 +97,14 @@ class AuthController extends BaseController
 
         // Guardar sesión - CORREGIDO: usar 'isLoggedIn' o 'logged_in' consistentemente
         $sessionData = [
-            'id'        => $user_complete['id'],
+            'id' => $user_complete['id'],
             'user_name' => $user_complete['user_name'],
-            'email'     => $user_complete['email'],
-            'role_id'   => $user_complete['role_id'],
-            'branch_id'   => $user_complete['branch_id'],
-            'branch_name'   => $user_complete['branch_name'],
-            'branch_direction'   => $user_complete['branch_direction'],
-            'permisos'  => array_column($permisos, 'habilitado', 'nombre_accion'),
+            'email' => $user_complete['email'],
+            'role_id' => $user_complete['role_id'],
+            'branch_id' => $user_complete['branch_id'],
+            'branch_name' => $user_complete['branch_name'],
+            'branch_direction' => $user_complete['branch_direction'],
+            'permisos' => array_column($permisos, 'habilitado', 'nombre_accion'),
             'isLoggedIn' => true, // Cambiado para coincidir con tu filtro original
             'logged_in' => true   // O mantener este y cambiar el filtro
         ];
@@ -105,7 +121,11 @@ class AuthController extends BaseController
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Inicio de sesión correcto',
-            'redirect' => base_url('dashboard')
+            'redirect' => base_url('dashboard'),
+            'csrf' => [
+                'tokenName' => csrf_token(),
+                'hash' => csrf_hash(),
+            ]
         ]);
     }
 

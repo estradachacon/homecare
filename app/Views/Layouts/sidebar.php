@@ -141,24 +141,7 @@
                     data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
                         <a class="nav-link" href="/settings">Configuración general</a>
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#transactions"
-                            aria-expanded="false" aria-controls="collapseLayouts">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-store"></i></div>Sucursales
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
-                        <div class="collapse" id="transactions" aria-labelledby="headingOne"
-                            data-parent="#navAccordionTreasury">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="/branches">Listado de
-                                    sucursales</a>
-                                <a class="nav-link" href="#/expense">Gastos</a>
-                                <a class="nav-link" href="#/transfer/create">Transferir</a>
-                                <a class="nav-link" href="#/income/calendar">Calendario
-                                    de ingresos</a>
-                                <a class="nav-link" href="#/expense/calendar">Calendario
-                                    de gastos</a>
-                            </nav>
-                        </div>
+                        <a class="nav-link" href="/branches">Listado de sucursales</a>
                         <a class="nav-link" href="#/admin/administration/general_settings">Ver
                             almacenamiento</a>
                     </nav>
@@ -172,10 +155,10 @@
                 </a>
                 <div class="collapse" id="staffs" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="users">Lista de usuarios</a>
+                        <a class="nav-link" href="/users">Lista de usuarios</a>
                     </nav>
                     <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="roles">Roles</a>
+                        <a class="nav-link" href="/roles">Roles</a>
                     </nav>
                 </div>
 

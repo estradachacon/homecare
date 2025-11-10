@@ -13,9 +13,9 @@
                     <thead>
                         <tr>
                             <th class="col-1">ID</th>
-                            <th class="col-7">Punto</th>
+                            <th class="col-4">Punto</th>
                             <th class="col-2">Ruta relacionada</th>
-                            <th class="col-2">Dia de vista</th>
+                            <th class="col-3">Dias de visita</th>
                             <th class="col-2">Horario</th>
                             <th class="col-2">Acciones</th>
                         </tr>
@@ -38,7 +38,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="4" class="text-center">No hay rutas registradas</td>
+                                <td colspan="6" class="text-center">No hay rutas registradas</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

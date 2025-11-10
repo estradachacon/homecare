@@ -21,7 +21,7 @@
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header d-flex">
-                <h4 class="mb-3">Nueva ruta</h4>
+                <h4 class="mb-3">Nuevo punto fijo</h4>
             </div>
             <div class="card-body">
                 <?php if (session()->getFlashdata('errors')): ?>
@@ -34,24 +34,24 @@
                     </div>
                 <?php endif; ?>
 
-                <form id="routeForm" action="<?= base_url('routes') ?>" method="post" novalidate>
+                <form id="settledPointForm" action="<?= base_url('settledpoint') ?>" method="post" novalidate>
                     <?= csrf_field() ?>
 
                     <div class="mb-3">
-                        <label for="route_name" class="form-label">Nombre de la Ruta</label>
-                        <input type="text" name="route_name" id="route_name" class="form-control" minlength="3" required>
+                        <label for="point_name" class="form-label">Nombre del Punto Fijo</label>
+                        <input type="text" name="point_name" id="point_name" class="form-control" minlength="3" required>
                         <div class="invalid-feedback">
                             El nombre debe tener al menos 3 caracteres.
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Descripción</label>
+                        <label for="description" class="form-label">Descripción corta</label>
                         <textarea name="description" id="description" class="form-control autosize-input" rows="1"></textarea>
                     </div>
 
                     <button type="submit" class="btn btn-success">Guardar</button>
-                    <a href="<?= base_url('routes') ?>" class="btn btn-secondary">Cancelar</a>
+                    <a href="<?= base_url('settledpoint') ?>" class="btn btn-secondary">Cancelar</a>
                 </form>
             </div>
         </div>
@@ -60,7 +60,7 @@
 <script>
     (() => {
         'use strict';
-        const form = document.getElementById('routeForm');
+        const form = document.getElementById('settledPointForm');
 
         form.addEventListener('submit', function (event) {
             if (!form.checkValidity()) {
@@ -74,7 +74,7 @@
 <script>
     (() => {
         'use strict';
-        const form = document.getElementById('routeForm');
+        const form = document.getElementById('settledPointForm');
 
         // ✅ Validación del formulario
         form.addEventListener('submit', function (event) {
