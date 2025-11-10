@@ -1743,46 +1743,6 @@ function init_editor() {
 	}
 }
 
-function init_datepicker() {
-	/** Start Datepicker **/
-	var date_format = ["Y-m-d", "d-m-Y", "d/m/Y", "m-d-Y", "m.d.Y", "m/d/Y", "d.m.Y", "d/M/Y", "M/d/Y", "d M, Y"];
-	var picker_date_format = ["YYYY-MM-DD", "DD-MM-YYYY", "DD/MM/YYYY", "MM-DD-YYYY", "MM.DD.YYYY", "MM/DD/YYYY", "DD.MM.YYYY", "DD/MMM/YYYY", "MMM/DD/YYYY", "DD MMM, YYYY"];
-
-	var fake_format = picker_date_format[date_format.indexOf(_date_format)];
-
-	//Set Default date
-	if ($(".datepicker").length) {
-		$('.datepicker').each(function (i, obj) {
-
-			$('.datepicker').daterangepicker({
-				singleDatePicker: true,
-				showDropdowns: true,
-				locale: {
-					format: 'YYYY-MM-DD'
-				}
-			});
-
-			$('.datepicker').css('color', 'transparent');
-
-			if (typeof $(this).next().attr('class') === "undefined") {
-				$(this).after('<span class="fake_datepicker"></span>');
-				$(this).next('.fake_datepicker').css('margin-top', "-38.2px");
-			}
-			$(this).next('.fake_datepicker').html(moment($(this).val()).format(fake_format));
-		})
-	}
-
-	$('.datepicker').on('apply.daterangepicker', function (ev, picker) {
-		$(this).next('.fake_datepicker').html(moment($(this).val()).format(fake_format));
-	});
-
-	$(document).on('click', '.fake_datepicker', function () {
-		$(this).prev().focus();
-	});
-
-	/** End Datepicker **/
-}
-
 function showRole(elem) {
 	if ($(elem).val() == '') {
 		return;
@@ -2312,3 +2272,44 @@ document.addEventListener('DOMContentLoaded', function () {
     // Por si ya tiene texto al cargar
     autoResize(textarea);
 });
+
+
+function init_datepicker() {
+	/** Start Datepicker **/
+	var date_format = ["Y-m-d", "d-m-Y", "d/m/Y", "m-d-Y", "m.d.Y", "m/d/Y", "d.m.Y", "d/M/Y", "M/d/Y", "d M, Y"];
+	var picker_date_format = ["YYYY-MM-DD", "DD-MM-YYYY", "DD/MM/YYYY", "MM-DD-YYYY", "MM.DD.YYYY", "MM/DD/YYYY", "DD.MM.YYYY", "DD/MMM/YYYY", "MMM/DD/YYYY", "DD MMM, YYYY"];
+
+	var fake_format = picker_date_format[date_format.indexOf(_date_format)];
+
+	//Set Default date
+	if ($(".datepicker").length) {
+		$('.datepicker').each(function (i, obj) {
+
+			$('.datepicker').daterangepicker({
+				singleDatePicker: true,
+				showDropdowns: true,
+				locale: {
+					format: 'YYYY-MM-DD'
+				}
+			});
+
+			$('.datepicker').css('color', 'transparent');
+
+			if (typeof $(this).next().attr('class') === "undefined") {
+				$(this).after('<span class="fake_datepicker"></span>');
+				$(this).next('.fake_datepicker').css('margin-top', "-38.2px");
+			}
+			$(this).next('.fake_datepicker').html(moment($(this).val()).format(fake_format));
+		})
+	}
+
+	$('.datepicker').on('apply.daterangepicker', function (ev, picker) {
+		$(this).next('.fake_datepicker').html(moment($(this).val()).format(fake_format));
+	});
+
+	$(document).on('click', '.fake_datepicker', function () {
+		$(this).prev().focus();
+	});
+
+	/** End Datepicker **/
+}

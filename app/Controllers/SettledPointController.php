@@ -43,9 +43,15 @@ class SettledPointController extends BaseController
         $rules = [
             'point_name' => 'required|min_length[3]',
             'ruta_id' => 'required|integer',
+            'mon' => 'required|integer',
+            'tus' => 'required|integer',
+            'wen' => 'required|integer',
+            'thu' => 'required|integer',
+            'fri' => 'required|integer',
+            'sat' => 'required|integer',
+            'sun' => 'required|integer',
             'hora_inicio' => 'required',
             'hora_fin' => 'required',
-            'description' => 'permit_empty|string',
         ];
 
         if (!$this->validate($rules)) {
@@ -63,10 +69,15 @@ class SettledPointController extends BaseController
         $this->settledPointModel->save([
             'point_name' => $this->request->getPost('point_name'),
             'ruta_id' => $this->request->getPost('ruta_id'),
-            'days_configuration' => json_encode($days_configuration),
+            'mon' => $this->request->getPost('mon'),
+            'tus' => $this->request->getPost('tus'),
+            'wen' => $this->request->getPost('wen'),
+            'thu' => $this->request->getPost('thu'),
+            'fri' => $this->request->getPost('fri'),
+            'sat' => $this->request->getPost('sat'),
+            'sun' => $this->request->getPost('sun'),
             'hora_inicio' => $this->request->getPost('hora_inicio'),
             'hora_fin' => $this->request->getPost('hora_fin'),
-            'description' => $this->request->getPost('description'),
         ]);
 
         registrar_bitacora(

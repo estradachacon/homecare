@@ -27,7 +27,31 @@
                                     <td class="text-center"><?= esc($settledPoint->id) ?></td>
                                     <td><?= esc($settledPoint->point_name) ?></td>
                                     <td class="text-center"><?= esc($settledPoint->ruta_id) ?></td>
-                                    <td class="text-center"><?= "nuew"//esc($settledPoint->days_configuration)  ?></td>
+                                    <td class="text-center">
+                                        <?php
+                                        $dias = [
+                                            'mon' => 'Lunes',
+                                            'tus' => 'Martes',
+                                            'wen' => 'Miércoles',
+                                            'thu' => 'Jueves',
+                                            'fri' => 'Viernes',
+                                            'sat' => 'Sábado',
+                                            'sun' => 'Domingo'
+                                        ];
+
+                                        $dias_visita = [];
+
+                                        foreach ($dias as $col => $nombre) {
+                                            if (!empty($settledPoint->$col) && $settledPoint->$col == 1) {
+                                                $dias_visita[] = $nombre;
+                                            }
+                                        }
+
+                                        echo !empty($dias_visita)
+                                            ? implode(', ', $dias_visita)
+                                            : '<span class="text-muted">Sin días asignados</span>';
+                                        ?>
+                                    </td>
                                     <td class="text-center"><?= esc($settledPoint->hora_inicio . ' - ' . $settledPoint->hora_fin) ?></td>
                                     <td>
                                         <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"
