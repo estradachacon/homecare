@@ -2237,80 +2237,107 @@ document.addEventListener('input', function () {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    const tipoServicio = document.getElementById('tipo_servicio');
-    const retiroContainer = document.getElementById('retiro_paquete_container');
-    const retiroInput = document.getElementById('retiro_paquete');
-    const puntoFijoLabel = document.getElementById('punto_fijo_container');
-    const puntoFijoSelect = document.getElementById('puntofijo_select');
-    const tipoEntregaContainer = document.getElementById('tipo_entrega_container');
+	const tipoServicio = document.getElementById('tipo_servicio');
+	const retiroContainer = document.getElementById('retiro_paquete_container');
+	const retiroInput = document.getElementById('retiro_paquete');
+	const puntoFijoLabel = document.getElementById('punto_fijo_container');
+	const puntoFijoSelect = document.getElementById('puntofijo_select');
+	const tipoEntregaContainer = document.getElementById('tipo_entrega_container');
+	const tipoEntrega = document.getElementById('tipo_entrega');
+	const destinoContainer = document.getElementById('destino_container');
+	const destinoInput = document.getElementById('destino_input');
 
-    // --- Mostrar campo ---
-    function mostrarCampo(el) {
-        if (!el) return;
-        el.querySelectorAll('input, select, textarea').forEach(field => {
-            field.disabled = false;
-        });
-        el.style.display = 'block';
-        setTimeout(() => el.classList.add('show'), 10);
-    }
+	// --- Mostrar campo ---
+	function mostrarCampo(el) {
+		if (!el) return;
+		el.querySelectorAll('input, select, textarea').forEach(field => {
+			field.disabled = false;
+		});
+		el.style.display = 'block';
+		setTimeout(() => el.classList.add('show'), 10);
+	}
 
-    // --- Ocultar campo ---
-function ocultarCampo(el) {
-    if (!el) return;
-    el.classList.remove('show');
-    el.style.display = 'none';
+	// --- Ocultar campo ---
+	function ocultarCampo(el) {
+		if (!el) return;
+		el.classList.remove('show');
+		el.style.display = 'none';
 
-    // 🔹 Limpieza inmediata de valores
-    el.querySelectorAll('input, select, textarea').forEach(field => {
-        const isSelect2 = $(field).hasClass('select2') || $(field).data('select2');
+		// 🔹 Limpieza inmediata de valores
+		el.querySelectorAll('input, select, textarea').forEach(field => {
+			const isSelect2 = $(field).hasClass('select2') || $(field).data('select2');
 
-        if (isSelect2) {
-            // 🔸 Reset del Select2 correctamente
-            $(field).val(null).trigger('change');
-        } else if (field.type === 'checkbox' || field.type === 'radio') {
-            field.checked = false;
-        } else {
-            field.value = '';
-        }
+			if (isSelect2) {
+				// 🔸 Reset del Select2 correctamente
+				$(field).val(null).trigger('change');
+			} else if (field.type === 'checkbox' || field.type === 'radio') {
+				field.checked = false;
+			} else {
+				field.value = '';
+			}
 
-        field.disabled = true;
-    });
-}
+			field.disabled = true;
+		});
+	}
 
-    // --- Lógica principal ---
-    function actualizarCampos() {
-        const tipo = tipoServicio.value;
+	// --- Lógica principal ---
+	function actualizarCampos() {
+		const tipo = tipoServicio.value;
+		
+		// Limpiar todo antes de aplicar
+		ocultarCampo(puntoFijoLabel);
+		ocultarCampo(retiroContainer);
+		ocultarCampo(tipoEntregaContainer);
+		ocultarCampo(destinoContainer);
 
-        switch (tipo) {
-            case '1': // Punto fijo
-                mostrarCampo(puntoFijoLabel);
-                ocultarCampo(retiroContainer);
-                ocultarCampo(tipoEntregaContainer);
-                break;
+		switch (tipo) {
+			case '1': // Punto fijo
+				mostrarCampo(puntoFijoLabel);
+				break;
+			
+			case '2': // Personalizado
+				mostrarCampo(destinoContainer);
+				break;
+			
+			case '3': // Retiro de paquete
+				mostrarCampo(retiroContainer);
+				mostrarCampo(tipoEntregaContainer);
+				actualizarTipoEntrega(); // Aplica sub-lógica
+				break;
 
-            case '2': // Entrega personalizada
-            case '3': // Retiro de paquete
-                mostrarCampo(retiroContainer);
-                mostrarCampo(tipoEntregaContainer);
-                ocultarCampo(puntoFijoLabel);
-                break;
+			default:
+				// nada visible
+				break;
+		}
+	}
 
-            default: // Sin selección
-                ocultarCampo(puntoFijoLabel);
-                ocultarCampo(retiroContainer);
-                ocultarCampo(tipoEntregaContainer);
-                break;
-        }
-    }
+	// --- Sub-lógica: dentro del tipo de entrega ---
+	function actualizarTipoEntrega() {
+		const tipo = tipoEntrega.value;
 
-    // --- Ajuste del textarea ---
-    retiroInput.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
-    });
+		// Ocultar ambos antes de aplicar
+		ocultarCampo(puntoFijoLabel);
+		ocultarCampo(destinoContainer);
 
-    tipoServicio.addEventListener('change', actualizarCampos);
-    actualizarCampos();
+		if (tipo === '5') {
+			// Entrega en punto fijo
+			mostrarCampo(puntoFijoLabel);
+		} else if (tipo === 'personalizada') {
+			// Entrega personalizada
+			mostrarCampo(destinoContainer);
+		}
+	}
+
+	// --- Ajuste del textarea ---
+	retiroInput.addEventListener('input', function () {
+		this.style.height = 'auto';
+		this.style.height = this.scrollHeight + 'px';
+	});
+
+	// --- Listeners ---
+	tipoServicio.addEventListener('change', actualizarCampos);
+	tipoEntrega.addEventListener('change', actualizarTipoEntrega);
+	actualizarCampos();
 });
 
 

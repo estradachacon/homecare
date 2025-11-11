@@ -175,7 +175,7 @@
                             <select id="tipo_entrega" class="form-select">
                                 <option value="">Seleccione destino de entrega</option>
                                 <option value="personalizada">Entrega personalizada</option>
-                                <option value="punto_fijo">Entrega en punto fijo</option>
+                                <option value="5">Entrega en punto fijo</option>
                             </select>
                         </div>
 

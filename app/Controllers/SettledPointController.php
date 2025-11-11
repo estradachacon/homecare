@@ -227,51 +227,6 @@ class SettledPointController extends BaseController
 
         return $this->response->setJSON($data);
     }
-
-
-    public function createAjax()
-    {
-        $sellerModel = new SellerModel();
-        $session = session();
-        $data = [
-            'seller' => $this->request->getPost('seller'),
-            'telefono' => $this->request->getPost('tel_seller'),
-        ];
-
-        if (empty($data['seller'])) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'El nombre del vendedor es obligatorio.'
-            ]);
-        }
-
-        try {
-            $id = $sellerModel->insert($data);
-
-            if (!$id) {
-                throw new \Exception('No se pudo guardar el vendedor.');
-            }
-            registrar_bitacora(
-                'Creación de vendedor',
-                'Paquetería',
-                'Se creó el vendedor ' . esc($data['seller']) . ' en el registro de paquete.',
-                $session->get('user_id')
-            );
-
-            return $this->response->setJSON([
-                'status' => 'success',
-                'data' => [
-                    'id' => $id,
-                    'text' => $data['seller']
-                ]
-            ]);
-        } catch (\Throwable $e) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ]);
-        }
-    }
     public function getList()
     {
         if ($this->request->isAJAX()) {
