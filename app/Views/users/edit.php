@@ -15,22 +15,29 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="user_name" class="form-label">Nombre de usuario</label>
-                            <input type="text" class="form-control" id="user_name" name="user_name" required value="<?= esc($user['user_name']) ?>">
+                            <input type="text" class="form-control" id="user_name" name="user_name" required
+                                value="<?= esc($user['user_name']) ?>">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="email" class="form-label">Correo electrónico</label>
-                            <input type="email" class="form-control" id="email" name="email" required value="<?= esc($user['email']) ?>">
+                            <input type="email" class="form-control" id="email" name="email" required
+                                value="<?= esc($user['email']) ?>">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="user_password" class="form-label">Contraseña</label>
-                            <input type="password" class="form-control" id="user_password" name="user_password" required>
+                            <input type="password" class="form-control" id="user_password" name="user_password"
+                                placeholder="Dejar en blanco si no desea cambiarla">
+                            <small class="text-muted">Deje este campo vacío para mantener la contraseña actual.</small>
                         </div>
+
                         <div class="col-md-6 mb-3">
-                            <label for="role_id" class="form-label">Asignar Rol</label>
+                            <label for="role_id" class="form-label">Rol asignado</label>
                             <select class="form-select" id="role_id" name="role_id" required>
                                 <option value="">Seleccione un rol</option>
                                 <?php foreach ($roles as $role): ?>
-                                    <option value="<?= esc($role['id']) ?>"><?= esc($role['nombre']) ?></option>
+                                    <option value="<?= esc($role['id']) ?>" <?= $role['id'] == $user['role_id'] ? 'selected' : '' ?>>
+                                        <?= esc($role['nombre']) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -39,9 +46,12 @@
                             <select class="form-select" id="branch_id" name="branch_id" required>
                                 <option value="">Seleccione una sucursal</option>
                                 <?php foreach ($branches as $branch): ?>
-                                    <option value="<?= esc($branch->id) ?>"><?= esc($branch->branch_name) ?></option>
+                                    <option value="<?= esc($branch->id) ?>" <?= $branch->id == $user['branch_id'] ? 'selected' : '' ?>>
+                                        <?= esc($branch->branch_name) ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
+
                         </div>
                     </div>
                     <div class="text-end">

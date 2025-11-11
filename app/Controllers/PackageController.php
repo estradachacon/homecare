@@ -6,14 +6,17 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\PackageModel;
 use App\Models\SellerModel;
+use App\Models\SettledPointModel;
 
 class PackageController extends BaseController
 {
     protected $packageModel;
+    protected $settledPointModel;
 
     public function __construct()
     {
         $this->packageModel = new PackageModel();
+        $this->settledPointModel = new SettledPointModel();
     }
 
     public function index()
@@ -33,6 +36,11 @@ class PackageController extends BaseController
 
     public function new()
     {
-        return view('packages/new');
+        $settledPoint = $this->settledPointModel->findAll();
+
+        $data = [
+            'settledPoints' => $settledPoint,
+        ];
+        return view('packages/new', $data);
     }
 }

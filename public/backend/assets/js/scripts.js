@@ -2240,37 +2240,77 @@ document.addEventListener('DOMContentLoaded', function () {
     const tipoServicio = document.getElementById('tipo_servicio');
     const retiroContainer = document.getElementById('retiro_paquete_container');
     const retiroInput = document.getElementById('retiro_paquete');
+    const puntoFijoLabel = document.getElementById('punto_fijo_container');
+    const puntoFijoSelect = document.getElementById('puntofijo_select');
+    const tipoEntregaContainer = document.getElementById('tipo_entrega_container');
 
-    tipoServicio.addEventListener('change', function () {
-        if (this.value === '3') {
-            // Mostrar con animación
-            retiroContainer.style.display = 'block';
-            setTimeout(() => retiroContainer.classList.add('show'), 10);
-            retiroInput.required = true;
-        } else {
-            // Ocultar con animación
-            retiroContainer.classList.remove('show');
-            retiroInput.required = false;
-            retiroInput.value = '';
-            setTimeout(() => retiroContainer.style.display = 'none', 300); // esperar a que termine la transición
-        }
-    });
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    const textarea = document.getElementById('retiro_paquete');
-
-    function autoResize(el) {
-        el.style.height = 'auto';              // reinicia altura
-        el.style.height = el.scrollHeight + 'px'; // ajusta a contenido
+    // --- Mostrar campo ---
+    function mostrarCampo(el) {
+        if (!el) return;
+        el.querySelectorAll('input, select, textarea').forEach(field => {
+            field.disabled = false;
+        });
+        el.style.display = 'block';
+        setTimeout(() => el.classList.add('show'), 10);
     }
 
-    textarea.addEventListener('input', function() {
-        autoResize(this);
+    // --- Ocultar campo ---
+function ocultarCampo(el) {
+    if (!el) return;
+    el.classList.remove('show');
+    el.style.display = 'none';
+
+    // 🔹 Limpieza inmediata de valores
+    el.querySelectorAll('input, select, textarea').forEach(field => {
+        const isSelect2 = $(field).hasClass('select2') || $(field).data('select2');
+
+        if (isSelect2) {
+            // 🔸 Reset del Select2 correctamente
+            $(field).val(null).trigger('change');
+        } else if (field.type === 'checkbox' || field.type === 'radio') {
+            field.checked = false;
+        } else {
+            field.value = '';
+        }
+
+        field.disabled = true;
+    });
+}
+
+    // --- Lógica principal ---
+    function actualizarCampos() {
+        const tipo = tipoServicio.value;
+
+        switch (tipo) {
+            case '1': // Punto fijo
+                mostrarCampo(puntoFijoLabel);
+                ocultarCampo(retiroContainer);
+                ocultarCampo(tipoEntregaContainer);
+                break;
+
+            case '2': // Entrega personalizada
+            case '3': // Retiro de paquete
+                mostrarCampo(retiroContainer);
+                mostrarCampo(tipoEntregaContainer);
+                ocultarCampo(puntoFijoLabel);
+                break;
+
+            default: // Sin selección
+                ocultarCampo(puntoFijoLabel);
+                ocultarCampo(retiroContainer);
+                ocultarCampo(tipoEntregaContainer);
+                break;
+        }
+    }
+
+    // --- Ajuste del textarea ---
+    retiroInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
     });
 
-    // Por si ya tiene texto al cargar
-    autoResize(textarea);
+    tipoServicio.addEventListener('change', actualizarCampos);
+    actualizarCampos();
 });
 
 

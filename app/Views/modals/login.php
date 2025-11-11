@@ -9,7 +9,6 @@
             </div>
             <div class="modal-body">
                 <form id="loginForm" action="<?= base_url('/login') ?>" method="POST">
-                    <?= csrf_field() ?>
 
                     <!-- Email/Usuario -->
                     <div class="mb-3">

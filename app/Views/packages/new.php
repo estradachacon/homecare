@@ -1,8 +1,12 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <style>
-/* Estilo solo para el select2 del vendedor */
-#seller_id + .select2-container--bootstrap4 .select2-selection {
+/* ===============================
+   🎨 ESTILOS GENERALES FORMULARIO
+   =============================== */
+
+/* --- Select2 (aplica a todos los campos con theme bootstrap4) --- */
+.select2-container--bootstrap4 .select2-selection {
     display: flex !important;
     align-items: center;
     height: calc(2.5rem + 2px) !important;
@@ -15,39 +19,107 @@
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
 }
 
-/* Placeholder */
-#seller_id + .select2-container--bootstrap4 .select2-selection__placeholder {
+/* Placeholder para todos los Select2 */
+.select2-container--bootstrap4 .select2-selection__placeholder {
     color: #6c757d !important;
 }
 
-/* Focus igual que input de Bootstrap */
-#seller_id + .select2-container--bootstrap4.select2-container--focus .select2-selection {
+/* Estado focus igual al input Bootstrap */
+.select2-container--bootstrap4.select2-container--focus .select2-selection {
     border-color: #86b7fe !important;
     outline: 0 !important;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
 }
-/* Ocultamos el campo inicialmente */
-.retiro-paquete-container {
+
+/* --- Contenedores que aparecen/ocultan dinámicamente --- */
+.retiro-paquete-container,
+.punto-fijo-container,
+.tipo-entrega-container,
+.destino-container {
     display: none;
     opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: scaleY(0.95);
+    transition: all 0.3s ease;
 }
 
-/* Cuando se muestra */
-.retiro-paquete-container.show {
+/* Estado visible con animación */
+.retiro-paquete-container.show,
+.punto-fijo-container.show,
+.tipo-entrega-container.show,
+.destino-container.show {
     display: block;
     opacity: 1;
-    transform: translateY(0);
+    transform: scaleY(1);
 }
+
+/* --- Textarea autosize (para campo "retiro del paquete") --- */
 .autosize-input {
-    overflow: hidden;      /* oculta scrollbar vertical */
-    resize: none;          /* evita que el usuario cambie tamaño manualmente */
-    min-height: 38px;      /* altura mínima */
-    line-height: 1.5;      /* buena legibilidad */
-    transition: height 0.2s ease; /* animación suave al crecer */
-    max-height: 146px; /* aprox 5 líneas */
+    overflow: hidden;           /* oculta scrollbar vertical */
+    resize: none;               /* evita que el usuario cambie el tamaño manualmente */
+    min-height: 38px;           /* altura mínima */
+    line-height: 1.5;           /* buena legibilidad */
+    transition: height 0.2s ease; /* animación suave */
+    max-height: 146px;          /* aprox 5 líneas */
 }
+
+/* --- Línea divisoria centrada entre secciones --- */
+.line-center {
+    width: 95%;                 /* ancho ajustable (entre 50%–90%) */
+    height: 2px;
+    background-color: #dee2e6;  /* gris claro tipo Bootstrap */
+    margin: 2rem auto;          /* centra horizontalmente */
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Efecto sutil de brillo (opcional) */
+.line-center::after {
+    content: "";
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+}
+
+/* --- Estilos responsivos básicos --- */
+@media (max-width: 768px) {
+    .line-center {
+        width: 95%;
+    }
+}
+
+/* --- Botones --- */
+.btn-success {
+    font-weight: 500;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1.25rem;
+}
+
+/* --- Encabezado de tarjeta --- */
+.card-header.bg-primary {
+    background-color: #007bff !important;
+}
+
+.header-title {
+    font-weight: 600;
+}
+
+/* --- Campos de formulario (ajuste visual general) --- */
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-control, .form-select {
+    border-radius: 0.375rem !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
 </style>
 
 <div class="row">
@@ -66,7 +138,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="seller_id" class="form-label">Vendedor</label>
                             <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;">
-                                <option value=""></option> 
+                                <option value=""></option>
                             </select>
                             <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
                         </div>
@@ -90,36 +162,46 @@
                         </div>
 
                         <!-- Punto de retiro -->
-                        <div class="col-md-6 retiro-paquete-container" id="retiro_paquete_container" style="display: none;">
+                        <div class="col-md-6 retiro-paquete-container" id="retiro_paquete_container"
+                            style="display: none;">
                             <label class="form-label">Retiro del paquete</label>
-                            <textarea id="retiro_paquete" name="retiro_paquete" class="form-control autosize-input" rows="1" placeholder="Lugar de recogida" required></textarea>
+                            <textarea id="retiro_paquete" name="retiro_paquete" class="form-control autosize-input"
+                                rows="1" placeholder="Lugar de recogida" required></textarea>
+                        </div>
+
+                        <!-- Definir tipo de entrega (solo visual, no va a la BD) -->
+                        <div class="col-md-6 tipo-entrega-container" id="tipo_entrega_container" style="display: none;">
+                            <label for="tipo_entrega" class="form-label">Tipo de entrega</label>
+                            <select id="tipo_entrega" class="form-select">
+                                <option value="">Seleccione destino de entrega</option>
+                                <option value="personalizada">Entrega personalizada</option>
+                                <option value="punto_fijo">Entrega en punto fijo</option>
+                            </select>
                         </div>
 
                         <!-- Punto fijo -->
-                        <div class="col-md-6">
+                        <div class="col-md-6 punto-fijo-container" id="punto_fijo_container" style="display: none;">
                             <label class="form-label">Punto fijo</label>
-                            <select name="id_puntofijo" class="form-select">
+                            <select name="id_puntofijo" class="form-select" id="puntofijo_select" style="width: 100%;">
                                 <option value="">Seleccione un punto fijo</option>
-                                <!-- Llenar dinámicamente -->
                             </select>
                         </div>
-                        
-                        <!-- Destino -->
-                        <div class="col-md-6">
-                            <label class="form-label">Destino</label>
-                            <input type="text" name="destino" class="form-control" placeholder="Ciudad o sucursal destino" required>
+
+                        <!--destino-->
+                        <div class="col-md-6 destino-container" id="destino_container" style="display: none;">
+                            <label for="destino_input" class="form-label">Destino (Dirección de Entrega
+                                personalizada)</label>
+                            <input type="text" name="destino" class="form-control" id="destino_input"
+                                placeholder="Colonia o dirección de destino" required>
                         </div>
 
-                        <!-- Dirección -->
-                        <div class="col-12">
-                            <label class="form-label">Dirección</label>
-                            <textarea name="direccion" class="form-control autosize-input" rows="2"></textarea>
-                        </div>
+                        <div class="form-divider line-center"></div>
 
                         <!-- Fechas -->
                         <div class="col-md-6">
                             <label class="form-label">Fecha de ingreso</label>
-                            <input type="date" name="fecha_ingreso" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                            <input type="date" name="fecha_ingreso" class="form-control" value="<?= date('Y-m-d') ?>"
+                                required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de entrega</label>
@@ -203,7 +285,8 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel" aria-hidden="true">
+<div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel"
+    aria-hidden="true">
     <div class="modal-dialog" role="document">
         <form id="formCreateSeller">
             <?= csrf_field() ?>
@@ -234,7 +317,7 @@
 </div>
 
 <script>
-    $('#formCreateSeller').on('submit', function(e) {
+    $('#formCreateSeller').on('submit', function (e) {
         e.preventDefault();
 
         $.ajax({
@@ -242,7 +325,7 @@
             type: 'POST',
             data: $(this).serialize(),
             dataType: 'json',
-            success: function(response) {
+            success: function (response) {
                 if (response.status === 'success') {
                     $('#modalCreateSeller').modal('hide');
 
@@ -255,15 +338,15 @@
                     Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                 }
             },
-            error: function() {
+            error: function () {
                 Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
             }
         });
     });
 </script>
 <script>
-    window.addEventListener('load', function() {
-        
+    window.addEventListener('load', function () {
+
         // Inicializar Select2
         $('#seller_id').select2({
             theme: 'bootstrap4',
@@ -274,12 +357,12 @@
                 url: '<?= base_url('sellers/search') ?>', // <-- corregido
                 dataType: 'json',
                 delay: 250,
-                data: function(params) {
+                data: function (params) {
                     return {
                         q: params.term
                     };
                 },
-                processResults: function(data, params) {
+                processResults: function (data, params) {
                     let results = data || [];
 
                     // Si no hay resultados, mostrar opción para crear nuevo
@@ -305,7 +388,7 @@
         });
 
         // Si selecciona "Crear nuevo vendedor"
-        $('#seller_id').on('select2:select', function(e) {
+        $('#seller_id').on('select2:select', function (e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
                 $('#seller_id').val(null).trigger('change');
@@ -314,7 +397,7 @@
         });
 
         // Guardar nuevo vendedor vía AJAX
-        $('#formCreateSeller').on('submit', function(e) {
+        $('#formCreateSeller').on('submit', function (e) {
             e.preventDefault();
 
             $.ajax({
@@ -322,7 +405,7 @@
                 type: 'POST',
                 data: $(this).serialize(),
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
 
@@ -334,12 +417,76 @@
                         Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                     }
                 },
-                error: function() {
+                error: function () {
                     Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
                 }
             });
         });
     });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const puntoFijoSelect = document.getElementById('puntofijo_select');
+
+        puntoFijoSelect.addEventListener('focus', function () {
+            fetch("<?= base_url('settledPoints/getList') ?>", {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Limpiar opciones existentes
+                    puntoFijoSelect.innerHTML = '<option value="">Seleccione un punto fijo</option>';
+
+                    // Rellenar dinámicamente
+                    if (data && Array.isArray(data)) {
+                        data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.point_name;
+                            puntoFijoSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar puntos fijos:', error);
+                });
+        });
+        // Inicializar Select2 para el select de puntos fijos
+        $('#puntofijo_select').select2({
+            theme: 'bootstrap4',
+            placeholder: '🔍 Buscar punto fijo...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('settledPoints/getList') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term }; // término de búsqueda
+                },
+                processResults: function (data) {
+                    // Asegurarnos de usar la clave "text" en el JSON
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.point_name
+                        }))
+                    };
+                },
+                cache: true
+            },
+            language: {
+                inputTooShort: () => 'Escribí para buscar...',
+                searching: () => 'Buscando...',
+                noResults: () => 'No se encontraron puntos fijos'
+            }
+        });
+
+    });
+
 </script>
 
 <?= $this->endSection() ?>

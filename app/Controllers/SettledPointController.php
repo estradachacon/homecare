@@ -20,7 +20,16 @@ class SettledPointController extends BaseController
 
     public function index()
     {
-        $data['settledPoints'] = $this->settledPointModel->findAll();
+        $settledPointsModel = new SettledPointModel();
+
+        $settledPoints = $settledPointsModel
+            ->select('settled_points.*, routes.route_name AS route_name')
+            ->join('routes', 'routes.id = settled_points.ruta_id')
+            ->findAll();
+
+        $data = [
+            'settledPoints' => $settledPoints,
+        ];
         return view('settledpoint/index', $data);
     }
 
@@ -97,7 +106,7 @@ class SettledPointController extends BaseController
         $settledPoint = $this->settledPointModel->find($id);
 
         if (!$settledPoint) {
-        return redirect()->to('/settledPoint')->with('error', 'Punto fijo no encontrado.');
+            return redirect()->to('/settledPoint')->with('error', 'Punto fijo no encontrado.');
         }
 
         $data = [
@@ -120,18 +129,18 @@ class SettledPointController extends BaseController
         // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
         if (
             !$this->validate([
-            'point_name' => 'required|min_length[3]',
-            'ruta_id' => 'required|integer',
-            'mon' => 'required|integer',
-            'tus' => 'required|integer',
-            'wen' => 'required|integer',
-            'thu' => 'required|integer',
-            'fri' => 'required|integer',
-            'sat' => 'required|integer',
-            'sun' => 'required|integer',
-            'hora_inicio' => 'required',
-            'hora_fin' => 'required',
-        ])
+                'point_name' => 'required|min_length[3]',
+                'ruta_id' => 'required|integer',
+                'mon' => 'required|integer',
+                'tus' => 'required|integer',
+                'wen' => 'required|integer',
+                'thu' => 'required|integer',
+                'fri' => 'required|integer',
+                'sat' => 'required|integer',
+                'sun' => 'required|integer',
+                'hora_inicio' => 'required',
+                'hora_fin' => 'required',
+            ])
         ) {
             // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
             return redirect()->back()
@@ -263,4 +272,24 @@ class SettledPointController extends BaseController
             ]);
         }
     }
+    public function getList()
+    {
+        if ($this->request->isAJAX()) {
+            $term = $this->request->getGet('q');
+
+            $builder = $this->settledPointModel->select('id, point_name')
+                ->orderBy('point_name', 'ASC');
+
+            if (!empty($term)) {
+                $builder->like('point_name', $term);
+            }
+
+            $points = $builder->findAll();
+
+            return $this->response->setJSON($points);
+        }
+
+        return redirect()->to('/');
+    }
+
 }

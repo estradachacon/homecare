@@ -47,6 +47,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('sellers/create-ajax', 'SellerController::createAjax');
     $routes->presenter('settledpoint', ['controller' => 'SettledPointController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('settledpoint/delete', 'SettledPointController::delete');
+    $routes->get('settledPoints/getList', 'SettledPointController::getList');
     $routes->presenter('routes', ['controller' => 'RouteController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('routes/delete', 'RouteController::delete');
 });

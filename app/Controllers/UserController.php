@@ -26,9 +26,6 @@ class UserController extends BaseController
         // 1. Instanciamos el modelo de usuario.
         $userModel = new UserModel();
 
-        // 2. Obtenemos todos los usuarios, uniendo la tabla 'roles' 
-        // para obtener el nombre legible del rol.
-        // Nota: Asume que la tabla de roles tiene una columna 'nombre' para el nombre del rol.
         $users = $userModel
             ->select('users.id, users.user_name, users.email, roles.nombre AS role_name, branches.branch_name AS branch_name')
             ->join('roles', 'roles.id = users.role_id')
@@ -118,37 +115,44 @@ class UserController extends BaseController
     {
         helper(['form']);
         $session = session();
-        // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
-        if (!$this->validate(rules: [
-            'user_name' => 'required|min_length[3]|max_length[100]',
-            'email' => 'required|min_length[3]|max_length[100]',
-            'branch_id' => 'required|integer',
-            'role_id' => 'required|integer',
-        ])) {
-            // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
+
+        if (
+            !$this->validate([
+                'user_name' => 'required|min_length[3]|max_length[100]',
+                'email' => 'required|min_length[3]|max_length[100]',
+                'branch_id' => 'required|integer',
+                'role_id' => 'required|integer',
+            ])
+        ) {
             return redirect()->back()
-                ->withInput() // Mantiene los datos que el usuario ingresó
-                ->with('errors', $this->validator->getErrors()); // Envía los errores a la vista
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
         }
 
-        // 3. Si la validación es exitosa, se procede a la actualización
         $data = [
             'user_name' => $this->request->getPost('user_name'),
             'email' => $this->request->getPost('email'),
             'branch_id' => $this->request->getPost('branch_id'),
             'role_id' => $this->request->getPost('role_id'),
-            'user_password' => password_hash($this->request->getPost('user_password'), PASSWORD_DEFAULT),
         ];
 
+        $password = $this->request->getPost('user_password');
+        if (!empty($password)) {
+            $data['user_password'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+
         $this->userModel->update($id, $data);
+
         registrar_bitacora(
             'Editar usuario',
             'Usuarios',
             'Se editó el usuario con ID ' . esc($id) . '.',
             $session->get('user_id')
         );
+
         return redirect()->to('/users')->with('success', 'Usuario actualizado exitosamente.');
     }
+
     public function delete()
     {
         helper(['form']);

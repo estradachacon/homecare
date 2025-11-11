@@ -26,7 +26,7 @@
                                 <tr>
                                     <td class="text-center"><?= esc($settledPoint->id) ?></td>
                                     <td><?= esc($settledPoint->point_name) ?></td>
-                                    <td class="text-center"><?= esc($settledPoint->ruta_id) ?></td>
+                                    <td class="text-center"><?= esc($settledPoint->route_name) ?></td>
                                     <td class="text-center">
                                         <?php
                                         $dias = [

@@ -16,26 +16,14 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="route_name" class="form-label">Nombre de la Ruta</label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                id="route_name" 
-                                name="route_name" 
-                                value="<?= esc($routes->route_name) ?>" 
-                                required
-                            >
+                            <input type="text" class="form-control" id="route_name" name="route_name"
+                                value="<?= esc($routes->route_name) ?>" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label for="description" class="form-label">Descripción</label>
-                            <input 
-                                type="text" 
-                                name="description" 
-                                id="description"
-                                class="form-control text-end input-unit-cost" 
-                                value="<?= esc($routes->description) ?>" 
-                                step="0.01" 
-                            >
+                            <input type="text" name="description" id="description"
+                                class="form-control text-end input-unit-cost" value="<?= esc($routes->description) ?>">
                         </div>
                     </div>
 
