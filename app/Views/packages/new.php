@@ -1,125 +1,158 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <style>
-/* ===============================
+    /* ===============================
    🎨 ESTILOS GENERALES FORMULARIO
    =============================== */
 
-/* --- Select2 (aplica a todos los campos con theme bootstrap4) --- */
-.select2-container--bootstrap4 .select2-selection {
-    display: flex !important;
-    align-items: center;
-    height: calc(2.5rem + 2px) !important;
-    padding: 0.375rem 0.75rem !important;
-    font-size: 1rem !important;
-    color: #212529 !important;
-    background-color: #fff !important;
-    border: 1px solid #ced4da !important;
-    border-radius: 0.375rem !important;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
-}
+    /* --- Select2 (aplica a todos los campos con theme bootstrap4) --- */
+    .select2-container--bootstrap4 .select2-selection {
+        display: flex !important;
+        align-items: center;
+        height: calc(2.5rem + 2px) !important;
+        padding: 0.375rem 0.75rem !important;
+        font-size: 1rem !important;
+        color: #212529 !important;
+        background-color: #fff !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.375rem !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+    }
 
-/* Placeholder para todos los Select2 */
-.select2-container--bootstrap4 .select2-selection__placeholder {
-    color: #6c757d !important;
-}
+    /* Placeholder para todos los Select2 */
+    .select2-container--bootstrap4 .select2-selection__placeholder {
+        color: #6c757d !important;
+    }
 
-/* Estado focus igual al input Bootstrap */
-.select2-container--bootstrap4.select2-container--focus .select2-selection {
-    border-color: #86b7fe !important;
-    outline: 0 !important;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
-}
+    /* Estado focus igual al input Bootstrap */
+    .select2-container--bootstrap4.select2-container--focus .select2-selection {
+        border-color: #86b7fe !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
 
-/* --- Contenedores que aparecen/ocultan dinámicamente --- */
-.retiro-paquete-container,
-.punto-fijo-container,
-.tipo-entrega-container,
-.destino-container {
-    display: none;
-    opacity: 0;
-    transform: scaleY(0.95);
-    transition: all 0.3s ease;
-}
+    /* --- Contenedores que aparecen/ocultan dinámicamente --- */
+    .retiro-paquete-container,
+    .punto-fijo-container,
+    .tipo-entrega-container,
+    .destino-container {
+        display: none;
+        opacity: 0;
+        transform: scaleY(0.95);
+        transition: all 0.3s ease;
+    }
 
-/* Estado visible con animación */
-.retiro-paquete-container.show,
-.punto-fijo-container.show,
-.tipo-entrega-container.show,
-.destino-container.show {
-    display: block;
-    opacity: 1;
-    transform: scaleY(1);
-}
+    /* Estado visible con animación */
+    .retiro-paquete-container.show,
+    .punto-fijo-container.show,
+    .tipo-entrega-container.show,
+    .destino-container.show {
+        display: block;
+        opacity: 1;
+        transform: scaleY(1);
+    }
 
-/* --- Textarea autosize (para campo "retiro del paquete") --- */
-.autosize-input {
-    overflow: hidden;           /* oculta scrollbar vertical */
-    resize: none;               /* evita que el usuario cambie el tamaño manualmente */
-    min-height: 38px;           /* altura mínima */
-    line-height: 1.5;           /* buena legibilidad */
-    transition: height 0.2s ease; /* animación suave */
-    max-height: 146px;          /* aprox 5 líneas */
-}
+    /* --- Textarea autosize (para campo "retiro del paquete") --- */
+    .autosize-input {
+        overflow: hidden;
+        /* oculta scrollbar vertical */
+        resize: none;
+        /* evita que el usuario cambie el tamaño manualmente */
+        min-height: 38px;
+        /* altura mínima */
+        line-height: 1.5;
+        /* buena legibilidad */
+        transition: height 0.2s ease;
+        /* animación suave */
+        max-height: 146px;
+        /* aprox 5 líneas */
+    }
 
-/* --- Línea divisoria centrada entre secciones --- */
-.line-center {
-    width: 95%;                 /* ancho ajustable (entre 50%–90%) */
-    height: 2px;
-    background-color: #dee2e6;  /* gris claro tipo Bootstrap */
-    margin: 2rem auto;          /* centra horizontalmente */
-    border-radius: 2px;
-    transition: all 0.3s ease;
-}
-
-/* Efecto sutil de brillo (opcional) */
-.line-center::after {
-    content: "";
-    display: block;
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, #dee2e6, transparent);
-}
-
-/* --- Estilos responsivos básicos --- */
-@media (max-width: 768px) {
+    /* --- Línea divisoria centrada entre secciones --- */
     .line-center {
         width: 95%;
+        /* ancho ajustable (entre 50%–90%) */
+        height: 2px;
+        background-color: #dee2e6;
+        /* gris claro tipo Bootstrap */
+        margin: 2rem auto;
+        /* centra horizontalmente */
+        border-radius: 2px;
+        transition: all 0.3s ease;
     }
-}
 
-/* --- Botones --- */
-.btn-success {
-    font-weight: 500;
-    border-radius: 0.375rem;
-    padding: 0.5rem 1.25rem;
-}
+    /* Efecto sutil de brillo (opcional) */
+    .line-center::after {
+        content: "";
+        display: block;
+        height: 2px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+    }
 
-/* --- Encabezado de tarjeta --- */
-.card-header.bg-primary {
-    background-color: #007bff !important;
-}
+    /* --- Estilos responsivos básicos --- */
+    @media (max-width: 768px) {
+        .line-center {
+            width: 95%;
+        }
+    }
 
-.header-title {
-    font-weight: 600;
-}
+    /* --- Botones --- */
+    .btn-success {
+        font-weight: 500;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1.25rem;
+    }
 
-/* --- Campos de formulario (ajuste visual general) --- */
-.form-label {
-    font-weight: 500;
-    color: #495057;
-}
+    /* --- Encabezado de tarjeta --- */
+    .card-header.bg-primary {
+        background-color: #007bff !important;
+    }
 
-.form-control, .form-select {
-    border-radius: 0.375rem !important;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
+    .header-title {
+        font-weight: 600;
+    }
 
-.form-control:focus, .form-select:focus {
-    border-color: #86b7fe !important;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
-}
+    /* --- Campos de formulario (ajuste visual general) --- */
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+    }
 
+    .form-control,
+    .form-select {
+        border-radius: 0.375rem !important;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+    .toggle-pill {
+        display: inline-flex;
+        border: 1px solid #ced4da;
+        border-radius: 30px;
+        overflow: hidden;
+    }
+
+    .toggle-pill input {
+        display: none;
+    }
+
+    .toggle-pill label {
+        padding: 6px 16px;
+        margin: 0;
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+    .toggle-pill input:checked+label {
+        background-color: #28a745;
+        color: white;
+    }
 </style>
 
 <div class="row">
@@ -181,7 +214,7 @@
 
                         <!-- Punto fijo -->
                         <div class="col-md-6 punto-fijo-container" id="punto_fijo_container" style="display: none;">
-                            <label class="form-label">Punto fijo</label>
+                            <label class="form-label">Punto fijo de entrega</label>
                             <select name="id_puntofijo" class="form-select" id="puntofijo_select" style="width: 100%;">
                                 <option value="">Seleccione un punto fijo</option>
                             </select>
@@ -203,71 +236,84 @@
                             <input type="date" name="fecha_ingreso" class="form-control" value="<?= date('Y-m-d') ?>"
                                 required>
                         </div>
-                        <div class="col-md-6">
+
+                        <div class="col-md-6" id='fecha_entrega_container' style="display: none;">
                             <label class="form-label">Fecha de entrega</label>
-                            <input type="date" name="fecha_entrega" class="form-control">
+                            <input type="date" name="fecha_entrega" id="fecha_entrega" class="form-control">
                         </div>
 
-                        <!-- Teléfonos -->
-                        <div class="col-md-6">
-                            <label class="form-label">Teléfono primario</label>
-                            <input type="tel" name="tel_primario" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Teléfono opcional</label>
-                            <input type="tel" name="tel_opcional" class="form-control">
+                        <div class="col-md-6 punto-fijo-container" id="fecha_punto_fijo_container"
+                            style="display: none;">
+                            <label for="fecha_entrega_puntofijo" class="form-label">Fecha de entrega en punto
+                                fijo</label>
+                            <input type="date" name="fecha_entrega_puntofijo" class="form-control"
+                                id="fecha_entrega_puntofijo">
                         </div>
 
-                        <!-- Fletes -->
-                        <div class="col-md-4">
-                            <label class="form-label">Flete total ($)</label>
-                            <input type="number" step="0.01" name="flete_total" class="form-control" required>
+                        <div class="form-divider line-center"></div>
+                        
+                        <div class="col-md-3 text-center">
+                            <label class="form-label d-block mb-2">¿Pago parcial?</label>
+                            <div class="toggle-pill">
+                                <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0" checked>
+                                <label for="pagoParcialNo">No</label>
+
+                                <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1">
+                                <label for="pagoParcialSi">Sí</label>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Flete pagado ($)</label>
-                            <input type="number" step="0.01" name="flete_pagado" class="form-control">
+
+                        <!-- Flete total -->
+                        <div class="col-md-3">
+                            <label class="form-label">Total de envío a cobrar ($)</label>
+                            <input type="number" step="0.01" name="flete_total" id="flete_total" class="form-control"
+                                required>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Flete pendiente ($)</label>
-                            <input type="number" step="0.01" name="flete_pendiente" class="form-control" readonly>
+
+                        <!-- Flete pagado -->
+                        <div class="col-md-3">
+                            <label class="form-label">Envío pagado ($)</label>
+                            <input type="number" step="0.01" name="flete_pagado" id="flete_pagado" class="form-control">
                         </div>
+
+                        <!-- Flete pendiente -->
+                        <div class="col-md-3">
+                            <label class="form-label">Envío pendiente ($)</label>
+                            <input type="number" step="0.01" name="flete_pendiente" id="flete_pendiente"
+                                class="form-control" readonly>
+                        </div>
+
+                        <div class="form-divider line-center"></div>
 
                         <!-- Monto declarado -->
-                        <div class="col-md-6">
-                            <label class="form-label">Monto declarado ($)</label>
+                        <div class="col-md-4">
+                            <label class="form-label">Monto del paquete ($)</label>
                             <input type="number" step="0.01" name="monto" class="form-control">
                         </div>
 
                         <!-- Foto -->
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Foto del paquete</label>
                             <input type="file" name="foto" class="form-control" accept="image/*">
                         </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label d-block mb-2">¿Es frágil?</label>
+                            <div class="toggle-pill">
+                                <input type="radio" id="fragilNo" name="fragil" value="0" checked>
+                                <label for="fragilNo">No</label>
+
+                                <input type="radio" id="fragilSi" name="fragil" value="1">
+                                <label for="fragilSi">Sí</label>
+                            </div>
+                        </div>
+
+                        <div class="form-divider line-center"></div>
 
                         <!-- Comentarios -->
                         <div class="col-12">
                             <label class="form-label">Comentarios</label>
                             <textarea name="comentarios" class="form-control" rows="2"></textarea>
-                        </div>
-
-                        <!-- Fragil -->
-                        <div class="col-md-6">
-                            <label class="form-label">¿Es frágil?</label>
-                            <select name="fragil" class="form-select" required>
-                                <option value="0">No</option>
-                                <option value="1">Sí</option>
-                            </select>
-                        </div>
-
-                        <!-- Estatus -->
-                        <div class="col-md-6">
-                            <label class="form-label">Estatus</label>
-                            <select name="estatus" class="form-select" required>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="En tránsito">En tránsito</option>
-                                <option value="Entregado">Entregado</option>
-                                <option value="Cancelado">Cancelado</option>
-                            </select>
                         </div>
 
                         <!-- Usuario -->

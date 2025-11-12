@@ -2237,17 +2237,34 @@ document.addEventListener('input', function () {
 
 
 document.addEventListener('DOMContentLoaded', function () {
-	const tipoServicio = document.getElementById('tipo_servicio');
-	const retiroContainer = document.getElementById('retiro_paquete_container');
-	const retiroInput = document.getElementById('retiro_paquete');
-	const puntoFijoLabel = document.getElementById('punto_fijo_container');
-	const puntoFijoSelect = document.getElementById('puntofijo_select');
-	const tipoEntregaContainer = document.getElementById('tipo_entrega_container');
-	const tipoEntrega = document.getElementById('tipo_entrega');
-	const destinoContainer = document.getElementById('destino_container');
-	const destinoInput = document.getElementById('destino_input');
+	// --- 1. Referencias de Elementos ---
 
-	// --- Mostrar campo ---
+	// Elementos de Control Principal
+	const tipoServicio = document.getElementById('tipo_servicio');
+	const tipoEntrega = document.getElementById('tipo_entrega');
+
+	// Contenedores
+	const retiroContainer = document.getElementById('retiro_paquete_container');
+	const tipoEntregaContainer = document.getElementById('tipo_entrega_container');
+	const destinoContainer = document.getElementById('destino_container');
+
+	// Contenedores de Punto Fijo
+	const puntoFijoSelectContainer = document.getElementById('punto_fijo_container');
+	const fechaPuntoFijoContainer = document.getElementById('fecha_punto_fijo_container');
+
+	// Campos de Input/Select
+	const retiroInput = document.getElementById('retiro_paquete');
+	const destinoInput = document.getElementById('destino_input');
+	const puntoFijoSelect = document.getElementById('puntofijo_select');
+	const fechaPuntoFijoInput = document.getElementById('fecha_entrega_puntofijo');
+	const fechaEntregaContainer = document.getElementById('fecha_entrega_container');
+
+
+	// Campo de Fecha de Entrega general
+	const fechaEntregaOriginal = document.querySelector('[name="fecha_entrega"]');
+
+	// --- 2. Funciones de Manipulación de DOM ---
+
 	function mostrarCampo(el) {
 		if (!el) return;
 		el.querySelectorAll('input, select, textarea').forEach(field => {
@@ -2257,87 +2274,186 @@ document.addEventListener('DOMContentLoaded', function () {
 		setTimeout(() => el.classList.add('show'), 10);
 	}
 
-	// --- Ocultar campo ---
 	function ocultarCampo(el) {
 		if (!el) return;
 		el.classList.remove('show');
-		el.style.display = 'none';
 
-		// 🔹 Limpieza inmediata de valores
-		el.querySelectorAll('input, select, textarea').forEach(field => {
-			const isSelect2 = $(field).hasClass('select2') || $(field).data('select2');
+		// Usamos un timeout para que la animación termine antes de ocultar
+		setTimeout(() => {
+			el.style.display = 'none';
 
-			if (isSelect2) {
-				// 🔸 Reset del Select2 correctamente
-				$(field).val(null).trigger('change');
-			} else if (field.type === 'checkbox' || field.type === 'radio') {
-				field.checked = false;
-			} else {
-				field.value = '';
-			}
+			el.querySelectorAll('input, select, textarea').forEach(field => {
+				const isSelect2 = $(field).hasClass('select2') || $(field).data('select2');
 
-			field.disabled = true;
-		});
+				// 1. Limpiar/Resetear valor
+				if (isSelect2) {
+					$(field).val(null).trigger('change');
+				} else if (field.type !== 'checkbox' && field.type !== 'radio') {
+					field.value = '';
+				}
+
+				// 2. Deshabilitar y quitar required
+				field.disabled = true;
+				field.required = false;
+			});
+		}, 300);
 	}
 
-	// --- Lógica principal ---
-	function actualizarCampos() {
-		const tipo = tipoServicio.value;
-		
-		// Limpiar todo antes de aplicar
-		ocultarCampo(puntoFijoLabel);
+	/** * 🟢 NUEVA FUNCIÓN DE LIMPIEZA: Limpia todos los contenedores condicionales. 
+	 * Se llama solo al inicio o cuando se requiere una limpieza profunda.
+	 */
+	function limpiarTodo() {
+		ocultarCampo(puntoFijoSelectContainer);
+		ocultarCampo(fechaPuntoFijoContainer);
 		ocultarCampo(retiroContainer);
 		ocultarCampo(tipoEntregaContainer);
 		ocultarCampo(destinoContainer);
+		ocultarCampo(fechaEntregaContainer);
+		fechaEntregaOriginal.required = false;
+	}
+
+
+	// --- 3. Lógica Principal: Tipo de Servicio (tipo_servicio) ---
+	function actualizarCampos(inicial = false) {
+		const tipo = tipoServicio.value;
+
+		// Si no es la carga inicial, o si se detecta un cambio, limpiamos todo.
+		if (!inicial) {
+			limpiarTodo();
+		}
 
 		switch (tipo) {
-			case '1': // Punto fijo
-				mostrarCampo(puntoFijoLabel);
+			case '1': // Punto fijo (Directo)
+				mostrarCampo(puntoFijoSelectContainer);
+				mostrarCampo(fechaPuntoFijoContainer);
+				ocultarCampo(retiroContainer);
+				ocultarCampo(destinoContainer);
+				ocultarCampo(tipoEntregaContainer);
+				ocultarCampo(fechaEntregaContainer);
+				puntoFijoSelect.required = true;
+				fechaPuntoFijoInput.required = true;
 				break;
-			
-			case '2': // Personalizado
+
+			case '2': // Personalizado (A domicilio)
 				mostrarCampo(destinoContainer);
+				mostrarCampo(fechaEntregaContainer);
+				ocultarCampo(puntoFijoSelectContainer);
+				ocultarCampo(tipoEntregaContainer);
+				ocultarCampo(retiroContainer);
+				ocultarCampo(fechaPuntoFijoContainer);
+				destinoInput.required = true;
+				fechaEntregaOriginal.required = true;
 				break;
-			
-			case '3': // Retiro de paquete
+
+			case '3': // Recolecta de paquete
 				mostrarCampo(retiroContainer);
+				retiroInput.required = true;
 				mostrarCampo(tipoEntregaContainer);
-				actualizarTipoEntrega(); // Aplica sub-lógica
+				ocultarCampo(destinoContainer);
+				ocultarCampo(puntoFijoSelectContainer);
+				ocultarCampo(fechaPuntoFijoContainer);
+				// Llama a la sub-lógica, pero también maneja su estado inicial
+				//actualizarTipoEntrega(inicial); 
+				break;
+
+			case '4': // Casillero
+				ocultarCampo(destinoContainer);
+				ocultarCampo(puntoFijoSelectContainer);
+				ocultarCampo(tipoEntregaContainer);
+				ocultarCampo(retiroContainer);
 				break;
 
 			default:
-				// nada visible
+				tipoEntrega.value = '';
 				break;
 		}
 	}
 
-	// --- Sub-lógica: dentro del tipo de entrega ---
-	function actualizarTipoEntrega() {
-		const tipo = tipoEntrega.value;
+	// --- 4. Sub-Lógica: Tipo de Entrega (tipo_entrega) ---
+	function actualizarTipoEntrega(inicial = false) {
+		const tipoServicioVal = tipoServicio.value;
+		const tipoEntregaVal = tipoEntrega.value;
 
-		// Ocultar ambos antes de aplicar
-		ocultarCampo(puntoFijoLabel);
-		ocultarCampo(destinoContainer);
+		if (tipoServicioVal !== '3') {
+			return;
+		}
 
-		if (tipo === '5') {
+		// Si el servicio es '3', pero solo cambiamos la sub-opción de entrega, limpiamos los destinos
+		if (!inicial) {
+			ocultarCampo(puntoFijoSelectContainer);
+			ocultarCampo(fechaPuntoFijoContainer);
+			ocultarCampo(destinoContainer);
+			fechaEntregaOriginal.required = false;
+		}
+
+		if (tipoEntregaVal === '5') {
 			// Entrega en punto fijo
-			mostrarCampo(puntoFijoLabel);
-		} else if (tipo === 'personalizada') {
+			mostrarCampo(puntoFijoSelectContainer);
+			mostrarCampo(fechaPuntoFijoContainer);
+			ocultarCampo(destinoContainer);
+			ocultarCampo(fechaEntregaContainer);
+			puntoFijoSelect.required = true;
+			fechaPuntoFijoInput.required = true;
+
+		} else if (tipoEntregaVal === 'personalizada') {
 			// Entrega personalizada
 			mostrarCampo(destinoContainer);
+			mostrarCampo(fechaEntregaContainer);
+			ocultarCampo(puntoFijoSelectContainer);
+			ocultarCampo(fechaPuntoFijoContainer);
+			destinoInput.required = true;
+			fechaEntregaOriginal.required = true;
+		}
+		else if (tipoEntregaVal === '') {
+			// Entrega personalizada
+			ocultarCampo(destinoContainer);
+			ocultarCampo(puntoFijoSelectContainer);
+			ocultarCampo(fechaPuntoFijoContainer);
+			ocultarCampo(fechaEntregaContainer);
+			destinoInput.required = true;
+			fechaEntregaOriginal.required = true;
 		}
 	}
 
-	// --- Ajuste del textarea ---
+	// --- 5. Listeners y Ejecución Inicial ---
+
 	retiroInput.addEventListener('input', function () {
 		this.style.height = 'auto';
 		this.style.height = this.scrollHeight + 'px';
 	});
 
-	// --- Listeners ---
+	// Eventos de cambio
 	tipoServicio.addEventListener('change', actualizarCampos);
 	tipoEntrega.addEventListener('change', actualizarTipoEntrega);
-	actualizarCampos();
+
+	// 2. Ejecutar la lógica para mostrar el estado actual (si el campo tiene un valor preseleccionado).
+	// Le pasamos 'true' para indicar que es la carga inicial y evitar la doble limpieza.
+	actualizarCampos(true);
+
+	// --- 5. Lógica de Fletes ---
+	const fleteTotal = document.getElementById('flete_total');
+	const fletePagado = document.getElementById('flete_pagado');
+	const fletePendiente = document.getElementById('flete_pendiente');
+
+	function actualizarPendiente() {
+		let total = parseFloat(fleteTotal.value) || 0;
+		let pagado = parseFloat(fletePagado.value) || 0;
+		let pendiente = total - pagado;
+
+		if (pendiente < 0) pendiente = 0;
+
+		fleteTotal.value = total.toFixed(2);
+		fletePagado.value = pagado.toFixed(2);
+		fletePendiente.value = pendiente.toFixed(2);
+	}
+
+	[fleteTotal, fletePagado].forEach(field => {
+		field.addEventListener('change', actualizarPendiente);
+		field.addEventListener('blur', actualizarPendiente);
+	});
+	// 🟢 INICIALIZACIÓN: 
+	// 1. Limpiar todos los campos *sin animación* al cargar.
+	limpiarTodo();
 });
 
 
