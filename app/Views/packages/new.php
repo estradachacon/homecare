@@ -251,7 +251,7 @@
                         </div>
 
                         <div class="form-divider line-center"></div>
-                        
+
                         <div class="col-md-3 text-center">
                             <label class="form-label d-block mb-2">¿Pago parcial?</label>
                             <div class="toggle-pill">
@@ -264,20 +264,20 @@
                         </div>
 
                         <!-- Flete total -->
-                        <div class="col-md-3">
-                            <label class="form-label">Total de envío a cobrar ($)</label>
+                        <div class="col-md-3" id="flete_total_container">
+                            <label class="form-label" id="label_flete_total">Total de envío a cobrar ($)</label>
                             <input type="number" step="0.01" name="flete_total" id="flete_total" class="form-control"
                                 required>
                         </div>
 
                         <!-- Flete pagado -->
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="flete_pagado_container">
                             <label class="form-label">Envío pagado ($)</label>
                             <input type="number" step="0.01" name="flete_pagado" id="flete_pagado" class="form-control">
                         </div>
 
                         <!-- Flete pendiente -->
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="flete_pendiente_container">
                             <label class="form-label">Envío pendiente ($)</label>
                             <input type="number" step="0.01" name="flete_pendiente" id="flete_pendiente"
                                 class="form-control" readonly>
@@ -297,7 +297,7 @@
                             <input type="file" name="foto" class="form-control" accept="image/*">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 text-center">
                             <label class="form-label d-block mb-2">¿Es frágil?</label>
                             <div class="toggle-pill">
                                 <input type="radio" id="fragilNo" name="fragil" value="0" checked>
