@@ -390,7 +390,7 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Monto del paquete ($)</label>
-                            <input type="number" step="0.01" name="monto" class="form-control">
+                            <input type="number" id="monto_declarado" step="0.01" name="monto" class="form-control">
                         </div>
 
                         <!-- Foto -->

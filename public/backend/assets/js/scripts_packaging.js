@@ -1,13 +1,13 @@
 // Calcular flete pendiente en tiempo real
 document.addEventListener('input', function () {
-	const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
-	const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
-	document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
+    const total = parseFloat(document.querySelector('[name="flete_total"]').value) || 0;
+    const pagado = parseFloat(document.querySelector('[name="flete_pagado"]').value) || 0;
+    document.querySelector('[name="flete_pendiente"]').value = (total - pagado).toFixed(2);
 });
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    
+
     // ===========================================
     // 1. Referencias de Elementos (GENERALES)
     // ===========================================
@@ -99,6 +99,9 @@ document.addEventListener('DOMContentLoaded', function () {
             case '1': // Punto fijo (Directo)
                 mostrarCampo(puntoFijoSelectContainer);
                 mostrarCampo(fechaPuntoFijoContainer);
+                ocultarCampo(destinoContainer);
+                ocultarCampo(tipoEntregaContainer);
+                ocultarCampo(retiroContainer);
                 puntoFijoSelect.required = true;
                 fechaPuntoFijoInput.required = true;
                 break;
@@ -106,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function () {
             case '2': // Personalizado (A domicilio)
                 mostrarCampo(destinoContainer);
                 mostrarCampo(fechaEntregaContainer);
+                ocultarCampo(puntoFijoSelectContainer);
+                ocultarCampo(retiroContainer);
+                ocultarCampo(tipoEntregaContainer);
                 destinoInput.required = true;
                 fechaEntregaOriginal.required = true;
                 break;
@@ -114,12 +120,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 mostrarCampo(retiroContainer);
                 retiroInput.required = true;
                 mostrarCampo(tipoEntregaContainer);
+                ocultarCampo(puntoFijoSelectContainer);
+                ocultarCampo(destinoContainer);
                 // Llama a la sub-lógica, pero también maneja su estado inicial
                 // actualizarTipoEntrega(inicial); // Se maneja por el listener de tipoEntrega
                 break;
 
             case '4': // Casillero
-                // No muestra campos adicionales, solo los del casillero
+                ocultarCampo(puntoFijoSelectContainer);
+                ocultarCampo(tipoEntregaContainer);
+                ocultarCampo(puntoFijoSelectContainer);
+                ocultarCampo(destinoContainer);
                 break;
 
             default:
@@ -131,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===========================================
     // 4. Sub-Lógica: Tipo de Entrega (tipo_entrega)
     // ===========================================
-    
+
     function actualizarTipoEntrega(inicial = false) {
         const tipoServicioVal = tipoServicio.value;
         const tipoEntregaVal = tipoEntrega.value;
@@ -162,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
             fechaEntregaOriginal.required = true;
         }
     }
-    
+
     // ===========================================
     // 5. Lógica de Fletes (PAGO PARCIAL / COMPLETO)
     // ===========================================
@@ -174,26 +185,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const fletePendienteContainer = document.getElementById('flete_pendiente_container');
     const fletePendienteInput = document.getElementById('flete_pendiente');
     // Asumo que tienes un ID en la etiqueta <label>
-    const labelFleteTotal = document.getElementById('label_flete_total'); 
+    const labelFleteTotal = document.getElementById('label_flete_total');
 
     // Función para calcular Flete Pendiente
-    function calculateFletePendiente() {
-        // Solo calcular si estamos en modo "Pago Parcial: Sí"
+    function calculateFletePendiente(format = false) {
         if (document.getElementById('pagoParcialSi').checked) {
             const total = parseFloat(fleteTotalInput.value) || 0;
             const pagado = parseFloat(fletePagadoInput.value) || 0;
-            let pendiente = (total - pagado);
-            
-            // Si el pagado excede el total, el pendiente es 0.
-            if (pendiente < 0) {
-                pendiente = 0;
-            }
+            let pendiente = total - pagado;
 
-            fleteTotalInput.value = total.toFixed(2);
-            fletePagadoInput.value = pagado.toFixed(2);
-            fletePendienteInput.value = pendiente.toFixed(2);
+            if (pendiente < 0) pendiente = 0;
+
+            // Solo formatear en blur
+            if (format) {
+                fleteTotalInput.value = total ? total.toFixed(2) : '';
+                fletePagadoInput.value = pagado ? pagado.toFixed(2) : '';
+                fletePendienteInput.value = pendiente.toFixed(2);
+            } else {
+                fletePendienteInput.value = pendiente ? pendiente : '';
+            }
         }
     }
+
 
     // Función principal para controlar la interfaz de fletes
     function handlePagoParcialChange() {
@@ -204,30 +217,25 @@ document.addEventListener('DOMContentLoaded', function () {
             mostrarCampo(fletePagadoContainer);
             mostrarCampo(fletePendienteContainer);
             fletePagadoInput.required = true;
-            
+
             if (labelFleteTotal) {
                 labelFleteTotal.textContent = 'Total de envío a cobrar ($)';
             }
-            
-            // Inicializar Pagado para que el cálculo no dé un valor erróneo al inicio
-            if (!fletePagadoInput.value) {
-                fletePagadoInput.value = 0.00;
-            }
-            
+
         } else {
             // Modo PAGO COMPLETO: Ocultar Flete Pagado y Pendiente
             ocultarCampo(fletePagadoContainer);
             ocultarCampo(fletePendienteContainer);
-            fletePagadoInput.required = false; 
-            
+            fletePagadoInput.required = false;
+
             if (labelFleteTotal) {
                 labelFleteTotal.textContent = 'Envío a pagar por el vendedor ($)';
             }
-            
+
             // En modo pago completo, el pendiente siempre es 0
             fletePendienteInput.value = 0.00;
         }
-        
+
         // Recalcular pendiente al cambiar el modo para reflejar el estado correcto
         calculateFletePendiente();
     }
@@ -236,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===========================================
     // 6. Listeners y Ejecución Inicial
     // ===========================================
-    
+
     // Textarea Auto-ajustable
     retiroInput.addEventListener('input', function () {
         this.style.height = 'auto';
@@ -246,16 +254,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // Eventos de cambio de servicio/entrega
     tipoServicio.addEventListener('change', actualizarCampos);
     tipoEntrega.addEventListener('change', actualizarTipoEntrega);
-    
+
     // Eventos de Fletes
     pagoParcialSwitches.forEach(radio => {
         radio.addEventListener('change', handlePagoParcialChange);
     });
-    fleteTotalInput.addEventListener('input', calculateFletePendiente);
-    fletePagadoInput.addEventListener('input', calculateFletePendiente);
-    fleteTotalInput.addEventListener('blur', calculateFletePendiente); // Para asegurar formato
-    fletePagadoInput.addEventListener('blur', calculateFletePendiente); // Para asegurar formato
+    // Solo calcular mientras escribe (sin formatear)
+    fleteTotalInput.addEventListener('input', () => calculateFletePendiente(false));
+    fletePagadoInput.addEventListener('input', () => calculateFletePendiente(false));
 
+    // Al salir del campo, aplicamos formato
+    fleteTotalInput.addEventListener('blur', () => calculateFletePendiente(true));
+    fletePagadoInput.addEventListener('blur', () => calculateFletePendiente(true));
+
+    fleteTotalInput.addEventListener('focus', () => {
+        if (parseFloat(fleteTotalInput.value) === 0) {
+            fleteTotalInput.value = '';
+        }
+    });
+
+    /**
+     * Al salir, formatea a dos decimales
+     */
+    fleteTotalInput.addEventListener('blur', () => {
+        const valor = parseFloat(fleteTotalInput.value) || 0;
+        fleteTotalInput.value = valor ? valor.toFixed(2) : '';
+    });
     // Inicialización
     limpiarTodo(); // Limpiar contenedores condicionales al inicio
     actualizarCampos(true); // Restaurar el estado de servicio/entrega
@@ -267,41 +291,75 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===========================================
 
     // Nota: Usamos jQuery ($) porque daterangepicker lo requiere
-    const fechaPuntoFijoInputJQ = $('#fecha_entrega_puntofijo'); 
+    const fechaPuntoFijoInputJQ = $('#fecha_entrega_puntofijo');
     const diasIndices = {
-        'domingo': 0, 'lunes': 1, 'martes': 2, 'miercoles': 3, 
+        'domingo': 0, 'lunes': 1, 'martes': 2, 'miercoles': 3,
         'jueves': 4, 'viernes': 5, 'sabado': 6
     };
-    let diasPermitidos = []; 
-// Función principal para manejar la visibilidad del Monto declarado
-function handleMontoVisibility() {
-    // 1. Obtener el valor de la píldora "Paquete ya cancelado"
-    const cobroValor = document.querySelector('input[name="toggleCobro"]:checked').value;
-    const esCancelado = cobroValor === '1'; // True si el paquete ya fue cancelado
+    let diasPermitidos = [];
+    // Función principal para manejar la visibilidad del Monto declarado
+    function handleMontoVisibility() {
+        // 1. Obtener el valor de la píldora "Paquete ya cancelado"
+        const cobroValor = document.querySelector('input[name="toggleCobro"]:checked').value;
+        const esCancelado = cobroValor === '1'; // True si el paquete ya fue cancelado
 
-    // 2. Obtener las REFERENCIAS DE ELEMENTOS (¡LA CLAVE DE LA SOLUCIÓN!)
-    const montoContainerEl = document.getElementById('monto_declarado_container');
-    const mensajeNoMontoContainerEl = document.getElementById('mensaje_no_monto_container');
+        // 2. Referencias de elementos
+        const montoContainerEl = document.getElementById('monto_declarado_container');
+        const mensajeNoMontoContainerEl = document.getElementById('mensaje_no_monto_container');
+        const montoInput = document.getElementById('monto_declarado');
 
-    if (esCancelado) {
-        // --- Paquete CANCELADO (Monto declarado: NO) ---
-        
-        // Ocultar el campo de Monto declarado y limpiar su valor
-        ocultarCampo(montoContainerEl);
+        // 3. Lógica de visibilidad y comportamiento
+        if (esCancelado) {
+            // --- Paquete CANCELADO ---
+            ocultarCampo(montoContainerEl);
+            mostrarCampo(mensajeNoMontoContainerEl);
 
-        // Mostrar el mensaje de No Monto
-        mostrarCampo(mensajeNoMontoContainerEl); // No necesita el 'false' si tu función no lo usa
+            // Dejar el monto en 0.00 y bloquearlo
+            if (montoInput) {
+                montoInput.value = '0.00';
+                montoInput.disabled = true;
+            }
+        } else {
+            // --- Paquete NO CANCELADO ---
+            ocultarCampo(mensajeNoMontoContainerEl);
+            mostrarCampo(montoContainerEl);
 
-    } else {
-        // --- Paquete NO CANCELADO (Monto declarado: SÍ) ---
-
-        // Ocultar el mensaje de No Monto
-        ocultarCampo(mensajeNoMontoContainerEl);
-
-        // Mostrar el campo de Monto declarado
-        mostrarCampo(montoContainerEl); // No necesita el 'false'
+            // Reactivar el campo de monto
+            if (montoInput) {
+                montoInput.disabled = false;
+            }
+        }
     }
-}
+    // === 8. Lógica: Paquete Cancelado ===
+    const radiosCobro = document.querySelectorAll('input[name="toggleCobro"]');
+    const montoInput = document.getElementById('monto_declarado');
+
+    function handleMontoVisibility() {
+        const valor = document.querySelector('input[name="toggleCobro"]:checked')?.value;
+        if (valor === '1') {
+            // Paquete cancelado
+            montoInput.value = '0.00';
+            montoInput.disabled = true;
+        } else {
+            // Paquete no cancelado
+            montoInput.disabled = false;
+        }
+    }
+
+    function formatMontoDeclarado() {
+        if (montoInput.disabled) return; // Si está bloqueado, no formatear
+        const valor = parseFloat(montoInput.value) || 0;
+        montoInput.value = valor ? valor.toFixed(2) : '';
+    }
+    montoInput.addEventListener('blur', formatMontoDeclarado);
+    // Escuchar cambios en ambos radios
+    radiosCobro.forEach(radio => {
+        radio.addEventListener('change', handleMontoVisibility);
+    });
+
+    // Ejecutar al cargar (por si el valor viene marcado desde backend)
+    handleMontoVisibility();
+
     // Función para configurar el daterangepicker según los días permitidos
     function configurarDatepicker() {
         fechaPuntoFijoInputJQ.daterangepicker({
@@ -341,7 +399,7 @@ function handleMontoVisibility() {
         if (!id) {
             diasPermitidos = [];
             fechaPuntoFijoInputJQ.val('');
-            fechaPuntoFijoInputJQ.data('daterangepicker').remove(); 
+            fechaPuntoFijoInputJQ.data('daterangepicker').remove();
             configurarDatepicker();
             return;
         }
@@ -386,3 +444,5 @@ const radiosCobro = document.querySelectorAll('input[name="toggleCobro"]');
 radiosCobro.forEach(radio => {
     radio.addEventListener('change', handleMontoVisibility);
 });
+
+
