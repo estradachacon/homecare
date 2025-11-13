@@ -57,16 +57,6 @@ class Packages extends Migration
                 'type' => 'DATE',
                 'null' => true
             ],
-            'tel_primario' => [
-                'type' => 'VARCHAR',
-                'constraint' => 20,
-                'null' => true
-            ],
-            'tel_opcional' => [
-                'type' => 'VARCHAR',
-                'constraint' => 20,
-                'null' => true
-            ],
             'flete_total' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',

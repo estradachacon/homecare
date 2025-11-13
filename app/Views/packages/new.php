@@ -154,57 +154,86 @@
         color: white;
     }
 
-/* --- Estilo para días inválidos (NO disponibles) en DateRangePicker --- */
-.daterangepicker td.off {
-    /* Fondo: Gris claro y suave, visualmente 'apagado' */
-    background-color: #f2f2f2 !important; 
-    color: #888 !important; 
-    opacity: 0.6 !important;
-    
-    /* CRUCIAL: Deshabilita el clic y la interacción */
-    pointer-events: none !important; 
-    cursor: default !important;
-    text-decoration: none !important; 
-}
+    /* --- Estilo para días inválidos (NO disponibles) en DateRangePicker --- */
+    .daterangepicker td.off {
+        /* Fondo: Gris claro y suave, visualmente 'apagado' */
+        background-color: #f2f2f2 !important;
+        color: #888 !important;
+        opacity: 0.6 !important;
 
-/* --- Estilo para días VÁLIDOS (disponibles) en DateRangePicker --- */
-.daterangepicker td.available {
-    /* Fondo: Color suave que indique que es seleccionable (e.g., verde claro) */
-    background-color: #e6f3f5ff !important; /* Un verde muy claro */
-    color: #41484aff !important; /* Verde más oscuro para el texto */
-    font-weight: 500;
-    
-    /* Cursor: Vuelve al puntero normal para indicar que es cliqueable */
-    cursor: pointer !important;
-    opacity: 1 !important;
-    
-    /* Animación al pasar el mouse (opcional) */
-    transition: background-color 0.15s ease;
-}
+        /* CRUCIAL: Deshabilita el clic y la interacción */
+        pointer-events: none !important;
+        cursor: default !important;
+        text-decoration: none !important;
+    }
 
-/* Efecto al pasar el mouse por un día disponible */
-.daterangepicker td.available:hover {
-    background-color: #75b1edff !important; /* Un verde ligeramente más oscuro */
-}
+    /* --- Estilo para días VÁLIDOS (disponibles) en DateRangePicker --- */
+    .daterangepicker td.available {
+        /* Fondo: Color suave que indique que es seleccionable (e.g., verde claro) */
+        background-color: #e6f3f5ff !important;
+        /* Un verde muy claro */
+        color: #41484aff !important;
+        /* Verde más oscuro para el texto */
+        font-weight: 500;
 
-/* Estilo para el día seleccionado */
-.daterangepicker td.active, 
-    
-.daterangepicker td.active:hover {
-    background-color: #286aa7ff !important; /* Tu color verde primario/éxito */
-    color: white !important;
-}
+        /* Cursor: Vuelve al puntero normal para indicar que es cliqueable */
+        cursor: pointer !important;
+        opacity: 1 !important;
 
-/* Si mantienes tu clase 'disabled-day' para otros usos fuera del picker: */
-.disabled-day {
-    background-color: #f2f2f2 !important;
-    color: #888 !important;
-    border: 1px solid #ddd !important;
-    opacity: 0.6 !important;
-    text-decoration: none !important;
-    cursor: default !important;
-    pointer-events: none !important;
-}
+        /* Animación al pasar el mouse (opcional) */
+        transition: background-color 0.15s ease;
+    }
+
+    /* Efecto al pasar el mouse por un día disponible */
+    .daterangepicker td.available:hover {
+        background-color: #98b4d1ff !important;
+        /* Un verde ligeramente más oscuro */
+    }
+
+    /* Estilo para el día seleccionado */
+    .daterangepicker td.active,
+
+    .daterangepicker td.active:hover {
+        background-color: #286aa7ff !important;
+        /* Tu color verde primario/éxito */
+        color: white !important;
+    }
+
+    /* Si mantienes tu clase 'disabled-day' para otros usos fuera del picker: */
+    .disabled-day {
+        background-color: #f2f2f2 !important;
+        color: #888 !important;
+        border: 1px solid #ddd !important;
+        opacity: 0.6 !important;
+        text-decoration: none !important;
+        cursor: default !important;
+        pointer-events: none !important;
+    }
+
+    .col-md-3[id$="_container"] {
+        /* Aplica a todos los contenedores de flete */
+        overflow: hidden;
+        /* Importante para que la altura de 0 no muestre contenido */
+        max-height: 0;
+        opacity: 0;
+        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    }
+
+    /* Estado visible y animado */
+    .col-md-3[id$="_container"].show {
+        /* Establece una altura suficiente para que el contenido se muestre sin saltos */
+        max-height: 100px;
+        /* Ajusta este valor si tu contenido es más alto */
+        opacity: 1;
+    }
+
+    /* Asegura que los que se muestran SIEMPRE (flete_total) no usen esta animación */
+    /* O simplemente los inicializas sin el estilo 'display: none' y sin la clase 'show' */
+    #flete_total_container {
+        max-height: none;
+        /* Asegurar que no se limite el contenedor principal */
+        opacity: 1;
+    }
 </style>
 
 <div class="row">
@@ -222,7 +251,7 @@
                         <!-- Select del vendedor -->
                         <div class="col-md-6 mb-3">
                             <label for="seller_id" class="form-label">Vendedor</label>
-                            <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;">
+                            <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;" required>
                                 <option value=""></option>
                             </select>
                             <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
@@ -310,7 +339,6 @@
                             <div class="toggle-pill">
                                 <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0" checked>
                                 <label for="pagoParcialNo">No</label>
-
                                 <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1">
                                 <label for="pagoParcialSi">Sí</label>
                             </div>
@@ -324,13 +352,13 @@
                         </div>
 
                         <!-- Flete pagado -->
-                        <div class="col-md-3" id="flete_pagado_container">
+                        <div class="col-md-3" id="flete_pagado_container" style="display: none;">
                             <label class="form-label">Envío pagado ($)</label>
                             <input type="number" step="0.01" name="flete_pagado" id="flete_pagado" class="form-control">
                         </div>
 
                         <!-- Flete pendiente -->
-                        <div class="col-md-3" id="flete_pendiente_container">
+                        <div class="col-md-3" id="flete_pendiente_container" style="display: none;">
                             <label class="form-label">Envío pendiente ($)</label>
                             <input type="number" step="0.01" name="flete_pendiente" id="flete_pendiente"
                                 class="form-control" readonly>
@@ -338,7 +366,28 @@
 
                         <div class="form-divider line-center"></div>
 
-                        <!-- Monto declarado -->
+                        <div class="col-md-2 text-center">
+                            <label class="form-label d-block mb-2">¿Es frágil?</label>
+                            <div class="toggle-pill">
+                                <input type="radio" id="fragilNo" name="fragil" value="0" checked>
+                                <label for="fragilNo">No</label>
+
+                                <input type="radio" id="fragilSi" name="fragil" value="1">
+                                <label for="fragilSi">Sí</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 text-center">
+                            <label class="form-label d-block mb-2">¿Paquete ya cancelado?</label>
+                            <div class="toggle-pill">
+                                <input type="radio" id="toggleCobroNo" name="toggleCobro" value="0" checked>
+                                <label for="toggleCobroNo">No</label>
+
+                                <input type="radio" id="toggleCobroSi" name="toggleCobro" value="1">
+                                <label for="toggleCobroSi">Sí</label>
+                            </div>
+                        </div>
+
                         <div class="col-md-4">
                             <label class="form-label">Monto del paquete ($)</label>
                             <input type="number" step="0.01" name="monto" class="form-control">
@@ -348,17 +397,6 @@
                         <div class="col-md-4">
                             <label class="form-label">Foto del paquete</label>
                             <input type="file" name="foto" class="form-control" accept="image/*">
-                        </div>
-
-                        <div class="col-md-4 text-center">
-                            <label class="form-label d-block mb-2">¿Es frágil?</label>
-                            <div class="toggle-pill">
-                                <input type="radio" id="fragilNo" name="fragil" value="0" checked>
-                                <label for="fragilNo">No</label>
-
-                                <input type="radio" id="fragilSi" name="fragil" value="1">
-                                <label for="fragilSi">Sí</label>
-                            </div>
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -646,4 +684,45 @@
 
 </script>
 <script src="<?= base_url('backend/assets/js/scripts_packaging.js') ?>"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form[action="<?= base_url('packages/store') ?>"]');
+
+        if (form) {
+            // 1. Interceptar el evento submit
+            form.addEventListener('submit', function (event) {
+                // Previene el envío por defecto (que recargaría la página)
+                event.preventDefault();
+
+                // 2. Recopilar datos y crear el objeto (FormData / URLSearchParams)
+                const formData = new FormData(form);
+                const dataObject = {};
+
+                // Iterar sobre los pares clave/valor y construir el objeto
+                for (let [key, value] of formData.entries()) {
+                    // Manejo especial para el campo 'foto' (archivo)
+                    if (key === 'foto' && value instanceof File) {
+                        dataObject[key] = value.name || 'archivo-seleccionado';
+                    } else {
+                        dataObject[key] = value;
+                    }
+                }
+
+                // 3. Mostrar el objeto en la consola (y en un alert para que lo veas)
+                console.log('📦 Objeto/Payload del Formulario (Listo para enviar):');
+                console.log(dataObject);
+
+                // También puedes mostrarlo en un cuadro de diálogo:
+                // alert('Datos capturados: ' + JSON.stringify(dataObject, null, 2));
+
+                // ⚠️ IMPORTANTE:
+                // Si quieres continuar con el envío real después de verlo,
+                // puedes remover la línea event.preventDefault() y usar:
+                // form.submit();
+
+                // Si solo quieres probar la captura, déjalo como está.
+            });
+        }
+    });
+</script>
 <?= $this->endSection() ?>
