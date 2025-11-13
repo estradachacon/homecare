@@ -246,5 +246,29 @@ class SettledPointController extends BaseController
 
         return redirect()->to('/');
     }
+    public function getAvailableDays($id = null)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Petición inválida']);
+        }
+
+        $settledPoint = $this->settledPointModel->find($id);
+        if (!$settledPoint) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Punto fijo no encontrado']);
+        }
+
+        // Días de la semana disponibles
+        $days = [
+            'mon' => (bool) $settledPoint->mon,
+            'tus' => (bool) $settledPoint->tus,
+            'wen' => (bool) $settledPoint->wen,
+            'thu' => (bool) $settledPoint->thu,
+            'fri' => (bool) $settledPoint->fri,
+            'sat' => (bool) $settledPoint->sat,
+            'sun' => (bool) $settledPoint->sun,
+        ];
+
+        return $this->response->setJSON($days);
+    }
 
 }

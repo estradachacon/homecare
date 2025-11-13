@@ -48,6 +48,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('settledpoint', ['controller' => 'SettledPointController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('settledpoint/delete', 'SettledPointController::delete');
     $routes->get('settledPoints/getList', 'SettledPointController::getList');
+    $routes->get('settledPoints/getDays/(:num)', 'SettledPointController::getAvailableDays/$1');
     $routes->presenter('routes', ['controller' => 'RouteController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('routes/delete', 'RouteController::delete');
 });

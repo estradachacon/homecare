@@ -150,9 +150,61 @@
     }
 
     .toggle-pill input:checked+label {
-        background-color: #28a745;
+        background-color: #48b563ff;
         color: white;
     }
+
+/* --- Estilo para días inválidos (NO disponibles) en DateRangePicker --- */
+.daterangepicker td.off {
+    /* Fondo: Gris claro y suave, visualmente 'apagado' */
+    background-color: #f2f2f2 !important; 
+    color: #888 !important; 
+    opacity: 0.6 !important;
+    
+    /* CRUCIAL: Deshabilita el clic y la interacción */
+    pointer-events: none !important; 
+    cursor: default !important;
+    text-decoration: none !important; 
+}
+
+/* --- Estilo para días VÁLIDOS (disponibles) en DateRangePicker --- */
+.daterangepicker td.available {
+    /* Fondo: Color suave que indique que es seleccionable (e.g., verde claro) */
+    background-color: #e6f3f5ff !important; /* Un verde muy claro */
+    color: #41484aff !important; /* Verde más oscuro para el texto */
+    font-weight: 500;
+    
+    /* Cursor: Vuelve al puntero normal para indicar que es cliqueable */
+    cursor: pointer !important;
+    opacity: 1 !important;
+    
+    /* Animación al pasar el mouse (opcional) */
+    transition: background-color 0.15s ease;
+}
+
+/* Efecto al pasar el mouse por un día disponible */
+.daterangepicker td.available:hover {
+    background-color: #75b1edff !important; /* Un verde ligeramente más oscuro */
+}
+
+/* Estilo para el día seleccionado */
+.daterangepicker td.active, 
+    
+.daterangepicker td.active:hover {
+    background-color: #286aa7ff !important; /* Tu color verde primario/éxito */
+    color: white !important;
+}
+
+/* Si mantienes tu clase 'disabled-day' para otros usos fuera del picker: */
+.disabled-day {
+    background-color: #f2f2f2 !important;
+    color: #888 !important;
+    border: 1px solid #ddd !important;
+    opacity: 0.6 !important;
+    text-decoration: none !important;
+    cursor: default !important;
+    pointer-events: none !important;
+}
 </style>
 
 <div class="row">
@@ -246,8 +298,9 @@
                             style="display: none;">
                             <label for="fecha_entrega_puntofijo" class="form-label">Fecha de entrega en punto
                                 fijo</label>
-                            <input type="date" name="fecha_entrega_puntofijo" class="form-control"
-                                id="fecha_entrega_puntofijo">
+                            <input type="text" name="fecha_entrega_puntofijo" id="fecha_entrega_puntofijo"
+                                class="form-control datepicker" autocomplete="off" />
+
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -472,35 +525,7 @@
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const puntoFijoSelect = document.getElementById('puntofijo_select');
-
-        puntoFijoSelect.addEventListener('focus', function () {
-            fetch("<?= base_url('settledPoints/getList') ?>", {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Limpiar opciones existentes
-                    puntoFijoSelect.innerHTML = '<option value="">Seleccione un punto fijo</option>';
-
-                    // Rellenar dinámicamente
-                    if (data && Array.isArray(data)) {
-                        data.forEach(item => {
-                            const option = document.createElement('option');
-                            option.value = item.id;
-                            option.textContent = item.point_name;
-                            puntoFijoSelect.appendChild(option);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al cargar puntos fijos:', error);
-                });
-        });
-        // Inicializar Select2 para el select de puntos fijos
+        // Inicializar Select2 del punto fijo (ya lo tenés)
         $('#puntofijo_select').select2({
             theme: 'bootstrap4',
             placeholder: '🔍 Buscar punto fijo...',
@@ -511,10 +536,9 @@
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {
-                    return { q: params.term }; // término de búsqueda
+                    return { q: params.term };
                 },
                 processResults: function (data) {
-                    // Asegurarnos de usar la clave "text" en el JSON
                     return {
                         results: data.map(item => ({
                             id: item.id,
@@ -531,8 +555,95 @@
             }
         });
 
+        // ✅ Inicializar DateRangePicker como selector de una sola fecha
+        $('#fecha_entrega_puntofijo').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false,
+            locale: {
+                format: 'YYYY-MM-DD',
+                applyLabel: 'Aplicar',
+                cancelLabel: 'Cancelar',
+                daysOfWeek: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
+                monthNames: [
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                ],
+                firstDay: 1
+            }
+        });
+        $('#puntofijo_select').on('change', function () {
+            const puntoId = $(this).val();
+            const dateInput = $('#fecha_entrega_puntofijo');
+
+            if (!puntoId) {
+                dateInput.val('');
+                dateInput.data('daterangepicker').setStartDate(moment());
+                return;
+            }
+
+            $.ajax({
+                url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
+                method: 'GET',
+                dataType: 'json',
+                success: function (days) {
+                    const allowedDays = [];
+                    if (days.sun) allowedDays.push(0);
+                    if (days.mon) allowedDays.push(1);
+                    if (days.tus) allowedDays.push(2);
+                    if (days.wen) allowedDays.push(3);
+                    if (days.thu) allowedDays.push(4);
+                    if (days.fri) allowedDays.push(5);
+                    if (days.sat) allowedDays.push(6);
+
+                    // Buscar el primer día válido a partir de hoy
+                    let nextValidDate = moment();
+                    for (let i = 0; i < 14; i++) {
+                        if (allowedDays.includes(nextValidDate.day())) break;
+                        nextValidDate.add(1, 'days');
+                    }
+
+                    // Reinicializar el calendario
+                    dateInput.data('daterangepicker')?.remove();
+
+                    dateInput.daterangepicker({
+                        singleDatePicker: true,
+                        showDropdowns: true,
+                        autoApply: true, // ✅ aplica al hacer clic
+                        startDate: nextValidDate,
+                        autoUpdateInput: true,
+                        isInvalidDate: function (date) {
+                            return !allowedDays.includes(date.day());
+                        },
+                        locale: {
+                            format: 'YYYY-MM-DD',
+                            daysOfWeek: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
+                            monthNames: [
+                                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                            ],
+                            firstDay: 1
+                        }
+                    });
+
+                    // Rellenar con la fecha sugerida
+                    dateInput.val(nextValidDate.format('YYYY-MM-DD'));
+
+                },
+                error: function () {
+                    console.error('Error al cargar días del punto fijo');
+                }
+            });
+        });
+
+
+
+        // ✅ Actualizar el input cuando se selecciona una fecha
+        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function (ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
     });
 
 </script>
-
+<script src="<?= base_url('backend/assets/js/scripts_packaging.js') ?>"></script>
 <?= $this->endSection() ?>
