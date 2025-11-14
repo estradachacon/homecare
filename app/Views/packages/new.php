@@ -399,7 +399,8 @@
                             <input type="file"
                                 name="foto"
                                 class="form-control"
-                                accept="image/*">
+                                accept="image/*"
+                                capture="environment">
                         </div>
 
                         <div class="form-divider line-center"></div>
