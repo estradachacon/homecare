@@ -396,7 +396,11 @@
                         <!-- Foto -->
                         <div class="col-md-4">
                             <label class="form-label">Foto del paquete</label>
-                            <input type="file" name="foto" class="form-control" accept="image/*">
+                            <input type="file"
+                                name="foto"
+                                class="form-control"
+                                accept="image/*"
+                                capture="environment">
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -454,7 +458,7 @@
 </div>
 
 <script>
-    $('#formCreateSeller').on('submit', function (e) {
+    $('#formCreateSeller').on('submit', function(e) {
         e.preventDefault();
 
         $.ajax({
@@ -462,7 +466,7 @@
             type: 'POST',
             data: $(this).serialize(),
             dataType: 'json',
-            success: function (response) {
+            success: function(response) {
                 if (response.status === 'success') {
                     $('#modalCreateSeller').modal('hide');
 
@@ -475,14 +479,14 @@
                     Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                 }
             },
-            error: function () {
+            error: function() {
                 Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
             }
         });
     });
 </script>
 <script>
-    window.addEventListener('load', function () {
+    window.addEventListener('load', function() {
 
         // Inicializar Select2
         $('#seller_id').select2({
@@ -494,12 +498,12 @@
                 url: '<?= base_url('sellers/search') ?>', // <-- corregido
                 dataType: 'json',
                 delay: 250,
-                data: function (params) {
+                data: function(params) {
                     return {
                         q: params.term
                     };
                 },
-                processResults: function (data, params) {
+                processResults: function(data, params) {
                     let results = data || [];
 
                     // Si no hay resultados, mostrar opción para crear nuevo
@@ -525,7 +529,7 @@
         });
 
         // Si selecciona "Crear nuevo vendedor"
-        $('#seller_id').on('select2:select', function (e) {
+        $('#seller_id').on('select2:select', function(e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
                 $('#seller_id').val(null).trigger('change');
@@ -534,7 +538,7 @@
         });
 
         // Guardar nuevo vendedor vía AJAX
-        $('#formCreateSeller').on('submit', function (e) {
+        $('#formCreateSeller').on('submit', function(e) {
             e.preventDefault();
 
             $.ajax({
@@ -542,7 +546,7 @@
                 type: 'POST',
                 data: $(this).serialize(),
                 dataType: 'json',
-                success: function (response) {
+                success: function(response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
 
@@ -554,7 +558,7 @@
                         Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                     }
                 },
-                error: function () {
+                error: function() {
                     Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
                 }
             });
@@ -562,7 +566,7 @@
     });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Inicializar Select2 del punto fijo (ya lo tenés)
         $('#puntofijo_select').select2({
             theme: 'bootstrap4',
@@ -573,10 +577,12 @@
                 url: '<?= base_url('settledPoints/getList') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: function (params) {
-                    return { q: params.term };
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
                 },
-                processResults: function (data) {
+                processResults: function(data) {
                     return {
                         results: data.map(item => ({
                             id: item.id,
@@ -610,7 +616,7 @@
                 firstDay: 1
             }
         });
-        $('#puntofijo_select').on('change', function () {
+        $('#puntofijo_select').on('change', function() {
             const puntoId = $(this).val();
             const dateInput = $('#fecha_entrega_puntofijo');
 
@@ -624,7 +630,7 @@
                 url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
                 method: 'GET',
                 dataType: 'json',
-                success: function (days) {
+                success: function(days) {
                     const allowedDays = [];
                     if (days.sun) allowedDays.push(0);
                     if (days.mon) allowedDays.push(1);
@@ -650,7 +656,7 @@
                         autoApply: true, // ✅ aplica al hacer clic
                         startDate: nextValidDate,
                         autoUpdateInput: true,
-                        isInvalidDate: function (date) {
+                        isInvalidDate: function(date) {
                             return !allowedDays.includes(date.day());
                         },
                         locale: {
@@ -668,7 +674,7 @@
                     dateInput.val(nextValidDate.format('YYYY-MM-DD'));
 
                 },
-                error: function () {
+                error: function() {
                     console.error('Error al cargar días del punto fijo');
                 }
             });
@@ -677,20 +683,19 @@
 
 
         // ✅ Actualizar el input cuando se selecciona una fecha
-        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function (ev, picker) {
+        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function(ev, picker) {
             $(this).val(picker.startDate.format('YYYY-MM-DD'));
         });
     });
-
 </script>
 <script src="<?= base_url('backend/assets/js/scripts_packaging.js') ?>"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const form = document.querySelector('form[action="<?= base_url('packages/store') ?>"]');
 
         if (form) {
             // 1. Interceptar el evento submit
-            form.addEventListener('submit', function (event) {
+            form.addEventListener('submit', function(event) {
                 // Previene el envío por defecto (que recargaría la página)
                 event.preventDefault();
 

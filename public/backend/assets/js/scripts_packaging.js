@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(destinoContainer);
                 ocultarCampo(tipoEntregaContainer);
                 ocultarCampo(retiroContainer);
+                ocultarCampo(fechaEntregaContainer);
                 puntoFijoSelect.required = true;
                 fechaPuntoFijoInput.required = true;
                 break;
@@ -112,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(puntoFijoSelectContainer);
                 ocultarCampo(retiroContainer);
                 ocultarCampo(tipoEntregaContainer);
+                ocultarCampo(fechaPuntoFijoContainer);
                 destinoInput.required = true;
                 fechaEntregaOriginal.required = true;
                 break;
@@ -122,6 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 mostrarCampo(tipoEntregaContainer);
                 ocultarCampo(puntoFijoSelectContainer);
                 ocultarCampo(destinoContainer);
+                ocultarCampo(fechaEntregaContainer);
+                ocultarCampo(fechaPuntoFijoContainer);
                 // Llama a la sub-lógica, pero también maneja su estado inicial
                 // actualizarTipoEntrega(inicial); // Se maneja por el listener de tipoEntrega
                 break;
@@ -131,6 +135,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(tipoEntregaContainer);
                 ocultarCampo(puntoFijoSelectContainer);
                 ocultarCampo(destinoContainer);
+                ocultarCampo(retiroContainer);
+                ocultarCampo(fechaEntregaContainer);
+                ocultarCampo(fechaPuntoFijoContainer);
                 break;
 
             default:
@@ -144,35 +151,31 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===========================================
 
     function actualizarTipoEntrega(inicial = false) {
-        const tipoServicioVal = tipoServicio.value;
         const tipoEntregaVal = tipoEntrega.value;
 
-        if (tipoServicioVal !== '3') {
-            // Esta lógica solo aplica si el servicio es "Recolecta de paquete" (3)
-            return;
-        }
+        // Solo ocultamos sin limpiar ni deshabilitar (para evitar conflictos)
+        puntoFijoSelectContainer.style.display = 'none';
+        fechaPuntoFijoContainer.style.display = 'none';
+        destinoContainer.style.display = 'none';
+        fechaEntregaContainer.style.display = 'none';
 
-        // Limpiamos los campos de destino antes de decidir cuál mostrar
-        ocultarCampo(puntoFijoSelectContainer);
-        ocultarCampo(fechaPuntoFijoContainer);
-        ocultarCampo(destinoContainer);
-        ocultarCampo(fechaEntregaContainer);
+        switch (tipoEntregaVal) {
+            case '5':  // Punto fijo
+                mostrarCampo(puntoFijoSelectContainer);
+                mostrarCampo(fechaPuntoFijoContainer);
+                puntoFijoSelect.required = true;
+                fechaPuntoFijoInput.required = true;
+                break;
 
-        if (tipoEntregaVal === '5') {
-            // Entrega en punto fijo
-            mostrarCampo(puntoFijoSelectContainer);
-            mostrarCampo(fechaPuntoFijoContainer);
-            puntoFijoSelect.required = true;
-            fechaPuntoFijoInput.required = true;
-
-        } else if (tipoEntregaVal === 'personalizada') {
-            // Entrega personalizada
-            mostrarCampo(destinoContainer);
-            mostrarCampo(fechaEntregaContainer);
-            destinoInput.required = true;
-            fechaEntregaOriginal.required = true;
+            case 'personalizada': // Entrega personalizada
+                mostrarCampo(destinoContainer);
+                mostrarCampo(fechaEntregaContainer);
+                destinoInput.required = true;
+                fechaEntregaOriginal.required = true;
+                break;
         }
     }
+
 
     // ===========================================
     // 5. Lógica de Fletes (PAGO PARCIAL / COMPLETO)
