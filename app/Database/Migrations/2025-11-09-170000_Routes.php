@@ -54,9 +54,12 @@ public function up()
                 'route_name'         => 'Sur',
                 'description'        => 'Zona sur',
             ],
+            [
+                'route_name'         => 'Central',
+                'description'        => 'Zona central',
+            ],
         ];
 
-        // 🚨 CAMBIO CLAVE: Usamos insertBatch() para inserción múltiple.
         $this->db->table('routes')->insertBatch($data);
     }
 
