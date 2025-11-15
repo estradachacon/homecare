@@ -37,6 +37,7 @@ class PackageController extends BaseController
     public function new()
     {
         $settledPoint = $this->settledPointModel->findAll();
+        $session = session();
 
         $data = [
             'settledPoints' => $settledPoint,

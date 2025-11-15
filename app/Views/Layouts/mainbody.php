@@ -3,6 +3,8 @@
 <html lang="en">
 
 <head>
+        <!-- Core Js  -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <meta charset="utf-8" />
     <title>FC Encomiendas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -215,12 +217,9 @@
         <!--End layoutSidenav_content-->
     </div>
     <!--End layoutSidenav-->
-    <?= $this->include('Layouts/toast') ?>
-    <!-- Core Js  -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-
+    <?= $this->include('Layouts/toast') ?>
 
     <!-- Datatable js -->
     <script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>

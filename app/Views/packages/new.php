@@ -154,85 +154,115 @@
         color: white;
     }
 
-    /* --- Estilo para días inválidos (NO disponibles) en DateRangePicker --- */
-    .daterangepicker td.off {
-        /* Fondo: Gris claro y suave, visualmente 'apagado' */
-        background-color: #f2f2f2 !important;
-        color: #888 !important;
-        opacity: 0.6 !important;
+    /* ===============================
+   🎨 ESTILOS DATERANGEPICKER
+   =============================== */
 
-        /* CRUCIAL: Deshabilita el clic y la interacción */
-        pointer-events: none !important;
-        cursor: default !important;
-        text-decoration: none !important;
-    }
+    /* Ocultar días de otros meses */
+    .daterangepicker td.off-start,
+    .daterangepicker td.off-end,
+    .daterangepicker td.off.in-range,
+.daterangepicker td.off,
+.daterangepicker td.off.disabled,
+.disabled-day {
+    background-color: #f5f5f5 !important;  /* Gris muy claro */
+    color: #cfcdcdff !important;             /* Texto gris suave */
+    opacity: 0.22 !important;              /* Efecto "borrador" */
+    cursor: default !important;
+    pointer-events: none !important;
+    border-radius: 6px;
+    text-decoration: none !important;
+}
 
-    /* --- Estilo para días VÁLIDOS (disponibles) en DateRangePicker --- */
+    /* Días válidos (seleccionables) */
     .daterangepicker td.available {
-        /* Fondo: Color suave que indique que es seleccionable (e.g., verde claro) */
-        background-color: #e6f3f5ff !important;
-        /* Un verde muy claro */
-        color: #41484aff !important;
-        /* Verde más oscuro para el texto */
+        background-color: #e9f7ff !important;
+        /* Azul muy suave */
+        color: #0a3d62 !important;
+        /* Azul oscuro */
         font-weight: 500;
-
-        /* Cursor: Vuelve al puntero normal para indicar que es cliqueable */
+        border-radius: 6px;
         cursor: pointer !important;
-        opacity: 1 !important;
-
-        /* Animación al pasar el mouse (opcional) */
-        transition: background-color 0.15s ease;
+        transition: background-color .2s ease, transform .15s ease;
     }
 
-    /* Efecto al pasar el mouse por un día disponible */
+    /* Hover de días válidos */
     .daterangepicker td.available:hover {
-        background-color: #98b4d1ff !important;
-        /* Un verde ligeramente más oscuro */
+        background-color: #d4efff !important;
+        /* Un poco más azul */
+        transform: scale(1.08);
+        /* Efecto de elevación */
+        z-index: 2;
     }
 
-    /* Estilo para el día seleccionado */
+    /* Día seleccionado (start y end) */
     .daterangepicker td.active,
-
     .daterangepicker td.active:hover {
-        background-color: #286aa7ff !important;
-        /* Tu color verde primario/éxito */
+        background-color: #0d6efd !important;
+        /* Azul Bootstrap */
         color: white !important;
+        font-weight: 700;
+        transform: scale(1.1);
+        border-radius: 8px !important;
     }
 
-    /* Si mantienes tu clase 'disabled-day' para otros usos fuera del picker: */
+    /* Rango intermedio (cuando arrastras fechas) */
+    .daterangepicker td.in-range {
+        background-color: #cbe7ff !important;
+        /* Azul tenue */
+        color: #0d3b66 !important;
+    }
+
+    /* Días inválidos (bloqueados por lógica) */
+    .daterangepicker td.off.disabled,
     .disabled-day {
-        background-color: #f2f2f2 !important;
-        color: #888 !important;
-        border: 1px solid #ddd !important;
-        opacity: 0.6 !important;
+        background-color: #d8d3d3ff !important;
+        color: #8c8989ff !important;
+        opacity: .55 !important;
         text-decoration: none !important;
-        cursor: default !important;
         pointer-events: none !important;
+        border-radius: 4px;
     }
 
-    .col-md-3[id$="_container"] {
-        /* Aplica a todos los contenedores de flete */
-        overflow: hidden;
-        /* Importante para que la altura de 0 no muestre contenido */
-        max-height: 0;
-        opacity: 0;
-        transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    .drop-area {
+        border: 2px dashed #7a6fff;
+        border-radius: 14px;
+        padding: 32px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #f1f2ff 100%);
+        text-align: center;
+        cursor: pointer;
+        transition: 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
     }
 
-    /* Estado visible y animado */
-    .col-md-3[id$="_container"].show {
-        /* Establece una altura suficiente para que el contenido se muestre sin saltos */
-        max-height: 100px;
-        /* Ajusta este valor si tu contenido es más alto */
-        opacity: 1;
+    .drop-area:hover {
+        background: linear-gradient(135deg, #eef0ff 0%, #e7e9ff 100%);
+        border-color: #5b50ff;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
     }
 
-    /* Asegura que los que se muestran SIEMPRE (flete_total) no usen esta animación */
-    /* O simplemente los inicializas sin el estilo 'display: none' y sin la clase 'show' */
-    #flete_total_container {
-        max-height: none;
-        /* Asegurar que no se limite el contenedor principal */
-        opacity: 1;
+    .drop-icon {
+        font-size: 50px;
+        margin-bottom: 12px;
+    }
+
+    .drop-text {
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #333;
+        font-size: 15px;
+    }
+
+    .preview-img {
+        margin-top: 18px;
+        width: 100%;
+        max-width: 270px;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
     }
 </style>
 
@@ -335,12 +365,12 @@
                         <div class="form-divider line-center"></div>
 
                         <div class="col-md-3 text-center">
-                            <label class="form-label d-block mb-2">¿Pago parcial?</label>
+                            <label class="form-label d-block mb-2">Cobro al vendedor</label>
                             <div class="toggle-pill">
                                 <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0" checked>
-                                <label for="pagoParcialNo">No</label>
+                                <label for="pagoParcialNo">Pago total</label>
                                 <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1">
-                                <label for="pagoParcialSi">Sí</label>
+                                <label for="pagoParcialSi">Pago parcial</label>
                             </div>
                         </div>
 
@@ -366,7 +396,7 @@
 
                         <div class="form-divider line-center"></div>
 
-                        <div class="col-md-2 text-center">
+                        <div class="col-md-4 text-center">
                             <label class="form-label d-block mb-2">¿Es frágil?</label>
                             <div class="toggle-pill">
                                 <input type="radio" id="fragilNo" name="fragil" value="0" checked>
@@ -377,7 +407,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-2 text-center">
+                        <div class="col-md-4 text-center">
                             <label class="form-label d-block mb-2">¿Paquete ya cancelado?</label>
                             <div class="toggle-pill">
                                 <input type="radio" id="toggleCobroNo" name="toggleCobro" value="0" checked>
@@ -390,18 +420,30 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Monto del paquete ($)</label>
-                            <input type="number" id="monto_declarado" step="0.01" name="monto" class="form-control">
+                            <input type="number" id="monto_declarado" step="0.01" name="monto" class="form-control"
+                                required>
                         </div>
 
+                        <div class="form-divider line-center"></div>
+
                         <!-- Foto -->
-                        <div class="col-md-4">
-                            <label class="form-label">Foto del paquete</label>
-                            <input type="file"
-                                name="foto"
-                                class="form-control"
-                                accept="image/*"
-                                capture="environment">
+                        <div class="col-md-6 mx-auto">
+                            <label class="form-label d-block mb-2">Foto del paquete</label>
+
+                            <div id="drop-area" class="drop-area">
+                                <div class="drop-icon">📦</div>
+                                <p class="drop-text">Toca aquí para tomar foto o elegir de la galería</p>
+                                <small class="text-muted">También puedes arrastrar y soltar una imagen</small>
+
+                                <!-- Vista previa -->
+                                <img id="preview" class="preview-img" style="display:none;">
+                            </div>
+
+                            <!-- Input real -->
+                            <input type="file" id="fileInput" name="foto" accept="image/*" capture="environment"
+                                class="d-none">
                         </div>
+
 
                         <div class="form-divider line-center"></div>
 
@@ -413,7 +455,7 @@
 
                         <!-- Usuario -->
                         <div class="col-md-12">
-                            <input type="hidden" name="user_id" value="<?= session('user_id') ?>">
+                            <input type="hidden" name="user_id" value="<?= session('id') ?>">
                         </div>
                     </div>
 
@@ -458,7 +500,7 @@
 </div>
 
 <script>
-    $('#formCreateSeller').on('submit', function(e) {
+    $('#formCreateSeller').on('submit', function (e) {
         e.preventDefault();
 
         $.ajax({
@@ -466,7 +508,7 @@
             type: 'POST',
             data: $(this).serialize(),
             dataType: 'json',
-            success: function(response) {
+            success: function (response) {
                 if (response.status === 'success') {
                     $('#modalCreateSeller').modal('hide');
 
@@ -479,31 +521,32 @@
                     Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                 }
             },
-            error: function() {
+            error: function () {
                 Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
             }
         });
     });
 </script>
 <script>
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
 
         // Inicializar Select2
         $('#seller_id').select2({
             theme: 'bootstrap4',
             placeholder: '🔍 Buscar vendedor...',
             allowClear: true,
+            minimumInputLength: 2,
             width: '100%',
             ajax: {
                 url: '<?= base_url('sellers/search') ?>', // <-- corregido
                 dataType: 'json',
                 delay: 250,
-                data: function(params) {
+                data: function (params) {
                     return {
                         q: params.term
                     };
                 },
-                processResults: function(data, params) {
+                processResults: function (data, params) {
                     let results = data || [];
 
                     // Si no hay resultados, mostrar opción para crear nuevo
@@ -529,7 +572,7 @@
         });
 
         // Si selecciona "Crear nuevo vendedor"
-        $('#seller_id').on('select2:select', function(e) {
+        $('#seller_id').on('select2:select', function (e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
                 $('#seller_id').val(null).trigger('change');
@@ -538,7 +581,7 @@
         });
 
         // Guardar nuevo vendedor vía AJAX
-        $('#formCreateSeller').on('submit', function(e) {
+        $('#formCreateSeller').on('submit', function (e) {
             e.preventDefault();
 
             $.ajax({
@@ -546,7 +589,7 @@
                 type: 'POST',
                 data: $(this).serialize(),
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
 
@@ -558,7 +601,7 @@
                         Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
                     }
                 },
-                error: function() {
+                error: function () {
                     Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
                 }
             });
@@ -566,8 +609,9 @@
     });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Inicializar Select2 del punto fijo (ya lo tenés)
+        const userId = document.querySelector('[name="user_id"]').value;
         $('#puntofijo_select').select2({
             theme: 'bootstrap4',
             placeholder: '🔍 Buscar punto fijo...',
@@ -577,12 +621,12 @@
                 url: '<?= base_url('settledPoints/getList') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: function(params) {
+                data: function (params) {
                     return {
                         q: params.term
                     };
                 },
-                processResults: function(data) {
+                processResults: function (data) {
                     return {
                         results: data.map(item => ({
                             id: item.id,
@@ -616,7 +660,7 @@
                 firstDay: 1
             }
         });
-        $('#puntofijo_select').on('change', function() {
+        $('#puntofijo_select').on('change', function () {
             const puntoId = $(this).val();
             const dateInput = $('#fecha_entrega_puntofijo');
 
@@ -630,7 +674,7 @@
                 url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
                 method: 'GET',
                 dataType: 'json',
-                success: function(days) {
+                success: function (days) {
                     const allowedDays = [];
                     if (days.sun) allowedDays.push(0);
                     if (days.mon) allowedDays.push(1);
@@ -656,7 +700,7 @@
                         autoApply: true, // ✅ aplica al hacer clic
                         startDate: nextValidDate,
                         autoUpdateInput: true,
-                        isInvalidDate: function(date) {
+                        isInvalidDate: function (date) {
                             return !allowedDays.includes(date.day());
                         },
                         locale: {
@@ -674,7 +718,7 @@
                     dateInput.val(nextValidDate.format('YYYY-MM-DD'));
 
                 },
-                error: function() {
+                error: function () {
                     console.error('Error al cargar días del punto fijo');
                 }
             });
@@ -683,51 +727,122 @@
 
 
         // ✅ Actualizar el input cuando se selecciona una fecha
-        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function(ev, picker) {
+        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function (ev, picker) {
             $(this).val(picker.startDate.format('YYYY-MM-DD'));
         });
     });
 </script>
 <script src="<?= base_url('backend/assets/js/scripts_packaging.js') ?>"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
+
         const form = document.querySelector('form[action="<?= base_url('packages/store') ?>"]');
 
         if (form) {
-            // 1. Interceptar el evento submit
-            form.addEventListener('submit', function(event) {
-                // Previene el envío por defecto (que recargaría la página)
+
+            form.addEventListener('submit', function (event) {
+
                 event.preventDefault();
 
-                // 2. Recopilar datos y crear el objeto (FormData / URLSearchParams)
                 const formData = new FormData(form);
                 const dataObject = {};
 
-                // Iterar sobre los pares clave/valor y construir el objeto
                 for (let [key, value] of formData.entries()) {
-                    // Manejo especial para el campo 'foto' (archivo)
-                    if (key === 'foto' && value instanceof File) {
-                        dataObject[key] = value.name || 'archivo-seleccionado';
+
+                    if (key === 'foto') {
+
+                        // Caso 1: sí hay archivo
+                        if (value instanceof File && value.name) {
+                            dataObject[key] = value.name;
+                        }
+                        // Caso 2: no hay archivo seleccionado
+                        else {
+                            dataObject[key] = null; // o "sin-foto"
+                        }
+
                     } else {
                         dataObject[key] = value;
                     }
                 }
 
-                // 3. Mostrar el objeto en la consola (y en un alert para que lo veas)
-                console.log('📦 Objeto/Payload del Formulario (Listo para enviar):');
-                console.log(dataObject);
+                console.log("Objeto capturado:", dataObject);
 
-                // También puedes mostrarlo en un cuadro de diálogo:
-                // alert('Datos capturados: ' + JSON.stringify(dataObject, null, 2));
+                // === Lógica de envío ===
+                const enviarForm = document.getElementById('enviarFormCheck');
 
-                // ⚠️ IMPORTANTE:
-                // Si quieres continuar con el envío real después de verlo,
-                // puedes remover la línea event.preventDefault() y usar:
-                // form.submit();
+                if (enviarForm && enviarForm.checked) {
+                    console.log("🟢 Enviando formulario...");
+                    form.submit();
+                    return;
+                }
 
-                // Si solo quieres probar la captura, déjalo como está.
+                // === Copiar al portapapeles ===
+                const jsonText = JSON.stringify(dataObject, null, 2);
+
+                if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                    alert("❌ Clipboard no soportado por este navegador");
+                    return;
+                }
+
+                navigator.clipboard.writeText(jsonText)
+                    .then(() => {
+                        alert("📋 Objeto copiado al portapapeles correctamente.");
+                    })
+                    .catch(err => {
+                        console.error("Error al copiar:", err);
+                        alert("❌ No se pudo copiar al portapapeles.");
+                    });
+
             });
         }
     });
 </script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropArea = document.getElementById("drop-area");
+        const fileInput = document.getElementById("fileInput");
+        const preview = document.getElementById("preview");
+
+        // Abrir input al hacer click
+        dropArea.addEventListener("click", () => fileInput.click());
+
+        // Previsualizar imagen
+        fileInput.addEventListener("change", function () {
+            mostrarPreview(this.files[0]);
+        });
+
+        // Arrastrar archivos
+        dropArea.addEventListener("dragover", function (e) {
+            e.preventDefault();
+            dropArea.classList.add("dragover");
+        });
+        dropArea.addEventListener("dragleave", function () {
+            dropArea.classList.remove("dragover");
+        });
+        dropArea.addEventListener("drop", function (e) {
+            e.preventDefault();
+            dropArea.classList.remove("dragover");
+
+            let file = e.dataTransfer.files[0];
+            if (!file) return;
+
+            fileInput.files = e.dataTransfer.files; // Pasarlo al input real
+            mostrarPreview(file);
+        });
+
+        function mostrarPreview(file) {
+            if (!file.type.startsWith("image/")) return;
+
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+
 <?= $this->endSection() ?>

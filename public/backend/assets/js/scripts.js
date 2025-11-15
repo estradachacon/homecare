@@ -277,14 +277,10 @@
 	$(".select2").select2();
 
 
-	/** Init Datepicker **/
-	init_datepicker();
-
-
 	$('.dropify').dropify({
 		messages: {
-			'default': 'Arrastre y suelte un archivo o haga clic aquÃ­',
-			'replace': 'Arrastre y suelte o haga clic aquÃ­ para reemplazar',
+			'default': 'Arrastre y suelte un archivo o haga clic aquí',
+			'replace': 'Arrastre y suelte o haga clic aquí para reemplazar',
 			'remove': 'Quitar',
 			'error': 'Ooops, algo saliÃ³ mal!'
 		}

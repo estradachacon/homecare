@@ -20,8 +20,6 @@ class PackageModel extends Model
         'direccion',
         'fecha_ingreso',
         'fecha_entrega',
-        'tel_primario',
-        'tel_opcional',
         'flete_total',
         'flete_pagado',
         'flete_pendiente',

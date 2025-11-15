@@ -30,14 +30,19 @@ class Packages extends Migration
                 'constraint' => 50,
                 'null' => true
             ],
-            'retiro_paquete' => [
+            'destino_personalizado' => [
                 'type' => 'VARCHAR',
                 'constraint' => 150,
                 'null' => true
             ],
-            'destino' => [
+            'lugar_recolecta_paquete' => [
                 'type' => 'VARCHAR',
-                'constraint' => 150,
+                'constraint' => 255,
+                'null' => true
+            ],
+            'servicio_destino_recolecta' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
                 'null' => true
             ],
             'id_puntofijo' => [
@@ -53,7 +58,11 @@ class Packages extends Migration
                 'type' => 'DATE',
                 'null' => true
             ],
-            'fecha_entrega' => [
+            'fecha_entrega_personalizado' => [
+                'type' => 'DATE',
+                'null' => true
+            ],
+            'fecha_entrega_puntofijo' => [
                 'type' => 'DATE',
                 'null' => true
             ],
@@ -61,6 +70,11 @@ class Packages extends Migration
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
                 'default' => 0.00
+            ],
+            'toggle_pago_parcial' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
+                'null' => true
             ],
             'flete_pagado' => [
                 'type' => 'DECIMAL',
@@ -71,6 +85,11 @@ class Packages extends Migration
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
                 'default' => 0.00
+            ],
+            'nocobrar_pack_cancelado' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
+                'null' => true
             ],
             'monto' => [
                 'type' => 'DECIMAL',
@@ -89,6 +108,10 @@ class Packages extends Migration
             'fragil' => [
                 'type' => 'BOOLEAN',
                 'default' => false
+            ],
+            'fecha_pack_entregado' => [
+                'type' => 'DATE',
+                'null' => true
             ],
             'estatus' => [
                 'type' => 'VARCHAR',
