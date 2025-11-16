@@ -1,7 +1,14 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-<link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 
+<link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
+<script>
+    $.ajaxSetup({
+        data: {
+            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+        }
+    });
+</script>
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm">
@@ -168,7 +175,7 @@
 
                             <div id="drop-area" class="drop-area">
                                 <div class="drop-icon">📦</div>
-                                <p class="drop-text">Toca aquí para tomar foto o elegir de la galería</p>
+                                <p class="drop-text">Toca aquí para tomar foto</p>
                                 <small class="text-muted">También puedes arrastrar y soltar una imagen</small>
 
                                 <!-- Vista previa -->
@@ -177,7 +184,7 @@
 
                             <!-- Input real -->
                             <input type="file" id="fileInput" name="foto" accept="image/*" capture="environment"
-                                class="d-none">
+                                class="d-none" enctype="multipart/form-data">
                         </div>
 
 
@@ -448,7 +455,8 @@
 
             form.addEventListener('submit', function (event) {
 
-                event.preventDefault();
+                // ⛔ NO usamos event.preventDefault()
+                // ⛔ NO usamos form.submit()
 
                 const formData = new FormData(form);
                 const dataObject = {};
@@ -457,13 +465,10 @@
 
                     if (key === 'foto') {
 
-                        // Caso 1: sí hay archivo
                         if (value instanceof File && value.name) {
                             dataObject[key] = value.name;
-                        }
-                        // Caso 2: no hay archivo seleccionado
-                        else {
-                            dataObject[key] = null; // o "sin-foto"
+                        } else {
+                            dataObject[key] = null;
                         }
 
                     } else {
@@ -473,32 +478,20 @@
 
                 console.log("Objeto capturado:", dataObject);
 
-                // === Lógica de envío ===
-                const enviarForm = document.getElementById('enviarFormCheck');
+                // Si enviarForm = false → evitamos el envío
+                const enviarForm = true;
 
-                if (enviarForm && enviarForm.checked) {
-                    console.log("🟢 Enviando formulario...");
-                    form.submit();
-                    return;
+                if (!enviarForm) {
+                    event.preventDefault(); // solo aquí
+                    const jsonText = JSON.stringify(dataObject, null, 2);
+
+                    navigator.clipboard.writeText(jsonText)
+                        .then(() => alert("Copiado"))
+                        .catch(err => alert("Error al copiar"));
                 }
 
-                // === Copiar al portapapeles ===
-                const jsonText = JSON.stringify(dataObject, null, 2);
-
-                if (!navigator.clipboard || !navigator.clipboard.writeText) {
-                    alert("❌ Clipboard no soportado por este navegador");
-                    return;
-                }
-
-                navigator.clipboard.writeText(jsonText)
-                    .then(() => {
-                        alert("📋 Objeto copiado al portapapeles correctamente.");
-                    })
-                    .catch(err => {
-                        console.error("Error al copiar:", err);
-                        alert("❌ No se pudo copiar al portapapeles.");
-                    });
-
+                // Si enviarForm = true → no hacemos nada más
+                // y CI4 enviará el formulario normalmente
             });
         }
     });

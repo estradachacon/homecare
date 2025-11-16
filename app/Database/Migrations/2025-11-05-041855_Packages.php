@@ -40,18 +40,9 @@ class Packages extends Migration
                 'constraint' => 255,
                 'null' => true
             ],
-            'servicio_destino_recolecta' => [
-                'type' => 'VARCHAR',
-                'constraint' => 50,
-                'null' => true
-            ],
             'id_puntofijo' => [
                 'type' => 'INT',
                 'constraint' => 11,
-                'null' => true
-            ],
-            'direccion' => [
-                'type' => 'TEXT',
                 'null' => true
             ],
             'fecha_ingreso' => [
@@ -79,12 +70,14 @@ class Packages extends Migration
             'flete_pagado' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
-                'default' => 0.00
+                'default' => 0.00,
+                'null' => true
             ],
             'flete_pendiente' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
-                'default' => 0.00
+                'default' => 0.00,
+                'null' => true
             ],
             'nocobrar_pack_cancelado' => [
                 'type' => 'VARCHAR',
@@ -94,7 +87,8 @@ class Packages extends Migration
             'monto' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
-                'default' => 0.00
+                'default' => 0.00,
+                'null' => true
             ],
             'foto' => [
                 'type' => 'VARCHAR',
@@ -116,7 +110,7 @@ class Packages extends Migration
             'estatus' => [
                 'type' => 'VARCHAR',
                 'constraint' => 50,
-                'default' => 'pendiente'
+                'default' => 'Pendiente'
             ],
             'user_id' => [
                 'type' => 'INT',

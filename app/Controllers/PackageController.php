@@ -11,19 +11,27 @@ use App\Models\SettledPointModel;
 class PackageController extends BaseController
 {
     protected $packageModel;
+    protected $sellerModel;
     protected $settledPointModel;
 
     public function __construct()
     {
         $this->packageModel = new PackageModel();
         $this->settledPointModel = new SettledPointModel();
+        $this->sellerModel = new SellerModel();
     }
 
     public function index()
     {
-        $data['packages'] = $this->packageModel->findAll();
-        return view('packages/index', $data);
+        $packages = $this->packageModel
+            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->findAll();
+
+        return view('packages/index', ['packages' => $packages]);
     }
+
 
     public function show($id = null)
     {
@@ -43,5 +51,79 @@ class PackageController extends BaseController
             'settledPoints' => $settledPoint,
         ];
         return view('packages/new', $data);
+    }
+
+    public function store()
+    {
+        helper(['form']);
+
+        $session = session();
+
+        // Recibir archivo si existe
+        $foto = $this->request->getFile('foto');
+        $fotoName = null;
+
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $fotoName = $foto->getRandomName();
+            $foto->move('uploads/paquetes', $fotoName);
+        }
+
+        $this->packageModel->save([
+            'vendedor' => $this->request->getPost('seller_id'),
+            'cliente' => $this->request->getPost('cliente'),
+            'tipo_servicio' => $this->request->getPost('tipo_servicio'),
+            'destino_personalizado' => $this->request->getPost('destino'),
+            'lugar_recolecta_paquete' => $this->request->getPost('retiro_paquete'),
+            'id_puntofijo' => $this->request->getPost('id_puntofijo'),
+
+            'fecha_ingreso' => $this->request->getPost('fecha_ingreso'),
+            'fecha_entrega_personalizado' => $this->request->getPost('fecha_entrega'),
+            'fecha_entrega_puntofijo' => $this->request->getPost('fecha_entrega_puntofijo'),
+
+            'flete_total' => $this->request->getPost('flete_total'),
+            'toggle_pago_parcial' => $this->request->getPost('pago_parcial'),
+            'flete_pagado' => $this->request->getPost('flete_pagado'),
+            'flete_pendiente' => $this->request->getPost('flete_pendiente'),
+
+            'nocobrar_pack_cancelado' => $this->request->getPost('toggleCobro'),
+            'monto' => $this->request->getPost('monto'),
+            'foto' => $fotoName,
+            'comentarios' => $this->request->getPost('comentarios'),
+            'fragil' => $this->request->getPost('fragil'),
+
+            'estatus' => 'pendiente', // o el valor que corresponda
+
+            'user_id' => $this->request->getPost('user_id'),
+        ]);
+
+        registrar_bitacora(
+            'Registro de paquete',
+            'Paquetería',
+            'Nuevo paquete registrado con ID ' . esc($this->packageModel->insertID()),
+            $session->get('user_id')
+        );
+
+        return redirect()->to('/packages')->with('success', 'Paquete creado correctamente.');
+    }
+    public function subirImagen()
+    {
+        $file = $this->request->getFile('imagen_paquete');
+
+        if (!$file->isValid()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => $file->getErrorString()
+            ]);
+        }
+
+        // Definir carpeta destino
+        $newName = $file->getRandomName();
+
+        $file->move(ROOTPATH . 'public/upload/paquetes', $newName);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'file' => $newName
+        ]);
     }
 }

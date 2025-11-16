@@ -51,4 +51,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('settledPoints/getDays/(:num)', 'SettledPointController::getAvailableDays/$1');
     $routes->presenter('routes', ['controller' => 'RouteController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('routes/delete', 'RouteController::delete');
+    $route['upload-paquete'] = 'PackageController/subirImagen';
+    $routes->post('packages/store', 'PackageController::store');
 });

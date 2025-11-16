@@ -14,22 +14,25 @@ class PackageModel extends Model
         'vendedor',
         'cliente',
         'tipo_servicio',
-        'retiro_paquete',
-        'destino',
+        'destino_personalizado',
+        'lugar_recolecta_paquete',
         'id_puntofijo',
-        'direccion',
         'fecha_ingreso',
-        'fecha_entrega',
+        'fecha_entrega_personalizado',
+        'fecha_entrega_puntofijo',
         'flete_total',
+        'toggle_pago_parcial',
         'flete_pagado',
         'flete_pendiente',
+        'nocobrar_pack_cancelado',
         'monto',
         'foto',
         'comentarios',
         'fragil',
+        'fecha_pack_entregado',
         'estatus',
-        'user_id',
-        'created_at',
-        'updated_at'
+        'user_id'
     ];
+    protected $updatedField = 'updated_at';
+    protected $createdField = 'created_at';
 }
