@@ -53,4 +53,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('routes/delete', 'RouteController::delete');
     $route['upload-paquete'] = 'PackageController/subirImagen';
     $routes->post('packages/store', 'PackageController::store');
+    $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
 });

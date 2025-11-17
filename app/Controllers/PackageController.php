@@ -23,14 +23,35 @@ class PackageController extends BaseController
 
     public function index()
     {
-        $packages = $this->packageModel
+        $perPage = 10;
+
+        $filter_vendedor_id = $this->request->getGet('vendedor_id');
+
+        $builder = $this->packageModel
             ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
-            ->findAll();
+            ->orderBy('packages.id', 'DESC');
 
-        return view('packages/index', ['packages' => $packages]);
+        if (!empty($filter_vendedor_id)) {
+            $builder->where('vendedor', $filter_vendedor_id);
+        }
+
+        $packages = $builder->paginate($perPage);
+        $pager = $this->packageModel->pager;
+
+        // Traemos todos los vendedores para el select
+        $sellers = $this->sellerModel->findAll();
+
+        return view('packages/index', [
+            'packages' => $packages,
+            'pager' => $pager,
+            'sellers' => $sellers,
+            'filter_vendedor_id' => $filter_vendedor_id
+        ]);
     }
+
+
 
 
     public function show($id = null)
@@ -101,7 +122,11 @@ class PackageController extends BaseController
             $session->get('user_id')
         );
 
-        return redirect()->to('/packages')->with('success', 'Paquete creado correctamente.');
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Paquete creado correctamente.'
+        ]);
+
     }
     public function subirImagen()
     {

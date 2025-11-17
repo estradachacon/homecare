@@ -17,9 +17,8 @@
                 <a href="<?= base_url('packages') ?>" class="btn btn-light btn-sm">Volver</a>
             </div>
             <div class="card-body">
-                <form action="<?= base_url('packages/store') ?>" method="post" enctype="multipart/form-data">
-                    <?= csrf_field() ?>
-
+                <form id="formPaquete" enctype="multipart/form-data">
+                    <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
                     <div class="row g-3">
                         <!-- Select del vendedor -->
                         <div class="col-md-6 mb-3">
@@ -127,7 +126,15 @@
                         <!-- Flete pagado -->
                         <div class="col-md-3" id="flete_pagado_container" style="display: none;">
                             <label class="form-label">Envío pagado ($)</label>
-                            <input type="number" step="0.01" name="flete_pagado" id="flete_pagado" class="form-control">
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" name="flete_pagado"
+                                    id="flete_pagado" placeholder="Ingrese monto">
+                                <div class="input-group-append">
+                                    <button class="btn btn-secondary" type="button" id="btnSetZero">
+                                        Pago parcial
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Flete pendiente -->
@@ -210,6 +217,21 @@
         </div>
     </div>
 </div>
+<!-- Contenedor de toast -->
+<div aria-live="polite" aria-atomic="true"
+    style="position: fixed; top: 20px; right: 20px; min-height: 50px; z-index: 1050;">
+    <div id="successToast" class="toast text-white bg-success" data-delay="2800" style="min-width: 250px;">
+        <div class="toast-header bg-success text-white">
+            <strong class="mr-auto">Éxito</strong>
+            <small>Ahora</small>
+            <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
+        </div>
+        <div class="toast-body">
+            Paquete creado correctamente
+        </div>
+    </div>
+
+</div>
 
 <div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel"
     aria-hidden="true">
@@ -241,11 +263,13 @@
         </form>
     </div>
 </div>
-
+<script src="/backend/assets/js/scripts_packaging.js"></script>
 <script>
-    window.addEventListener('load', function () {
+    document.addEventListener('DOMContentLoaded', function () {
 
-        // Inicializar Select2
+        /* -----------------------------------------------------------
+         * SELECT2 – Vendedores
+         * ----------------------------------------------------------- */
         $('#seller_id').select2({
             theme: 'bootstrap4',
             placeholder: '🔍 Buscar vendedor...',
@@ -253,40 +277,21 @@
             minimumInputLength: 2,
             width: '100%',
             ajax: {
-                url: '<?= base_url('sellers/search') ?>', // <-- corregido
+                url: '<?= base_url('sellers/search') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: function (params) {
-                    return {
-                        q: params.term
-                    };
-                },
+                data: params => ({ q: params.term }),
                 processResults: function (data, params) {
                     let results = data || [];
-
-                    // Si no hay resultados, mostrar opción para crear nuevo
-                    if (results.length === 0 && params.term && params.term.trim() !== '') {
-                        results.push({
-                            id: 'create_new',
-                            text: '➕ Crear nuevo vendedor'
-                        });
+                    if (results.length === 0 && params.term?.trim() !== '') {
+                        results.push({ id: 'create_new', text: '➕ Crear nuevo vendedor' });
                     }
-
-                    return {
-                        results: results
-                    };
+                    return { results };
                 },
-
                 cache: true
-            },
-            language: {
-                inputTooShort: () => 'Escribí para buscar...',
-                searching: () => 'Buscando...',
-                noResults: () => 'No se encontraron vendedores'
             }
         });
 
-        // Si selecciona "Crear nuevo vendedor"
         $('#seller_id').on('select2:select', function (e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
@@ -295,10 +300,8 @@
             }
         });
 
-        // Guardar nuevo vendedor vía AJAX
         $('#formCreateSeller').on('submit', function (e) {
             e.preventDefault();
-
             $.ajax({
                 url: '<?= base_url('sellers/create-ajax') ?>',
                 type: 'POST',
@@ -307,26 +310,20 @@
                 success: function (response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
-
-                        const newOption = new Option(response.data.text, response.data.id, true, true);
-                        $('#seller_id').append(newOption).trigger('change');
-
-                        Swal.fire('Éxito', 'Vendedor creado y seleccionado.', 'success');
+                        const option = new Option(response.data.text, response.data.id, true, true);
+                        $('#seller_id').append(option).trigger('change');
+                        Swal.fire('Éxito', 'Vendedor creado correctamente.', 'success');
                     } else {
-                        Swal.fire('Error', response.message || 'No se pudo crear el vendedor.', 'error');
+                        Swal.fire('Error', response.message || 'No se pudo crear.', 'error');
                     }
                 },
-                error: function () {
-                    Swal.fire('Error', 'Ocurrió un error en la petición.', 'error');
-                }
+                error: () => Swal.fire('Error', 'Error de petición.', 'error')
             });
         });
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Inicializar Select2 del punto fijo (ya lo tenés)
-        const userId = document.querySelector('[name="user_id"]').value;
+
+        /* -----------------------------------------------------------
+         * SELECT2 – Punto fijo
+         * ----------------------------------------------------------- */
         $('#puntofijo_select').select2({
             theme: 'bootstrap4',
             placeholder: '🔍 Buscar punto fijo...',
@@ -336,60 +333,28 @@
                 url: '<?= base_url('settledPoints/getList') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: function (params) {
-                    return {
-                        q: params.term
-                    };
-                },
-                processResults: function (data) {
-                    return {
-                        results: data.map(item => ({
-                            id: item.id,
-                            text: item.point_name
-                        }))
-                    };
-                },
-                cache: true
-            },
-            language: {
-                inputTooShort: () => 'Escribí para buscar...',
-                searching: () => 'Buscando...',
-                noResults: () => 'No se encontraron puntos fijos'
+                data: params => ({ q: params.term }),
+                processResults: data => ({
+                    results: data.map(item => ({ id: item.id, text: item.point_name }))
+                })
             }
         });
 
-        // ✅ Inicializar DateRangePicker como selector de una sola fecha
-        $('#fecha_entrega_puntofijo').daterangepicker({
-            singleDatePicker: true,
-            showDropdowns: true,
-            autoUpdateInput: false,
-            locale: {
-                format: 'YYYY-MM-DD',
-                applyLabel: 'Aplicar',
-                cancelLabel: 'Cancelar',
-                daysOfWeek: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
-                monthNames: [
-                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                ],
-                firstDay: 1
-            }
-        });
+        /* -----------------------------------------------------------
+         * DATERANGEPICKER – Punto fijo
+         * ----------------------------------------------------------- */
         $('#puntofijo_select').on('change', function () {
             const puntoId = $(this).val();
             const dateInput = $('#fecha_entrega_puntofijo');
 
-            if (!puntoId) {
-                dateInput.val('');
-                dateInput.data('daterangepicker').setStartDate(moment());
-                return;
-            }
+            if (!puntoId) return dateInput.val('');
 
             $.ajax({
                 url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
                 method: 'GET',
                 dataType: 'json',
                 success: function (days) {
+
                     const allowedDays = [];
                     if (days.sun) allowedDays.push(0);
                     if (days.mon) allowedDays.push(1);
@@ -399,142 +364,182 @@
                     if (days.fri) allowedDays.push(5);
                     if (days.sat) allowedDays.push(6);
 
-                    // Buscar el primer día válido a partir de hoy
-                    let nextValidDate = moment();
+                    let nextValid = moment();
                     for (let i = 0; i < 14; i++) {
-                        if (allowedDays.includes(nextValidDate.day())) break;
-                        nextValidDate.add(1, 'days');
+                        if (allowedDays.includes(nextValid.day())) break;
+                        nextValid.add(1, 'days');
                     }
 
-                    // Reinicializar el calendario
                     dateInput.data('daterangepicker')?.remove();
 
                     dateInput.daterangepicker({
                         singleDatePicker: true,
                         showDropdowns: true,
-                        autoApply: true, // ✅ aplica al hacer clic
-                        startDate: nextValidDate,
+                        autoApply: true,
+                        startDate: nextValid,
                         autoUpdateInput: true,
-                        isInvalidDate: function (date) {
-                            return !allowedDays.includes(date.day());
-                        },
-                        locale: {
-                            format: 'YYYY-MM-DD',
-                            daysOfWeek: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'],
-                            monthNames: [
-                                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                            ],
-                            firstDay: 1
-                        }
+                        isInvalidDate: date => !allowedDays.includes(date.day()),
+                        locale: { format: 'YYYY-MM-DD', firstDay: 1 }
                     });
 
-                    // Rellenar con la fecha sugerida
-                    dateInput.val(nextValidDate.format('YYYY-MM-DD'));
-
-                },
-                error: function () {
-                    console.error('Error al cargar días del punto fijo');
+                    dateInput.val(nextValid.format('YYYY-MM-DD'));
                 }
             });
         });
 
-        // ✅ Actualizar el input cuando se selecciona una fecha
-        $('#fecha_entrega_puntofijo').on('apply.daterangepicker', function (ev, picker) {
-            $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-    });
-</script>
-<script src="<?= base_url('backend/assets/js/scripts_packaging.js') ?>"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-
-        const form = document.querySelector('form[action="<?= base_url('packages/store') ?>"]');
-
-        if (form) {
-
-            form.addEventListener('submit', function (event) {
-
-                const formData = new FormData(form);
-                const dataObject = {};
-
-                for (let [key, value] of formData.entries()) {
-
-                    if (key === 'foto') {
-
-                        if (value instanceof File && value.name) {
-                            dataObject[key] = value.name;
-                        } else {
-                            dataObject[key] = null;
-                        }
-
-                    } else {
-                        dataObject[key] = value;
-                    }
-                }
-
-                console.log("Objeto capturado:", dataObject);
-
-                // Si enviarForm = false → evitamos el envío
-                const enviarForm = true;
-
-                if (!enviarForm) {
-                    event.preventDefault(); // solo aquí
-                    const jsonText = JSON.stringify(dataObject, null, 2);
-
-                    navigator.clipboard.writeText(jsonText)
-                        .then(() => alert("Copiado"))
-                        .catch(err => alert("Error al copiar"));
-                }
-            });
-        }
-    });
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
+        /* -----------------------------------------------------------
+         * DROP AREA – Foto
+         * ----------------------------------------------------------- */
         const dropArea = document.getElementById("drop-area");
         const fileInput = document.getElementById("fileInput");
         const preview = document.getElementById("preview");
 
-        // Abrir input al hacer click
         dropArea.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", () => mostrarPreview(fileInput.files[0]));
 
-        // Previsualizar imagen
-        fileInput.addEventListener("change", function () {
-            mostrarPreview(this.files[0]);
-        });
-
-        // Arrastrar archivos
-        dropArea.addEventListener("dragover", function (e) {
+        dropArea.addEventListener("dragover", e => {
             e.preventDefault();
             dropArea.classList.add("dragover");
         });
-        dropArea.addEventListener("dragleave", function () {
-            dropArea.classList.remove("dragover");
-        });
-        dropArea.addEventListener("drop", function (e) {
+
+        dropArea.addEventListener("dragleave", () =>
+            dropArea.classList.remove("dragover")
+        );
+
+        dropArea.addEventListener("drop", e => {
             e.preventDefault();
             dropArea.classList.remove("dragover");
 
             let file = e.dataTransfer.files[0];
-            if (!file) return;
-
-            fileInput.files = e.dataTransfer.files; // Pasarlo al input real
-            mostrarPreview(file);
+            if (file) {
+                fileInput.files = e.dataTransfer.files;
+                mostrarPreview(file);
+            }
         });
 
         function mostrarPreview(file) {
-            if (!file.type.startsWith("image/")) return;
-
-            let reader = new FileReader();
-            reader.onload = function (e) {
+            if (!file?.type.startsWith("image/")) return;
+            const reader = new FileReader();
+            reader.onload = e => {
                 preview.src = e.target.result;
                 preview.style.display = "block";
             };
             reader.readAsDataURL(file);
         }
+
+        /* -----------------------------------------------------------
+         * BOTÓN – Pago parcial / Descontar en Remu
+         * ----------------------------------------------------------- */
+        const btnSetZero = document.getElementById('btnSetZero');
+        const fletePagado = document.getElementById('flete_pagado');
+        const fleteTotal = document.getElementById('flete_total');
+        const fletePendiente = document.getElementById('flete_pendiente');
+
+        btnSetZero.addEventListener('click', function () {
+            if (!fletePagado.disabled) {
+                fletePagado.value = "0.00";
+                fletePagado.disabled = true;
+
+                const total = parseFloat(fleteTotal.value) || 0;
+                fletePendiente.value = total.toFixed(2);
+
+                btnSetZero.textContent = "Descontar en Remu";
+                btnSetZero.classList.replace("btn-secondary", "btn-warning");
+
+            } else {
+                fletePagado.disabled = false;
+                fletePagado.value = "";
+                fletePendiente.value = "";
+
+                btnSetZero.textContent = "Pago parcial";
+                btnSetZero.classList.replace("btn-warning", "btn-secondary");
+            }
+        });
+
+        /* -----------------------------------------------------------
+         * AJAX – Envío del formulario con barra de progreso
+         * ----------------------------------------------------------- */
+
+        const form = document.getElementById("formPaquete");
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            let formData = new FormData(form);
+
+            // SweetAlert de progreso
+            Swal.fire({
+                title: "Subiendo paquete...",
+                html: `
+            <div class="progress" style="height: 22px;">
+                <div id="uploadProgress" class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar" style="width: 0%">0%</div>
+            </div>
+        `,
+                allowOutsideClick: false,
+                showConfirmButton: false
+            });
+
+            let xhr = new XMLHttpRequest();
+
+            // Progreso de subida
+            xhr.upload.addEventListener("progress", function (e) {
+                if (e.lengthComputable) {
+                    let percent = Math.round((e.loaded / e.total) * 100);
+
+                    let bar = document.getElementById("uploadProgress");
+                    bar.style.width = percent + "%";
+                    bar.textContent = percent + "%";
+                }
+            });
+
+            // Respuesta del servidor
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+
+                    Swal.close();
+
+                    if (xhr.status === 200) {
+                        let response = JSON.parse(xhr.responseText);
+
+                        if (response.status === "success") {
+                            Swal.close();
+                            // Redirige al mismo view pero con query param
+                            window.location.href = "<?= base_url('/packages/new') ?>?created=1";
+
+                        } else {
+                            Swal.fire("Error", response.message, "error");
+                        }
+
+                    } else {
+                        Swal.fire("Error", "Hubo un problema en el servidor.", "error");
+                    }
+                }
+            };
+
+            xhr.open("POST", "<?= base_url('packages/store') ?>");
+            xhr.send(formData);
+        });
     });
+    $(document).ready(function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('created') === '1') {
+            $('#successToast').toast('show');
+        }
+    });
+
 </script>
+
+<?php if (session()->getFlashdata('success')): ?>
+    <script>
+        Swal.fire({
+            icon: 'success',
+            title: '¡Paquete creado!',
+            text: '<?= session()->getFlashdata('success'); ?>',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    </script>
+<?php endif; ?>
 
 <?= $this->endSection() ?>

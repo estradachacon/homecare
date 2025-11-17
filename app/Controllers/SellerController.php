@@ -80,10 +80,12 @@ class SellerController extends BaseController
         helper(['form']);
         $session = session();
         // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
-        if (!$this->validate([
-            'seller' => 'required|min_length[3]|max_length[100]',
-            'tel_seller' => 'required|numeric',
-        ])) {
+        if (
+            !$this->validate([
+                'seller' => 'required|min_length[3]|max_length[100]',
+                'tel_seller' => 'required|numeric',
+            ])
+        ) {
             // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
             return redirect()->back()
                 ->withInput() // Mantiene los datos que el usuario ingresó
@@ -161,7 +163,7 @@ class SellerController extends BaseController
     }
 
 
-public function createAjax()
+    public function createAjax()
     {
         $sellerModel = new SellerModel();
         $session = session();
