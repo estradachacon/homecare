@@ -455,9 +455,6 @@
 
             form.addEventListener('submit', function (event) {
 
-                // ⛔ NO usamos event.preventDefault()
-                // ⛔ NO usamos form.submit()
-
                 const formData = new FormData(form);
                 const dataObject = {};
 
@@ -489,9 +486,6 @@
                         .then(() => alert("Copiado"))
                         .catch(err => alert("Error al copiar"));
                 }
-
-                // Si enviarForm = true → no hacemos nada más
-                // y CI4 enviará el formulario normalmente
             });
         }
     });

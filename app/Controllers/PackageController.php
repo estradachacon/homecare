@@ -59,13 +59,13 @@ class PackageController extends BaseController
 
         $session = session();
 
-        // Recibir archivo si existe
         $foto = $this->request->getFile('foto');
-        $fotoName = null;
+
+        // Siempre generar nombre
+        $fotoName = $foto ? $foto->getRandomName() : uniqid('foto_', true);
 
         if ($foto && $foto->isValid() && !$foto->hasMoved()) {
-            $fotoName = $foto->getRandomName();
-            $foto->move('uploads/paquetes', $fotoName);
+            $foto->move('upload/paquetes', $fotoName);
         }
 
         $this->packageModel->save([
@@ -90,9 +90,7 @@ class PackageController extends BaseController
             'foto' => $fotoName,
             'comentarios' => $this->request->getPost('comentarios'),
             'fragil' => $this->request->getPost('fragil'),
-
             'estatus' => 'pendiente', // o el valor que corresponda
-
             'user_id' => $this->request->getPost('user_id'),
         ]);
 

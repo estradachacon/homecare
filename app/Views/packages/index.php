@@ -141,19 +141,6 @@
                                                         <i class="fa-solid fa-pencil"></i>Editar
                                                     </a>
                                                 </li>
-
-                                                <!-- Eliminar -->
-                                                <li>
-                                                    <form action="<?= base_url('packages/delete/' . $pkg['id']) ?>"
-                                                        method="post"
-                                                        onsubmit="return confirm('¿Seguro que deseas eliminar este paquete?');">
-                                                        <?= csrf_field() ?>
-                                                        <button type="submit" class="dropdown-item text-danger">
-                                                            <i class="fa-solid fa-trash"></i> Eliminar
-                                                        </button>
-                                                    </form>
-                                                </li>
-
                                             </ul>
                                         </div>
                                     </td>
@@ -171,7 +158,7 @@
                                                     </div>
 
                                                     <div class="modal-body text-center">
-                                                        <img src="<?= base_url('uploads/paquetes/' . $pkg['foto']) ?>" alt="Foto del paquete"
+                                                        <img src="<?= base_url('upload/paquetes/' . $pkg['foto']) ?>" alt="Foto del paquete"
                                                             class="img-fluid rounded"
                                                             style="max-height: 80vh; object-fit: contain;">
                                                     </div>
