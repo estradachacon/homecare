@@ -54,7 +54,7 @@
 
                         <a class="nav-link" href="/packages/returns">Devolución de
                             No retirados</a>
-                        <a class="nav-link" href="/packages/tracking">Asignar Paquetes a ruta</a>
+                        <a class="nav-link" href="/tracking">Asignar Paquetes a ruta</a>
                     </nav>
                 </div>
 
