@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\PackageModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\TrackingHeaderModel;
 use App\Models\TrackingDetailsModel;
@@ -66,4 +67,75 @@ class TrackingController extends BaseController
             'filter_status' => $filter_status
         ]);
     }
+    public function new()
+    {
+        helper('form');
+
+        // Modelos
+        $userModel = new \App\Models\UserModel();
+        $rutaModel = new \App\Models\RouteModel();
+
+        // Motoristas (usuarios tipo motorista)
+        $motoristas = $userModel
+            ->where('role_id', 4)
+            ->orderBy('user_name', 'ASC')
+            ->findAll();
+
+        // Rutas
+        $rutas = $rutaModel
+            ->orderBy('route_name', 'ASC')
+            ->findAll();
+
+        $data = [
+            'motoristas' => $motoristas,
+            'rutas' => $rutas,
+        ];
+
+        return view('trackings/new', $data);
+    }
+    public function getPendientesPorRuta($rutaId)
+    {
+        $paqueteModel = new PackageModel();
+
+        $paquetes = $paqueteModel
+            ->select('
+            packages.*, 
+            sellers.seller AS vendedor, 
+            routes.route_name AS ruta_nombre, 
+            settled_points.point_name AS punto_fijo_nombre
+        ')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
+            ->where('settled_points.ruta_id', $rutaId)
+            ->where('packages.estatus', 'pendiente')
+            ->findAll();
+
+        return $this->response->setJSON($paquetes);
+    }
+
+
+    public function getTodosPendientes()
+    {
+        $paqueteModel = new PackageModel();
+
+        $paquetes = $paqueteModel
+            ->select('
+            packages.*, 
+            sellers.seller AS vendedor, 
+            routes.route_name AS ruta_nombre, 
+            settled_points.point_name AS punto_fijo_nombre
+        ')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
+            ->where('packages.estatus', 'pendiente')
+            ->findAll();
+
+        return $this->response->setJSON($paquetes);
+    }
+
+
+
+
 }

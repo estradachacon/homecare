@@ -4857,20 +4857,25 @@ input[type=button].btn-block {
 }
 
 .navbar .nav-link.dropdown-toggle {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;      /* Permite que los elementos se vayan a la siguiente línea si no caben */
-    gap: 0.25rem;         /* Separación entre ícono, texto e imagen */
-    max-width: 100%;      /* No superar el ancho de la pantalla */
-    overflow: hidden;     /* Cortar contenido que sobresalga */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  /* Permite que los elementos se vayan a la siguiente línea si no caben */
+  gap: 0.25rem;
+  /* Separación entre ícono, texto e imagen */
+  max-width: 100%;
+  /* No superar el ancho de la pantalla */
+  overflow: hidden;
+  /* Cortar contenido que sobresalga */
 }
 
 @media (max-width: 576px) {
-    .navbar .nav-link.dropdown-toggle .badge,
-    .navbar .nav-link.dropdown-toggle img,
-    .navbar .nav-link.dropdown-toggle i {
-        display: none;
-    }
+
+  .navbar .nav-link.dropdown-toggle .badge,
+  .navbar .nav-link.dropdown-toggle img,
+  .navbar .nav-link.dropdown-toggle i {
+    display: none;
+  }
 }
 
 
@@ -10957,10 +10962,6 @@ a.text-dark:focus {
     border-collapse: collapse !important;
   }
 
-  .table td,
-  .table th {
-    background-color: #fff !important;
-  }
 
   .table-bordered th,
   .table-bordered td {
@@ -11634,6 +11635,11 @@ button.bs-placeholder.btn.btn-light.dropdown-toggle {
 
 .table td {
   color: #2d2d2d;
+}
+
+.table td,
+.table th {
+  padding: .75rem;
 }
 
 .base_color {
@@ -12419,4 +12425,60 @@ a#userDropdown {
   color: #495057;
   /* Color de la flecha */
   font-size: 12px;
+}
+
+.toast {
+  position: relative;
+  min-width: 250px;
+  background-color: rgba(0, 0, 0, 0.95);
+  /* ← Cambiado */
+  color: #fff;
+  border-radius: .25rem;
+  padding: .75rem 1rem;
+  margin-bottom: .75rem;
+  opacity: 0;
+  transition: opacity .4s ease-in-out;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+.toast-header {
+  font-weight: bold;
+  margin-bottom: .25rem;
+  font-size: .9rem;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #f7ededff;
+  float: right;
+  font-size: 1.2rem;
+  margin-left: 10px;
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000;
+}
+
+.bg-warning {
+  background-color: #f1db7dff !important;
+}
+
+.bg-danger {
+  background-color: #d9534f !important;
+}
+
+.bg-success {
+  background-color: #5cb85c !important;
+}
+.toast-warning-strong {
+    background-color: #ffc107 !important; /* amarillo fuerte */
+    opacity: 0.95 !important; /* casi opaco */
+    color: #000 !important; /* buen contraste */
 }

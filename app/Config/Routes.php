@@ -55,4 +55,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('packages/store', 'PackageController::store');
     $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->get('tracking/pendientes/ruta/(:num)', 'TrackingController::getPendientesPorRuta/$1');
+    $routes->get('tracking/pendientes/todos', 'TrackingController::getTodosPendientes');
+
 });
