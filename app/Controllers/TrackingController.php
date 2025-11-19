@@ -141,7 +141,7 @@ class TrackingController extends BaseController
 
         $headerModel = new TrackingHeaderModel();
         $detailModel = new TrackingDetailsModel();
-        $packageModel = new \App\Models\PackageModel();
+        $packageModel = new PackageModel();
 
         $motorista_id = $this->request->getPost('motorista_id');
         $fecha = $this->request->getPost('fecha');

@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tablaPaquetesRuta.innerHTML = `<tr><td colspan="4">Cargando...</td></tr>`;
 
         try {
-            const resp = await fetch(`/tracking/pendientes/ruta/${rutaId}`);
+            const resp = await fetch(`/tracking-pendientes/ruta/${rutaId}`);
             const data = await resp.json();
 
             listaRuta = data;
@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tablaEspecialesBody.innerHTML = `<tr><td colspan="4">Cargando...</td></tr>`;
 
         try {
-            const resp = await fetch("/tracking/pendientes/todos");
+            const resp = await fetch("/tracking-pendientes/todos");
             const data = await resp.json();
 
             listaEspeciales = data.filter(p =>
@@ -371,6 +371,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 f.name = "fecha";
                 f.value = fechaTracking.value || "";
                 form.appendChild(f);
+
+                let r = document.createElement("input");
+                r.type = "hidden";
+                r.name = "ruta_id";       // <-- este nombre debe coincidir con tu columna en la DB
+                r.value = selectRuta.value || "";   // <-- valor seleccionado en el select de ruta
+                form.appendChild(r);
 
                 Object.keys(paquetesSeleccionados).forEach(id => {
                     const i = document.createElement("input");

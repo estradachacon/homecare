@@ -95,6 +95,7 @@
                                             <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
                                                 data-toggle="dropdown">Acciones</button>
                                             <ul class="dropdown-menu">
+
                                                 <li>
                                                     <a class="dropdown-item" href="<?= base_url('tracking/' . $t->id) ?>">
                                                         <i class="fa-solid fa-eye"></i> Ver Tracking
@@ -103,9 +104,16 @@
 
                                                 <li>
                                                     <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
+                                                        <i class="fa-solid fa-truck"></i></i> Seguimiento
+                                                    </a>
+                                                </li>
+
+                                                <li>
+                                                    <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
                                                         <i class="fa-solid fa-pencil"></i> Editar
                                                     </a>
                                                 </li>
+
                                             </ul>
                                         </div>
                                     </td>
