@@ -51,10 +51,7 @@
                         <a class="nav-link" href="/packages/new">Registrar paquete</a>
                         <a class="nav-link" href="/packages">Lista de
                             paquetes</a>
-
-                        <a class="nav-link" href="/packages/returns">Devolución de
-                            No retirados</a>
-                        <a class="nav-link" href="/tracking">Asignar Paquetes a ruta</a>
+                        <a class="nav-link" href="/tracking">Seguimiento de paquetes</a>
                     </nav>
                 </div>
 

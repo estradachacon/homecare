@@ -56,7 +56,7 @@ class TrackingController extends BaseController
         $motoristas = $userModel->where('role_id', 4)->findAll();
 
         // Lista de estatus
-        $statusList = ['pendiente', 'en_camino', 'retrasado', 'completado', 'cancelado'];
+        $statusList = ['Asignado a motorista', 'Ruta finalizada', 'Ruta cancelada'];
 
         return view('trackings/index', [
             'trackings' => $trackings,
@@ -114,7 +114,6 @@ class TrackingController extends BaseController
         return $this->response->setJSON($paquetes);
     }
 
-
     public function getTodosPendientes()
     {
         $paqueteModel = new PackageModel();
@@ -135,7 +134,64 @@ class TrackingController extends BaseController
         return $this->response->setJSON($paquetes);
     }
 
+    public function store()
+    {
+        helper(['form']);
+        $session = session();
 
+        $headerModel = new TrackingHeaderModel();
+        $detailModel = new TrackingDetailsModel();
+        $packageModel = new \App\Models\PackageModel();
 
+        $motorista_id = $this->request->getPost('motorista_id');
+        $fecha = $this->request->getPost('fecha');
+        $paquetes = $this->request->getPost('paquetes'); // array
 
+        if (empty($motorista_id) || empty($paquetes)) {
+            return redirect()->back()->with('error', 'Motorista y paquetes son requeridos')->withInput();
+        }
+
+        // ruta_id puede venir vacío
+        $ruta_id = $this->request->getPost('ruta_id') ?: null;
+
+        // Guardar header
+        $idHeader = $headerModel->insert([
+            'user_id' => $motorista_id,
+            'route_id' => $ruta_id,
+            'date' => $fecha ?: date('Y-m-d'),
+            'status' => 'Asignado a motorista',
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
+
+        if (!$idHeader) {
+            return redirect()->back()->with('error', 'No se pudo crear el tracking.');
+        }
+
+        // Guardar detalles y actualizar paquetes
+        foreach ($paquetes as $pid) {
+            $detailModel->insert([
+                'tracking_header_id' => $idHeader,
+                'package_id' => $pid,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+
+            // actualizar package: asignado (ejemplo)
+            $packageModel->update($pid, [
+                'estatus' => 'asignado',
+                'tracking_id' => $idHeader
+            ]);
+        }
+
+        // Registrar bitácora (ajusta a tu helper)
+        if (function_exists('registrar_bitacora')) {
+            registrar_bitacora(
+                'Creación de seguimiento',
+                'Paquetería',
+                'Seguimiento #' . $idHeader . ' creado con ' . count($paquetes) . ' paquetes.',
+                $session->get('user_id')
+            );
+        }
+
+        return redirect()->to(base_url('tracking/' . $idHeader))->with('success', 'Tracking creado correctamente.');
+    }
 }

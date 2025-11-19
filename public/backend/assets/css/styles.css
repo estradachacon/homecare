@@ -11787,31 +11787,6 @@ button.bs-placeholder.btn.btn-light.dropdown-toggle {
   margin-bottom: 0px;
 }
 
-
-
-
-
-
-
-/*Select2 ReadOnly Start*/
-select[readonly].select2-hidden-accessible+.select2-container {
-  pointer-events: none;
-  touch-action: none;
-}
-
-select[readonly].select2-hidden-accessible+.select2-container .select2-selection {
-  background: #eee;
-  box-shadow: none;
-}
-
-select[readonly].select2-hidden-accessible+.select2-container .select2-selection__arrow,
-select[readonly].select2-hidden-accessible+.select2-container .select2-selection__clear {
-  display: none;
-}
-
-/*Select2 ReadOnly End*/
-
-
 a[aria-expanded=true] .ti-angle-down.no-sidebar {
   display: none;
 }
@@ -12481,4 +12456,43 @@ a#userDropdown {
     background-color: #ffc107 !important; /* amarillo fuerte */
     opacity: 0.95 !important; /* casi opaco */
     color: #000 !important; /* buen contraste */
+}
+.filtro-rutas {
+    max-width: 220px !important;
+    min-width: 180px !important;
+    height: 32px !important;
+}
+
+
+/* --- CONTENEDOR GENERAL --- */
+.select2-container {
+    width: 100% !important;       /* tamaño ideal */
+    font-size: 0.85rem;            /* texto compacto */
+}
+
+/* --- ÁREA DEL SELECT MULTIPLE --- */
+.select2-selection--multiple {
+    min-height: 34px !important;   /* compacta pero usable */
+    padding: 3px 6px !important;   /* espacio interno elegante */
+    border-radius: 6px !important; /* esquinas suaves */
+    border: 1px solid #ced4da !important; /* igual a Bootstrap */
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+}
+
+/* --- PLACEHOLDER --- */
+.select2-selection__placeholder {
+    color: #6c757d !important;     /* gris suave */
+}
+
+
+.select2-search__field::-webkit-search-cancel-button {
+    display: none !important;
+}
+.select2-search__field::-ms-clear {
+    display: none !important;
+}
+.select2-selection__clear {
+    display: none !important;
 }

@@ -57,5 +57,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->get('tracking/pendientes/ruta/(:num)', 'TrackingController::getPendientesPorRuta/$1');
     $routes->get('tracking/pendientes/todos', 'TrackingController::getTodosPendientes');
-
+    $routes->post('tracking/store', 'TrackingController::store');
 });

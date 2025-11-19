@@ -59,7 +59,11 @@
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
                         </div>
-
+                        <div class="col-md-2">
+                            <a href="<?= base_url('tracking') ?>" class="btn btn-secondary btn-block">
+                                Limpiar
+                            </a>
+                        </div>
                     </div>
                 </form>
 

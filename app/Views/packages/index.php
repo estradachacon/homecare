@@ -17,6 +17,32 @@
         padding: 5px 12px !important;
     }
 </style>
+<?php
+function statusBadge($status)
+{
+    $status = strtolower($status);
+
+    switch ($status) {
+        case "pendiente":
+            return '<span class="badge badge-warning">Pendiente</span>';
+
+        case "en ruta":
+            return '<span class="badge badge-primary">En ruta</span>';
+
+        case "entregado":
+            return '<span class="badge badge-success">Entregado</span>';
+
+        case "cancelado":
+            return '<span class="badge badge-danger">Cancelado</span>';
+
+        case "asignado":
+            return '<span class="badge badge-info">Asignado</span>';
+
+        default:
+            return '<span class="badge badge-secondary">'.ucfirst($status).'</span>';
+    }
+}
+?>
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -41,6 +67,11 @@
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="<?= base_url('packages') ?>" class="btn btn-secondary btn-block">
+                                Limpiar
+                            </a>
                         </div>
                     </div>
                 </form>
@@ -144,7 +175,7 @@
                                         </div>
                                     </td>
 
-                                    <td><?= esc(ucfirst($pkg['estatus'])) ?></td>
+                                    <td><?= statusBadge($pkg['estatus']); ?></td>
                                     <td>
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
