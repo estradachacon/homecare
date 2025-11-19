@@ -194,4 +194,24 @@ class TrackingController extends BaseController
 
         return redirect()->to(base_url('tracking/' . $idHeader))->with('success', 'Tracking creado correctamente.');
     }
+    public function show($id)
+    {
+        $headerModel  = new TrackingHeaderModel();
+        $detailsModel = new TrackingDetailsModel();
+
+        // Obtener header con motorista y ruta
+        $tracking = $headerModel->getHeaderWithRelations($id);
+
+        if (!$tracking) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $id no encontrado");
+        }
+
+        // Obtener detalles con info de paquetes
+        $detalles = $detailsModel->getDetailsWithPackages($id);
+
+        return view('trackings/show', [
+            'tracking' => $tracking,
+            'detalles' => $detalles
+        ]);
+    }
 }

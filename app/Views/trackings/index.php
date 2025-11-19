@@ -74,7 +74,7 @@
                             <th>ID</th>
                             <th>Motorista</th>
                             <th>Ruta</th>
-                            <th>Fecha</th>
+                            <th>Fecha de entrega</th>
                             <th>Estatus</th>
                             <th>Acciones</th>
                         </tr>
@@ -84,11 +84,11 @@
                         <?php if (!empty($trackings)): ?>
                             <?php foreach ($trackings as $t): ?>
                                 <tr>
-                                    <td><?= $t['id'] ?></td>
-                                    <td><?= esc($t['motorista_name']) ?></td>
-                                    <td><?= esc($t['route_name']) ?></td>
-                                    <td><?= esc(date('d/m/Y H:i', strtotime($t['date']))) ?></td>
-                                    <td><?= ucfirst($t['status']) ?></td>
+                                    <td><?= $t->id ?></td>
+                                    <td><?= esc($t->motorista_name) ?></td>
+                                    <td><?= esc($t->route_name) ?></td>
+                                    <td><?= esc(date('d/m/Y', strtotime($t->date))) ?></td>
+                                    <td><?= ucfirst($t->status) ?></td>
 
                                     <td>
                                         <div class="dropdown">
@@ -96,13 +96,13 @@
                                                 data-toggle="dropdown">Acciones</button>
                                             <ul class="dropdown-menu">
                                                 <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking/' . $t['id']) ?>">
+                                                    <a class="dropdown-item" href="<?= base_url('tracking/' . $t->id) ?>">
                                                         <i class="fa-solid fa-eye"></i> Ver Tracking
                                                     </a>
                                                 </li>
 
                                                 <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t['id']) ?>">
+                                                    <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
                                                         <i class="fa-solid fa-pencil"></i> Editar
                                                     </a>
                                                 </li>

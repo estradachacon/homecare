@@ -10,6 +10,7 @@ class TrackingDetailsModel extends Model
     protected $primaryKey = 'id';
 
     protected $useTimestamps = true;
+    protected $returnType = 'object';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 

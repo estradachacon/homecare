@@ -8,7 +8,7 @@ class TrackingHeaderModel extends Model
 {
     protected $table      = 'tracking_header';
     protected $primaryKey = 'id';
-
+    protected $returnType = 'object';
     protected $useTimestamps = true; // habilita created_at y updated_at
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
@@ -25,7 +25,7 @@ class TrackingHeaderModel extends Model
      */
     public function getHeaderWithRelations($id = null)
     {
-        $builder = $this->select('tracking_header.*, users.username AS motorista_name, routes.name AS route_name')
+        $builder = $this->select('tracking_header.*, users.user_name AS motorista_name, routes.route_name AS route_name')
                         ->join('users', 'users.id = tracking_header.user_id', 'left')
                         ->join('routes', 'routes.id = tracking_header.route_id', 'left');
 

@@ -309,50 +309,85 @@ document.addEventListener("DOMContentLoaded", () => {
     btnGuardar.addEventListener("click", () => {
 
         if (!Object.keys(paquetesSeleccionados).length) {
-            alert("Debe seleccionar al menos un paquete.");
+            Swal.fire({
+                icon: "warning",
+                title: "Sin paquetes",
+                text: "Debe seleccionar al menos un paquete."
+            });
             return;
         }
 
         if (!motorista.value) {
-            alert("Seleccione un motorista.");
+            Swal.fire({
+                icon: "warning",
+                title: "Motorista faltante",
+                text: "Seleccione un motorista."
+            });
             return;
         }
 
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = "/tracking/store";
+        Swal.fire({
+            title: "¿Guardar Tracking?",
+            text: "Se registrará este seguimiento con los paquetes seleccionados.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#28a745",
+            cancelButtonColor: "#dc3545",
+            confirmButtonText: "Sí, guardar",
+            cancelButtonText: "Cancelar"
+        }).then(result => {
 
-        if (csrfInput) {
-            let c = document.createElement("input");
-            c.type = "hidden";
-            c.name = csrfInput.name;
-            c.value = csrfInput.value;
-            form.appendChild(c);
-        }
+            if (result.isConfirmed) {
 
-        let m = document.createElement("input");
-        m.type = "hidden";
-        m.name = "motorista_id";
-        m.value = motorista.value;
-        form.appendChild(m);
+                // Loader
+                Swal.fire({
+                    title: "Procesando...",
+                    text: "Espere un momento",
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
 
-        let f = document.createElement("input");
-        f.type = "hidden";
-        f.name = "fecha";
-        f.value = fechaTracking.value || "";
-        form.appendChild(f);
+                // ====== Construcción del formulario ======
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = "/tracking/store";
 
-        Object.keys(paquetesSeleccionados).forEach(id => {
-            const i = document.createElement("input");
-            i.type = "hidden";
-            i.name = "paquetes[]";
-            i.value = id;
-            form.appendChild(i);
+                if (csrfInput) {
+                    let c = document.createElement("input");
+                    c.type = "hidden";
+                    c.name = csrfInput.name;
+                    c.value = csrfInput.value;
+                    form.appendChild(c);
+                }
+
+                let m = document.createElement("input");
+                m.type = "hidden";
+                m.name = "motorista_id";
+                m.value = motorista.value;
+                form.appendChild(m);
+
+                let f = document.createElement("input");
+                f.type = "hidden";
+                f.name = "fecha";
+                f.value = fechaTracking.value || "";
+                form.appendChild(f);
+
+                Object.keys(paquetesSeleccionados).forEach(id => {
+                    const i = document.createElement("input");
+                    i.type = "hidden";
+                    i.name = "paquetes[]";
+                    i.value = id;
+                    form.appendChild(i);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+
         });
 
-        document.body.appendChild(form);
-        form.submit();
     });
+
     // Cuando cambio la ruta manualmente
     $("#ruta_select").on("change", function () {
         if (!this.value) return;
