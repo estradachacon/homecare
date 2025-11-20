@@ -81,11 +81,10 @@ class PackageController extends BaseController
         $session = session();
 
         $foto = $this->request->getFile('foto');
-
-        // Siempre generar nombre
-        $fotoName = $foto ? $foto->getRandomName() : uniqid('foto_', true);
+        $fotoName = null;
 
         if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $fotoName = $foto->getRandomName();
             $foto->move('upload/paquetes', $fotoName);
         }
 

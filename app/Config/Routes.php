@@ -40,7 +40,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Mantenimiento de sistema
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
     $routes->get('logs', 'BitacoraController::index');
-    $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
+    $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->get('sellers/search', 'SellerController::search');
     $routes->post('sellers/delete', 'SellerController::delete');

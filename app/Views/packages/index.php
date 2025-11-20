@@ -17,32 +17,6 @@
         padding: 5px 12px !important;
     }
 </style>
-<?php
-function statusBadge($status)
-{
-    $status = strtolower($status);
-
-    switch ($status) {
-        case "pendiente":
-            return '<span class="badge badge-warning">Pendiente</span>';
-
-        case "en ruta":
-            return '<span class="badge badge-primary">En ruta</span>';
-
-        case "entregado":
-            return '<span class="badge badge-success">Entregado</span>';
-
-        case "cancelado":
-            return '<span class="badge badge-danger">Cancelado</span>';
-
-        case "asignado":
-            return '<span class="badge badge-info">Asignado</span>';
-
-        default:
-            return '<span class="badge badge-secondary">'.ucfirst($status).'</span>';
-    }
-}
-?>
 <div class="row">
     <div class="col-md-12">
         <div class="card">
