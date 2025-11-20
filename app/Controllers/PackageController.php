@@ -52,8 +52,6 @@ class PackageController extends BaseController
     }
 
 
-
-
     public function show($id = null)
     {
         $data['package'] = $this->packageModel->find($id);
@@ -148,4 +146,44 @@ class PackageController extends BaseController
             'file' => $newName
         ]);
     }
+    public function edit($id)
+    {
+        $package = $this->packageModel
+            ->select('packages.*, sellers.seller AS seller_name')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->where('packages.id', $id)
+            ->first();
+
+        return view('packages/edit', [
+            'package' => $package
+        ]);
+    }
+
+    public function update($id)
+    {
+        $package = $this->packageModel->find($id);
+        if (!$package) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'No encontrado']);
+        }
+
+        $data = $this->request->getPost();
+
+        // Foto
+        $foto = $this->request->getFile('foto');
+        if ($foto && $foto->isValid()) {
+            $newName = $foto->getRandomName();
+            $foto->move('uploads/paquetes/', $newName);
+
+            $data['foto'] = $newName;
+        }
+
+        $this->packageModel->update($id, $data);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Paquete actualizado'
+        ]);
+    }
+
+
 }
