@@ -173,6 +173,7 @@ class TrackingController extends BaseController
             $detailModel->insert([
                 'tracking_header_id' => $idHeader,
                 'package_id' => $pid,
+                'status' => 'asignado',
                 'created_at' => date('Y-m-d H:i:s')
             ]);
 

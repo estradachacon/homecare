@@ -28,9 +28,9 @@ class TrackingDetails extends Migration
                 'comment' => 'Paquete asignado'
             ],
             'status' => [
-                'type' => 'ENUM',
-                'constraint' => ['pending', 'delivered', 'failed'],
-                'default' => 'pending'
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+                'null' => true
             ],
             'delivered_at' => [
                 'type' => 'DATETIME',

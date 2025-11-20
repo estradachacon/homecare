@@ -102,7 +102,7 @@
                                                 </li>
 
                                                 <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
+                                                    <a class="dropdown-item" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
                                                         <i class="fa-solid fa-truck"></i></i> Seguimiento
                                                     </a>
                                                 </li>
