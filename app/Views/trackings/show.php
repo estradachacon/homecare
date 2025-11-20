@@ -1,6 +1,13 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-
+<?php
+$tiposServicio = [
+    1 => 'Punto fijo',
+    2 => 'Personalizado',
+    3 => 'Recolecta de paquete',
+    4 => 'Casillero'
+];
+?>
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm mb-4">
@@ -26,23 +33,48 @@
                     <tbody>
                         <?php if (!empty($detalles)): ?>
                             <?php foreach ($detalles as $d): ?>
+
+                                <?php
+                                $tipo = $tiposServicio[$d->tipo_servicio] ?? 'Desconocido';
+
+                                // Servicio 1 — Punto fijo
+                                if ($d->tipo_servicio == 1) {
+                                    $destino = $d->puntofijo_nombre ?? 'Punto no encontrado';
+                                }
+
+                                // Servicio 2 — Personalizado
+                                elseif ($d->tipo_servicio == 2) {
+                                    $destino = $d->destino_personalizado ?: 'N/A';
+                                }
+
+                                // Servicio 4 — Casillero (temporal similar a punto fijo)
+                                elseif ($d->tipo_servicio == 4) {
+                                    $destino = $d->puntofijo_nombre ?: 'Casillero';
+                                }
+
+                                // Servicio 3 — Recolecta
+                                elseif ($d->tipo_servicio == 3) {
+                                    $recolecta = $d->lugar_recolecta_paquete ?: 'Pendiente';
+                                    $entrega = $d->destino_personalizado ?: 'Pendiente';
+                                }
+                                ?>
+
                                 <tr>
-                                    <td><?= $d->tipo_servicio ?></td>
-                                    <td><?= $d->cliente ?></td>
+                                    <td><?= esc($tipo) ?></td>
+                                    <td><?= esc($d->cliente) ?></td>
+
                                     <td>
-                                        <?php
-                                        // Mostrar destino según si es personalizado o punto fijo
-                                        if (!empty($d->destino_personalizado)) {
-                                            echo $d->destino_personalizado;
-                                        } elseif (!empty($d->lugar_recolecta_paquete)) {
-                                            echo $d->lugar_recolecta_paquete;
-                                        } else {
-                                            echo 'N/A';
-                                        }
-                                        ?>
+                                        <?php if ($d->tipo_servicio == 3): ?>
+                                            <strong>Recolecta:</strong> <?= esc($recolecta) ?><br>
+                                            <strong>Entrega:</strong> <?= esc($entrega) ?>
+                                        <?php else: ?>
+                                            <?= esc($destino) ?>
+                                        <?php endif; ?>
                                     </td>
+
                                     <td><?= number_format($d->monto, 2) ?></td>
                                 </tr>
+
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>

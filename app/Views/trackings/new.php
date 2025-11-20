@@ -39,15 +39,18 @@
                 </button>
 
                 <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalEspeciales">
-                    <i class="fa fa-box"></i> Agregar personalizados / recolecciones
+                    <i class="fa fa-box"></i> Agregar personalizados
                 </button>
 
+                <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalPendientes3">
+                    <i class="fa fa-clock"></i> Agregar pendientes de recolecta
+                </button>
             </div>
         </div>
 
         <!-- ===============================
-            TABLA DE PACKETS SELECCIONADOS
-    ================================ -->
+            TABLA DE PACKETES SELECCIONADOS
+            ================================ -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-dark text-white">
                 <h6 class="mb-0">Paquetes Seleccionados</h6>
@@ -68,13 +71,15 @@
                         <!-- se llena con JS -->
                     </tbody>
                 </table>
-
+                <div class="text-right mt-3 pb-2">
+                    <h4>Total: <span id="totalTracking" class="text-success">$0.00</span></h4>
+                </div>
             </div>
         </div>
 
         <!-- ===============================
                 BOTÓN FINAL
-    ================================ -->
+     ================================ -->
         <div class="text-right mb-5">
             <button id="btnGuardar" class="btn btn-success btn-lg">
                 <i class="fa fa-save"></i> Guardar Tracking
@@ -148,14 +153,14 @@
         <div class="modal-content">
 
             <div class="modal-header bg-secondary text-white">
-                <h5 class="modal-title">Agregar personalizados y recolecciones</h5>
+                <h5 class="modal-title">Agregar personalizados</h5>
                 <button class="close text-white" data-dismiss="modal">&times;</button>
             </div>
 
             <div class="modal-body">
 
                 <!-- Filtro -->
-                <div class="form-group">
+                <div class="form-group" hidden>
                     <label>Filtrar por tipo</label>
                     <select id="filtro_tipo" class="form-control">
                         <option value="">Todos</option>
@@ -190,4 +195,47 @@
         </div>
     </div>
 </div>
+
+<!-- ============================================================
+                 MODAL 3 – PAQUETES EN ESTATUS 3 (SIN FECHA)
+=============================================================== -->
+<div class="modal fade" id="modalPendientes3" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">Paquetes con estatus 3 (Sin fecha)</h5>
+                <button class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+
+                <button class="btn btn-sm btn-outline-warning mb-2" id="selectAllPendientes3">
+                    Seleccionar / Quitar todos
+                </button>
+
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Cliente</th>
+                            <th>Descripción</th>
+                            <th>Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPendientes3">
+                        <!-- Se llena con JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-warning" id="agregarPendientes3">Agregar Seleccionados</button>
+                <button class="btn btn-light" data-dismiss="modal">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>

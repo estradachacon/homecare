@@ -208,7 +208,7 @@ class TrackingController extends BaseController
 
         // Obtener detalles con info de paquetes
         $detalles = $detailsModel->getDetailsWithPackages($id);
-
+        
         return view('trackings/show', [
             'tracking' => $tracking,
             'detalles' => $detalles

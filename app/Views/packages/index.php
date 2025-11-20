@@ -140,6 +140,10 @@ function statusBadge($status)
                                             <span class="text-muted ml-2">
                                                 <?= esc($pkg['destino_personalizado']) ?>
                                             </span>
+                                        <?php elseif ($pkg['tipo_servicio'] == 3 && !empty($pkg['lugar_recolecta_paquete'])): ?>
+                                            <span class="text-muted ml-2">
+                                                <?= esc($pkg['lugar_recolecta_paquete']) ?>
+                                            </span>
                                         <?php endif; ?>
                                     </td>
 
