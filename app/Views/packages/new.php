@@ -391,10 +391,10 @@
                         startDate: nextValid,
                         autoUpdateInput: true,
                         isInvalidDate: date => !allowedDays.includes(date.day()),
-                        locale: { format: 'DD/MM/YYYY', firstDay: 1 }
+                        locale: { format: 'YYYY-MM-DD', firstDay: 1 }
                     });
 
-                    dateInput.val(nextValid.format('DD/MM/YYYY'));
+                    dateInput.val(nextValid.format('YYYY-MM-DD'));
                 }
             });
         });
