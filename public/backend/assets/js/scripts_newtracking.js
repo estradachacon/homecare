@@ -495,12 +495,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 f.value = fechaTracking.value || "";
                 form.appendChild(f);
 
-                let g = document.createElement();
-                r.type = "hidden";
-                r.name = "status";       // <-- este nombre debe coincidir con tu columna en la DB
-                r.value = selectRuta.value || "pendiente";   // <-- valor seleccionado en el select de ruta
-                form.appendChild(g);
-
                 let r = document.createElement("input");
                 r.type = "hidden";
                 r.name = "ruta_id";       // <-- este nombre debe coincidir con tu columna en la DB

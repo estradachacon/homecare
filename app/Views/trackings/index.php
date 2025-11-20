@@ -88,8 +88,7 @@
                                     <td><?= esc($t->motorista_name) ?></td>
                                     <td><?= esc($t->route_name) ?></td>
                                     <td><?= esc(date('d/m/Y', strtotime($t->date))) ?></td>
-                                    <td><?= ucfirst($t->status) ?></td>
-
+                                    <td><?= statusBadge($t->status ?? 'N/A') ?></td>
                                     <td>
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-primary dropdown-toggle" type="button"

@@ -33,9 +33,8 @@ class TrackingHeader extends Migration
                 'null' => false
             ],
             'status' => [
-                'type'       => 'ENUM',
-                'constraint' => ['pending','in_progress','completed'],
-                'default'    => 'pending'
+                'type'       => 'VARCHAR',
+                'constraint' => 255,
             ],
             'created_at' => [
                 'type' => 'DATETIME',

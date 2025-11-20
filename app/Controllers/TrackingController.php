@@ -146,6 +146,7 @@ class TrackingController extends BaseController
         $motorista_id = $this->request->getPost('motorista_id');
         $fecha = $this->request->getPost('fecha');
         $paquetes = $this->request->getPost('paquetes'); // array
+        $status = 'asignado'; // array
 
         if (empty($motorista_id) || empty($paquetes)) {
             return redirect()->back()->with('error', 'Motorista y paquetes son requeridos')->withInput();
@@ -159,7 +160,7 @@ class TrackingController extends BaseController
             'user_id' => $motorista_id,
             'route_id' => $ruta_id,
             'date' => $fecha ?: date('Y-m-d'),
-            'status' => 'Asignado a motorista',
+            'status' => 'asignado',
             'created_at' => date('Y-m-d H:i:s')
         ]);
 
