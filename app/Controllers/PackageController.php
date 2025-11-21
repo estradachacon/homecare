@@ -123,7 +123,6 @@ class PackageController extends BaseController
             'status' => 'success',
             'message' => 'Paquete creado correctamente.'
         ]);
-
     }
     public function subirImagen()
     {
@@ -149,8 +148,9 @@ class PackageController extends BaseController
     public function edit($id)
     {
         $package = $this->packageModel
-            ->select('packages.*, sellers.seller AS seller_name')
+            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->where('packages.id', $id)
             ->first();
 
@@ -158,6 +158,7 @@ class PackageController extends BaseController
             'package' => $package
         ]);
     }
+
 
     public function update($id)
     {
@@ -184,6 +185,4 @@ class PackageController extends BaseController
             'message' => 'Paquete actualizado'
         ]);
     }
-
-
 }

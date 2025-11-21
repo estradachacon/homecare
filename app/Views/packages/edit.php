@@ -272,7 +272,7 @@
 </div>
 <script src="/backend/assets/js/scripts_packaging_edit.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
 
         /* -----------------------------------------------------------
          * SELECT2 – Vendedores
@@ -284,14 +284,14 @@
             minimumInputLength: 2,
             width: '100%',
             language: {
-                inputTooShort: function (args) {
+                inputTooShort: function(args) {
                     let remaining = args.minimum - args.input.length;
                     return `Por favor ingrese ${remaining} caracter${remaining === 1 ? '' : 'es'} o más`;
                 },
-                searching: function () {
+                searching: function() {
                     return "Buscando...";
                 },
-                noResults: function () {
+                noResults: function() {
                     return "No se encontraron resultados";
                 }
             },
@@ -299,13 +299,20 @@
                 url: '<?= base_url('sellers/search') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: params => ({ q: params.term }),
-                processResults: function (data, params) {
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: function(data, params) {
                     let results = data || [];
                     if (results.length === 0 && params.term?.trim() !== '') {
-                        results.push({ id: 'create_new', text: '➕ Crear nuevo vendedor' });
+                        results.push({
+                            id: 'create_new',
+                            text: '➕ Crear nuevo vendedor'
+                        });
                     }
-                    return { results };
+                    return {
+                        results
+                    };
                 },
                 cache: true
             }
@@ -314,7 +321,7 @@
         <?php if (!empty($package['vendedor'])): ?>
             let optionSeller = new Option(
                 "<?= esc($package['seller_name']) ?>", // Nombre real del vendedor
-                "<?= $package['vendedor'] ?>",         // ID del vendedor
+                "<?= $package['vendedor'] ?>", // ID del vendedor
                 true,
                 true
             );
@@ -322,7 +329,7 @@
             $('#seller_id').append(optionSeller).trigger('change');
         <?php endif; ?>
 
-        $('#seller_id').on('select2:select', function (e) {
+        $('#seller_id').on('select2:select', function(e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
                 $('#seller_id').val(null).trigger('change');
@@ -330,14 +337,14 @@
             }
         });
 
-        $('#formCreateSeller').on('submit', function (e) {
+        $('#formCreateSeller').on('submit', function(e) {
             e.preventDefault();
             $.ajax({
                 url: '<?= base_url('sellers/create-ajax') ?>',
                 type: 'POST',
                 data: $(this).serialize(),
                 dataType: 'json',
-                success: function (response) {
+                success: function(response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
                         const option = new Option(response.data.text, response.data.id, true, true);
@@ -363,9 +370,14 @@
                 url: '<?= base_url('settledPoints/getList') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: params => ({ q: params.term }),
+                data: params => ({
+                    q: params.term
+                }),
                 processResults: data => ({
-                    results: data.map(item => ({ id: item.id, text: item.point_name }))
+                    results: data.map(item => ({
+                        id: item.id,
+                        text: item.point_name
+                    }))
                 })
             }
         });
@@ -373,7 +385,19 @@
         /* -----------------------------------------------------------
          * DATERANGEPICKER – Punto fijo
          * ----------------------------------------------------------- */
-        $('#puntofijo_select').on('change', function () {
+        <?php if (!empty($package['id_puntofijo'])): ?>
+            // Insertar opción preseleccionada en Select2 al cargar la vista
+            let optionPF = new Option(
+                "<?= esc($package['point_name']) ?>", // nombre desde settled_points.point_name
+                "<?= $package['id_puntofijo'] ?>", // ID desde packages.id_puntofijo
+                true,
+                true
+            );
+
+            $('#puntofijo_select').append(optionPF).trigger('change');
+        <?php endif; ?>
+
+        $('#puntofijo_select').on('change', function() {
             const puntoId = $(this).val();
             const dateInput = $('#fecha_entrega_puntofijo');
 
@@ -383,7 +407,7 @@
                 url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
                 method: 'GET',
                 dataType: 'json',
-                success: function (days) {
+                success: function(days) {
 
                     const allowedDays = [];
                     if (days.sun) allowedDays.push(0);
@@ -409,7 +433,10 @@
                         startDate: nextValid,
                         autoUpdateInput: true,
                         isInvalidDate: date => !allowedDays.includes(date.day()),
-                        locale: { format: 'DD/MM/YYYY', firstDay: 1 }
+                        locale: {
+                            format: 'DD/MM/YYYY',
+                            firstDay: 1
+                        }
                     });
 
                     dateInput.val(nextValid.format('DD/MM/YYYY'));
@@ -465,7 +492,7 @@
         const fleteTotal = document.getElementById('flete_total');
         const fletePendiente = document.getElementById('flete_pendiente');
 
-        btnSetZero.addEventListener('click', function () {
+        btnSetZero.addEventListener('click', function() {
             if (!fletePagado.disabled) {
                 fletePagado.value = "0.00";
                 fletePagado.disabled = true;
@@ -492,7 +519,7 @@
 
         const form = document.getElementById("formPaquete");
 
-        form.addEventListener("submit", function (e) {
+        form.addEventListener("submit", function(e) {
             e.preventDefault();
 
             let formData = new FormData(form);
@@ -513,7 +540,7 @@
             let xhr = new XMLHttpRequest();
 
             // Progreso de subida
-            xhr.upload.addEventListener("progress", function (e) {
+            xhr.upload.addEventListener("progress", function(e) {
                 if (e.lengthComputable) {
                     let percent = Math.round((e.loaded / e.total) * 100);
 
@@ -524,7 +551,7 @@
             });
 
             // Respuesta del servidor
-            xhr.onreadystatechange = function () {
+            xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
 
                     Swal.close();
@@ -552,13 +579,12 @@
 
         });
     });
-    $(document).ready(function () {
+    $(document).ready(function() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('created') === '1') {
             $('#successToast').toast('show');
         }
     });
-
 </script>
 
 <?php if (session()->getFlashdata('success')): ?>

@@ -1,6 +1,29 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    /* Contenedor general de toasts */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-height: 50px;    /* para reservar espacio visual */
+    z-index: 1050;       /* suficiente para estar arriba de contenido */
+    pointer-events: none; /* permite que clics pasen a elementos debajo */
+}
 
+/* Cada toast individual */
+.toast {
+    pointer-events: auto; /* solo el toast intercepta clic si se hace sobre él */
+    min-width: 250px;
+}
+
+/* Opcional: animación de aparición de toast */
+.toast.show {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+</style>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 <script>
     $.ajaxSetup({
@@ -218,9 +241,8 @@
     </div>
 </div>
 <!-- Contenedor de toast -->
-<div aria-live="polite" aria-atomic="true"
-    style="position: fixed; top: 20px; right: 20px; min-height: 50px; z-index: 1050;">
-    <div id="successToast" class="toast text-white bg-success" data-delay="2800" style="min-width: 250px;">
+<div class="toast-container" aria-live="polite" aria-atomic="true">
+    <div id="successToast" class="toast text-white bg-success" data-delay="2800">
         <div class="toast-header bg-success text-white">
             <strong class="mr-auto">Éxito</strong>
             <small>Ahora</small>
@@ -230,8 +252,8 @@
             Paquete creado correctamente
         </div>
     </div>
-
 </div>
+
 
 <div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel"
     aria-hidden="true">
