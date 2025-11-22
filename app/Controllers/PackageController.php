@@ -23,9 +23,14 @@ class PackageController extends BaseController
 
     public function index()
     {
-        $perPage = 10;
+        // Cantidad de resultados por página (GET o 10 por defecto)
+        $perPage = $this->request->getGet('per_page') ?? 10;
 
         $filter_vendedor_id = $this->request->getGet('vendedor_id');
+        $filter_status = $this->request->getGet('estatus');
+        $filter_service = $this->request->getGet('tipo_servicio');
+        $filter_date_from = $this->request->getGet('fecha_desde');
+        $filter_date_to = $this->request->getGet('fecha_hasta');
 
         $builder = $this->packageModel
             ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
@@ -33,24 +38,52 @@ class PackageController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->orderBy('packages.id', 'DESC');
 
+        // FILTRO VENDEDOR
         if (!empty($filter_vendedor_id)) {
             $builder->where('vendedor', $filter_vendedor_id);
         }
 
-        $packages = $builder->paginate($perPage);
-        $pager = $this->packageModel->pager;
+        // FILTRO ESTATUS
+        if (!empty($filter_status)) {
+            $builder->where('estatus', $filter_status);
+        }
 
-        // Traemos todos los vendedores para el select
+        // FILTRO TIPO DE SERVICIO
+        if (!empty($filter_service)) {
+            $builder->where('tipo_servicio', $filter_service);
+        }
+
+        // FILTRO FECHA DESDE
+        if (!empty($filter_date_from)) {
+            $builder->where('DATE(fecha_ingreso) >=', $filter_date_from);
+        }
+
+        // FILTRO FECHA HASTA
+        if (!empty($filter_date_to)) {
+            $builder->where('DATE(fecha_ingreso) <=', $filter_date_to);
+        }
+
+        // ⬅️ PAGINACIÓN CORRECTA
+        $packages = $builder->paginate($perPage);
+        $pager = $builder->pager; // ⬅️ ESTE ES EL PAGER CORRECTO
+
         $sellers = $this->sellerModel->findAll();
+        $puntos_fijos = $this->settledPointModel->findAll();
 
         return view('packages/index', [
             'packages' => $packages,
             'pager' => $pager,
             'sellers' => $sellers,
-            'filter_vendedor_id' => $filter_vendedor_id
+
+            'filter_vendedor_id' => $filter_vendedor_id,
+            'filter_status' => $filter_status,
+            'filter_service' => $filter_service,
+            'filter_date_from' => $filter_date_from,
+            'filter_date_to' => $filter_date_to,
+            'perPage' => $perPage,
+            'puntos_fijos' => $puntos_fijos,
         ]);
     }
-
 
     public function show($id = null)
     {
@@ -185,4 +218,53 @@ class PackageController extends BaseController
             'message' => 'Paquete actualizado'
         ]);
     }
+public function setDestino()
+{
+    $id = $this->request->getPost('id');
+    $tipo = $this->request->getPost('tipo_destino');
+
+    $data = [];
+
+    if ($tipo === 'punto') {
+
+        $data = [
+            'id_puntofijo' => $this->request->getPost('id_puntofijo'),
+            'fecha_entrega_puntofijo' => $this->request->getPost('fecha_entrega_puntofijo'),
+
+            // limpiar campos que no aplican
+            'destino_personalizado' => null,
+            'fecha_entrega_personalizado' => null,
+        ];
+    }
+
+    if ($tipo === 'personalizado') {
+
+        $data = [
+            'destino_personalizado' => $this->request->getPost('destino_personalizado'),
+            'fecha_entrega_personalizado' => $this->request->getPost('fecha_entrega_personalizado'),
+
+            // limpiar campos que no aplican
+            'id_puntofijo' => null,
+            'fecha_entrega_puntofijo' => null,
+        ];
+    }
+
+    if ($tipo === 'casillero') {
+
+        $data = [
+            'destino_personalizado' => 'Casillero',
+            'estatus' => 'en_casillero',
+
+            // limpiar campos que no aplican
+            'id_puntofijo' => null,
+            'fecha_entrega_puntofijo' => null,
+            'fecha_entrega_personalizado' => null,
+        ];
+    }
+
+    $this->packageModel->update($id, $data);
+
+    return redirect()->back()->with('success', 'Destino actualizado correctamente');
+}
+
 }

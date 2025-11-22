@@ -15,15 +15,17 @@ function serviceLabel($tipo)
 function statusBadge($status)
 {
     $map = [
-        'pendiente'   => 'warning',
-        'entregado' => 'success',
-        'asignado'   => 'info',
-        'devuelto'  => 'danger'
+        'pendiente'     => 'warning',
+        'entregado'     => 'success',
+        'asignado'      => 'info',
+        'devuelto'      => 'danger',
+        'en_casillero'  => 'info'
     ];
 
     $color = $map[$status] ?? 'secondary';
 
-    return "<span class='badge badge-$color'>"
-         . ucfirst($status)
-         . "</span>";
+    // Transformar el texto para mostrarlo bonito
+    $label = ucwords(str_replace('_', ' ', $status));
+
+    return "<span class='badge badge-$color'>$label</span>";
 }
