@@ -131,39 +131,51 @@ class TrackingRendicionController extends BaseController
     }
 
 public function pdf($trackingId)
-{
-    // Inicia la captura del buffer de salida
-    ob_start(); 
-    
-    $header = $this->headerModel->getHeaderWithRelations($trackingId);
-    $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
+    {
+        // Aumentar límite de memoria para PDFs grandes
+        ini_set('memory_limit', '1G');
 
-    $tiposServicio = [
-        1 => 'Punto fijo',
-        2 => 'Personalizado',
-        3 => 'Recolecta de paquete',
-        4 => 'Casillero'
-    ];
+        // Revisar si GD está disponible
+        if (!extension_loaded('gd')) {
+            die("Error: La extensión GD no está instalada. Dompdf requiere GD para procesar imágenes.");
+        }
 
-    $html = view('trackings/pdf_tracking', [
-        'tracking' => $header,
-        'detalles' => $paquetes,
-        'tiposServicio' => $tiposServicio
-    ]);
+        $header = $this->headerModel->getHeaderWithRelations($trackingId);
+        if (!$header) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $trackingId no encontrado");
+        }
 
-    // Limpia el buffer (ignora y elimina cualquier salida previa)
-    ob_clean(); 
-    
-    $options = new Options();
-    $options->set('isRemoteEnabled', true); 
-    $dompdf = new Dompdf($options);
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
+        $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
 
-    // Enviar PDF al navegador
-    return $dompdf->stream("tracking_{$trackingId}.pdf", [
-        "Attachment" => false
-    ]);
-}
+        $tiposServicio = [
+            1 => 'Punto fijo',
+            2 => 'Personalizado',
+            3 => 'Recolecta de paquete',
+            4 => 'Casillero'
+        ];
+
+        // Generar HTML desde la vista
+        $html = view('trackings/pdf_tracking', [
+            'tracking' => $header,
+            'detalles' => $paquetes,
+            'tiposServicio' => $tiposServicio
+        ]);
+
+        // Opciones de Dompdf
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);  // Permite imágenes remotas
+        $options->set('defaultFont', 'Helvetica');
+
+        $dompdf = new Dompdf($options);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+
+        // Renderizar PDF
+        $dompdf->render();
+
+        // Descargar con nombre adecuado
+        $filename = 'Tracking_' . $trackingId . '.pdf';
+        return $dompdf->stream($filename, ["Attachment" => false]); // false = abrir en navegador
+    }
 }
