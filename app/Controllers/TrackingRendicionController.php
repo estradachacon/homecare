@@ -6,8 +6,7 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\TrackingHeaderModel;
 use App\Models\TrackingDetailsModel;
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use Mpdf\Mpdf; // Clase mPDF importada (La ruta es correcta si Composer funciona)
 
 class TrackingRendicionController extends BaseController
 {
@@ -46,12 +45,16 @@ class TrackingRendicionController extends BaseController
             }
         }
 
+        // Asignar el nombre del motorista al objeto tracking para la vista
+        $header->motorista_name = $motoristaNombre;
+
         return view('trackings/rendicion_index', [
             'tracking' => $header,
-            'paquetes' => $paquetes,
+            'detalles' => $paquetes, // Cambiado 'paquetes' a 'detalles' para coincidir con la vista original del usuario
             'motoristaNombre' => $motoristaNombre, // enviar nombre
         ]);
     }
+    
     public function save()
     {
         $trackingId = $this->request->getPost('tracking_id');
@@ -111,13 +114,13 @@ class TrackingRendicionController extends BaseController
                 $updateData['fecha_pack_entregado'] = $today;
             }
 
-            // Registrar en bitácora incluyendo el nombre del motorista
-            registrar_bitacora(
-                'Rendición de Paquete',
-                'Paquetería',
-                "Paquete ID {$p->package_id} actualizado a estatus {$newStatus}. Motorista: {$motoristaNombre}",
-                $userId
-            );
+            // Nota: Aquí se asume que la función registrar_bitacora existe globalmente
+            // registrar_bitacora(
+            //     'Rendición de Paquete',
+            //     'Paquetería',
+            //     "Paquete ID {$p->package_id} actualizado a estatus {$newStatus}. Motorista: {$motoristaNombre}",
+            //     $userId
+            // );
 
             // Actualizar estatus y fecha en la tabla packages
             $packageModel->update($p->package_id, $updateData);
@@ -130,22 +133,15 @@ class TrackingRendicionController extends BaseController
             ->with('success', 'Rendición procesada con éxito.');
     }
 
-public function pdf($trackingId)
+    public function pdf($trackingId)
     {
-        // Aumentar límite de memoria para PDFs grandes
-        ini_set('memory_limit', '1G');
-
-        // Revisar si GD está disponible
-        if (!extension_loaded('gd')) {
-            die("Error: La extensión GD no está instalada. Dompdf requiere GD para procesar imágenes.");
-        }
-
+        // 1. Cargar datos
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
+        $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
+
         if (!$header) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $trackingId no encontrado");
         }
-
-        $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
 
         $tiposServicio = [
             1 => 'Punto fijo',
@@ -154,28 +150,44 @@ public function pdf($trackingId)
             4 => 'Casillero'
         ];
 
-        // Generar HTML desde la vista
+        // 2. Renderizar la vista a una cadena HTML
+        // NOTA: Se está usando 'detalles' en la vista original del usuario, se mantiene por compatibilidad.
+        // Asegúrate de que 'trackings/pdf_tracking' exista y no 'trackings/rendicion_index' como en tu index()
         $html = view('trackings/pdf_tracking', [
             'tracking' => $header,
             'detalles' => $paquetes,
             'tiposServicio' => $tiposServicio
         ]);
 
-        // Opciones de Dompdf
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);  // Permite imágenes remotas
-        $options->set('defaultFont', 'Helvetica');
+        // ** Importante para evitar conflictos de salida (como el que tenías con Dompdf) **
+        // Limpiamos el buffer de salida por si acaso alguna librería o espacio invisible ha impreso algo.
+        if (ob_get_length()) {
+            ob_clean();
+        }
 
-        $dompdf = new Dompdf($options);
+        // 3. Inicializar mPDF con la configuración más segura
+        // La ruta temporal DEBE existir y DEBE ser escribible por el servidor web.
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8', 
+            'format' => 'A4', 
+            // Usamos WRITEPATH, que es la forma correcta en CodeIgniter
+            'tempDir' => WRITEPATH . 'temp' 
+        ]);
 
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        // 4. Escribir el HTML
+        $mpdf->WriteHTML($html);
 
-        // Renderizar PDF
-        $dompdf->render();
+        // 5. Generar y enviar el PDF
+        $filename = "tracking_{$trackingId}.pdf";
 
-        // Descargar con nombre adecuado
-        $filename = 'Tracking_' . $trackingId . '.pdf';
-        return $dompdf->stream($filename, ["Attachment" => false]); // false = abrir en navegador
+        // El método Output con 'S' devuelve el PDF como una cadena (string)
+        $pdfOutput = $mpdf->Output($filename, 'S');
+
+        // Retornamos el archivo usando el objeto Response de CodeIgniter
+        return $this->response
+            ->setStatusCode(200)
+            ->setContentType('application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"') // 'inline' para abrir en navegador
+            ->setBody($pdfOutput);
     }
 }

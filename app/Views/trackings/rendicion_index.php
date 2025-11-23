@@ -12,7 +12,6 @@
                     <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
                     <h5>Seleccionar paquetes no exitosos</h5>
                     <input type="hidden" name="tracking_id" value="<?= $tracking->id ?>">
-
                     <table class="table table-bordered table-sm">
                         <thead class="thead">
                             <tr class="col-md-12">
