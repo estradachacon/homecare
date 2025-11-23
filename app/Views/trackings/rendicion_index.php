@@ -23,7 +23,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($paquetes as $p): ?>
+                            <?php foreach ($detalles as $p): ?>
                                 <?php
                                 $destino = '';
                                 $destinoPartes = [];
@@ -85,15 +85,12 @@
                                     $badgeColor = 'bg-info-light';
                                 }
                                 ?>
-                                <tr class="paquete-row <?= $rowClass ?>"
-                                    title="<?= $tooltip ?>"
-                                    data-tipo="<?= $p->tipo_servicio ?>"
-                                    data-destinos="<?= count($destinoPartes) ?>">
+                                <tr class="paquete-row <?= $rowClass ?>" title="<?= $tooltip ?>"
+                                    data-tipo="<?= $p->tipo_servicio ?>" data-destinos="<?= count($destinoPartes) ?>">
                                     <td class="text-center">
                                         <input type="checkbox" class="regresado-checkbox" name="regresados[]"
-                                               value="<?= $p->id ?>"
-                                               data-monto="<?= $p->monto ?? 0 ?>"
-                                               <?= ($p->status == 'regresado' ? 'checked' : '') ?>>
+                                            value="<?= $p->id ?>" data-monto="<?= $p->monto ?? 0 ?>"
+                                            <?= ($p->status == 'regresado' ? 'checked' : '') ?>>
                                     </td>
                                     <td><?= $p->id ?></td>
                                     <td><?= esc($p->vendedor . ' → ' . $p->cliente) ?></td>
@@ -112,7 +109,8 @@
                     <!-- DIV TOTALIZADOR BONITO -->
                     <div class="card bg-light p-3 mb-3 shadow-sm">
                         <h5 class="mb-0">Total a entregar: <strong id="total-entregar">$0.00</strong></h5>
-                        <small class="text-muted">Solo se suman los paquetes exitosos (no marcados como no entregados)</small>
+                        <small class="text-muted">Solo se suman los paquetes exitosos (no marcados como no
+                            entregados)</small>
                     </div>
 
                     <button class="btn btn-primary">Guardar Rendición</button>
@@ -156,9 +154,18 @@
 </script>
 
 <style>
-    .bg-danger-light { background-color: #ffe5e5 !important; }
-    .bg-warning-light { background-color: #fff3cd !important; }
-    .bg-info-light { background-color: #d1e7dd !important; color: #0f5132; }
+    .bg-danger-light {
+        background-color: #ffe5e5 !important;
+    }
+
+    .bg-warning-light {
+        background-color: #fff3cd !important;
+    }
+
+    .bg-info-light {
+        background-color: #d1e7dd !important;
+        color: #0f5132;
+    }
 
     .badge-pill {
         display: inline-block;
