@@ -132,6 +132,9 @@ class TrackingRendicionController extends BaseController
 
 public function pdf($trackingId)
 {
+    // Inicia la captura del buffer de salida
+    ob_start(); 
+    
     $header = $this->headerModel->getHeaderWithRelations($trackingId);
     $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
 
@@ -148,8 +151,11 @@ public function pdf($trackingId)
         'tiposServicio' => $tiposServicio
     ]);
 
+    // Limpia el buffer (ignora y elimina cualquier salida previa)
+    ob_clean(); 
+    
     $options = new Options();
-    $options->set('isRemoteEnabled', true); // permite cargar imágenes desde URLs
+    $options->set('isRemoteEnabled', true); 
     $dompdf = new Dompdf($options);
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');
@@ -157,8 +163,7 @@ public function pdf($trackingId)
 
     // Enviar PDF al navegador
     return $dompdf->stream("tracking_{$trackingId}.pdf", [
-        "Attachment" => false // false = abrir en navegador, true = descarga
+        "Attachment" => false
     ]);
 }
-
 }
