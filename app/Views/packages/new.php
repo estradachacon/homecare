@@ -288,7 +288,12 @@
 <script src="/backend/assets/js/scripts_packaging.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-
+// Evitar que scroll cambie los números
+document.querySelectorAll('input[type=number]').forEach(input => {
+    input.addEventListener('wheel', function(e){
+        e.preventDefault();
+    });
+});
         /* -----------------------------------------------------------
          * SELECT2 – Vendedores
          * ----------------------------------------------------------- */
