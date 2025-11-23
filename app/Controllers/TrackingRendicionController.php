@@ -130,11 +130,6 @@ public function save()
     public function pdf($trackingId)
 {
     $header = $this->headerModel->getHeaderWithRelations($trackingId);
-    if (!$header) {
-        throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $trackingId no encontrado");
-    }
-
-    // Paquetes asociados
     $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
 
     $tiposServicio = [
@@ -144,7 +139,6 @@ public function save()
         4 => 'Casillero'
     ];
 
-    // Preparar contenido HTML (puedes usar view)
     $html = view('trackings/pdf_tracking', [
         'tracking' => $header,
         'detalles' => $paquetes,
@@ -153,14 +147,15 @@ public function save()
 
     // Configuración Dompdf
     $options = new Options();
-    $options->set('isRemoteEnabled', true); // permite cargar imágenes
+    $options->set('isRemoteEnabled', true);
     $dompdf = new Dompdf($options);
-
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');
     $dompdf->render();
 
-    // Descargar o mostrar en el navegador
-    $dompdf->stream("Tracking_{$trackingId}.pdf", ["Attachment" => false]);
+    // Esto envía el PDF al navegador con las cabeceras correctas
+    return $dompdf->stream("tracking_{$trackingId}.pdf", [
+        "Attachment" => false // true para descargar automáticamente
+    ]);
 }
 }
