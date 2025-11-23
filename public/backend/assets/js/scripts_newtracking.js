@@ -464,7 +464,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             return;
         }
-        
+
         // Comprobación de motorista (esto ya lo tenías)
         if (!motorista.value) {
             Swal.fire({
@@ -477,9 +477,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 📌 SOLUCIÓN #2: Validación estricta del campo de Flatpickr
         const fechaSeleccionada = fechaTracking.value ? fechaTracking.value.trim() : '';
-        
+
         if (!fechaSeleccionada) {
-            
+
             // Para depurar, puedes agregar un 'console.log("Fecha vacía detectada: " + fechaTracking.value);' aquí
 
             Swal.fire({
@@ -567,10 +567,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Cuando abro el modal de rutas → cargar según la ruta seleccionada
-    $("#modalRutas").on("shown.bs.modal", function () {
-        const rutaId = $("#ruta_select").val();
-        if (rutaId) {
-            loadPaquetesPorRuta(rutaId);
+    $('#modalRutas').on('shown.bs.modal', function () {
+        if (!$('#ruta_select').hasClass('select2-hidden-accessible')) {
+            $('#ruta_select').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: "Seleccione una ruta",
+                allowClear: true,
+                dropdownParent: $('#modalRutas') // ← CLAVE!
+            });
+        } else {
+            $('#ruta_select').select2('open'); // opcional: abre el buscador
         }
     });
 });

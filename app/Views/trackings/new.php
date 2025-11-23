@@ -93,7 +93,7 @@
 
 
 <!-- ============================================================
-                      MODAL 1 – PAQUETES POR RUTA
+            MODAL 1 – PAQUETES POR RUTA CON SELECT2
 =============================================================== -->
 <div class="modal fade" id="modalRutas" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -107,19 +107,22 @@
             <div class="modal-body">
 
                 <div class="form-row">
-
                     <div class="form-group col-md-6">
-                        <label>Ruta</label>
+                        <label for="ruta_select">Ruta</label>
+                        <!-- Contenedor Select2 -->
                         <select id="ruta_select" class="form-control">
+                            <option value="">Seleccione una ruta</option>
                             <?php foreach ($rutas as $r): ?>
                                 <option value="<?= $r->id ?>"><?= $r->route_name ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
+
                 <button class="btn btn-sm btn-outline-primary mb-2" id="selectAllRuta">
                     Seleccionar / Quitar todos
                 </button>
+
                 <table class="table table-hover table-sm">
                     <thead>
                         <tr>
@@ -144,6 +147,22 @@
         </div>
     </div>
 </div>
+
+<!-- Inicialización de Select2 -->
+<script>
+    $(document).ready(function() {
+        $('#modalRutas').on('shown.bs.modal', function () {
+            if (!$('#ruta_select').hasClass('select2-hidden-accessible')) {
+                $('#ruta_select').select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                    placeholder: "Seleccione una ruta",
+                    allowClear: true
+                });
+            }
+        });
+    });
+</script>
 
 
 

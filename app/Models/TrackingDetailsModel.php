@@ -25,9 +25,9 @@ class TrackingDetailsModel extends Model
     /**
      * Obtiene los detalles de un header específico junto con info del paquete
      */
-public function getDetailsWithPackages($trackingHeaderId)
-{
-    return $this->select('
+    public function getDetailsWithPackages($trackingHeaderId)
+    {
+        return $this->select('
         tracking_details.*,
         packages.cliente,
         packages.tipo_servicio,
@@ -35,16 +35,17 @@ public function getDetailsWithPackages($trackingHeaderId)
         packages.destino_personalizado,
         packages.lugar_recolecta_paquete,
         packages.id_puntofijo,
+        packages.estatus AS package_status,
         settled_points.point_name AS puntofijo_nombre,
         sellers.seller AS vendedor
     ')
-        ->join('packages', 'packages.id = tracking_details.package_id', 'left')
-        ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
-        ->join('sellers', 'sellers.id = packages.vendedor', 'left')
-        ->where('tracking_header_id', $trackingHeaderId)
-        ->orderBy('tracking_details.id', 'ASC')
-        ->findAll();
-}
 
+            ->join('packages', 'packages.id = tracking_details.package_id', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->where('tracking_details.tracking_header_id', $trackingHeaderId)
+            ->orderBy('tracking_details.id', 'ASC')
+            ->findAll();
+    }
 
 }

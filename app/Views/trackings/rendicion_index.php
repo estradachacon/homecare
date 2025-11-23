@@ -30,7 +30,7 @@
 
                                 switch ((int) $p->tipo_servicio) {
                                     case 1:
-                                        $destino = 'Punto fijo → ' . ($p->punto_fijo_nombre ?? 'Sin info');
+                                        $destino = 'Punto fijo → ' . ($p->puntofijo_nombre ?? 'Sin info');
                                         $destinoPartes[] = $destino;
                                         break;
                                     case 2:
@@ -88,11 +88,10 @@
                                 <tr class="paquete-row <?= $rowClass ?>" title="<?= $tooltip ?>"
                                     data-tipo="<?= $p->tipo_servicio ?>" data-destinos="<?= count($destinoPartes) ?>">
                                     <td class="text-center">
-                                        <input type="checkbox" class="regresado-checkbox" name="regresados[]"
-                                            value="<?= $p->id ?>" data-monto="<?= $p->monto ?? 0 ?>"
-                                            <?= ($p->status == 'regresado' ? 'checked' : '') ?>>
+                                        <input type="checkbox" class="regresado-checkbox" name="regresados[]" value="<?= $p->package_id ?>" data-monto="<?= $p->monto ?? 0 ?>" <?= ($p->status == 'regresado' ? 'checked' : '') ?>>
                                     </td>
-                                    <td><?= $p->id ?></td>
+                                    <td><?= $p->package_id ?>
+                                    </td>
                                     <td><?= esc($p->vendedor . ' → ' . $p->cliente) ?></td>
                                     <td>
                                         <?= esc($destino) ?>

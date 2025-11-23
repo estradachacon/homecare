@@ -14,12 +14,14 @@ class TrackingController extends BaseController
     protected $trackingHeaderModel;
     protected $trackingDetailsModel;
     protected $routeModel;
+    protected $paqueteModel;
 
     public function __construct()
     {
         $this->trackingDetailsModel = new TrackingDetailsModel();
         $this->trackingHeaderModel = new TrackingHeaderModel();
         $this->routeModel = new RouteModel();
+        $this->paqueteModel = new PackageModel();
     }
     public function index()
     {
@@ -229,5 +231,57 @@ class TrackingController extends BaseController
             'tracking' => $tracking,
             'detalles' => $detalles
         ]);
+    }
+    public function paquetesPorRuta($rutaId)
+    {
+        $fecha = $this->request->getVar('fecha'); // opcional, si quieres filtrar aquí
+        $paquetes = $this->paqueteModel->where('ruta_id', $rutaId)->findAll();
+        return $this->response->setJSON($paquetes);
+    }
+
+    public function todos()
+    {
+        $paquetes = $this->paqueteModel->findAll();
+        return $this->response->setJSON($paquetes);
+    }
+
+public function rutasConPaquetes($fecha)
+    {
+        // 1. Corrección: Reemplazar FILTER_SANITIZE_STRING (obsoleto)
+        $fecha = filter_var($fecha, FILTER_SANITIZE_SPECIAL_CHARS);
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('routes AS r'); 
+
+        $builder->select('r.id, r.route_name AS text');
+        $builder->distinct();
+        
+        $builder->join('packages AS p', 'r.id = p.ruta_id', 'inner');
+        
+        $builder->where('p.fecha_entrega_puntofijo', $fecha);
+
+        // 2. Corrección: Usar groupEnd() en lugar de endGroup()
+        $builder->groupStart()
+            // Condición A: Tipo Servicio 1 + estado pendiente
+            ->groupStart()
+                ->where('p.tipo_servicio', 1)
+                ->where('p.estado', 'pendiente')
+            ->groupEnd() // ⬅️ Corregido: Usar groupEnd()
+            // Condición B: Tipo Servicio 3 + estado recolectado + id_puntofijo no nulo
+            ->orGroupStart()
+                ->where('p.tipo_servicio', 3)
+                ->where('p.estado', 'recolectado')
+                ->where('p.id_puntofijo IS NOT NULL') 
+            ->groupEnd() // ⬅️ Corregido: Usar groupEnd()
+        ->groupEnd(); // ⬅️ Corregido: Usar groupEnd()
+        
+        $search = $this->request->getVar('search');
+        if (!empty($search)) {
+             $builder->like('r.route_name', $search);
+        }
+        
+        $rutas = $builder->get()->getResult();
+
+        return $this->response->setJSON($rutas);
     }
 }
