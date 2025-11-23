@@ -10,6 +10,11 @@
         font-size: 14px;
         border-radius: 4px;
     }
+    .table-primary {
+    background-color: #d1ecf1 !important; /* celeste claro */
+    font-weight: 600;
+}
+
 </style>
 
 <div class="row">
@@ -25,13 +30,14 @@
 
             <div class="card-body">
 
-                <!-- Formulario de filtros -->
-                <form method="GET" action="<?= base_url('tracking') ?>" class="mb-3">
-                    <div class="row align-items-end">
-
+                <!-- Formulario de filtros REORGANIZADO -->
+                <form method="GET" action="<?= base_url('tracking') ?>" class="mb-4">
+                    
+                    <!-- PRIMERA FILA: Filtros de selección (Motorista, Ruta, Estado) -->
+                    <div class="row">
                         <!-- Filtro motorista -->
-                        <div class="col-md-4">
-                            <label for="filter_motorista">Filtrar por motorista</label>
+                        <div class="col-md-3 mb-3">
+                            <label for="filter_motorista">Motorista</label>
                             <select name="motorista_id" id="filter_motorista" class="form-control">
                                 <option value="">-- Todos --</option>
                                 <?php foreach ($motoristas as $m): ?>
@@ -43,9 +49,23 @@
                             </select>
                         </div>
 
-                        <!-- Filtro MULTIPLE por status -->
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Estado</label>
+                        <!-- Filtro ruta -->
+                        <div class="col-md-3 mb-3">
+                            <label for="filter_ruta">Ruta</label>
+                            <select name="ruta_id" id="filter_ruta" class="form-control">
+                                <option value="">-- Todas --</option>
+                                <?php foreach ($rutas as $r): ?>
+                                    <option value="<?= $r->id ?>"
+                                        <?= ($filter_ruta_id == $r->id) ? 'selected' : '' ?>>
+                                        <?= esc($r->route_name) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Filtro múltiple estado -->
+                        <div class="col-md-3 mb-3">
+                            <label>Estado</label>
                             <select class="form-select js-status-select" name="status[]" multiple>
                                 <?php foreach ($statusList as $st): ?>
                                     <option value="<?= $st ?>"
@@ -55,14 +75,34 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary btn-block">Filtrar</button>
+                    <!-- SEGUNDA FILA: Fechas, Búsqueda y Botones -->
+                    <div class="row align-items-end">
+
+                        <!-- Fecha Desde -->
+                        <div class="col-md-3">
+                            <label>Fecha Desde</label>
+                            <input type="date" name="date_from" class="form-control" value="<?= esc($filter_date_from) ?>">
                         </div>
-                        <div class="col-md-2">
-                            <a href="<?= base_url('tracking') ?>" class="btn btn-secondary btn-block">
-                                Limpiar
-                            </a>
+
+                        <!-- Fecha Fin -->
+                        <div class="col-md-3">
+                            <label>Fecha Hasta</label>
+                            <input type="date" name="date_to" class="form-control" value="<?= esc($filter_date_to) ?>">
+                        </div>
+
+                        <!-- Búsqueda por ID -->
+                        <div class="col-md-3">
+                            <label>Buscar ID</label>
+                            <input type="text" name="search_id" class="form-control" placeholder="ID Tracking"
+                                value="<?= esc($filter_search_id) ?>">
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="col-md-3 d-flex">
+                            <button type="submit" class="btn btn-primary w-50 me-2">Filtrar</button>
+                            <a href="<?= base_url('tracking') ?>" class="btn btn-secondary w-50">Limpiar</a>
                         </div>
                     </div>
                 </form>
@@ -81,49 +121,67 @@
                     </thead>
 
                     <tbody>
-                        <?php if (!empty($trackings)): ?>
-                            <?php foreach ($trackings as $t): ?>
-                                <tr>
-                                    <td><?= $t->id ?></td>
-                                    <td><?= esc($t->motorista_name) ?></td>
-                                    <td><?= esc($t->route_name) ?></td>
-                                    <td><?= esc(date('d/m/Y', strtotime($t->date))) ?></td>
-                                    <td><?= statusBadge($t->status ?? 'N/A') ?></td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
-                                                data-toggle="dropdown">Acciones</button>
-                                            <ul class="dropdown-menu">
+<?php if (!empty($trackings)): ?>
 
-                                                <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking/' . $t->id) ?>">
-                                                        <i class="fa-solid fa-eye"></i> Ver Tracking
-                                                    </a>
-                                                </li>
+    <?php 
+    $currentDate = null;
+    foreach ($trackings as $t): 
+        $trackingDate = date('d/m/Y', strtotime($t->date));
+        // Cada vez que cambia la fecha, mostramos una fila de grupo
+        if ($currentDate !== $trackingDate): 
+            $currentDate = $trackingDate;
+    ?>
+        <tr class="table-primary">
+            <td colspan="6" class="fw-bold">
+                Fecha: <?= $currentDate ?>
+            </td>
+        </tr>
+    <?php endif; ?>
 
-                                                <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
-                                                        <i class="fa-solid fa-truck"></i></i> Seguimiento
-                                                    </a>
-                                                </li>
+    <tr>
+        <td><?= $t->id ?></td>
+        <td><?= esc($t->motorista_name) ?></td>
+        <td><?= esc($t->route_name) ?></td>
+        <td><?= esc($trackingDate) ?></td>
+        <td><?= statusBadge($t->status ?? 'N/A') ?></td>
+        <td>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
+                    data-toggle="dropdown">Acciones</button>
+                <ul class="dropdown-menu">
 
-                                                <li>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
-                                                        <i class="fa-solid fa-pencil"></i> Editar
-                                                    </a>
-                                                </li>
+                    <li>
+                        <a class="dropdown-item" href="<?= base_url('tracking/' . $t->id) ?>">
+                            <i class="fa-solid fa-eye"></i> Ver Tracking
+                        </a>
+                    </li>
 
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="text-center">No hay trackings registrados</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
+                    <li>
+                        <a class="dropdown-item" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
+                            <i class="fa-solid fa-truck"></i> Seguimiento
+                        </a>
+                    </li>
+
+                    <li>
+                        <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
+                            <i class="fa-solid fa-pencil"></i> Editar
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </td>
+    </tr>
+
+    <?php endforeach; ?>
+
+<?php else: ?>
+    <tr>
+        <td colspan="6" class="text-center">No hay trackings registrados</td>
+    </tr>
+<?php endif; ?>
+</tbody>
+
                 </table>
 
                 <div class="d-flex justify-content-center mt-3">

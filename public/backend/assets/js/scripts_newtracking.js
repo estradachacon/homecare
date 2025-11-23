@@ -71,8 +71,10 @@ document.addEventListener("DOMContentLoaded", () => {
     flatpickr("#fecha_tracking", {
         dateFormat: "Y-m-d",
         locale: "es",
-        disableMobile: true
+        disableMobile: true,
+        allowInput: false, // evita que borren manualmente
     });
+
 
 
     // =========================================================
@@ -293,7 +295,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const fechaGlobal = fechaTracking.value || null;
+        const fechaGlobal = fechaTracking.value.trim();
+        if (!fechaGlobal) {
+            alert("Debe seleccionar la fecha del tracking antes de agregar paquetes.");
+            return;
+        }
 
         checks.forEach(chk => {
             const id = chk.dataset.id;
@@ -332,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
         actualizarTotal();
         modalPendientes3.modal("hide");
     });
-    
+
     function actualizarTotal() {
         let total = 0;
 
@@ -449,6 +455,42 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // ===== Antes de levantar SweetAlert de confirmación =====
+        if (!Object.keys(paquetesSeleccionados).length) {
+            Swal.fire({
+                icon: "warning",
+                title: "Sin paquetes",
+                text: "Debe seleccionar al menos un paquete."
+            });
+            return;
+        }
+        
+        // Comprobación de motorista (esto ya lo tenías)
+        if (!motorista.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Motorista faltante",
+                text: "Seleccione un motorista."
+            });
+            return;
+        }
+
+        // 📌 SOLUCIÓN #2: Validación estricta del campo de Flatpickr
+        const fechaSeleccionada = fechaTracking.value ? fechaTracking.value.trim() : '';
+        
+        if (!fechaSeleccionada) {
+            
+            // Para depurar, puedes agregar un 'console.log("Fecha vacía detectada: " + fechaTracking.value);' aquí
+
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Debe seleccionar la fecha de seguimiento antes de guardar."
+            });
+            return; // corta la ejecución, SweetAlert de confirmación NO se levanta
+        }
+
+
         Swal.fire({
             title: "¿Guardar Tracking?",
             text: "Se registrará este seguimiento con los paquetes seleccionados.",
@@ -491,9 +533,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let f = document.createElement("input");
                 f.type = "hidden";
-                f.name = "fecha";
-                f.value = fechaTracking.value || "";
+                f.name = "fecha_tracking";
+                f.value = fechaTracking.value.trim() || null; // nunca vacío
                 form.appendChild(f);
+
 
                 let r = document.createElement("input");
                 r.type = "hidden";

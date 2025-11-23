@@ -19,7 +19,9 @@ function statusBadge($status)
         'entregado'     => 'success',
         'asignado'      => 'info',
         'devuelto'      => 'danger',
-        'en_casillero'  => 'info'
+        'no_retirado'      => 'danger',
+        'en_casillero'  => 'info',
+        'finalizado'  => 'success'
     ];
 
     $color = $map[$status] ?? 'secondary';

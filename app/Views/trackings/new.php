@@ -15,20 +15,22 @@
 
                 <div class="form-row">
                     <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
+
+                    <!-- MOTORISTA -->
                     <div class="form-group col-md-4">
                         <label>Asignar Motorista</label>
-                        <select id="motorista" class="form-control">
-                            <option value="">Seleccione</option>
+                        <select id="motorista" name="motorista" class="form-control" required>
+                            <option>Seleccione</option>
                             <?php foreach ($motoristas as $m): ?>
                                 <option value="<?= $m['id'] ?>"><?= $m['user_name'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
+                    <!-- FECHA -->
                     <div class="form-group col-md-4">
                         <label>Asignar fecha de seguimiento</label>
-                        <input type="text" id="fecha_tracking" class="form-control">
-
+                        <input type="text" id="fecha_tracking" name="fecha_tracking" class="form-control" required>
                     </div>
                 </div>
 
@@ -203,14 +205,14 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
 
-            <div class="modal-header bg-warning text-white">
-                <h5 class="modal-title">Paquetes con estatus 3 (Sin fecha)</h5>
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Paquetes pendientes de recolecta</h5>
                 <button class="close text-white" data-dismiss="modal">&times;</button>
             </div>
 
             <div class="modal-body">
 
-                <button class="btn btn-sm btn-outline-warning mb-2" id="selectAllPendientes3">
+                <button class="btn btn-sm btn-outline-success mb-2" id="selectAllPendientes3">
                     Seleccionar / Quitar todos
                 </button>
 
@@ -230,7 +232,7 @@
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-warning" id="agregarPendientes3">Agregar Seleccionados</button>
+                <button class="btn btn-success" id="agregarPendientes3">Agregar Seleccionados</button>
                 <button class="btn btn-light" data-dismiss="modal">Cerrar</button>
             </div>
 

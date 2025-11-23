@@ -85,14 +85,60 @@ class PackageController extends BaseController
         ]);
     }
 
-    public function show($id = null)
-    {
-        $data['package'] = $this->packageModel->find($id);
-        if (!$data['package']) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException("Paquete no encontrado");
-        }
-        return view('packages/show', $data);
+public function show($id = null)
+{
+    // Traemos el paquete con joins a usuario, punto fijo y vendedor
+    $package = $this->packageModel
+        ->select('packages.*, users.user_name as creador_nombre, settled_points.point_name as point_name, sellers.seller as seller_name')
+        ->join('users', 'users.id = packages.user_id', 'left')
+        ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+        ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+        ->where('packages.id', $id)
+        ->first();
+
+    if (!$package) {
+        throw new \CodeIgniter\Exceptions\PageNotFoundException("Paquete no encontrado");
     }
+
+    // Normalizamos a array para que tu vista use siempre $package['campo']
+    $package = (array) $package;
+
+    // DEBUG: Verificar que el campo 'foto' existe (puedes eliminar esto después)
+    if (!array_key_exists('foto', $package)) {
+        log_message('error', "Campo 'foto' no encontrado en package ID: " . $id);
+        $package['foto'] = null; // Asegurar que existe la clave
+    }
+
+    // Calculamos un campo destinos para mostrar en un solo lugar si quieres
+    $destinos = [];
+    switch ($package['tipo_servicio']) {
+        case 1: // Punto fijo
+            $destinos[] = $package['point_name'] ?? 'N/A';
+            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_puntofijo'] ?? 'Pendiente';
+            break;
+        case 2: // Personalizado
+            $destinos[] = $package['destino_personalizado'] ?? 'N/A';
+            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
+            break;
+        case 3: // Recolección y entrega final
+            $destinos[] = $package['lugar_recolecta_paquete'] ?? 'N/A';
+            if (!empty($package['destino_entrega_final'])) {
+                $destinos[] = $package['destino_entrega_final'];
+            }
+            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
+            break;
+        case 4: // Casillero
+            $destinos[] = $package['numero_casillero'] ?? 'N/A';
+            $package['fecha_entrega_mostrar'] = 'Pendiente';
+            break;
+    }
+
+    $package['destinos'] = implode(' → ', $destinos);
+
+    return view('packages/show', [
+        'package' => $package
+    ]);
+}
 
     public function new()
     {
@@ -110,6 +156,7 @@ class PackageController extends BaseController
         helper(['form']);
 
         $session = session();
+        $userId = $session->get('user_id'); // 🛡️ OBTENER DE LA SESIÓN
 
         $foto = $this->request->getFile('foto');
         $fotoName = null;
@@ -119,7 +166,7 @@ class PackageController extends BaseController
             $foto->move('upload/paquetes', $fotoName);
         }
 
-        $this->packageModel->save([
+        $dataToSave = [
             'vendedor' => $this->request->getPost('seller_id'),
             'cliente' => $this->request->getPost('cliente'),
             'tipo_servicio' => $this->request->getPost('tipo_servicio'),
@@ -142,14 +189,18 @@ class PackageController extends BaseController
             'comentarios' => $this->request->getPost('comentarios'),
             'fragil' => $this->request->getPost('fragil'),
             'estatus' => 'pendiente', // o el valor que corresponda
-            'user_id' => $this->request->getPost('user_id'),
-        ]);
+            'user_id' => $userId, // Usamos el ID de la sesión
+        ];
 
+        $this->packageModel->save($dataToSave);
+        $newPackageId = $this->packageModel->insertID();
+
+        // 📜 BITÁCORA: Registro de creación
         registrar_bitacora(
             'Registro de paquete',
             'Paquetería',
-            'Nuevo paquete registrado con ID ' . esc($this->packageModel->insertID()),
-            $session->get('user_id')
+            'Nuevo paquete registrado con ID ' . esc($newPackageId) . ' para el cliente ' . esc($dataToSave['cliente']),
+            $userId
         );
 
         return $this->response->setJSON([
@@ -157,6 +208,7 @@ class PackageController extends BaseController
             'message' => 'Paquete creado correctamente.'
         ]);
     }
+
     public function subirImagen()
     {
         $file = $this->request->getFile('imagen_paquete');
@@ -178,6 +230,7 @@ class PackageController extends BaseController
             'file' => $newName
         ]);
     }
+
     public function edit($id)
     {
         $package = $this->packageModel
@@ -195,6 +248,9 @@ class PackageController extends BaseController
 
     public function update($id)
     {
+        $session = session();
+        $userId = $session->get('user_id');
+
         $package = $this->packageModel->find($id);
         if (!$package) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'No encontrado']);
@@ -206,65 +262,107 @@ class PackageController extends BaseController
         $foto = $this->request->getFile('foto');
         if ($foto && $foto->isValid()) {
             $newName = $foto->getRandomName();
-            $foto->move('uploads/paquetes/', $newName);
+            $foto->move('upload/paquetes/', $newName);
 
             $data['foto'] = $newName;
         }
 
         $this->packageModel->update($id, $data);
 
+        // 📜 BITÁCORA: Registro de actualización
+        registrar_bitacora(
+            'Actualización de Paquete',
+            'Paquetería',
+            'Datos del paquete ID ' . esc($id) . ' actualizados. Campos modificados: ' . implode(', ', array_keys($data)),
+            $userId
+        );
+
         return $this->response->setJSON([
             'status' => 'success',
             'message' => 'Paquete actualizado'
         ]);
     }
-public function setDestino()
-{
-    $id = $this->request->getPost('id');
-    $tipo = $this->request->getPost('tipo_destino');
 
-    $data = [];
+    public function setDestino()
+    {
+        $session = session();
+        $userId = $session->get('user_id');
 
-    if ($tipo === 'punto') {
+        $id = $this->request->getPost('id');
+        $tipo = $this->request->getPost('tipo_destino');
 
-        $data = [
-            'id_puntofijo' => $this->request->getPost('id_puntofijo'),
-            'fecha_entrega_puntofijo' => $this->request->getPost('fecha_entrega_puntofijo'),
+        $package = $this->packageModel->find($id);
+        if (!$package) {
+            return redirect()->back()->with('error', 'Paquete no encontrado');
+        }
 
-            // limpiar campos que no aplican
-            'destino_personalizado' => null,
-            'fecha_entrega_personalizado' => null,
-        ];
+        $data = [];
+        $log_message = '';
+        $log_details = '';
+
+        if ($tipo === 'punto') {
+            $puntoFijoId = $this->request->getPost('id_puntofijo');
+            $fechaEntregaPuntoFijo = $this->request->getPost('fecha_entrega_puntofijo');
+
+            $data = [
+                'id_puntofijo' => $puntoFijoId,
+                'fecha_entrega_puntofijo' => $fechaEntregaPuntoFijo,
+
+                // limpiar campos que no aplican
+                'destino_personalizado' => null,
+                'fecha_entrega_personalizado' => null,
+            ];
+
+            $log_message = 'Destino actualizado a PUNTOS FIJOS (ID: ' . esc($puntoFijoId) . ')';
+            $log_details = 'Fecha de entrega punto fijo: ' . esc($fechaEntregaPuntoFijo);
+
+        } elseif ($tipo === 'personalizado') {
+            $destinoPersonalizado = $this->request->getPost('destino_personalizado');
+            $fechaEntregaPersonalizado = $this->request->getPost('fecha_entrega_personalizado');
+
+            $data = [
+                'destino_personalizado' => $destinoPersonalizado,
+                'fecha_entrega_personalizado' => $fechaEntregaPersonalizado,
+
+                // limpiar campos que no aplican
+                'id_puntofijo' => null,
+                'fecha_entrega_puntofijo' => null,
+            ];
+
+            $log_message = 'Destino actualizado a PERSONALIZADO';
+            $log_details = 'Dirección: ' . esc($destinoPersonalizado) . ', Fecha de entrega: ' . esc($fechaEntregaPersonalizado);
+
+        } elseif ($tipo === 'casillero') {
+
+            $data = [
+                'destino_personalizado' => 'Casillero',
+                'estatus' => 'en_casillero',
+
+                // limpiar campos que no aplican
+                'id_puntofijo' => null,
+                'fecha_entrega_puntofijo' => null,
+                'fecha_entrega_personalizado' => null,
+            ];
+
+            $log_message = 'Destino actualizado a CASILLERO';
+            $log_details = 'Estatus cambiado a: en_casillero';
+        }
+
+        // Si hay datos para actualizar, procedemos
+        if (!empty($data)) {
+            $this->packageModel->update($id, $data);
+
+            registrar_bitacora(
+                'Cambio de Destino Paquete ID ' . esc($id),
+                'Paquetería',
+                $log_message . ' para paquete ' . esc($id) . '. Detalles: ' . $log_details,
+                $userId
+            );
+
+            return redirect()->back()->with('success', 'Destino actualizado correctamente');
+        }
+
+        return redirect()->back()->with('error', 'Tipo de destino no válido o faltante.');
     }
-
-    if ($tipo === 'personalizado') {
-
-        $data = [
-            'destino_personalizado' => $this->request->getPost('destino_personalizado'),
-            'fecha_entrega_personalizado' => $this->request->getPost('fecha_entrega_personalizado'),
-
-            // limpiar campos que no aplican
-            'id_puntofijo' => null,
-            'fecha_entrega_puntofijo' => null,
-        ];
-    }
-
-    if ($tipo === 'casillero') {
-
-        $data = [
-            'destino_personalizado' => 'Casillero',
-            'estatus' => 'en_casillero',
-
-            // limpiar campos que no aplican
-            'id_puntofijo' => null,
-            'fecha_entrega_puntofijo' => null,
-            'fecha_entrega_personalizado' => null,
-        ];
-    }
-
-    $this->packageModel->update($id, $data);
-
-    return redirect()->back()->with('success', 'Destino actualizado correctamente');
-}
 
 }

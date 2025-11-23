@@ -161,7 +161,7 @@
                             <th class="col-md-1">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style="line-height: 18px;">
                         <?php if (!empty($packages)): ?>
                             <?php foreach ($packages as $pkg): ?>
                                 <tr>
@@ -254,13 +254,24 @@
                                         </div>
                                     </td>
 
-                                    <td><?= statusBadge($pkg['estatus']); ?></td>
+                                    <td style="text-align:center; vertical-align:middle;">
+                                        <div style="
+                                            display:flex;
+                                            font-size: medium;
+                                            align-items:center;      /* centro vertical */
+                                            justify-content:center;  /* centro horizontal */
+                                            height:15px;             /* más altura del área */
+                                        ">
+                                            <?= statusBadge($pkg['estatus']); ?>
+                                        </div>
+                                    </td>
+
                                     <td>
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
                                                 data-toggle="dropdown">Acciones
                                             </button>
-                                            <ul class="dropdown-menu">
+                                            <ul class="dropdown-menu" style="min-width: 220px !important;">
 
                                                 <!-- Ver paquete -->
                                                 <li>

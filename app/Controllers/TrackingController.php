@@ -7,45 +7,53 @@ use App\Models\PackageModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\TrackingHeaderModel;
 use App\Models\TrackingDetailsModel;
+use App\Models\RouteModel;
 
 class TrackingController extends BaseController
 {
     protected $trackingHeaderModel;
     protected $trackingDetailsModel;
+    protected $routeModel;
 
     public function __construct()
     {
         $this->trackingDetailsModel = new TrackingDetailsModel();
         $this->trackingHeaderModel = new TrackingHeaderModel();
+        $this->routeModel = new RouteModel();
     }
     public function index()
     {
         $perPage = 10;
-
+        $routeModel = new RouteModel();
         // Filtros
         $filter_motorista_id = $this->request->getGet('motorista_id');
         $filter_status = $this->request->getGet('status'); // ← múltiple
+        $filter_ruta_id = $this->request->getGet('ruta_id');
+        $filter_date_from = $this->request->getGet('date_from');
+        $filter_date_to = $this->request->getGet('date_to');
+        $filter_search_id = $this->request->getGet('search_id');
 
         // Builder
         $builder = $this->trackingHeaderModel
-            ->select('
-            tracking_header.*, 
-            users.user_name AS motorista_name,
-            routes.route_name AS route_name
-        ')
+            ->select('tracking_header.*, users.user_name AS motorista_name, routes.route_name AS route_name')
             ->join('users', 'users.id = tracking_header.user_id', 'left')
             ->join('routes', 'routes.id = tracking_header.route_id', 'left')
-            ->orderBy('tracking_header.date', 'DESC'); // Recientes primero
+            ->orderBy('tracking_header.date', 'DESC')
+            ->orderBy('tracking_header.id', 'ASC');
 
-        // Filtro por motorista
-        if (!empty($filter_motorista_id)) {
+        // Filtros
+        if (!empty($filter_motorista_id))
             $builder->where('tracking_header.user_id', $filter_motorista_id);
-        }
-
-        // Filtro múltiple por estado
-        if (!empty($filter_status) && is_array($filter_status)) {
+        if (!empty($filter_ruta_id))
+            $builder->where('tracking_header.route_id', $filter_ruta_id);
+        if (!empty($filter_status) && is_array($filter_status))
             $builder->whereIn('tracking_header.status', $filter_status);
-        }
+        if (!empty($filter_date_from))
+            $builder->where('tracking_header.date >=', $filter_date_from);
+        if (!empty($filter_date_to))
+            $builder->where('tracking_header.date <=', $filter_date_to);
+        if (!empty($filter_search_id))
+            $builder->where('tracking_header.id', $filter_search_id);
 
         // Resultado paginado
         $trackings = $builder->paginate($perPage);
@@ -56,15 +64,21 @@ class TrackingController extends BaseController
         $motoristas = $userModel->where('role_id', 4)->findAll();
 
         // Lista de estatus
-        $statusList = ['Asignado a motorista', 'Ruta finalizada', 'Ruta cancelada'];
+        $statusList = ['asignado', 'finalizado', 'Ruta cancelada'];
 
+        // Pasar filtros a la vista
         return view('trackings/index', [
             'trackings' => $trackings,
             'pager' => $pager,
             'motoristas' => $motoristas,
+            'rutas' => $routeModel->orderBy('route_name', 'ASC')->findAll(),
             'statusList' => $statusList,
             'filter_motorista_id' => $filter_motorista_id,
-            'filter_status' => $filter_status
+            'filter_ruta_id' => $filter_ruta_id,
+            'filter_status' => $filter_status,
+            'filter_date_from' => $filter_date_from,
+            'filter_date_to' => $filter_date_to,
+            'filter_search_id' => $filter_search_id
         ]);
     }
     public function new()
@@ -73,7 +87,7 @@ class TrackingController extends BaseController
 
         // Modelos
         $userModel = new \App\Models\UserModel();
-        $rutaModel = new \App\Models\RouteModel();
+        $rutaModel = new RouteModel();
 
         // Motoristas (usuarios tipo motorista)
         $motoristas = $userModel
@@ -198,7 +212,7 @@ class TrackingController extends BaseController
     }
     public function show($id)
     {
-        $headerModel  = new TrackingHeaderModel();
+        $headerModel = new TrackingHeaderModel();
         $detailsModel = new TrackingDetailsModel();
 
         // Obtener header con motorista y ruta
@@ -210,7 +224,7 @@ class TrackingController extends BaseController
 
         // Obtener detalles con info de paquetes
         $detalles = $detailsModel->getDetailsWithPackages($id);
-        
+
         return view('trackings/show', [
             'tracking' => $tracking,
             'detalles' => $detalles

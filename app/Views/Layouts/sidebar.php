@@ -25,7 +25,7 @@
                 </a>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash" aria-expanded="false"
-                    aria-controls="collapseLayouts">
+                    aria-controls="cash">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-cash-register"></i></div>
                     Cajas
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -41,7 +41,7 @@
                 </div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales" aria-expanded="false"
-                    aria-controls="collapseLayouts">
+                    aria-controls="sales">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-box-open"></i></div>
                     Paquetería
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -56,7 +56,7 @@
                 </div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="treasury">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
                     Remuneraciones
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -69,7 +69,7 @@
                 </div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#purchase_orders"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="purchase_orders">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-bag-shopping"></i></div>
                     Otros gastos
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -86,7 +86,7 @@
                     Vendedores
                 </a>
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="settledpoint">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
                     Puntos fijos y Rutas
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -98,12 +98,12 @@
                     </nav>
                 </div>
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#accounts"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="accounts">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-file"></i></div>
                     Solicitudes
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                 </a>
-                <div class="collapse" id="accounts" aria-labelledby="headingOne" data-parent="#navAccordionTreasury">
+                <div class="collapse" id="accounts" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
                         <a class="nav-link" href="#/accounts">Reversión
                             de pagos</a>
@@ -112,7 +112,7 @@
                 </div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#reports"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="reports">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-file-export"></i></div>
                     Informes
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -130,7 +130,7 @@
                 <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="company_settings">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-cog"></i></div>
                     Ajustes del sistema
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -146,7 +146,7 @@
                 </div>
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#staffs"
-                    aria-expanded="false" aria-controls="collapseLayouts">
+                    aria-expanded="false" aria-controls="staffs">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-users"></i></div>
                     Gestión de usuarios
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
@@ -167,3 +167,62 @@
         </div>
     </nav>
 </div>
+
+<!-- Lógica de activación de Sidebar (requiere jQuery y Bootstrap JS) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Obtener la ruta actual, normalizada para eliminar la barra inicial si existe, 
+        // y limpiar parámetros de consulta si los hay.
+        let currentPath = window.location.pathname;
+        
+        // Si estás en la raíz (/), el path será solo /.
+        if (currentPath === '/') {
+            currentPath = '/dashboard'; // Asume que la raíz lleva al dashboard
+        } else {
+            // Eliminar la barra inicial para coincidencias más flexibles (e.g. /packages/new -> packages/new)
+            currentPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+            // Eliminar parámetros de consulta y hashes (e.g. /tracking?filter=1 -> tracking)
+            currentPath = currentPath.split('?')[0].split('#')[0];
+        }
+
+        // 1. Iterar sobre todos los enlaces de navegación
+        document.querySelectorAll('.nav-link').forEach(link => {
+            let linkHref = link.getAttribute('href');
+
+            if (linkHref) {
+                // Eliminar la barra inicial de la URL del enlace (e.g. /packages -> packages)
+                let normalizedLink = linkHref.startsWith('/') ? linkHref.substring(1) : linkHref;
+                // Eliminar el hash inicial de las URLs que usan solo anclas (e.g. #/reports -> /reports)
+                normalizedLink = normalizedLink.startsWith('#') ? normalizedLink.substring(1) : normalizedLink;
+                
+                // Si la URL del enlace coincide exactamente con el path actual:
+                if (currentPath === normalizedLink) {
+                    // 2. Resaltar el enlace
+                    link.classList.add('active');
+
+                    // 3. Expandir el menú padre si es un sub-enlace
+                    // Buscar el contenedor de colapso padre (div.collapse)
+                    let parentCollapse = link.closest('.collapse');
+
+                    if (parentCollapse) {
+                        // Añadir la clase 'show' para abrir el submenú
+                        parentCollapse.classList.add('show');
+                        
+                        // Encontrar el enlace padre que controla este colapso (a.nav-link.collapsed)
+                        // Usamos el ID del colapso para encontrar el data-target coincidente
+                        const targetId = '#' + parentCollapse.id;
+                        const parentLink = document.querySelector(`a[data-target="${targetId}"]`);
+                        
+                        if (parentLink) {
+                            // Marcar el enlace padre como no colapsado y activo visualmente
+                            parentLink.classList.remove('collapsed');
+                            parentLink.setAttribute('aria-expanded', 'true');
+                            // Opcional: podrías agregar la clase 'active' también al enlace padre si deseas resaltarlo, 
+                            // pero solo 'active' en el subenlace es más común.
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
