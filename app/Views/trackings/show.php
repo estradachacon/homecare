@@ -11,8 +11,12 @@ $tiposServicio = [
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header d-flex align-items-center bg-primary text-white">
                 <h5 class="mb-0">Detalle de Tracking #<?= $tracking->id ?></h5>
+                <a href="<?= base_url('tracking-pdf/' . $tracking->id) ?>" target="_blank"
+                   class="btn btn-light btn-sm ml-auto">
+                   <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+                </a>
             </div>
             <div class="card-body">
                 <p><strong>Motorista:</strong> <?= $tracking->motorista_name ?? 'N/A' ?></p>

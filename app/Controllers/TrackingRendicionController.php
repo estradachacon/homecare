@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\TrackingHeaderModel;
 use App\Models\TrackingDetailsModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class TrackingRendicionController extends BaseController
 {
@@ -60,6 +62,20 @@ public function save()
 
     $packageModel = new \App\Models\PackageModel();
 
+    // Obtener el nombre del motorista
+    $header = $this->headerModel->find($trackingId);
+    $motoristaNombre = '';
+    if ($header) {
+        $userModel = new \App\Models\UserModel();
+        $motorista = $userModel->find($header->user_id);
+        $motoristaNombre = $motorista ? $motorista['user_name'] : '';
+    }
+
+    $session = session();
+    $userId = $session->get('user_id');
+
+    $today = date('Y-m-d'); // Fecha actual para los paquetes entregados
+
     foreach ($paquetes as $p) {
         // Contar destinos (solo aplica para tipo_servicio = 3)
         $destinoCount = 1; // mínimo 1
@@ -85,8 +101,24 @@ public function save()
             }
         }
 
-        // Actualizar estatus en la tabla packages
-        $packageModel->update($p->package_id, ['estatus' => $newStatus]);
+        // Preparar datos de actualización
+        $updateData = ['estatus' => $newStatus];
+
+        // Si es entregado, escribir fecha en fecha_pack_entregado
+        if ($newStatus === 'entregado' || $newStatus === 'recolectado') {
+            $updateData['fecha_pack_entregado'] = $today;
+        }
+
+        // Registrar en bitácora incluyendo el nombre del motorista
+        registrar_bitacora(
+            'Rendición de Paquete',
+            'Paquetería',
+            "Paquete ID {$p->package_id} actualizado a estatus {$newStatus}. Motorista: {$motoristaNombre}",
+            $userId
+        );
+
+        // Actualizar estatus y fecha en la tabla packages
+        $packageModel->update($p->package_id, $updateData);
     }
 
     // Finalmente, marcar el tracking como finalizado
@@ -95,5 +127,40 @@ public function save()
     return redirect()->to('tracking/' . $trackingId)
         ->with('success', 'Rendición procesada con éxito.');
 }
+    public function pdf($trackingId)
+{
+    $header = $this->headerModel->getHeaderWithRelations($trackingId);
+    if (!$header) {
+        throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $trackingId no encontrado");
+    }
 
+    // Paquetes asociados
+    $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
+
+    $tiposServicio = [
+        1 => 'Punto fijo',
+        2 => 'Personalizado',
+        3 => 'Recolecta de paquete',
+        4 => 'Casillero'
+    ];
+
+    // Preparar contenido HTML (puedes usar view)
+    $html = view('trackings/pdf_tracking', [
+        'tracking' => $header,
+        'detalles' => $paquetes,
+        'tiposServicio' => $tiposServicio
+    ]);
+
+    // Configuración Dompdf
+    $options = new Options();
+    $options->set('isRemoteEnabled', true); // permite cargar imágenes
+    $dompdf = new Dompdf($options);
+
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+
+    // Descargar o mostrar en el navegador
+    $dompdf->stream("Tracking_{$trackingId}.pdf", ["Attachment" => false]);
+}
 }

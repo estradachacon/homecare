@@ -2,7 +2,6 @@
 <?= $this->section('content') ?>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 <style>
-    /* Forzar que el select ocupe todo el ancho */
     #filter_seller {
         width: 100%;
         height: 38px;
@@ -11,8 +10,6 @@
         font-size: 14px;
         border-radius: 4px;
     }
-
-    /* Si usas Select2 */
     .select2-container--bootstrap4 .select2-selection--single {
         height: 38px !important;
         line-height: 28px !important;
@@ -157,7 +154,7 @@
                             <th class="col-md-3">Tipo Servicio</th>
                             <th>Datos de fechas</th>
                             <th class="col-md-1">Valores</th>
-                            <th class="col-md-1">Estatus</th>
+                            <th>Estatus</th>
                             <th class="col-md-1">Acciones</th>
                         </tr>
                     </thead>
@@ -229,17 +226,25 @@
                                                 <?= esc(formatFechaConDia($pkg['fecha_ingreso'])) ?>
                                             </span>
                                         </div>
-
                                         <div>
-                                            <strong>Finalizado:</strong>
-                                            <?php if (!empty($pkg['fecha_pack_entregado'])): ?>
-                                                <span class="text-muted">
-                                                    <?= esc(formatFechaConDia($pkg['fecha_pack_entregado'])) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted">Pendiente</span>
-                                            <?php endif; ?>
+                                            <strong>Día de entrega:</strong>
+                                            <?php
+                                            $fechaEntrega = null;
+                                            if ($pkg['tipo_servicio'] == 1) { // Punto fijo
+                                                $fechaEntrega = $pkg['fecha_entrega_puntofijo'] ?? null;
+                                            } elseif ($pkg['tipo_servicio'] == 2) { // Personalizado
+                                                $fechaEntrega = $pkg['fecha_entrega_personalizado'] ?? null;
+                                            } elseif ($pkg['tipo_servicio'] == 3) { // Recolecta
+                                                $fechaEntrega = $pkg['fecha_entrega_personalizado'] ?? null;
+                                            } elseif ($pkg['tipo_servicio'] == 4) { // Casillero
+                                                $fechaEntrega = null; // no aplica
+                                            }
+                                            ?>
+                                            <span class="text-muted">
+                                                <?= $fechaEntrega ? esc(formatFechaConDia($fechaEntrega)) : 'Pendiente' ?>
+                                            </span>
                                         </div>
+
                                     </td>
 
                                     <td>

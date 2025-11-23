@@ -61,4 +61,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('tracking/store', 'TrackingController::store');
     $routes->get('tracking-rendicion/(:num)', 'TrackingRendicionController::index/$1');
     $routes->post('tracking-rendicion/save', 'TrackingRendicionController::save');
+    $routes->get('tracking-pdf/(:num)', 'TrackingRendicionController::pdf/$1');
 });
