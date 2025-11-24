@@ -5380,9 +5380,9 @@ input[type=button].btn-block {
   padding: 0.25em 0.4em;
   font-size: 75%;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.2;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal !important;
   vertical-align: baseline;
   border-radius: 0.25rem;
   transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;

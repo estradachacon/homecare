@@ -21,6 +21,8 @@ class TrackingRendicionController extends BaseController
 
     public function index($trackingId)
     {
+        // ... (Tu código existente para index)
+
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
         $userModel = new \App\Models\UserModel();
 
@@ -54,9 +56,12 @@ class TrackingRendicionController extends BaseController
             'motoristaNombre' => $motoristaNombre, // enviar nombre
         ]);
     }
-    
+
     public function save()
     {
+        // Cargar el helper 'form' y el que contiene 'registrar_bitacora'
+        helper(['form', 'bitacora']); // Asumiendo que 'registrar_bitacora' está en un helper llamado 'bitacora'
+
         $trackingId = $this->request->getPost('tracking_id');
         $regresados = $this->request->getPost('regresados') ?? [];
 
@@ -79,7 +84,12 @@ class TrackingRendicionController extends BaseController
 
         $today = date('Y-m-d'); // Fecha actual para los paquetes entregados
 
+        // Array para registrar la bitácora: lista de IDs de paquetes modificados
+        $paquetesModificados = []; 
+
         foreach ($paquetes as $p) {
+            // ... (Tu lógica existente de estatus) ...
+            
             // Contar destinos (solo aplica para tipo_servicio = 3)
             $destinoCount = 1; // mínimo 1
             if ($p->tipo_servicio == 3) {
@@ -113,21 +123,31 @@ class TrackingRendicionController extends BaseController
             if ($newStatus === 'entregado' || $newStatus === 'recolectado') {
                 $updateData['fecha_pack_entregado'] = $today;
             }
-
-            // Nota: Aquí se asume que la función registrar_bitacora existe globalmente
-            // registrar_bitacora(
-            //     'Rendición de Paquete',
-            //     'Paquetería',
-            //     "Paquete ID {$p->package_id} actualizado a estatus {$newStatus}. Motorista: {$motoristaNombre}",
-            //     $userId
-            // );
-
             // Actualizar estatus y fecha en la tabla packages
             $packageModel->update($p->package_id, $updateData);
+
+            // Registrar el ID y el nuevo estatus para la bitácora
+            $paquetesModificados[] = "ID {$p->package_id} → {$newStatus}";
         }
 
         // Finalmente, marcar el tracking como finalizado
         $this->headerModel->update($trackingId, ['status' => 'finalizado']);
+        
+        // =========================================================
+        // 🎯 REGISTRO EN BITÁCORA 🎯
+        // =========================================================
+        $descripcionDetallada = 
+            "Se procesó la rendición del Tracking ID " . esc($trackingId) . 
+            " (Motorista: " . esc($motoristaNombre) . "). " . 
+            "Estados de paquetes: " . implode(', ', $paquetesModificados) . ".";
+
+        registrar_bitacora(
+            'Rendición de Tracking Finalizada',
+            'Tracking',
+            $descripcionDetallada,
+            $userId
+        );
+        // =========================================================
 
         return redirect()->to('tracking/' . $trackingId)
             ->with('success', 'Rendición procesada con éxito.');
@@ -135,6 +155,8 @@ class TrackingRendicionController extends BaseController
 
     public function pdf($trackingId)
     {
+        // ... (Tu código existente para pdf)
+        
         // 1. Cargar datos
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);

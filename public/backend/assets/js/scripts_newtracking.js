@@ -181,8 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const resp = await fetch("/tracking-pendientes/todos");
             const data = await resp.json();
 
-            // Filtrar SOLO estatus 3
-            listaPendientes3 = data.filter(p => p.tipo_servicio == 3);
+            // Filtrar paquetes tipo 3 Y los de "recolecta_fallida"
+            listaPendientes3 = data.filter(p =>
+                p.tipo_servicio == 3 || p.estatus == 'recolecta_fallida'
+            );
 
             listaPendientes3.forEach(p => paquetesCache[p.id] = p);
 

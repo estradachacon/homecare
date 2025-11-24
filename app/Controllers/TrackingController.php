@@ -145,6 +145,7 @@ class TrackingController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
             ->where('packages.estatus', 'pendiente')
+            ->orWhere('packages.estatus', 'recolecta_fallida')
             ->findAll();
 
         return $this->response->setJSON($paquetes);
@@ -152,7 +153,8 @@ class TrackingController extends BaseController
 
     public function store()
     {
-        helper(['form']);
+        // Cargar helpers (asumiendo que 'registrar_bitacora' está en 'bitacora')
+        helper(['form', 'bitacora']); 
         $session = session();
 
         $headerModel = new TrackingHeaderModel();
@@ -162,7 +164,6 @@ class TrackingController extends BaseController
         $motorista_id = $this->request->getPost('motorista_id');
         $fecha = $this->request->getPost('fecha');
         $paquetes = $this->request->getPost('paquetes'); // array
-        $status = 'asignado'; // array
 
         if (empty($motorista_id) || empty($paquetes)) {
             return redirect()->back()->with('error', 'Motorista y paquetes son requeridos')->withInput();
@@ -171,7 +172,7 @@ class TrackingController extends BaseController
         // ruta_id puede venir vacío
         $ruta_id = $this->request->getPost('ruta_id') ?: null;
 
-        // Guardar header
+        // 1. Guardar header
         $idHeader = $headerModel->insert([
             'user_id' => $motorista_id,
             'route_id' => $ruta_id,
@@ -181,11 +182,39 @@ class TrackingController extends BaseController
         ]);
 
         if (!$idHeader) {
+            // Registrar error en la bitácora
+            if (function_exists('registrar_bitacora')) {
+                registrar_bitacora(
+                    'Error de Creación de Tracking',
+                    'Tracking',
+                    'Fallo al insertar el encabezado del tracking. Motorista ID: ' . esc($motorista_id) . ', Paquetes: ' . count($paquetes),
+                    $session->get('user_id')
+                );
+            }
             return redirect()->back()->with('error', 'No se pudo crear el tracking.');
         }
 
-        // Guardar detalles y actualizar paquetes
+        // 2. Guardar detalles y actualizar paquetes
+        $paquetesActualizados = []; // Para la bitácora
+        
         foreach ($paquetes as $pid) {
+
+            // Obtener el paquete para ver su tipo de servicio
+            $paquete = $packageModel->find($pid);
+            
+            // Asumiendo que el campo 'estatus' puede ser usado también para el tipo de servicio
+            $paqueteEstatus = $paquete['estatus'] ?? 'pendiente'; 
+            
+            // Determinar estado inicial según tipo de servicio
+            if ($paquete && ($paquete['tipo_servicio'] == 3 || $paqueteEstatus == 'recolecta_fallida')) {
+                // Primero debe ser recolectado
+                $estadoInicial = 'asignado_para_recolecta';
+            } else {
+                // Va directo a entrega (Servicio 1 o 2)
+                $estadoInicial = 'asignado_para_entrega';
+            }
+
+            // Insertar detalle del tracking
             $detailModel->insert([
                 'tracking_header_id' => $idHeader,
                 'package_id' => $pid,
@@ -193,19 +222,24 @@ class TrackingController extends BaseController
                 'created_at' => date('Y-m-d H:i:s')
             ]);
 
-            // actualizar package: asignado (ejemplo)
+            // Actualizar paquete: estado inicial según tipo de servicio
             $packageModel->update($pid, [
-                'estatus' => 'asignado',
+                'estatus' => $estadoInicial,
                 'tracking_id' => $idHeader
             ]);
+            
+            // Recolectar info para la bitácora
+            $paquetesActualizados[] = "ID " . esc($pid) . " → " . esc($estadoInicial);
         }
 
-        // Registrar bitácora (ajusta a tu helper)
+        // 3. Registrar bitácora
+        $descripcionBitacora = 'Seguimiento **#' . esc($idHeader) . '** creado y asignado al motorista ID ' . esc($motorista_id) . ' (' . count($paquetes) . ' paquetes). Detalles de estado: ' . implode('; ', $paquetesActualizados);
+        
         if (function_exists('registrar_bitacora')) {
             registrar_bitacora(
-                'Creación de seguimiento',
-                'Paquetería',
-                'Seguimiento #' . $idHeader . ' creado con ' . count($paquetes) . ' paquetes.',
+                'Creación de Tracking',
+                'Tracking',
+                $descripcionBitacora,
                 $session->get('user_id')
             );
         }
@@ -245,41 +279,41 @@ class TrackingController extends BaseController
         return $this->response->setJSON($paquetes);
     }
 
-public function rutasConPaquetes($fecha)
+    public function rutasConPaquetes($fecha)
     {
         // 1. Corrección: Reemplazar FILTER_SANITIZE_STRING (obsoleto)
         $fecha = filter_var($fecha, FILTER_SANITIZE_SPECIAL_CHARS);
 
         $db = \Config\Database::connect();
-        $builder = $db->table('routes AS r'); 
+        $builder = $db->table('routes AS r');
 
         $builder->select('r.id, r.route_name AS text');
         $builder->distinct();
-        
+
         $builder->join('packages AS p', 'r.id = p.ruta_id', 'inner');
-        
+
         $builder->where('p.fecha_entrega_puntofijo', $fecha);
 
         // 2. Corrección: Usar groupEnd() en lugar de endGroup()
         $builder->groupStart()
             // Condición A: Tipo Servicio 1 + estado pendiente
             ->groupStart()
-                ->where('p.tipo_servicio', 1)
-                ->where('p.estado', 'pendiente')
+            ->where('p.tipo_servicio', 1)
+            ->where('p.estado', 'pendiente')
             ->groupEnd() // ⬅️ Corregido: Usar groupEnd()
             // Condición B: Tipo Servicio 3 + estado recolectado + id_puntofijo no nulo
             ->orGroupStart()
-                ->where('p.tipo_servicio', 3)
-                ->where('p.estado', 'recolectado')
-                ->where('p.id_puntofijo IS NOT NULL') 
+            ->where('p.tipo_servicio', 3)
+            ->where('p.estado', 'recolectado')
+            ->where('p.id_puntofijo IS NOT NULL')
             ->groupEnd() // ⬅️ Corregido: Usar groupEnd()
-        ->groupEnd(); // ⬅️ Corregido: Usar groupEnd()
-        
+            ->groupEnd(); // ⬅️ Corregido: Usar groupEnd()
+
         $search = $this->request->getVar('search');
         if (!empty($search)) {
-             $builder->like('r.route_name', $search);
+            $builder->like('r.route_name', $search);
         }
-        
+
         $rutas = $builder->get()->getResult();
 
         return $this->response->setJSON($rutas);
