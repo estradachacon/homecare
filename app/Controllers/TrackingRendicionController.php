@@ -64,6 +64,9 @@ class TrackingRendicionController extends BaseController
 
         $trackingId = $this->request->getPost('tracking_id');
         $regresados = $this->request->getPost('regresados') ?? [];
+        
+        // 🎯 NUEVO: Recibimos el array de paquetes solo recolectados (no entregados aún)
+        $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
 
         // Cargar los paquetes asociados al tracking
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
@@ -88,7 +91,6 @@ class TrackingRendicionController extends BaseController
         $paquetesModificados = []; 
 
         foreach ($paquetes as $p) {
-            // ... (Tu lógica existente de estatus) ...
             
             // Contar destinos (solo aplica para tipo_servicio = 3)
             $destinoCount = 1; // mínimo 1
@@ -101,17 +103,30 @@ class TrackingRendicionController extends BaseController
 
             // Determinar nuevo estatus
             if (in_array($p->id, $regresados)) {
-                // No exitoso
+                // ❌ No exitoso (La lógica se mantiene)
                 if ($p->tipo_servicio == 3) {
                     $newStatus = ($destinoCount == 1) ? 'recolecta_fallida' : 'no_retirado';
                 } else {
                     $newStatus = 'no_retirado';
                 }
             } else {
-                // Exitoso
+                // ✅ Exitoso (Lógica modificada para el tipo 3)
                 if ($p->tipo_servicio == 3) {
-                    $newStatus = ($destinoCount == 1) ? 'recolectado' : 'entregado';
+                    if ($destinoCount == 1) {
+                        // Solo recolección, se marca como 'recolectado'
+                        $newStatus = 'recolectado';
+                    } elseif ($destinoCount >= 2) {
+                        // Recolecta y Entrega (Aquí aplicamos el control del usuario)
+                        if (in_array($p->id, $recolectadosSolo)) {
+                            // Si el usuario marcó que solo se recolectó, pero no se entregó aún
+                            $newStatus = 'recolectado'; 
+                        } else {
+                            // Si no se marcó, se asume que se entregó de una vez
+                            $newStatus = 'entregado';
+                        }
+                    }
                 } else {
+                    // Otros servicios son 'entregado'
                     $newStatus = 'entregado';
                 }
             }
@@ -119,7 +134,7 @@ class TrackingRendicionController extends BaseController
             // Preparar datos de actualización
             $updateData = ['estatus' => $newStatus];
 
-            // Si es entregado, escribir fecha en fecha_pack_entregado
+            // Si es entregado O recolectado, escribir fecha en fecha_pack_entregado
             if ($newStatus === 'entregado' || $newStatus === 'recolectado') {
                 $updateData['fecha_pack_entregado'] = $today;
             }

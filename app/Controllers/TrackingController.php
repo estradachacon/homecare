@@ -25,6 +25,7 @@ class TrackingController extends BaseController
     }
     public function index()
     {
+        // ... (Código de index se mantiene sin cambios) ...
         $perPage = 10;
         $routeModel = new RouteModel();
         // Filtros
@@ -109,22 +110,28 @@ class TrackingController extends BaseController
 
         return view('trackings/new', $data);
     }
+    
+    // NOTA: Revisé esta función. Si buscas paquetes recolectados para ser reasignados a
+    // una ruta para entrega, su estatus es 'recolectado' y deben ser incluidos.
     public function getPendientesPorRuta($rutaId)
     {
         $paqueteModel = new PackageModel();
 
         $paquetes = $paqueteModel
             ->select('
-            packages.*, 
-            sellers.seller AS vendedor, 
-            routes.route_name AS ruta_nombre, 
-            settled_points.point_name AS punto_fijo_nombre
-        ')
+                packages.*, 
+                sellers.seller AS vendedor, 
+                routes.route_name AS ruta_nombre, 
+                settled_points.point_name AS punto_fijo_nombre
+            ')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
             ->where('settled_points.ruta_id', $rutaId)
-            ->where('packages.estatus', 'pendiente')
+            ->groupStart() // Agrupación para los estatus
+                ->where('packages.estatus', 'pendiente')
+                ->orWhere('packages.estatus', 'recolectado') // Paquetes recolectados listos para ser reasignados a entrega
+            ->groupEnd()
             ->findAll();
 
         return $this->response->setJSON($paquetes);
@@ -136,16 +143,19 @@ class TrackingController extends BaseController
 
         $paquetes = $paqueteModel
             ->select('
-            packages.*, 
-            sellers.seller AS vendedor, 
-            routes.route_name AS ruta_nombre, 
-            settled_points.point_name AS punto_fijo_nombre
-        ')
+                packages.*, 
+                sellers.seller AS vendedor, 
+                routes.route_name AS ruta_nombre, 
+                settled_points.point_name AS punto_fijo_nombre
+            ')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
-            ->where('packages.estatus', 'pendiente')
-            ->orWhere('packages.estatus', 'recolecta_fallida')
+            ->groupStart() // Agrupación para los estatus
+                ->where('packages.estatus', 'pendiente')
+                ->orWhere('packages.estatus', 'recolecta_fallida')
+                ->orWhere('packages.estatus', 'recolectado') // Incluimos recolectados, si no tienen ruta asignada.
+            ->groupEnd()
             ->findAll();
 
         return $this->response->setJSON($paquetes);
@@ -199,30 +209,42 @@ class TrackingController extends BaseController
         
         foreach ($paquetes as $pid) {
 
-            // Obtener el paquete para ver su tipo de servicio
+            // Obtener el paquete para ver su estatus y tipo de servicio
             $paquete = $packageModel->find($pid);
-            
-            // Asumiendo que el campo 'estatus' puede ser usado también para el tipo de servicio
             $paqueteEstatus = $paquete['estatus'] ?? 'pendiente'; 
             
-            // Determinar estado inicial según tipo de servicio
-            if ($paquete && ($paquete['tipo_servicio'] == 3 || $paqueteEstatus == 'recolecta_fallida')) {
-                // Primero debe ser recolectado
-                $estadoInicial = 'asignado_para_recolecta';
-            } else {
-                // Va directo a entrega (Servicio 1 o 2)
-                $estadoInicial = 'asignado_para_entrega';
+            $estadoInicial = 'asignado_para_entrega'; // Estado por defecto: entrega
+
+            if ($paquete) {
+                // Revisamos si necesita recolección
+                if ($paquete['tipo_servicio'] == 3) {
+                    if ($paqueteEstatus == 'pendiente' || $paqueteEstatus == 'recolecta_fallida') {
+                        // Es Recolecta (tipo 3) y AÚN no ha sido recolectado exitosamente
+                        $estadoInicial = 'asignado_para_recolecta';
+                    } else {
+                        // Es Recolecta (tipo 3) pero YA está en estatus 'recolectado'.
+                        // Por lo tanto, el siguiente paso es la ENTREGA.
+                        $estadoInicial = 'asignado_para_entrega'; // Ya estaba asignado arriba, pero lo ponemos explícito
+                    }
+                } 
+                
+                // Si el estatus anterior fue 'recolecta_fallida' y no es tipo 3, puede ir directo a entrega si tiene sentido en tu flujo.
+                // Basado en tu código anterior, si el estatus es 'recolecta_fallida', se intenta de nuevo:
+                if ($paqueteEstatus == 'recolecta_fallida') {
+                    $estadoInicial = 'asignado_para_recolecta';
+                }
             }
+
 
             // Insertar detalle del tracking
             $detailModel->insert([
                 'tracking_header_id' => $idHeader,
                 'package_id' => $pid,
-                'status' => 'asignado',
+                'status' => 'asignado', // status del detalle
                 'created_at' => date('Y-m-d H:i:s')
             ]);
 
-            // Actualizar paquete: estado inicial según tipo de servicio
+            // Actualizar paquete: estado inicial según tipo de servicio y estatus
             $packageModel->update($pid, [
                 'estatus' => $estadoInicial,
                 'tracking_id' => $idHeader
@@ -248,6 +270,7 @@ class TrackingController extends BaseController
     }
     public function show($id)
     {
+        // ... (Código de show se mantiene sin cambios) ...
         $headerModel = new TrackingHeaderModel();
         $detailsModel = new TrackingDetailsModel();
 
@@ -268,6 +291,7 @@ class TrackingController extends BaseController
     }
     public function paquetesPorRuta($rutaId)
     {
+        // ... (Código de paquetesPorRuta se mantiene sin cambios) ...
         $fecha = $this->request->getVar('fecha'); // opcional, si quieres filtrar aquí
         $paquetes = $this->paqueteModel->where('ruta_id', $rutaId)->findAll();
         return $this->response->setJSON($paquetes);
@@ -275,12 +299,14 @@ class TrackingController extends BaseController
 
     public function todos()
     {
+        // ... (Código de todos se mantiene sin cambios) ...
         $paquetes = $this->paqueteModel->findAll();
         return $this->response->setJSON($paquetes);
     }
 
     public function rutasConPaquetes($fecha)
     {
+        // ... (Código de rutasConPaquetes se mantiene sin cambios) ...
         // 1. Corrección: Reemplazar FILTER_SANITIZE_STRING (obsoleto)
         $fecha = filter_var($fecha, FILTER_SANITIZE_SPECIAL_CHARS);
 
