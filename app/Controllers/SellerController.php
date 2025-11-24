@@ -17,9 +17,39 @@ class SellerController extends BaseController
 
     public function index()
     {
-        $data['sellers'] = $this->sellerModel->findAll();
+        $q = trim($this->request->getGet('q') ?? '');
+        $alpha = trim($this->request->getGet('alpha') ?? '');
+        $perPage = intval($this->request->getGet('perPage') ?? 10);
+
+        $builder = $this->sellerModel;
+
+        // BÚSQUEDA GENERAL
+        if ($q !== '') {
+            $builder = $builder
+                ->groupStart()
+                ->like('seller', $q)
+                ->orLike('tel_seller', $q)
+                ->orLike('id', $q)
+                ->groupEnd();
+        }
+
+        // FILTRO ALFABÉTICO
+        if ($alpha !== '') {
+            $builder = $builder->like('seller', $alpha, 'after');
+        }
+
+        $data = [
+            'q' => $q,
+            'alpha' => $alpha,
+            'perPage' => $perPage,
+            'sellers' => $builder->paginate($perPage),
+            'pager' => $builder->pager,
+        ];
+
         return view('sellers/index', $data);
     }
+
+
 
     public function new()
     {
@@ -205,5 +235,37 @@ class SellerController extends BaseController
                 'message' => $e->getMessage()
             ]);
         }
+    }
+    public function searchAjax()
+    {
+        // Obtenemos el término de búsqueda y la página actual
+        $q = trim($this->request->getGet('q') ?? '');
+        $perPage = intval($this->request->getGet('perPage') ?? 10); // Mantener el límite de paginación
+
+        $builder = $this->sellerModel;
+
+        // BÚSQUEDA GENERAL
+        if ($q !== '') {
+            $builder = $builder
+                ->groupStart()
+                ->like('seller', $q)
+                ->orLike('tel_seller', $q)
+                ->orLike('id', $q)
+                ->groupEnd();
+        }
+
+        // Si necesitas ordenar, hazlo aquí antes de paginar:
+        $builder = $builder->orderBy('id', 'DESC');
+
+        $data = [
+            'q' => $q,
+            'sellers' => $builder->paginate($perPage),
+            'pager' => $builder->pager,
+            // No pasamos 'perPage' ni 'alpha' ya que esta función solo refresca la tabla.
+        ];
+
+        // Importante: Devolvemos una vista parcial que solo contiene la tabla.
+        // Tienes que crear esta nueva vista.
+        return view('sellers/_seller_table', $data);
     }
 }
