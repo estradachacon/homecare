@@ -172,7 +172,7 @@ class TrackingController extends BaseController
         $packageModel = new PackageModel();
 
         $motorista_id = $this->request->getPost('motorista_id');
-        $fecha = $this->request->getPost('fecha');
+        $fecha_seguimiento = $this->request->getPost('fecha_tracking'); 
         $paquetes = $this->request->getPost('paquetes'); // array
 
         if (empty($motorista_id) || empty($paquetes)) {
@@ -186,7 +186,7 @@ class TrackingController extends BaseController
         $idHeader = $headerModel->insert([
             'user_id' => $motorista_id,
             'route_id' => $ruta_id,
-            'date' => $fecha ?: date('Y-m-d'),
+            'date' => $fecha_seguimiento ?: date('Y-m-d'), 
             'status' => 'asignado',
             'created_at' => date('Y-m-d H:i:s')
         ]);

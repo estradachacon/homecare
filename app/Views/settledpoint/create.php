@@ -1,74 +1,17 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-<style>
-    .autosize-input {
-        overflow: hidden;
-        /* oculta scrollbar vertical */
-        resize: none;
-        /* evita que el usuario cambie tamaño manualmente */
-        min-height: 38px;
-        /* altura mínima */
-        line-height: 1.5;
-        /* buena legibilidad */
-        transition: height 0.2s ease;
-        /* animación suave al crecer */
-        max-height: 146px;
-        /* aprox 5 líneas */
-    }
-
-    .table td .form-check {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        margin: 0;
-        padding: 0;
-    }
-
-    .form-check-input {
-        position: relative;
-        top: -1px;
-        /* o -2px si sigue un poco descentrado */
-    }
-
-
-    /* centrado del switch en su celda */
-    .day-switch {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 40px;
-    }
-
-    /* color del switch al estar activo (verde bootstrap) */
-    .form-check-input:checked {
-        background-color: #198754;
-        border-color: #198754;
-    }
-
-    /* colorcito de fondo en la celda activa */
-    .table td.day-active {
-        background-color: #e8f5e9 !important;
-        transition: background-color 0.3s ease;
-    }
-
-    /* más compacto visualmente */
-    .table th,
-    .table td {
-        vertical-align: middle !important;
-        padding: 0.4rem;
-    }
-</style>
 
 <div class="row">
     <div class="col-md-12">
-        <div class="card shadow-sm">
-            <div class="card-header d-flex justify-content-between">
+        <div class="card shadow-sm rounded-lg">
+            <div class="card-header d-flex justify-content-between bg-primary text-white">
                 <h4 class="mb-0">Nuevo Punto Fijo</h4>
             </div>
             <div class="card-body">
 
                 <?php if (session()->getFlashdata('errors')): ?>
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Errores de Validación</h4>
                         <ul class="mb-0">
                             <?php foreach (session()->getFlashdata('errors') as $error): ?>
                                 <li><?= esc($error) ?></li>
@@ -80,11 +23,12 @@
                 <form id="settledPointForm" action="<?= base_url('settledpoint') ?>" method="post" novalidate>
                     <?= csrf_field() ?>
                     <div class="row">
-                        <!-- Nombre -->
+                        <!-- Nombre/Descripción (Usando textarea con autosize-input) -->
                         <div class="col-md-6 mb-3">
                             <label for="point_name" class="form-label">Nombre del Punto Fijo</label>
-                            <input type="text" name="point_name" id="point_name" class="form-control" minlength="3"
-                                required>
+                            <!-- Cambiado a textarea para usar la clase autosize-input y la lógica JS -->
+                            <textarea name="point_name" id="point_name" class="form-control autosize-input" minlength="3"
+                                required><?= old('point_name') ?? '' ?></textarea>
                             <div class="invalid-feedback">
                                 El nombre debe tener al menos 3 caracteres.
                             </div>
@@ -96,8 +40,11 @@
                             <select name="ruta_id" id="ruta_id" class="form-select" required>
                                 <option value="">Seleccione una ruta</option>
                                 <?php if (isset($rutas) && count($rutas) > 0): ?>
-                                    <?php foreach ($rutas as $ruta): ?>
-                                        <option value="<?= esc($ruta->id) ?>">
+                                    <?php
+                                    $selectedRuta = old('ruta_id');
+                                    foreach ($rutas as $ruta):
+                                    ?>
+                                        <option value="<?= esc($ruta->id) ?>" <?= $selectedRuta == $ruta->id ? 'selected' : '' ?>>
                                             <?= esc($ruta->route_name) ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -106,9 +53,10 @@
                             <div class="invalid-feedback">Debe seleccionar una ruta.</div>
                         </div>
                     </div>
+
                     <!-- Configuración de días -->
-                    <div class="mb-3">
-                        <label class="form-label d-block mb-2">Días activos</label>
+                    <div class="mb-3 p-3 border rounded shadow-sm">
+                        <label class="form-label d-block mb-2 text-primary fw-bold">Días activos de configuración</label>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered text-center align-middle">
                                 <thead class="table-light">
@@ -126,12 +74,15 @@
                                     <tr>
                                         <?php
                                         $days = ['mon', 'tus', 'wen', 'thu', 'fri', 'sat', 'sun'];
+                                        $oldDays = session()->getFlashdata('days') ?? []; // Para retener el estado después del error
                                         foreach ($days as $day):
                                         ?>
-                                            <td>
+                                            <td class="p-0">
                                                 <div class="form-check form-switch day-switch">
+                                                    <!-- El hidden asegura que se envíe '0' si el checkbox no está marcado -->
                                                     <input type="hidden" name="<?= $day ?>" value="0">
-                                                    <input type="checkbox" class="form-check-input" id="<?= $day ?>" name="<?= $day ?>" value="1">
+                                                    <input type="checkbox" class="form-check-input" id="<?= $day ?>" name="<?= $day ?>" value="1"
+                                                        <?= in_array($day, $oldDays) || old($day) == 1 ? 'checked' : '' ?>>
                                                 </div>
                                             </td>
                                         <?php endforeach; ?>
@@ -146,112 +97,82 @@
                     <!-- Horario -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="hora_inicio" class="form-label">Hora de llegada</label>
-                            <input type="time" name="hora_inicio" id="hora_inicio" class="form-control" required>
+                            <label for="hora_inicio" class="form-label">Hora de llegada (HH:MM)</label>
+                            <input type="time" name="hora_inicio" id="hora_inicio" class="form-control" value="<?= old('hora_inicio') ?? '' ?>" required>
                             <div class="invalid-feedback">Ingrese la hora de llegada.</div>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label for="hora_fin" class="form-label">Hora de salida</label>
-                            <input type="time" name="hora_fin" id="hora_fin" class="form-control" required>
+                            <label for="hora_fin" class="form-label">Hora de salida (HH:MM)</label>
+                            <input type="time" name="hora_fin" id="hora_fin" class="form-control" value="<?= old('hora_fin') ?? '' ?>" required>
                             <div class="invalid-feedback">Ingrese la hora de salida.</div>
                         </div>
                     </div>
 
-                    <div>
-                        <a href="<?= base_url('settledpoint') ?>" class="btn btn-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-success">Guardar</button>
+                    <div class="d-flex justify-content-end pt-3 border-top">
+                        <a href="<?= base_url('settledpoint') ?>" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success">Guardar Punto Fijo</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('settledPointForm');
-        const textarea = document.querySelector('.autosize-input');
-        // Seleccionamos todos los checkboxes de la configuración de días
+        // Usamos querySelector para el textarea que ahora es 'point_name'
+        const autosizeTextarea = document.querySelector('.autosize-input');
         const daySwitches = document.querySelectorAll('.day-switch input[type="checkbox"]');
 
-        form.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Detiene envío real
-
-            // --- Validación Bootstrap ---
-            if (!form.checkValidity()) {
-                event.stopPropagation();
-                form.classList.add('was-validated');
-                return; // Detiene si no pasa la validación
+        // --- Lógica de Autoajuste del textarea ---
+        const resizeTextarea = (element) => {
+            if (element) {
+                element.style.height = 'auto';
+                element.style.height = element.scrollHeight + 'px';
             }
-            form.classList.add('was-validated');
+        };
 
-            // 2. CAPTURAR EL RESTO DE DATOS
-            const formData = new FormData(form);
-            const data = {};
-
-            // Agregar todos los campos excepto los 'days_configuration' originales
-            // que ahora reemplazaremos por nuestro array simple.
-            formData.forEach((value, key) => {
-                // Excluimos los inputs de días del formulario HTML
-                if (!key.includes('days_configuration')) {
-                    data[key] = value;
-                }
-            });
-            // Formatear para visualización y portapapeles
-            //const formatted = JSON.stringify(data, null, 2);
-
-            // --- Intentar copiar al clipboard (Tu código original de copia) ---
-            // try {
-            //     if (navigator.clipboard && window.isSecureContext) {
-            //         await navigator.clipboard.writeText(formatted);
-            //         alert("📋 Datos copiados al portapapeles:\n\n" + formatted);
-            //     } else {
-            //         // fallback para HTTP o navegadores viejos
-            //         const temp = document.createElement('textarea');
-            //         temp.value = formatted;
-            //         document.body.appendChild(temp);
-            //         temp.select();
-            //         document.execCommand('copy');
-            //         document.body.removeChild(temp);
-            //         alert("📋 Datos copiados (fallback):\n\n" + formatted);
-            //     }
-            // } catch (err) {
-            //     console.error("❌ Error copiando al portapapeles:", err);
-            //     alert("⚠️ No se pudo copiar automáticamente.\nPodés copiarlo manualmente:\n\n" + formatted);
-            // }
-            form.submit();
-        });
-
-        // --- Autoajuste del textarea (Tu código original) ---
-        if (textarea) {
-            textarea.addEventListener('input', () => {
-                textarea.style.height = 'auto';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            });
+        if (autosizeTextarea) {
+            // Ajuste inicial por si carga con contenido antiguo (old())
+            resizeTextarea(autosizeTextarea);
+            autosizeTextarea.addEventListener('input', () => resizeTextarea(autosizeTextarea));
         }
 
-        // --- Colorcito para switches activos (Tu código original) ---
+        // --- Lógica de Coloreo de celdas para switches activos ---
         daySwitches.forEach(sw => {
             const cell = sw.closest('td');
-            if (sw.checked) cell.classList.add('day-active');
-            sw.addEventListener('change', () => {
+
+            // Función para alternar la clase 'day-active'
+            const toggleActiveClass = () => {
                 cell.classList.toggle('day-active', sw.checked);
-            });
+            };
+
+            // Aplicar el color inicial si ya está chequeado (ej. por old data)
+            toggleActiveClass();
+
+            // Escuchar el cambio
+            sw.addEventListener('change', toggleActiveClass);
         });
-    });
-</script>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const switches = document.querySelectorAll('.day-switch input[type="checkbox"]');
+        // --- Lógica de Validación del Formulario (Bootstrap) ---
+        form.addEventListener('submit', function(event) {
+            // Validación de Bootstrap 5
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
 
-        switches.forEach(sw => {
-            const cell = sw.closest('td');
-            if (sw.checked) cell.classList.add('day-active');
+            // Validación adicional para asegurar que al menos un día esté activo (opcional, pero útil)
+            const oneDayActive = Array.from(daySwitches).some(sw => sw.checked);
+            if (!oneDayActive) {
+                // Si necesitas que al menos un día sea obligatorio, aquí lo validarías
+                // Pero por ahora, solo validamos lo nativo de HTML y Bootstrap.
+            }
 
-            sw.addEventListener('change', () => {
-                cell.classList.toggle('day-active', sw.checked);
-            });
+            form.classList.add('was-validated');
+            // Si todo está bien, el form se envía automáticamente.
         });
     });
 </script>

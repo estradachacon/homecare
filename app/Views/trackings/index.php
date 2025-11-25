@@ -2,21 +2,43 @@
 <?= $this->section('content') ?>
 
 <style>
+    /* Estilos existentes */
     #filter_motorista,
     #filter_status {
         width: 100%;
         height: 38px;
-        padding: 5px 10px;
+        padding: 8px 10px;
         font-size: 14px;
         border-radius: 4px;
     }
     .table-primary {
-    background-color: #d1ecf1 !important; /* celeste claro */
-    font-weight: 600;
-}
+        background-color: #d1ecf1 !important; /* celeste claro */
+        font-weight: 600;
+    }
 
+    /* --- NUEVOS ESTILOS PARA REDUCIR ALTURA DE FILAS --- */
+    /* Reduce el padding de las celdas del encabezado (th) y del cuerpo (td) */
+    .table-striped th,
+    .table-striped td {
+        /* Ejemplo: 4px arriba/abajo, 8px izquierda/derecha. Ajusta a tu gusto */
+        padding: 8px 10px; 
+        vertical-align: middle; /* Opcional: Centra verticalmente el contenido */
+        font-size: 14px; /* Opcional: Reduce un poco el tamaño de la fuente si lo necesitas */
+    }
+
+    /* Para las filas de grupo con color (table-primary) */
+    .table-primary td {
+        padding: 8px 10px !important; /* Asegúrate de que las filas de grupo también sean compactas */
+    }
+
+    /* Puedes quitar el line-height: 10px; de la tabla y tbody si usas el padding */
+    .table {
+        /* line-height: 1.5; o simplemente no lo especifiques y usa el padding */
+        line-height: 1.2; /* Una línea más apretada puede ayudar */
+    }
+    /* Quitamos el line-height que tenías en el tbody si ya se aplica a la tabla/td */
+    /* .table-striped tbody { line-height: 10px; } */ 
 </style>
-
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -108,19 +130,19 @@
                 </form>
 
                 <!-- TABLA -->
-                <table class="table table-striped table-bordered table-hover">
+                <table class="table table-striped table-bordered table-hover" style="line-height: 10px;">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Motorista</th>
                             <th>Ruta</th>
-                            <th>Fecha de entrega</th>
+                            <th>Fecha de ruta</th>
                             <th>Estatus</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody style="line-height: 10px;">
 <?php if (!empty($trackings)): ?>
 
     <?php 
@@ -144,7 +166,7 @@
         <td><?= esc($t->route_name) ?></td>
         <td><?= esc($trackingDate) ?></td>
         <td><?= statusBadge($t->status ?? 'N/A') ?></td>
-        <td>
+        <td class="text-center">
             <div class="dropdown">
                 <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
                     data-toggle="dropdown">Acciones</button>
@@ -156,11 +178,13 @@
                         </a>
                     </li>
 
-                    <li>
+                    <!-- MODIFICACIÓN: Ocultar si el estado es 'finalizado' -->
+                    <?php if ($t->status !== 'finalizado'): ?>
                         <a class="dropdown-item" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
                             <i class="fa-solid fa-truck"></i> Seguimiento
                         </a>
                     </li>
+                    <?php endif; ?>
 
                     <li>
                         <a class="dropdown-item" href="<?= base_url('tracking/edit/' . $t->id) ?>">
