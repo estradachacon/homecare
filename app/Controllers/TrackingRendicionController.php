@@ -21,8 +21,6 @@ class TrackingRendicionController extends BaseController
 
     public function index($trackingId)
     {
-        // ... (Tu código existente para index)
-
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
         $userModel = new \App\Models\UserModel();
 

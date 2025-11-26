@@ -10,6 +10,7 @@
         font-size: 14px;
         border-radius: 4px;
     }
+
     .select2-container--bootstrap4 .select2-selection--single {
         height: 38px !important;
         line-height: 28px !important;
@@ -230,21 +231,30 @@
                                             <strong>Día de entrega:</strong>
                                             <?php
                                             $fechaEntrega = null;
-                                            if ($pkg['tipo_servicio'] == 1) { // Punto fijo
+
+                                            if ($pkg['tipo_servicio'] == 1) {
+                                                // Punto fijo
                                                 $fechaEntrega = $pkg['fecha_entrega_puntofijo'] ?? null;
-                                            } elseif ($pkg['tipo_servicio'] == 2) { // Personalizado
+                                            } elseif ($pkg['tipo_servicio'] == 2) {
+                                                // Personalizado
                                                 $fechaEntrega = $pkg['fecha_entrega_personalizado'] ?? null;
-                                            } elseif ($pkg['tipo_servicio'] == 3) { // Recolecta
-                                                $fechaEntrega = $pkg['fecha_entrega_personalizado'] ?? null;
-                                            } elseif ($pkg['tipo_servicio'] == 4) { // Casillero
-                                                $fechaEntrega = null; // no aplica
+                                            } elseif ($pkg['tipo_servicio'] == 3) {
+                                                // Recolecta: puede ser personalizado o punto fijo
+                                                if (!empty($pkg['id_puntofijo'])) {
+                                                    $fechaEntrega = $pkg['fecha_entrega_puntofijo'] ?? null;
+                                                } elseif (!empty($pkg['destino_personalizado'])) {
+                                                    $fechaEntrega = $pkg['fecha_entrega_personalizado'] ?? null;
+                                                }
+                                            } elseif ($pkg['tipo_servicio'] == 4) {
+                                                // Casillero
+                                                $fechaEntrega = null;
                                             }
                                             ?>
+
                                             <span class="text-muted">
                                                 <?= $fechaEntrega ? esc(formatFechaConDia($fechaEntrega)) : 'Pendiente' ?>
                                             </span>
                                         </div>
-
                                     </td>
 
                                     <td>
@@ -343,78 +353,78 @@
                                         </div>
                                     <?php endif; ?>
                                 </tr>
-<?php foreach ($packages as $pkg): ?>
-                                <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
+                                <?php foreach ($packages as $pkg): ?>
+                                    <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
 
-                                <div class="modal fade" id="setDestinoModal<?= $pkg['id'] ?>" tabindex="-1">
-                                    <div class="modal-dialog modal-md modal-dialog-centered">
-                                        <div class="modal-content">
+                                        <div class="modal fade" id="setDestinoModal<?= $pkg['id'] ?>" tabindex="-1">
+                                            <div class="modal-dialog modal-md modal-dialog-centered">
+                                                <div class="modal-content">
 
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Agregar destino al paquete #<?= $pkg['id'] ?></h5>
-                                                <button class="close" data-dismiss="modal"><span>&times;</span></button>
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Agregar destino al paquete #<?= $pkg['id'] ?></h5>
+                                                        <button class="close" data-dismiss="modal"><span>&times;</span></button>
+                                                    </div>
+
+                                                    <form method="post" action="<?= base_url('packages-setDestino') ?>">
+                                                        <?= csrf_field() ?>
+
+                                                        <div class="modal-body">
+
+                                                            <input type="hidden" name="id" value="<?= $pkg['id'] ?>">
+
+                                                            <!-- Tipo de destino -->
+                                                            <label class="form-label">Tipo de destino</label>
+                                                            <select name="tipo_destino" class="form-control selDestino" data-id="<?= $pkg['id'] ?>">
+                                                                <option value="">Seleccione...</option>
+                                                                <option value="punto">Punto fijo</option>
+                                                                <option value="personalizado">Destino personalizado</option>
+                                                                <option value="casillero">Casillero</option>
+                                                            </select>
+
+                                                            <!-- PUNTO FIJO -->
+                                                            <div class="mt-3 d-none divDestino" id="divPunto<?= $pkg['id'] ?>">
+                                                                <label>Punto fijo</label>
+                                                                <select name="id_puntofijo" class="form-control select2punto puntoSelect" data-id="<?= $pkg['id'] ?>">
+                                                                    <option value="">Seleccione...</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <!-- PERSONALIZADO -->
+                                                            <div class="mt-3 d-none divDestino" id="divPersonalizado<?= $pkg['id'] ?>">
+                                                                <label>Dirección personalizada</label>
+                                                                <input type="text" name="destino_personalizado"
+                                                                    class="form-control inputPersonalizado"
+                                                                    placeholder="Escriba el destino...">
+                                                            </div>
+
+                                                            <!-- CASILLERO -->
+                                                            <div class="mt-3 d-none divDestino" id="divCasillero<?= $pkg['id'] ?>">
+                                                                <label>Destino</label>
+                                                                <input type="text" class="form-control" value="Casillero" readonly>
+                                                            </div>
+
+                                                            <!-- FECHA DE ENTREGA -->
+                                                            <div class="mt-3" id="fechaEntregaBox<?= $pkg['id'] ?>" style="display:none;">
+                                                                <label>Fecha de entrega</label>
+                                                                <input type="text" name=""
+                                                                    class="form-control fechaEntrega"
+                                                                    id="fechaEntrega<?= $pkg['id'] ?>" autocomplete="off">
+                                                            </div>
+
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                                            <button class="btn btn-primary">Guardar destino</button>
+                                                        </div>
+
+                                                    </form>
+
+                                                </div>
                                             </div>
-
-                                            <form method="post" action="<?= base_url('packages-setDestino') ?>">
-                                                <?= csrf_field() ?>
-
-                                                <div class="modal-body">
-
-                                                    <input type="hidden" name="id" value="<?= $pkg['id'] ?>">
-
-                                                    <!-- Tipo de destino -->
-                                                    <label class="form-label">Tipo de destino</label>
-                                                    <select name="tipo_destino" class="form-control selDestino" data-id="<?= $pkg['id'] ?>">
-                                                        <option value="">Seleccione...</option>
-                                                        <option value="punto">Punto fijo</option>
-                                                        <option value="personalizado">Destino personalizado</option>
-                                                        <option value="casillero">Casillero</option>
-                                                    </select>
-
-                                                    <!-- PUNTO FIJO -->
-                                                    <div class="mt-3 d-none divDestino" id="divPunto<?= $pkg['id'] ?>">
-                                                        <label>Punto fijo</label>
-                                                        <select name="id_puntofijo" class="form-control select2punto puntoSelect" data-id="<?= $pkg['id'] ?>">
-                                                            <option value="">Seleccione...</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <!-- PERSONALIZADO -->
-                                                    <div class="mt-3 d-none divDestino" id="divPersonalizado<?= $pkg['id'] ?>">
-                                                        <label>Dirección personalizada</label>
-                                                        <input type="text" name="destino_personalizado"
-                                                            class="form-control inputPersonalizado" 
-                                                            placeholder="Escriba el destino...">
-                                                    </div>
-
-                                                    <!-- CASILLERO -->
-                                                    <div class="mt-3 d-none divDestino" id="divCasillero<?= $pkg['id'] ?>">
-                                                        <label>Destino</label>
-                                                        <input type="text" class="form-control" value="Casillero" readonly>
-                                                    </div>
-
-                                                    <!-- FECHA DE ENTREGA -->
-                                                    <div class="mt-3" id="fechaEntregaBox<?= $pkg['id'] ?>" style="display:none;">
-                                                        <label>Fecha de entrega</label>
-                                                        <input type="text" name=""
-                                                            class="form-control fechaEntrega"
-                                                            id="fechaEntrega<?= $pkg['id'] ?>" autocomplete="off">
-                                                    </div>
-
-                                                </div>
-
-                                                <div class="modal-footer">
-                                                    <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                                                    <button class="btn btn-primary">Guardar destino</button>
-                                                </div>
-
-                                            </form>
-
                                         </div>
-                                    </div>
-                                </div>
 
-                                <?php endif; ?>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
 
                             <?php endforeach; ?>
@@ -434,168 +444,176 @@
 </div>
 
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    // ---------------------------
-    // Select2 AJAX punto fijo
-    // ---------------------------
-    $('.select2punto').each(function () {
-        $(this).select2({
-            theme: 'bootstrap4',
-            width: '100%',
-            placeholder: '🔍 Buscar punto fijo...',
-            dropdownParent: $(this).closest('.modal'),
-            ajax: {
-                url: "<?= base_url('settledPoints/getList') ?>",
-                dataType: 'json',
-                delay: 250,
-                data: params => ({ q: params.term }),
-                processResults: data => ({
-                    results: data.map(item => ({
-                        id: item.id,
-                        text: item.point_name
-                    }))
-                })
-            }
-        });
-    });
-
-    // ---------------------------
-    // Control del tipo de destino
-    // ---------------------------
-    $('.selDestino').on('change', function () {
-
-        let id = $(this).data('id');
-        let tipo = $(this).val();
-        let fechaInput = $('#fechaEntrega' + id);
-
-        // Ocultar todos los bloques
-        $('#divPunto' + id).addClass('d-none');
-        $('#divPersonalizado' + id).addClass('d-none');
-        $('#divCasillero' + id).addClass('d-none');
-
-        // Reset general: mostrar contenedor fecha
-        $('#fechaEntregaBox' + id).show();
-
-        // Limpiar datepicker anterior (si existe)
-        fechaInput.data('daterangepicker')?.remove();
-
-        if (tipo === 'punto') {
-            $('#divPunto' + id).removeClass('d-none');
-            fechaInput.attr('name', 'fecha_entrega_puntofijo');
-        }
-
-        if (tipo === 'personalizado') {
-            $('#divPersonalizado' + id).removeClass('d-none');
-            
-            // 🔥 Name correcto
-            fechaInput.attr('name', 'fecha_entrega_personalizado');
-
-            // Si está vacío, poner fecha de hoy
-            if (!fechaInput.val()) {
-                fechaInput.val(moment().format('YYYY-MM-DD'));
-            }
-
-            // Activar datepicker simple
-            fechaInput.daterangepicker({
-                singleDatePicker: true,
-                autoApply: true,
-                showDropdowns: true,
-                locale: { format: 'YYYY-MM-DD', firstDay: 1 }
+        // ---------------------------
+        // Select2 AJAX punto fijo
+        // ---------------------------
+        $('.select2punto').each(function() {
+            $(this).select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: '🔍 Buscar punto fijo...',
+                dropdownParent: $(this).closest('.modal'),
+                ajax: {
+                    url: "<?= base_url('settledPoints/getList') ?>",
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({
+                        q: params.term
+                    }),
+                    processResults: data => ({
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.point_name
+                        }))
+                    })
+                }
             });
-        }
+        });
 
-        if (tipo === 'casillero') {
-            $('#divCasillero' + id).removeClass('d-none');
-            
-            // Sin fecha para casillero
-            fechaInput.attr('name', '');
-            fechaInput.val('');
-            $('#fechaEntregaBox' + id).hide();
-        }
-    });
+        // ---------------------------
+        // Control del tipo de destino
+        // ---------------------------
+        $('.selDestino').on('change', function() {
 
-    // ---------------------------
-    // Fecha según punto fijo
-    // ---------------------------
-    $('.puntoSelect').on('change', function () {
+            let id = $(this).data('id');
+            let tipo = $(this).val();
+            let fechaInput = $('#fechaEntrega' + id);
 
-        let puntoId = $(this).val();
-        let paqueteId = $(this).data('id');
-        let inputFecha = $('#fechaEntrega' + paqueteId);
+            // Ocultar todos los bloques
+            $('#divPunto' + id).addClass('d-none');
+            $('#divPersonalizado' + id).addClass('d-none');
+            $('#divCasillero' + id).addClass('d-none');
 
-        if (!puntoId) {
-            inputFecha.val('');
-            return;
-        }
+            // Reset general: mostrar contenedor fecha
+            $('#fechaEntregaBox' + id).show();
 
-        $.ajax({
-            url: "<?= base_url('settledPoints/getDays') ?>/" + puntoId,
-            method: "GET",
-            dataType: "json",
-            success: function (days) {
+            // Limpiar datepicker anterior (si existe)
+            fechaInput.data('daterangepicker')?.remove();
 
-                const allowedDays = [];
-                if (days.sun) allowedDays.push(0);
-                if (days.mon) allowedDays.push(1);
-                if (days.tus) allowedDays.push(2);
-                if (days.wen) allowedDays.push(3);
-                if (days.thu) allowedDays.push(4);
-                if (days.fri) allowedDays.push(5);
-                if (days.sat) allowedDays.push(6);
+            if (tipo === 'punto') {
+                $('#divPunto' + id).removeClass('d-none');
+                fechaInput.attr('name', 'fecha_entrega_puntofijo');
+            }
 
-                let nextValid = moment();
-                for (let i = 0; i < 14; i++) {
-                    if (allowedDays.includes(nextValid.day())) break;
-                    nextValid.add(1, 'days');
+            if (tipo === 'personalizado') {
+                $('#divPersonalizado' + id).removeClass('d-none');
+
+                // 🔥 Name correcto
+                fechaInput.attr('name', 'fecha_entrega_personalizado');
+
+                // Si está vacío, poner fecha de hoy
+                if (!fechaInput.val()) {
+                    fechaInput.val(moment().format('YYYY-MM-DD'));
                 }
 
-                inputFecha.data('daterangepicker')?.remove();
-
-                inputFecha.daterangepicker({
+                // Activar datepicker simple
+                fechaInput.daterangepicker({
                     singleDatePicker: true,
-                    showDropdowns: true,
                     autoApply: true,
-                    startDate: nextValid,
-                    autoUpdateInput: true,
-                    isInvalidDate: d => !allowedDays.includes(d.day()),
-                    locale: { format: 'YYYY-MM-DD', firstDay: 1 }
+                    showDropdowns: true,
+                    locale: {
+                        format: 'YYYY-MM-DD',
+                        firstDay: 1
+                    }
                 });
+            }
 
-                inputFecha.val(nextValid.format('YYYY-MM-DD'));
+            if (tipo === 'casillero') {
+                $('#divCasillero' + id).removeClass('d-none');
+
+                // Sin fecha para casillero
+                fechaInput.attr('name', '');
+                fechaInput.val('');
+                $('#fechaEntregaBox' + id).hide();
             }
         });
+
+        // ---------------------------
+        // Fecha según punto fijo
+        // ---------------------------
+        $('.puntoSelect').on('change', function() {
+
+            let puntoId = $(this).val();
+            let paqueteId = $(this).data('id');
+            let inputFecha = $('#fechaEntrega' + paqueteId);
+
+            if (!puntoId) {
+                inputFecha.val('');
+                return;
+            }
+
+            $.ajax({
+                url: "<?= base_url('settledPoints/getDays') ?>/" + puntoId,
+                method: "GET",
+                dataType: "json",
+                success: function(days) {
+
+                    const allowedDays = [];
+                    if (days.sun) allowedDays.push(0);
+                    if (days.mon) allowedDays.push(1);
+                    if (days.tus) allowedDays.push(2);
+                    if (days.wen) allowedDays.push(3);
+                    if (days.thu) allowedDays.push(4);
+                    if (days.fri) allowedDays.push(5);
+                    if (days.sat) allowedDays.push(6);
+
+                    let nextValid = moment();
+                    for (let i = 0; i < 14; i++) {
+                        if (allowedDays.includes(nextValid.day())) break;
+                        nextValid.add(1, 'days');
+                    }
+
+                    inputFecha.data('daterangepicker')?.remove();
+
+                    inputFecha.daterangepicker({
+                        singleDatePicker: true,
+                        showDropdowns: true,
+                        autoApply: true,
+                        startDate: nextValid,
+                        autoUpdateInput: true,
+                        isInvalidDate: d => !allowedDays.includes(d.day()),
+                        locale: {
+                            format: 'YYYY-MM-DD',
+                            firstDay: 1
+                        }
+                    });
+
+                    inputFecha.val(nextValid.format('YYYY-MM-DD'));
+                }
+            });
+        });
+
     });
-
-});
-
 </script>
+
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    // Interceptar SOLO los forms de agregar destino
-    $("form[action*='packages-setDestino']").on("submit", function (e) {
-        e.preventDefault();
+        // Interceptar SOLO los forms de agregar destino
+        $("form[action*='packages-setDestino']").on("submit", function(e) {
+            e.preventDefault();
 
-        let form = this;
+            let form = this;
 
-        Swal.fire({
-            title: "¿Guardar destino?",
-            text: "Confirmar que deseas establecer el destino seleccionado",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Sí, guardar",
-            cancelButtonText: "Cancelar"
-        }).then((result) => {
+            Swal.fire({
+                title: "¿Guardar destino?",
+                text: "Confirmar que deseas establecer el destino seleccionado",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Sí, guardar",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
 
-            if (result.isConfirmed) {
-                form.submit(); // ahora sí envía
-            }
+                if (result.isConfirmed) {
+                    form.submit(); // ahora sí envía
+                }
+
+            });
 
         });
 
     });
-
-});
 </script>
 <?= $this->endSection() ?>
