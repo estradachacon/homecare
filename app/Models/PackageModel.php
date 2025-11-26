@@ -31,8 +31,20 @@ class PackageModel extends Model
         'fragil',
         'fecha_pack_entregado',
         'estatus',
+        'estatus2',
         'user_id'
     ];
     protected $updatedField = 'updated_at';
     protected $createdField = 'created_at';
+    
+    public function getFullPackage($id)
+    {
+        return $this->select('
+            packages.*,
+            puntos_fijos.nombre AS puntofijo_nombre
+        ')
+            ->join('puntos_fijos', 'puntos_fijos.id = packages.id_puntofijo', 'left')
+            ->where('packages.id', $id)
+            ->first();
+    }
 }

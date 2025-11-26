@@ -85,60 +85,60 @@ class PackageController extends BaseController
         ]);
     }
 
-public function show($id = null)
-{
-    // Traemos el paquete con joins a usuario, punto fijo y vendedor
-    $package = $this->packageModel
-        ->select('packages.*, users.user_name as creador_nombre, settled_points.point_name as point_name, sellers.seller as seller_name')
-        ->join('users', 'users.id = packages.user_id', 'left')
-        ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
-        ->join('sellers', 'sellers.id = packages.vendedor', 'left')
-        ->where('packages.id', $id)
-        ->first();
+    public function show($id = null)
+    {
+        // Traemos el paquete con joins a usuario, punto fijo y vendedor
+        $package = $this->packageModel
+            ->select('packages.*, users.user_name as creador_nombre, settled_points.point_name as point_name, sellers.seller as seller_name')
+            ->join('users', 'users.id = packages.user_id', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->where('packages.id', $id)
+            ->first();
 
-    if (!$package) {
-        throw new \CodeIgniter\Exceptions\PageNotFoundException("Paquete no encontrado");
+        if (!$package) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException("Paquete no encontrado");
+        }
+
+        // Normalizamos a array para que tu vista use siempre $package['campo']
+        $package = (array) $package;
+
+        // DEBUG: Verificar que el campo 'foto' existe (puedes eliminar esto después)
+        if (!array_key_exists('foto', $package)) {
+            log_message('error', "Campo 'foto' no encontrado en package ID: " . $id);
+            $package['foto'] = null; // Asegurar que existe la clave
+        }
+
+        // Calculamos un campo destinos para mostrar en un solo lugar si quieres
+        $destinos = [];
+        switch ($package['tipo_servicio']) {
+            case 1: // Punto fijo
+                $destinos[] = $package['point_name'] ?? 'N/A';
+                $package['fecha_entrega_mostrar'] = $package['fecha_entrega_puntofijo'] ?? 'Pendiente';
+                break;
+            case 2: // Personalizado
+                $destinos[] = $package['destino_personalizado'] ?? 'N/A';
+                $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
+                break;
+            case 3: // Recolección y entrega final
+                $destinos[] = $package['lugar_recolecta_paquete'] ?? 'N/A';
+                if (!empty($package['destino_entrega_final'])) {
+                    $destinos[] = $package['destino_entrega_final'];
+                }
+                $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
+                break;
+            case 4: // Casillero
+                $destinos[] = $package['numero_casillero'] ?? 'N/A';
+                $package['fecha_entrega_mostrar'] = 'Pendiente';
+                break;
+        }
+
+        $package['destinos'] = implode(' → ', $destinos);
+
+        return view('packages/show', [
+            'package' => $package
+        ]);
     }
-
-    // Normalizamos a array para que tu vista use siempre $package['campo']
-    $package = (array) $package;
-
-    // DEBUG: Verificar que el campo 'foto' existe (puedes eliminar esto después)
-    if (!array_key_exists('foto', $package)) {
-        log_message('error', "Campo 'foto' no encontrado en package ID: " . $id);
-        $package['foto'] = null; // Asegurar que existe la clave
-    }
-
-    // Calculamos un campo destinos para mostrar en un solo lugar si quieres
-    $destinos = [];
-    switch ($package['tipo_servicio']) {
-        case 1: // Punto fijo
-            $destinos[] = $package['point_name'] ?? 'N/A';
-            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_puntofijo'] ?? 'Pendiente';
-            break;
-        case 2: // Personalizado
-            $destinos[] = $package['destino_personalizado'] ?? 'N/A';
-            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
-            break;
-        case 3: // Recolección y entrega final
-            $destinos[] = $package['lugar_recolecta_paquete'] ?? 'N/A';
-            if (!empty($package['destino_entrega_final'])) {
-                $destinos[] = $package['destino_entrega_final'];
-            }
-            $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
-            break;
-        case 4: // Casillero
-            $destinos[] = $package['numero_casillero'] ?? 'N/A';
-            $package['fecha_entrega_mostrar'] = 'Pendiente';
-            break;
-    }
-
-    $package['destinos'] = implode(' → ', $destinos);
-
-    return view('packages/show', [
-        'package' => $package
-    ]);
-}
 
     public function new()
     {
@@ -290,7 +290,7 @@ public function show($id = null)
 
         $id = $this->request->getPost('id');
         $tipo = $this->request->getPost('tipo_destino');
-
+        
         $package = $this->packageModel->find($id);
         if (!$package) {
             return redirect()->back()->with('error', 'Paquete no encontrado');
@@ -315,7 +315,6 @@ public function show($id = null)
 
             $log_message = 'Destino actualizado a PUNTOS FIJOS (ID: ' . esc($puntoFijoId) . ')';
             $log_details = 'Fecha de entrega punto fijo: ' . esc($fechaEntregaPuntoFijo);
-
         } elseif ($tipo === 'personalizado') {
             $destinoPersonalizado = $this->request->getPost('destino_personalizado');
             $fechaEntregaPersonalizado = $this->request->getPost('fecha_entrega_personalizado');
@@ -331,7 +330,6 @@ public function show($id = null)
 
             $log_message = 'Destino actualizado a PERSONALIZADO';
             $log_details = 'Dirección: ' . esc($destinoPersonalizado) . ', Fecha de entrega: ' . esc($fechaEntregaPersonalizado);
-
         } elseif ($tipo === 'casillero') {
 
             $data = [
@@ -364,5 +362,19 @@ public function show($id = null)
 
         return redirect()->back()->with('error', 'Tipo de destino no válido o faltante.');
     }
+public function getPackageData($id)
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setStatusCode(400)->setJSON(['error' => 'Petición no válida']);
+    }
+
+    $package = $this->packageModel->getFullPackage($id);
+
+    if (!$package) {
+        return $this->response->setStatusCode(404)->setJSON(['error' => 'Paquete no encontrado']);
+    }
+
+    return $this->response->setJSON($package);
+}
 
 }

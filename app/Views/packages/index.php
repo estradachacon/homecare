@@ -1,22 +1,9 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
-<style>
-    #filter_seller {
-        width: 100%;
-        height: 38px;
-        /* altura visible */
-        padding: 5px 10px;
-        font-size: 14px;
-        border-radius: 4px;
-    }
-
-    .select2-container--bootstrap4 .select2-selection--single {
-        height: 38px !important;
-        line-height: 28px !important;
-        padding: 5px 12px !important;
-    }
-</style>
+<script>
+    const base_url = "<?= base_url() ?>";
+</script>
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -256,7 +243,6 @@
                                             </span>
                                         </div>
                                     </td>
-
                                     <td>
                                         <div>
                                             <strong>Monto:</strong>
@@ -268,7 +254,6 @@
                                             $<?= number_format($pkg['flete_total'], 2) ?>
                                         </div>
                                     </td>
-
                                     <td style="text-align:center; vertical-align:middle;">
                                         <div style="
                                             display:flex;
@@ -286,7 +271,7 @@
                                             <button class="btn btn-sm btn-primary dropdown-toggle" type="button"
                                                 data-toggle="dropdown">Acciones
                                             </button>
-                                            <ul class="dropdown-menu" style="min-width: 220px !important;">
+                                            <ul class="dropdown-menu" style="min-width: 230px !important;">
 
                                                 <!-- Ver paquete -->
                                                 <li>
@@ -312,12 +297,18 @@
                                                 </li>
 
                                                 <!-- Editar -->
-                                                <li>
-                                                    <a class="dropdown-item"
-                                                        href="<?= base_url('packages/edit/' . $pkg['id']) ?>">
-                                                        <i class="fa-solid fa-pencil"></i>Editar
-                                                    </a>
-                                                </li>
+                                                <?php if (
+                                                    $pkg['estatus'] == 'pendiente' ||
+                                                    $pkg['estatus'] == 'recolectado' ||
+                                                    $pkg['estatus'] == 'no_retirado'
+                                                ): ?>
+                                                    <li>
+                                                        <a class="dropdown-item"
+                                                            href="<?= base_url('packages/edit/' . $pkg['id']) ?>">
+                                                            <i class="fa-solid fa-pencil"></i>Editar paquete
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
                                                 <!-- AGREGAR DESTINO (solo si es recolecta y no tiene destino final) -->
                                                 <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
                                                     <li>
@@ -326,113 +317,51 @@
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
+                                                <!-- CONFIGURAR REENVÍO -->
+                                                <?php if ($pkg['tipo_servicio'] == 3 && $pkg['estatus'] == 'no_retirado'): ?>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#reenvioModal<?= $pkg['id'] ?>">
+                                                            <i class="fa-solid fa-repeat"></i> Configurar reenvío
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
+                                                <!-- DEVOLVER PAQUETE -->
+                                                <?php if (
+                                                    $pkg['estatus'] == 'pendiente' ||
+                                                    $pkg['estatus'] == 'recolectado' ||
+                                                    $pkg['estatus'] == 'no_retirado'
+                                                ): ?>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#devolucionModal<?= $pkg['id'] ?>">
+                                                            <i class="fa-solid fa-undo"></i> Devolver paquete
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
                                             </ul>
                                         </div>
                                     </td>
-                                    <?php if (!empty($pkg['foto'])): ?>
-                                        <div class="modal fade" id="fotoModal<?= $pkg['id'] ?>" tabindex="-1" role="dialog">
-                                            <div class="modal-dialog modal-lg modal-dialog-centered" role="document"
-                                                style="max-width: 90%;">
-                                                <div class="modal-content">
-
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Foto del paquete #<?= esc($pkg['id']) ?></h5>
-                                                        <button type="button" class="close" data-dismiss="modal">
-                                                            <span>&times;</span>
-                                                        </button>
-                                                    </div>
-
-                                                    <div class="modal-body text-center">
-                                                        <img src="<?= base_url('upload/paquetes/' . $pkg['foto']) ?>"
-                                                            alt="Foto del paquete" class="img-fluid rounded"
-                                                            style="max-height: 80vh; object-fit: contain;">
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
+                                    <?php $this->setVar('pkg', $pkg); ?>
+                                    <?= $this->include('modals/package_index_photoview') ?>
+                                <?php endforeach; ?>
                                 </tr>
                                 <?php foreach ($packages as $pkg): ?>
-                                    <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
+                                    <tr>
+                                        <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
 
-                                        <div class="modal fade" id="setDestinoModal<?= $pkg['id'] ?>" tabindex="-1">
-                                            <div class="modal-dialog modal-md modal-dialog-centered">
-                                                <div class="modal-content">
+                                            <?php $this->setVar('pkg', $pkg); ?>
+                                            <?php $this->setVar('puntos_fijos', $puntos_fijos); ?>
 
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Agregar destino al paquete #<?= $pkg['id'] ?></h5>
-                                                        <button class="close" data-dismiss="modal"><span>&times;</span></button>
-                                                    </div>
+                                            <?= $this->include('modals/package_index_add_destino') ?>
 
-                                                    <form method="post" action="<?= base_url('packages-setDestino') ?>">
-                                                        <?= csrf_field() ?>
-
-                                                        <div class="modal-body">
-
-                                                            <input type="hidden" name="id" value="<?= $pkg['id'] ?>">
-
-                                                            <!-- Tipo de destino -->
-                                                            <label class="form-label">Tipo de destino</label>
-                                                            <select name="tipo_destino" class="form-control selDestino" data-id="<?= $pkg['id'] ?>">
-                                                                <option value="">Seleccione...</option>
-                                                                <option value="punto">Punto fijo</option>
-                                                                <option value="personalizado">Destino personalizado</option>
-                                                                <option value="casillero">Casillero</option>
-                                                            </select>
-
-                                                            <!-- PUNTO FIJO -->
-                                                            <div class="mt-3 d-none divDestino" id="divPunto<?= $pkg['id'] ?>">
-                                                                <label>Punto fijo</label>
-                                                                <select name="id_puntofijo" class="form-control select2punto puntoSelect" data-id="<?= $pkg['id'] ?>">
-                                                                    <option value="">Seleccione...</option>
-                                                                </select>
-                                                            </div>
-
-                                                            <!-- PERSONALIZADO -->
-                                                            <div class="mt-3 d-none divDestino" id="divPersonalizado<?= $pkg['id'] ?>">
-                                                                <label>Dirección personalizada</label>
-                                                                <input type="text" name="destino_personalizado"
-                                                                    class="form-control inputPersonalizado"
-                                                                    placeholder="Escriba el destino...">
-                                                            </div>
-
-                                                            <!-- CASILLERO -->
-                                                            <div class="mt-3 d-none divDestino" id="divCasillero<?= $pkg['id'] ?>">
-                                                                <label>Destino</label>
-                                                                <input type="text" class="form-control" value="Casillero" readonly>
-                                                            </div>
-
-                                                            <!-- FECHA DE ENTREGA -->
-                                                            <div class="mt-3" id="fechaEntregaBox<?= $pkg['id'] ?>" style="display:none;">
-                                                                <label>Fecha de entrega</label>
-                                                                <input type="text" name=""
-                                                                    class="form-control fechaEntrega"
-                                                                    id="fechaEntrega<?= $pkg['id'] ?>" autocomplete="off">
-                                                            </div>
-
-                                                        </div>
-
-                                                        <div class="modal-footer">
-                                                            <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                                                            <button class="btn btn-primary">Guardar destino</button>
-                                                        </div>
-
-                                                    </form>
-
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    <?php endif; ?>
+                                        <?php endif; ?>
+                                    </tr>
                                 <?php endforeach; ?>
 
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="10" class="text-center">No hay paquetes registrados</td>
-                            </tr>
-                        <?php endif; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="10" class="text-center">No hay paquetes registrados</td>
+                                </tr>
+                            <?php endif; ?>
                     </tbody>
                 </table>
                 <div class="d-flex justify-content-center mt-3">
@@ -442,161 +371,12 @@
         </div>
     </div>
 </div>
-
 <script>
     $(document).ready(function() {
-
-        // ---------------------------
-        // Select2 AJAX punto fijo
-        // ---------------------------
-        $('.select2punto').each(function() {
-            $(this).select2({
-                theme: 'bootstrap4',
-                width: '100%',
-                placeholder: '🔍 Buscar punto fijo...',
-                dropdownParent: $(this).closest('.modal'),
-                ajax: {
-                    url: "<?= base_url('settledPoints/getList') ?>",
-                    dataType: 'json',
-                    delay: 250,
-                    data: params => ({
-                        q: params.term
-                    }),
-                    processResults: data => ({
-                        results: data.map(item => ({
-                            id: item.id,
-                            text: item.point_name
-                        }))
-                    })
-                }
-            });
-        });
-
-        // ---------------------------
-        // Control del tipo de destino
-        // ---------------------------
-        $('.selDestino').on('change', function() {
-
-            let id = $(this).data('id');
-            let tipo = $(this).val();
-            let fechaInput = $('#fechaEntrega' + id);
-
-            // Ocultar todos los bloques
-            $('#divPunto' + id).addClass('d-none');
-            $('#divPersonalizado' + id).addClass('d-none');
-            $('#divCasillero' + id).addClass('d-none');
-
-            // Reset general: mostrar contenedor fecha
-            $('#fechaEntregaBox' + id).show();
-
-            // Limpiar datepicker anterior (si existe)
-            fechaInput.data('daterangepicker')?.remove();
-
-            if (tipo === 'punto') {
-                $('#divPunto' + id).removeClass('d-none');
-                fechaInput.attr('name', 'fecha_entrega_puntofijo');
-            }
-
-            if (tipo === 'personalizado') {
-                $('#divPersonalizado' + id).removeClass('d-none');
-
-                // 🔥 Name correcto
-                fechaInput.attr('name', 'fecha_entrega_personalizado');
-
-                // Si está vacío, poner fecha de hoy
-                if (!fechaInput.val()) {
-                    fechaInput.val(moment().format('YYYY-MM-DD'));
-                }
-
-                // Activar datepicker simple
-                fechaInput.daterangepicker({
-                    singleDatePicker: true,
-                    autoApply: true,
-                    showDropdowns: true,
-                    locale: {
-                        format: 'YYYY-MM-DD',
-                        firstDay: 1
-                    }
-                });
-            }
-
-            if (tipo === 'casillero') {
-                $('#divCasillero' + id).removeClass('d-none');
-
-                // Sin fecha para casillero
-                fechaInput.attr('name', '');
-                fechaInput.val('');
-                $('#fechaEntregaBox' + id).hide();
-            }
-        });
-
-        // ---------------------------
-        // Fecha según punto fijo
-        // ---------------------------
-        $('.puntoSelect').on('change', function() {
-
-            let puntoId = $(this).val();
-            let paqueteId = $(this).data('id');
-            let inputFecha = $('#fechaEntrega' + paqueteId);
-
-            if (!puntoId) {
-                inputFecha.val('');
-                return;
-            }
-
-            $.ajax({
-                url: "<?= base_url('settledPoints/getDays') ?>/" + puntoId,
-                method: "GET",
-                dataType: "json",
-                success: function(days) {
-
-                    const allowedDays = [];
-                    if (days.sun) allowedDays.push(0);
-                    if (days.mon) allowedDays.push(1);
-                    if (days.tus) allowedDays.push(2);
-                    if (days.wen) allowedDays.push(3);
-                    if (days.thu) allowedDays.push(4);
-                    if (days.fri) allowedDays.push(5);
-                    if (days.sat) allowedDays.push(6);
-
-                    let nextValid = moment();
-                    for (let i = 0; i < 14; i++) {
-                        if (allowedDays.includes(nextValid.day())) break;
-                        nextValid.add(1, 'days');
-                    }
-
-                    inputFecha.data('daterangepicker')?.remove();
-
-                    inputFecha.daterangepicker({
-                        singleDatePicker: true,
-                        showDropdowns: true,
-                        autoApply: true,
-                        startDate: nextValid,
-                        autoUpdateInput: true,
-                        isInvalidDate: d => !allowedDays.includes(d.day()),
-                        locale: {
-                            format: 'YYYY-MM-DD',
-                            firstDay: 1
-                        }
-                    });
-
-                    inputFecha.val(nextValid.format('YYYY-MM-DD'));
-                }
-            });
-        });
-
-    });
-</script>
-
-<script>
-    $(document).ready(function() {
-
         // Interceptar SOLO los forms de agregar destino
         $("form[action*='packages-setDestino']").on("submit", function(e) {
             e.preventDefault();
-
             let form = this;
-
             Swal.fire({
                 title: "¿Guardar destino?",
                 text: "Confirmar que deseas establecer el destino seleccionado",
@@ -609,11 +389,10 @@
                 if (result.isConfirmed) {
                     form.submit(); // ahora sí envía
                 }
-
             });
-
         });
-
     });
 </script>
+<script src="<?= base_url('backend/assets/js/scripts_destino_index_pkg.js') ?>"></script>
+<script src="<?= base_url('backend/assets/js/scripts_reenvio_index_pkg.js') ?>"></script>
 <?= $this->endSection() ?>

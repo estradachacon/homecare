@@ -107,8 +107,8 @@
                             <label for="fecha_entrega_puntofijo" class="form-label">Fecha de entrega en punto
                                 fijo</label>
                             <input type="text" name="fecha_entrega_puntofijo" id="fecha_entrega_puntofijo"
-                                class="form-control datepicker" autocomplete="off" />
-
+                                class="form-control datepicker" autocomplete="off"
+                                value="<?= $package['fecha_entrega_puntofijo'] ? date('Y-m-d', strtotime($package['fecha_entrega_puntofijo'])) : '' ?>" />
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -116,9 +116,12 @@
                         <div class="col-md-3 text-center">
                             <label class="form-label d-block mb-2">Cobro al vendedor</label>
                             <div class="toggle-pill">
-                                <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0" checked>
+                                <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0"
+                                    <?= $package['toggle_pago_parcial'] == 0 ? 'checked' : '' ?>>
                                 <label for="pagoParcialNo">Pago total</label>
-                                <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1">
+
+                                <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1"
+                                    <?= $package['toggle_pago_parcial'] == 1 ? 'checked' : '' ?>>
                                 <label for="pagoParcialSi">Pago parcial</label>
                             </div>
                         </div>
@@ -127,7 +130,7 @@
                         <div class="col-md-3" id="flete_total_container">
                             <label class="form-label" id="label_flete_total">Total de envío a cobrar ($)</label>
                             <input type="number" step="0.01" name="flete_total" id="flete_total" class="form-control"
-                                required>
+                                value="<?= number_format($package['flete_total'], 2, '.', '') ?>" required>
                         </div>
 
                         <!-- Flete pagado -->
@@ -135,7 +138,8 @@
                             <label class="form-label">Envío pagado ($)</label>
                             <div class="input-group">
                                 <input type="number" step="0.01" class="form-control" name="flete_pagado"
-                                    id="flete_pagado" placeholder="Ingrese monto">
+                                    id="flete_pagado" placeholder="Ingrese monto"
+                                    value="<?= number_format($package['flete_pagado'], 2, '.', '') ?>">
                                 <div class="input-group-append">
                                     <button class="btn btn-secondary" type="button" id="btnSetZero">
                                         Pago parcial
@@ -148,7 +152,8 @@
                         <div class="col-md-3" id="flete_pendiente_container" style="display: none;">
                             <label class="form-label">Envío pendiente ($)</label>
                             <input type="number" step="0.01" name="flete_pendiente" id="flete_pendiente"
-                                class="form-control" readonly>
+                                class="form-control" readonly
+                                value="<?= number_format($package['flete_pendiente'], 2, '.', '') ?>">
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -167,10 +172,12 @@
                         <div class="col-md-4 text-center">
                             <label class="form-label d-block mb-2">¿Paquete ya cancelado?</label>
                             <div class="toggle-pill">
-                                <input type="radio" id="toggleCobroNo" name="toggleCobro" value="0" checked>
+                                <input type="radio" id="toggleCobroNo" name="toggleCobro" value="0"
+                                    <?= $package['nocobrar_pack_cancelado'] == 0 ? 'checked' : '' ?>>
                                 <label for="toggleCobroNo">No</label>
 
-                                <input type="radio" id="toggleCobroSi" name="toggleCobro" value="1">
+                                <input type="radio" id="toggleCobroSi" name="toggleCobro" value="1"
+                                    <?= $package['nocobrar_pack_cancelado'] == 1 ? 'checked' : '' ?>>
                                 <label for="toggleCobroSi">Sí</label>
                             </div>
                         </div>
@@ -178,7 +185,7 @@
                         <div class="col-md-4">
                             <label class="form-label">Monto del paquete ($)</label>
                             <input type="number" id="monto_declarado" step="0.01" name="monto" class="form-control"
-                                required>
+                                value="<?= number_format($package['monto'], 2, '.', '') ?>" required>
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -207,7 +214,7 @@
                         <!-- Comentarios -->
                         <div class="col-12">
                             <label class="form-label">Comentarios</label>
-                            <textarea name="comentarios" class="form-control" rows="2"></textarea>
+                            <textarea name="comentarios" class="form-control" rows="2"><?= esc($package['comentarios']) ?></textarea>
                         </div>
 
                         <!-- Usuario -->
