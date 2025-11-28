@@ -64,6 +64,7 @@
                 <div class="collapse" id="treasury" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
                         <a class="nav-link" href="#/invoices/create">Remunerar paquetes</a>
+                        <a class="nav-link" href="#/invoices/create">Devolución de paquetes</a>
                         <a class="nav-link" href="#/invoices/create">Movimientos de caja actual</a>
                     </nav>
                 </div>

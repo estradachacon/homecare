@@ -42,7 +42,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('logs', 'BitacoraController::index');
     $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
-    $routes->get('sellers/search', 'SellerController::search');
+    $routes->get('sellers-search', 'SellerController::search');
+
     $routes->post('sellers/delete', 'SellerController::delete');
     $routes->post('sellers/create-ajax', 'SellerController::createAjax');
     $routes->get('sellers/searchAjax', 'SellerController::searchAjax');
@@ -55,6 +56,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $route['upload-paquete'] = 'PackageController/subirImagen';
     $routes->post('packages/store', 'PackageController::store');
     $routes->post('packages-setDestino', 'PackageController::setDestino');
+    $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
     $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'show', 'create', 'edit', 'update']]);
     $routes->get('tracking-pendientes/ruta/(:num)', 'TrackingController::getPendientesPorRuta/$1');

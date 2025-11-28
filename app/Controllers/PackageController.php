@@ -13,12 +13,13 @@ class PackageController extends BaseController
     protected $packageModel;
     protected $sellerModel;
     protected $settledPointModel;
-
+    protected $packages;
     public function __construct()
     {
         $this->packageModel = new PackageModel();
         $this->settledPointModel = new SettledPointModel();
         $this->sellerModel = new SellerModel();
+        $this->packages = new PackageModel();
     }
 
     public function index()
@@ -230,57 +231,60 @@ class PackageController extends BaseController
             'file' => $newName
         ]);
     }
-
     public function edit($id)
     {
-        $package = $this->packageModel
-            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
-            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
-            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
-            ->where('packages.id', $id)
-            ->first();
+        $db = \Config\Database::connect();
 
-        return view('packages/edit', [
-            'package' => $package
-        ]);
+        $builder = $db->table('packages');
+        $builder->select('packages.*, sellers.seller AS seller_name');
+        $builder->join('sellers', 'sellers.id = packages.vendedor', 'left');
+        $builder->where('packages.id', $id);
+
+        $data['package'] = $builder->get()->getRowArray();
+
+        return view('packages/edit', $data);
     }
 
 
+
+    // =====================================
+    // ACTUALIZAR PAQUETE
+    // =====================================
     public function update($id)
     {
-        $session = session();
-        $userId = $session->get('user_id');
+        $rules = [
+            'vendedor' => 'permit_empty',
+            'cliente' => 'permit_empty',
+            'tipo_servicio' => 'permit_empty',
+            'destino_personalizado' => 'permit_empty',
+            'lugar_recolecta_paquete' => 'permit_empty',
+            'id_puntofijo' => 'permit_empty|numeric',
+            'fecha_ingreso' => 'permit_empty|valid_date',
+            'fecha_entrega_personalizado' => 'permit_empty|valid_date',
+            'fecha_entrega_puntofijo' => 'permit_empty|valid_date',
+            'flete_total' => 'permit_empty|decimal',
+            'toggle_pago_parcial' => 'permit_empty',
+            'flete_pagado' => 'permit_empty|decimal',
+            'flete_pendiente' => 'permit_empty|decimal',
+            'nocobrar_pack_cancelado' => 'permit_empty',
+            'monto' => 'permit_empty|decimal',
+            'fragil' => 'permit_empty|in_list[0,1]',
+            'fecha_pack_entregado' => 'permit_empty|valid_date',
+            'estatus' => 'permit_empty',
+            'estatus2' => 'permit_empty',
+            'comentarios' => 'permit_empty'
+        ];
 
-        $package = $this->packageModel->find($id);
-        if (!$package) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'No encontrado']);
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        // Datos limpios
         $data = $this->request->getPost();
 
-        // Foto
-        $foto = $this->request->getFile('foto');
-        if ($foto && $foto->isValid()) {
-            $newName = $foto->getRandomName();
-            $foto->move('upload/paquetes/', $newName);
+        $this->packages->update($id, $data);
 
-            $data['foto'] = $newName;
-        }
-
-        $this->packageModel->update($id, $data);
-
-        // 📜 BITÁCORA: Registro de actualización
-        registrar_bitacora(
-            'Actualización de Paquete',
-            'Paquetería',
-            'Datos del paquete ID ' . esc($id) . ' actualizados. Campos modificados: ' . implode(', ', array_keys($data)),
-            $userId
-        );
-
-        return $this->response->setJSON([
-            'status' => 'success',
-            'message' => 'Paquete actualizado'
-        ]);
+        return redirect()->back()->with('success', 'Paquete actualizado correctamente.');
     }
 
     public function setDestino()
@@ -290,7 +294,7 @@ class PackageController extends BaseController
 
         $id = $this->request->getPost('id');
         $tipo = $this->request->getPost('tipo_destino');
-        
+
         $package = $this->packageModel->find($id);
         if (!$package) {
             return redirect()->back()->with('error', 'Paquete no encontrado');
@@ -362,19 +366,52 @@ class PackageController extends BaseController
 
         return redirect()->back()->with('error', 'Tipo de destino no válido o faltante.');
     }
-public function getPackageData($id)
-{
-    if (!$this->request->isAJAX()) {
-        return $this->response->setStatusCode(400)->setJSON(['error' => 'Petición no válida']);
+    public function getPackageData($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Petición no válida']);
+        }
+
+        $package = $this->packageModel->getFullPackage($id);
+
+        if (!$package) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Paquete no encontrado']);
+        }
+
+        return $this->response->setJSON($package);
     }
+    public function getDestinoInfo($id)
+    {
+        // Cargamos el paquete completo
+        $package = $this->packageModel->find($id);
 
-    $package = $this->packageModel->getFullPackage($id);
+        if (!$package) {
+            return $this->response->setJSON(['error' => 'Paquete no encontrado']);
+        }
 
-    if (!$package) {
-        return $this->response->setStatusCode(404)->setJSON(['error' => 'Paquete no encontrado']);
+        // Si el paquete tiene destino personalizado
+        if (!empty($package['destino_personalizado'])) {
+            return $this->response->setJSON([
+                'tipo' => 'personalizado',
+                'direccion' => $package['destino_personalizado'],
+                'fecha' => $package['fecha_entrega_personalizado']
+            ]);
+        }
+
+        // Si el paquete tiene punto fijo
+        if (!empty($package['id_puntofijo'])) {
+            $punto = $this->settledPointModel->find($package['id_puntofijo']);
+
+            return $this->response->setJSON([
+                'tipo' => 'punto_fijo',
+                'punto' => $punto,
+                'fecha' => $package['fecha_entrega_puntofijo']
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'tipo' => 'none',
+            'mensaje' => 'El paquete no tiene destino configurado'
+        ]);
     }
-
-    return $this->response->setJSON($package);
-}
-
 }

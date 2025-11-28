@@ -163,35 +163,22 @@ class SellerController extends BaseController
     }
     public function search()
     {
-        $term = trim($this->request->getGet('q') ?? '');
+        $term = $this->request->getGet('q');
 
-        // Si el usuario no escribió nada, devolvemos un array vacío
-        if ($term === '') {
-            return $this->response->setJSON(['results' => []]);
-        }
+        $model = new SellerModel();
+        $sellers = $model->searchSellers($term);
 
-        $sellerModel = new SellerModel();
+        // Formato que Select2 necesita
+        $results = array_map(function ($s) {
+            return [
+                'id'   => $s->id,      // 👈 Ahora se enviará el ID real
+                'text' => $s->seller   // 👈 Lo que verá el usuario
 
-        $results = $sellerModel
-            ->groupStart()
-            ->like('seller', $term)
-            ->orLike('id', $term)
-            ->groupEnd()
-            ->select('id, seller')
-            ->limit(10)
-            ->findAll();
-
-        $data = [];
-        foreach ($results as $row) {
-            $data[] = [
-                'id' => $row->id,
-                'text' => $row->seller,
             ];
-        }
+        }, $sellers);
 
-        return $this->response->setJSON($data);
+        return $this->response->setJSON($results);
     }
-
 
     public function createAjax()
     {

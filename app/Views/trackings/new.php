@@ -16,7 +16,7 @@
                 <div class="form-row">
                     <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
 
-                    f<!-- MOTORISTA -->
+                    <!-- MOTORISTA -->
                     <div class="form-group col-md-4">
                         <label>Asignar Motorista</label>
                         <select id="motorista" name="motorista" class="form-control" required>

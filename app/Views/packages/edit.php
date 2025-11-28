@@ -1,609 +1,141 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-
-<link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 <script>
-    $.ajaxSetup({
-        data: {
-            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
-        }
-    });
+    const sellerSearchUrl = "<?= base_url('sellers-search') ?>";
 </script>
-<div class="row">
-    <div class="col-md-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <h5 class=" header-title mb-0">Editar paquete #<?= $package['id'] ?></h5>
-                <a href="<?= base_url('packages') ?>" class="btn btn-light btn-sm">Volver</a>
+
+<div class="container mt-4">
+    <h3>Editar Paquete ID: <?= $package['id'] ?></h3>
+    <hr>
+
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('errors')): ?>
+        <div class="alert alert-danger">
+            <ul>
+                <?php foreach (session()->getFlashdata('errors') as $e): ?>
+                    <li><?= $e ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
+    <form action="<?= base_url('packages/update/' . $package['id']) ?>" method="post">
+
+        <?= csrf_field() ?>
+        <div class="row">
+
+            <div class="col-md-6">
+                <label>Vendedor</label>
+
+                <select name="vendedor" id="vendedor" class="form-control select2-seller">
+                    <?php if (!empty($package['vendedor'])): ?>
+                        <option value="<?= esc($package['vendedor']) ?>" selected>
+                            <?= esc($package['seller_name']) ?>
+                        </option>
+                    <?php endif; ?>
+                </select>
             </div>
-            <div class="card-body">
-                <form id="formPaquete" enctype="multipart/form-data">
-                    <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
-                    <div class="row g-3">
-                        <!-- Select del vendedor -->
-                        <div class="col-md-6 mb-3">
-                            <label for="seller_id" class="form-label">Vendedor</label>
-                            <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;" required>
-                                <option value=""></option>
-                            </select>
-                            <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
-                        </div>
-
-                        <!-- Cliente -->
-                        <div class="col-md-6">
-                            <label class="form-label">Cliente</label>
-                            <input type="text" name="cliente" class="form-control" required
-                                value="<?= esc($package['cliente']) ?>">
-                        </div>
-
-                        <!-- Tipo de servicio -->
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo de servicio</label>
-                            <select name="tipo_servicio" id="tipo_servicio" class="form-select" required>
-                                <option value="1" <?= $package['tipo_servicio'] == 1 ? 'selected' : '' ?>>Punto fijo
-                                </option>
-                                <option value="2" <?= $package['tipo_servicio'] == 2 ? 'selected' : '' ?>>Personalizado
-                                </option>
-                                <option value="3" <?= $package['tipo_servicio'] == 3 ? 'selected' : '' ?>>Recolecta
-                                </option>
-                                <option value="4" <?= $package['tipo_servicio'] == 4 ? 'selected' : '' ?>>Casillero
-                                </option>
-
-                            </select>
-                        </div>
-
-                        <!-- Punto de retiro -->
-                        <div class="col-md-6 retiro-paquete-container" id="retiro_paquete_container"
-                            style="display: none;">
-                            <label class="form-label">Retiro del paquete</label>
-                            <textarea id="retiro_paquete" name="retiro_paquete" class="form-control autosize-input"
-                                rows="1" placeholder="Lugar de recogida" required></textarea>
-                        </div>
-
-                        <!-- Definir tipo de entrega (solo visual, no va a la BD) -->
-                        <div class="col-md-6 tipo-entrega-container" id="tipo_entrega_container" style="display: none;">
-                            <label for="tipo_entrega" class="form-label">Tipo de entrega</label>
-                            <select id="tipo_entrega" class="form-select">
-                                <option value="">Seleccione destino de entrega</option>
-                                <option value="personalizada">Entrega personalizada</option>
-                                <option value="5">Entrega en punto fijo</option>
-                            </select>
-                        </div>
-
-                        <!-- Punto fijo -->
-                        <div class="col-md-6 punto-fijo-container" id="punto_fijo_container" style="display: none;">
-                            <label class="form-label">Punto fijo de entrega</label>
-                            <select name="id_puntofijo" class="form-select" id="puntofijo_select" style="width: 100%;">
-                                <option value="">Seleccione un punto fijo</option>
-                            </select>
-                        </div>
-
-                        <!--destino-->
-                        <div class="col-md-6 destino-container" id="destino_container" style="display: none;">
-                            <label for="destino_input" class="form-label">Destino (Dirección de Entrega
-                                personalizada)</label>
-                            <input type="text" name="destino" class="form-control"
-                                value="<?= esc($package['destino_personalizado']) ?>">
-
-                        </div>
-
-                        <div class="form-divider line-center"></div>
-
-                        <!-- Fechas -->
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de ingreso</label>
-                            <input type="date" name="fecha_ingreso" class="form-control"
-                                value="<?= $package['fecha_ingreso'] ?>" required>
-                        </div>
-
-                        <div class="col-md-6" id='fecha_entrega_container' style="display: none;">
-                            <label class="form-label">Fecha de entrega</label>
-                            <input type="date" name="fecha_entrega" class="form-control"
-                                value="<?= $package['fecha_entrega_personalizado'] ?>">
-                        </div>
-
-                        <div class="col-md-6 punto-fijo-container" id="fecha_punto_fijo_container"
-                            style="display: none;">
-                            <label for="fecha_entrega_puntofijo" class="form-label">Fecha de entrega en punto
-                                fijo</label>
-                            <input type="text" name="fecha_entrega_puntofijo" id="fecha_entrega_puntofijo"
-                                class="form-control datepicker" autocomplete="off"
-                                value="<?= $package['fecha_entrega_puntofijo'] ? date('Y-m-d', strtotime($package['fecha_entrega_puntofijo'])) : '' ?>" />
-                        </div>
-
-                        <div class="form-divider line-center"></div>
-
-                        <div class="col-md-3 text-center">
-                            <label class="form-label d-block mb-2">Cobro al vendedor</label>
-                            <div class="toggle-pill">
-                                <input type="radio" id="pagoParcialNo" name="pago_parcial" value="0"
-                                    <?= $package['toggle_pago_parcial'] == 0 ? 'checked' : '' ?>>
-                                <label for="pagoParcialNo">Pago total</label>
-
-                                <input type="radio" id="pagoParcialSi" name="pago_parcial" value="1"
-                                    <?= $package['toggle_pago_parcial'] == 1 ? 'checked' : '' ?>>
-                                <label for="pagoParcialSi">Pago parcial</label>
-                            </div>
-                        </div>
-
-                        <!-- Flete total -->
-                        <div class="col-md-3" id="flete_total_container">
-                            <label class="form-label" id="label_flete_total">Total de envío a cobrar ($)</label>
-                            <input type="number" step="0.01" name="flete_total" id="flete_total" class="form-control"
-                                value="<?= number_format($package['flete_total'], 2, '.', '') ?>" required>
-                        </div>
-
-                        <!-- Flete pagado -->
-                        <div class="col-md-3" id="flete_pagado_container" style="display: none;">
-                            <label class="form-label">Envío pagado ($)</label>
-                            <div class="input-group">
-                                <input type="number" step="0.01" class="form-control" name="flete_pagado"
-                                    id="flete_pagado" placeholder="Ingrese monto"
-                                    value="<?= number_format($package['flete_pagado'], 2, '.', '') ?>">
-                                <div class="input-group-append">
-                                    <button class="btn btn-secondary" type="button" id="btnSetZero">
-                                        Pago parcial
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Flete pendiente -->
-                        <div class="col-md-3" id="flete_pendiente_container" style="display: none;">
-                            <label class="form-label">Envío pendiente ($)</label>
-                            <input type="number" step="0.01" name="flete_pendiente" id="flete_pendiente"
-                                class="form-control" readonly
-                                value="<?= number_format($package['flete_pendiente'], 2, '.', '') ?>">
-                        </div>
-
-                        <div class="form-divider line-center"></div>
-
-                        <div class="col-md-4 text-center">
-                            <label class="form-label d-block mb-2">¿Es frágil?</label>
-                            <div class="toggle-pill">
-                                <input type="radio" id="fragilNo" name="fragil" value="0" checked>
-                                <label for="fragilNo">No</label>
-
-                                <input type="radio" id="fragilSi" name="fragil" value="1">
-                                <label for="fragilSi">Sí</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-4 text-center">
-                            <label class="form-label d-block mb-2">¿Paquete ya cancelado?</label>
-                            <div class="toggle-pill">
-                                <input type="radio" id="toggleCobroNo" name="toggleCobro" value="0"
-                                    <?= $package['nocobrar_pack_cancelado'] == 0 ? 'checked' : '' ?>>
-                                <label for="toggleCobroNo">No</label>
-
-                                <input type="radio" id="toggleCobroSi" name="toggleCobro" value="1"
-                                    <?= $package['nocobrar_pack_cancelado'] == 1 ? 'checked' : '' ?>>
-                                <label for="toggleCobroSi">Sí</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Monto del paquete ($)</label>
-                            <input type="number" id="monto_declarado" step="0.01" name="monto" class="form-control"
-                                value="<?= number_format($package['monto'], 2, '.', '') ?>" required>
-                        </div>
-
-                        <div class="form-divider line-center"></div>
-
-                        <!-- Foto -->
-                        <div class="col-md-6 mx-auto">
-                            <label class="form-label d-block mb-2">Foto del paquete</label>
-
-                            <div id="drop-area" class="drop-area">
-                                <div class="drop-icon">📦</div>
-                                <p class="drop-text">Toca aquí para tomar foto</p>
-                                <small class="text-muted">También puedes arrastrar y soltar una imagen</small>
-
-                                <!-- Vista previa -->
-                                <img id="preview" class="preview-img" style="display:none;">
-                            </div>
-
-                            <!-- Input real -->
-                            <input type="file" id="fileInput" name="foto" accept="image/*" capture="environment"
-                                class="d-none" enctype="multipart/form-data">
-                        </div>
 
 
-                        <div class="form-divider line-center"></div>
-
-                        <!-- Comentarios -->
-                        <div class="col-12">
-                            <label class="form-label">Comentarios</label>
-                            <textarea name="comentarios" class="form-control" rows="2"><?= esc($package['comentarios']) ?></textarea>
-                        </div>
-
-                        <!-- Usuario -->
-                        <div class="col-md-12">
-                            <input type="hidden" name="user_id" value="<?= session('id') ?>">
-                        </div>
-                    </div>
-
-                    <div class="mt-4 text-end">
-                        <button type="submit" class="btn btn-success px-4">Guardar paquete</button>
-                    </div>
-                </form>
+            <div class="col-md-6">
+                <label>Cliente</label>
+                <input type="text" name="cliente" class="form-control"
+                    value="<?= esc($package['cliente']) ?>">
             </div>
-        </div>
-    </div>
-</div>
-<!-- Contenedor de toast -->
-<div aria-live="polite" aria-atomic="true"
-    style="position: fixed; top: 20px; right: 20px; min-height: 50px; z-index: 1050;">
-    <div id="successToast" class="toast text-white bg-success" data-delay="2800" style="min-width: 250px;">
-        <div class="toast-header bg-success text-white">
-            <strong class="mr-auto">Éxito</strong>
-            <small>Ahora</small>
-            <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
-        </div>
-        <div class="toast-body">
-            Paquete creado correctamente
-        </div>
-    </div>
 
+            <div class="col-md-4 mt-3">
+                <label>Tipo Servicio</label>
+                <input type="text" name="tipo_servicio" class="form-control"
+                    value="<?= esc($package['tipo_servicio']) ?>">
+            </div>
+
+            <div class="col-md-8 mt-3">
+                <label>Destino Personalizado</label>
+                <input type="text" name="destino_personalizado" class="form-control"
+                    value="<?= esc($package['destino_personalizado']) ?>">
+            </div>
+
+            <div class="col-md-12 mt-3">
+                <label>Lugar Recolecta</label>
+                <input type="text" name="lugar_recolecta_paquete" class="form-control"
+                    value="<?= esc($package['lugar_recolecta_paquete']) ?>">
+            </div>
+
+            <div class="col-md-3 mt-3">
+                <label>Punto Fijo ID</label>
+                <input type="number" name="id_puntofijo" class="form-control"
+                    value="<?= esc($package['id_puntofijo']) ?>">
+            </div>
+
+            <div class="col-md-3 mt-3">
+                <label>Fecha Ingreso</label>
+                <input type="date" name="fecha_ingreso" class="form-control"
+                    value="<?= esc($package['fecha_ingreso']) ?>">
+            </div>
+
+            <div class="col-md-3 mt-3">
+                <label>Fecha Entrega Personalizado</label>
+                <input type="date" name="fecha_entrega_personalizado" class="form-control"
+                    value="<?= esc($package['fecha_entrega_personalizado']) ?>">
+            </div>
+
+            <div class="col-md-3 mt-3">
+                <label>Fecha Entrega Punto Fijo</label>
+                <input type="date" name="fecha_entrega_puntofijo" class="form-control"
+                    value="<?= esc($package['fecha_entrega_puntofijo']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Flete Total</label>
+                <input type="number" step="0.01" name="flete_total" class="form-control"
+                    value="<?= esc($package['flete_total']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Flete Pagado</label>
+                <input type="number" step="0.01" name="flete_pagado" class="form-control"
+                    value="<?= esc($package['flete_pagado']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Flete Pendiente</label>
+                <input type="number" step="0.01" name="flete_pendiente" class="form-control"
+                    value="<?= esc($package['flete_pendiente']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Estatus</label>
+                <input type="text" name="estatus" class="form-control"
+                    value="<?= esc($package['estatus']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Estatus 2</label>
+                <input type="text" name="estatus2" class="form-control"
+                    value="<?= esc($package['estatus2']) ?>">
+            </div>
+
+            <div class="col-md-4 mt-3">
+                <label>Fragil</label>
+                <select name="fragil" class="form-control">
+                    <option value="0" <?= $package['fragil'] == 0 ? 'selected' : '' ?>>No</option>
+                    <option value="1" <?= $package['fragil'] == 1 ? 'selected' : '' ?>>Sí</option>
+                </select>
+            </div>
+
+            <div class="col-md-12 mt-3">
+                <label>Comentarios</label>
+                <textarea name="comentarios" class="form-control" rows="3"><?= esc($package['comentarios']) ?></textarea>
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary mt-4">Actualizar</button>
+    </form>
 </div>
 
-<div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel"
-    aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <form id="formCreateSeller">
-            <?= csrf_field() ?>
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Crear nuevo vendedor</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="seller">Nombre</label>
-                        <input type="text" id="seller" name="seller" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="tel_seller">Teléfono</label>
-                        <input type="text" id="tel_seller" name="tel_seller" class="form-control" minlength="8">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
 <script src="/backend/assets/js/scripts_packaging_edit.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-
-        /* -----------------------------------------------------------
-         * SELECT2 – Vendedores
-         * ----------------------------------------------------------- */
-        $('#seller_id').select2({
-            theme: 'bootstrap4',
-            placeholder: '🔍 Buscar vendedor...',
-            allowClear: true,
-            minimumInputLength: 2,
-            width: '100%',
-            language: {
-                inputTooShort: function(args) {
-                    let remaining = args.minimum - args.input.length;
-                    return `Por favor ingrese ${remaining} caracter${remaining === 1 ? '' : 'es'} o más`;
-                },
-                searching: function() {
-                    return "Buscando...";
-                },
-                noResults: function() {
-                    return "No se encontraron resultados";
-                }
-            },
-            ajax: {
-                url: '<?= base_url('sellers/search') ?>',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
-                processResults: function(data, params) {
-                    let results = data || [];
-                    if (results.length === 0 && params.term?.trim() !== '') {
-                        results.push({
-                            id: 'create_new',
-                            text: '➕ Crear nuevo vendedor'
-                        });
-                    }
-                    return {
-                        results
-                    };
-                },
-                cache: true
-            }
-        });
-
-        <?php if (!empty($package['vendedor'])): ?>
-            let optionSeller = new Option(
-                "<?= esc($package['seller_name']) ?>", // Nombre real del vendedor
-                "<?= $package['vendedor'] ?>", // ID del vendedor
-                true,
-                true
-            );
-
-            $('#seller_id').append(optionSeller).trigger('change');
-        <?php endif; ?>
-
-        $('#seller_id').on('select2:select', function(e) {
-            const selected = e.params.data;
-            if (selected.id === 'create_new') {
-                $('#seller_id').val(null).trigger('change');
-                $('#modalCreateSeller').modal('show');
-            }
-        });
-
-        $('#formCreateSeller').on('submit', function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: '<?= base_url('sellers/create-ajax') ?>',
-                type: 'POST',
-                data: $(this).serialize(),
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'success') {
-                        $('#modalCreateSeller').modal('hide');
-                        const option = new Option(response.data.text, response.data.id, true, true);
-                        $('#seller_id').append(option).trigger('change');
-                        Swal.fire('Éxito', 'Vendedor creado correctamente.', 'success');
-                    } else {
-                        Swal.fire('Error', response.message || 'No se pudo crear.', 'error');
-                    }
-                },
-                error: () => Swal.fire('Error', 'Error de petición.', 'error')
-            });
-        });
-
-        /* -----------------------------------------------------------
-         * SELECT2 – Punto fijo
-         * ----------------------------------------------------------- */
-        $('#puntofijo_select').select2({
-            theme: 'bootstrap4',
-            placeholder: '🔍 Buscar punto fijo...',
-            allowClear: true,
-            width: '100%',
-            ajax: {
-                url: '<?= base_url('settledPoints/getList') ?>',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
-                processResults: data => ({
-                    results: data.map(item => ({
-                        id: item.id,
-                        text: item.point_name
-                    }))
-                })
-            }
-        });
-
-        /* -----------------------------------------------------------
-         * DATERANGEPICKER – Punto fijo
-         * ----------------------------------------------------------- */
-        <?php if (!empty($package['id_puntofijo'])): ?>
-            // Insertar opción preseleccionada en Select2 al cargar la vista
-            let optionPF = new Option(
-                "<?= esc($package['point_name']) ?>", // nombre desde settled_points.point_name
-                "<?= $package['id_puntofijo'] ?>", // ID desde packages.id_puntofijo
-                true,
-                true
-            );
-
-            $('#puntofijo_select').append(optionPF).trigger('change');
-        <?php endif; ?>
-
-        $('#puntofijo_select').on('change', function() {
-            const puntoId = $(this).val();
-            const dateInput = $('#fecha_entrega_puntofijo');
-
-            if (!puntoId) return dateInput.val('');
-
-            $.ajax({
-                url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
-                method: 'GET',
-                dataType: 'json',
-                success: function(days) {
-
-                    const allowedDays = [];
-                    if (days.sun) allowedDays.push(0);
-                    if (days.mon) allowedDays.push(1);
-                    if (days.tus) allowedDays.push(2);
-                    if (days.wen) allowedDays.push(3);
-                    if (days.thu) allowedDays.push(4);
-                    if (days.fri) allowedDays.push(5);
-                    if (days.sat) allowedDays.push(6);
-
-                    let nextValid = moment();
-                    for (let i = 0; i < 14; i++) {
-                        if (allowedDays.includes(nextValid.day())) break;
-                        nextValid.add(1, 'days');
-                    }
-
-                    dateInput.data('daterangepicker')?.remove();
-
-                    dateInput.daterangepicker({
-                        singleDatePicker: true,
-                        showDropdowns: true,
-                        autoApply: true,
-                        startDate: nextValid,
-                        autoUpdateInput: true,
-                        isInvalidDate: date => !allowedDays.includes(date.day()),
-                        locale: {
-                            format: 'DD/MM/YYYY',
-                            firstDay: 1
-                        }
-                    });
-
-                    dateInput.val(nextValid.format('DD/MM/YYYY'));
-                }
-            });
-        });
-
-        /* -----------------------------------------------------------
-         * DROP AREA – Foto
-         * ----------------------------------------------------------- */
-        const dropArea = document.getElementById("drop-area");
-        const fileInput = document.getElementById("fileInput");
-        const preview = document.getElementById("preview");
-
-        dropArea.addEventListener("click", () => fileInput.click());
-        fileInput.addEventListener("change", () => mostrarPreview(fileInput.files[0]));
-
-        dropArea.addEventListener("dragover", e => {
-            e.preventDefault();
-            dropArea.classList.add("dragover");
-        });
-
-        dropArea.addEventListener("dragleave", () =>
-            dropArea.classList.remove("dragover")
-        );
-
-        dropArea.addEventListener("drop", e => {
-            e.preventDefault();
-            dropArea.classList.remove("dragover");
-
-            let file = e.dataTransfer.files[0];
-            if (file) {
-                fileInput.files = e.dataTransfer.files;
-                mostrarPreview(file);
-            }
-        });
-
-        function mostrarPreview(file) {
-            if (!file?.type.startsWith("image/")) return;
-            const reader = new FileReader();
-            reader.onload = e => {
-                preview.src = e.target.result;
-                preview.style.display = "block";
-            };
-            reader.readAsDataURL(file);
-        }
-
-        /* -----------------------------------------------------------
-         * BOTÓN – Pago parcial / Descontar en Remu
-         * ----------------------------------------------------------- */
-        const btnSetZero = document.getElementById('btnSetZero');
-        const fletePagado = document.getElementById('flete_pagado');
-        const fleteTotal = document.getElementById('flete_total');
-        const fletePendiente = document.getElementById('flete_pendiente');
-
-        btnSetZero.addEventListener('click', function() {
-            if (!fletePagado.disabled) {
-                fletePagado.value = "0.00";
-                fletePagado.disabled = true;
-
-                const total = parseFloat(fleteTotal.value) || 0;
-                fletePendiente.value = total.toFixed(2);
-
-                btnSetZero.textContent = "Descontar en Remu";
-                btnSetZero.classList.replace("btn-secondary", "btn-warning");
-
-            } else {
-                fletePagado.disabled = false;
-                fletePagado.value = "";
-                fletePendiente.value = "";
-
-                btnSetZero.textContent = "Pago parcial";
-                btnSetZero.classList.replace("btn-warning", "btn-secondary");
-            }
-        });
-
-        /* -----------------------------------------------------------
-         * AJAX – Envío del formulario con barra de progreso
-         * ----------------------------------------------------------- */
-
-        const form = document.getElementById("formPaquete");
-
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-
-            let formData = new FormData(form);
-
-            // SweetAlert de progreso
-            Swal.fire({
-                title: "Actualizando paquete...",
-                html: `
-            <div class="progress" style="height: 22px;">
-                <div id="uploadProgress" class="progress-bar progress-bar-striped progress-bar-animated"
-                    role="progressbar" style="width: 0%">0%</div>
-            </div>
-        `,
-                allowOutsideClick: false,
-                showConfirmButton: false
-            });
-
-            let xhr = new XMLHttpRequest();
-
-            // Progreso de subida
-            xhr.upload.addEventListener("progress", function(e) {
-                if (e.lengthComputable) {
-                    let percent = Math.round((e.loaded / e.total) * 100);
-
-                    let bar = document.getElementById("uploadProgress");
-                    bar.style.width = percent + "%";
-                    bar.textContent = percent + "%";
-                }
-            });
-
-            // Respuesta del servidor
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-
-                    Swal.close();
-
-                    if (xhr.status === 200) {
-                        let response = JSON.parse(xhr.responseText);
-
-                        if (response.status === "success") {
-                            Swal.close();
-                            // Redirige al mismo view pero con query param
-                            window.location.href = "<?= base_url('/packages/new') ?>?created=1";
-
-                        } else {
-                            Swal.fire("Error", response.message, "error");
-                        }
-
-                    } else {
-                        Swal.fire("Error", "Hubo un problema en el servidor.", "error");
-                    }
-                }
-            };
-
-            const id = form.getAttribute("data-id");
-            xhr.open("POST", `<?= base_url('packages/update') ?>/${id}`);
-
-        });
-    });
-    $(document).ready(function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('created') === '1') {
-            $('#successToast').toast('show');
-        }
-    });
-</script>
-
-<?php if (session()->getFlashdata('success')): ?>
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: '¡Paquete creado!',
-            text: '<?= session()->getFlashdata('success'); ?>',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    </script>
-<?php endif; ?>
-
 <?= $this->endSection() ?>

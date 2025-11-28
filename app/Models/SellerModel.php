@@ -17,4 +17,17 @@ class SellerModel extends Model
         'created_at',
         'updated_at'
     ];
+
+
+public function searchSellers($term)
+{
+    if (!$term || trim($term) === '') {
+        return []; // 👈 Select2 suele pedir esto antes de escribir
+    }
+
+    return $this->like('seller', $term)
+                ->select('id, seller')
+                ->findAll(20);
+}
+
 }
