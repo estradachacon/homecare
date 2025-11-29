@@ -85,11 +85,32 @@ class BranchController extends Controller
             ]);
         }
 
-        return $this->response->setJSON(['status' => 'error', 
-        'message' => 'No se pudo eliminar la sucursal.',                 
-        'csrf'    => [
-            'token'  => csrf_hash(),
-            'header' => csrf_header(),
-        ]]);
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'No se pudo eliminar la sucursal.',
+            'csrf'    => [
+                'token'  => csrf_hash(),
+                'header' => csrf_header(),
+            ]
+        ]);
     }
+public function list()
+{
+    $branchModel = new BranchModel();
+
+    // Obtener término buscado en Select2
+    $q = $this->request->getGet('q');
+
+    $builder = $branchModel
+        ->select('id, branch_name')
+        ->where('status', 1);
+
+    // Si hay búsqueda, filtrar
+    if (!empty($q)) {
+        $builder->like('branch_name', $q);
+    }
+
+    return $this->response->setJSON($builder->findAll());
+}
+
 }

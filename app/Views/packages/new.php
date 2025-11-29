@@ -25,13 +25,7 @@
 
 </style>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
-<script>
-    $.ajaxSetup({
-        data: {
-            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
-        }
-    });
-</script>
+
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm">
@@ -41,7 +35,6 @@
             </div>
             <div class="card-body">
                 <form id="formPaquete" enctype="multipart/form-data">
-                    <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
                     <div class="row g-3">
                         <!-- Select del vendedor -->
                         <div class="col-md-6 mb-3">
@@ -102,6 +95,14 @@
                                 personalizada)</label>
                             <input type="text" name="destino" class="form-control" id="destino_input"
                                 placeholder="Colonia o dirección de destino" required>
+                        </div>
+
+                        <!-- Sucursal para casillero -->
+                        <div class="col-md-6 sucursal-container" id="sucursal_container" style="display: none;">
+                            <label class="form-label">Sucursal</label>
+                            <select name="branch_id" class="form-select" id="branch_select" style="width: 100%;">
+                                <option value="">Seleccione una sucursal</option>
+                            </select>
                         </div>
 
                         <div class="form-divider line-center"></div>
@@ -259,7 +260,6 @@
     aria-hidden="true">
     <div class="modal-dialog" role="document">
         <form id="formCreateSeller">
-            <?= csrf_field() ?>
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Crear nuevo vendedor</h5>
@@ -316,7 +316,7 @@ document.querySelectorAll('input[type=number]').forEach(input => {
                 }
             },
             ajax: {
-                url: '<?= base_url('sellers/search') ?>',
+                url: '<?= base_url('sellers-search') ?>',
                 dataType: 'json',
                 delay: 250,
                 data: params => ({ q: params.term }),
@@ -378,6 +378,26 @@ document.querySelectorAll('input[type=number]').forEach(input => {
                 })
             }
         });
+
+        /* -----------------------------------------------------------
+         * SELECT2 – Branches
+         * ----------------------------------------------------------- */
+        $('#branch_select').select2({
+            theme: 'bootstrap4',
+            placeholder: '🔍 Buscar sucursal...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('branches-list') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term }),
+                processResults: data => ({
+                    results: data.map(item => ({ id: item.id, text: item.branch_name }))
+                })
+            }
+        });
+
 
         /* -----------------------------------------------------------
          * DATERANGEPICKER – Punto fijo

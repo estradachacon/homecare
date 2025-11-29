@@ -32,6 +32,7 @@ class PackageModel extends Model
         'fecha_pack_entregado',
         'estatus',
         'estatus2',
+        'branch',
         'user_id'
     ];
     protected $updatedField = 'updated_at';

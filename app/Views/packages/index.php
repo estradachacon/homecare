@@ -205,6 +205,11 @@
                                                 <?php endif; ?>
                                             </small>
                                         <?php endif; ?>
+                                        <?php if ($pkg['tipo_servicio'] == 4 && !empty($pkg['branch_name'])): ?>
+                                            <span class="text-muted ml-2">
+                                                <?= esc($pkg['branch_name']) ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
 
                                     <td>

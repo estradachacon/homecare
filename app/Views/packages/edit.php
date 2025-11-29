@@ -2,6 +2,8 @@
 <?= $this->section('content') ?>
 <script>
     const sellerSearchUrl = "<?= base_url('sellers-search') ?>";
+    const puntoFijoSearchUrl = "<?= base_url('settledPoints/getList') ?>";
+    const branchSearchUrl = "<?= base_url('branches-list') ?>";
 </script>
 
 <div class="row">
@@ -49,11 +51,26 @@
                             <input type="text" name="cliente" class="form-control"
                                 value="<?= esc($package['cliente']) ?>">
                         </div>
-
+                        <?php
+                        $tiposServicio = [
+                            1 => 'Punto Fijo',
+                            2 => 'Entrega Personalizada',
+                            3 => 'Recolecta',
+                            4 => 'Casillero'
+                        ];
+                        ?>
                         <div class="col-md-4 mt-3">
                             <label>Tipo Servicio</label>
-                            <input type="text" name="tipo_servicio" class="form-control"
-                                value="<?= esc($package['tipo_servicio']) ?>">
+                            <select name="tipo_servicio" id="tipo_servicio" class="form-control">
+                                <option value="">Seleccione...</option>
+
+                                <?php foreach ($tiposServicio as $key => $nombre): ?>
+                                    <option value="<?= $key ?>"
+                                        <?= ($package['tipo_servicio'] == $key) ? 'selected' : '' ?>>
+                                        <?= esc($nombre) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="col-md-8 mt-3">
@@ -62,16 +79,33 @@
                                 value="<?= esc($package['destino_personalizado']) ?>">
                         </div>
 
-                        <div class="col-md-12 mt-3">
+                        <div class="col-md-6 mt-3">
                             <label>Lugar Recolecta</label>
                             <input type="text" name="lugar_recolecta_paquete" class="form-control"
                                 value="<?= esc($package['lugar_recolecta_paquete']) ?>">
                         </div>
 
-                        <div class="col-md-3 mt-3">
-                            <label>Punto Fijo ID</label>
-                            <input type="number" name="id_puntofijo" class="form-control"
-                                value="<?= esc($package['id_puntofijo']) ?>">
+                        <!-- Sucursal para casillero -->
+                        <div class="col-md-6 mt-3 sucursal-container" id="sucursal_container">
+                            <label class="form-label">Sucursal</label>
+                            <select name="branch"
+                                id="branch"
+                                class="form-control select2-branch"
+                                data-initial-id="<?= esc($package['branch_id'] ?? '') ?>"
+                                data-initial-text="<?= esc($package['branch_name'] ?? '') ?>">
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mt-3 punto-fijo-container" id="punto_fijo_container">
+                            <label class="form-label">Punto Fijo</label>
+
+                            <select name="id_puntofijo" id="punto_fijo" class="form-control select2-punto_fijo">
+                                <?php if (!empty($package['id_puntofijo'])): ?>
+                                    <option value="<?= esc($package['id_puntofijo']) ?>" selected>
+                                        <?= esc($package['point_name']) ?>
+                                    </option>
+                                <?php endif; ?>
+                            </select>
                         </div>
 
                         <div class="col-md-3 mt-3">
@@ -111,9 +145,9 @@
                         </div>
 
                         <div class="col-md-4 mt-3">
-                            <label>Estatus</label>
-                            <input type="text" name="estatus" class="form-control"
-                                value="<?= esc($package['estatus']) ?>">
+                            <label>Monto del paquete</label>
+                            <input type="number" step="0.01" name="monto" class="form-control"
+                                value="<?= esc($package['monto']) ?>">
                         </div>
 
                         <div class="col-md-4 mt-3">

@@ -36,6 +36,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('users', ['controller' => 'UserController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('users/delete', 'UserController::delete');
     // Módulo de mantenimiento de sucursales
+    $routes->get('branches-list', 'BranchController::list');
     $routes->presenter('branches', ['controller' => 'BranchController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete']]);
     // Mantenimiento de sistema
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
@@ -43,7 +44,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->get('sellers-search', 'SellerController::search');
-
     $routes->post('sellers/delete', 'SellerController::delete');
     $routes->post('sellers/create-ajax', 'SellerController::createAjax');
     $routes->get('sellers/searchAjax', 'SellerController::searchAjax');

@@ -34,9 +34,10 @@ class PackageController extends BaseController
         $filter_date_to = $this->request->getGet('fecha_hasta');
 
         $builder = $this->packageModel
-            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name')
+            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name, branches.branch_name AS branch_name')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('branches', 'branches.id = packages.branch', 'left')
             ->orderBy('packages.id', 'DESC');
 
         // FILTRO VENDEDOR
@@ -190,6 +191,7 @@ class PackageController extends BaseController
             'comentarios' => $this->request->getPost('comentarios'),
             'fragil' => $this->request->getPost('fragil'),
             'estatus' => 'pendiente', // o el valor que corresponda
+            'branch' => $this->request->getPost('branch_id'), // o el valor que corresponda
             'user_id' => $userId, // Usamos el ID de la sesión
         ];
 
@@ -236,8 +238,10 @@ class PackageController extends BaseController
         $db = \Config\Database::connect();
 
         $builder = $db->table('packages');
-        $builder->select('packages.*, sellers.seller AS seller_name');
+        $builder->select('packages.*, sellers.seller AS seller_name, branches.branch_name AS branch_name, settled_points.point_name AS point_name');
         $builder->join('sellers', 'sellers.id = packages.vendedor', 'left');
+        $builder->join('branches', 'branches.id = packages.branch', 'left');
+        $builder->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left');
         $builder->where('packages.id', $id);
 
         $data['package'] = $builder->get()->getRowArray();
@@ -246,12 +250,21 @@ class PackageController extends BaseController
     }
 
 
-
-    // =====================================
+// =====================================
     // ACTUALIZAR PAQUETE
     // =====================================
     public function update($id)
     {
+        $session = session();
+        $userId = $session->get('user_id'); // 🛡️ OBTENER EL ID DEL USUARIO DE LA SESIÓN
+
+        // 1. Obtener el paquete antes de la actualización
+        $oldPackage = $this->packages->find($id);
+
+        if (!$oldPackage) {
+            return redirect()->back()->with('error', 'Paquete no encontrado para actualizar.');
+        }
+
         $rules = [
             'vendedor' => 'permit_empty',
             'cliente' => 'permit_empty',
@@ -282,9 +295,38 @@ class PackageController extends BaseController
         // Datos limpios
         $data = $this->request->getPost();
 
+        // 2. Ejecutar la actualización
         $this->packages->update($id, $data);
 
-        return redirect()->back()->with('success', 'Paquete actualizado correctamente.');
+        // 3. 📜 BITÁCORA: Registro de actualización
+        // Generamos un detalle básico del cambio para la bitácora
+        $log_details = '';
+        $changes = [];
+
+        // Comparamos campos importantes (puedes agregar o quitar campos aquí)
+        $fields_to_check = ['vendedor', 'cliente', 'estatus', 'flete_total', 'flete_pagado', 'flete_pendiente', 'destino_personalizado', 'id_puntofijo', 'fecha_entrega_personalizado', 'fecha_entrega_puntofijo', 'monto']; 
+        
+        foreach ($fields_to_check as $field) {
+            // Aseguramos que la clave existe y los valores son diferentes
+            if (isset($data[$field]) && $data[$field] != $oldPackage[$field]) {
+                $changes[] = "$field: " . esc($oldPackage[$field]) . " -> " . esc($data[$field]);
+            }
+        }
+
+        if (!empty($changes)) {
+            $log_details = 'Campos modificados: ' . implode('; ', $changes);
+        } else {
+            $log_details = 'Paquete actualizado, sin cambios significativos detectados en campos clave.';
+        }
+
+        registrar_bitacora(
+            'Actualización de paquete',
+            'Paquetería',
+            'Paquete ID ' . esc($id) . ' actualizado. Cliente: ' . esc($oldPackage['cliente']) . '. ' . $log_details,
+            $userId
+        );
+
+        return redirect()->to(base_url('packages'))->with('success', 'Paquete actualizado correctamente.');
     }
 
     public function setDestino()
