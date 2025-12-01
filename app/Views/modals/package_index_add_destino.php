@@ -33,18 +33,24 @@
                     </div>
 
                     <div class="mt-3 d-none divDestino" id="divPersonalizado<?= $pkg['id'] ?>">
-                         <label>Dirección personalizada</label>
-                         <input type="text" name="destino_personalizado" class="form-control inputPersonalizado" placeholder="Escriba el destino...">
+                        <label>Dirección personalizada</label>
+                        <input type="text" name="destino_personalizado" class="form-control inputPersonalizado" placeholder="Escriba el destino...">
                     </div>
 
+                    <!-- Sucursal para casillero -->
                     <div class="mt-3 d-none divDestino" id="divCasillero<?= $pkg['id'] ?>">
-                         <label>Destino</label>
-                         <input type="text" class="form-control" value="Casillero" readonly>
+                        <label class="form-label">Sucursal</label>
+                        <select name="branch"
+                            id="branch"
+                            class="form-control select2-branch"
+                            data-initial-id="<?= esc($package['branch_id'] ?? '') ?>"
+                            data-initial-text="<?= esc($package['branch_name'] ?? '') ?>">
+                        </select>
                     </div>
 
                     <div class="mt-3" id="fechaEntregaBox<?= $pkg['id'] ?>" style="display:none;">
-                         <label>Fecha de entrega</label>
-                         <input type="text" name="" class="form-control fechaEntrega" id="fechaEntrega<?= $pkg['id'] ?>" autocomplete="off">
+                        <label>Fecha de entrega</label>
+                        <input type="text" name="" class="form-control fechaEntrega" id="fechaEntrega<?= $pkg['id'] ?>" autocomplete="off">
                     </div>
 
                 </div>
@@ -59,3 +65,35 @@
         </div>
     </div>
 </div>
+<script>
+    const branchSearchUrl = "<?= base_url('branches-list') ?>";
+    $(document).ready(function() {
+        $.fn.modal.Constructor.prototype._enforceFocus = function() {};
+        // Interceptar SOLO los forms de agregar destino
+        $('#branch').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: 'Buscar sucursal...',
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: branchSearchUrl,
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.branch_name
+                        }))
+                    };
+                }
+            }
+        }).trigger('change'); // <-- Esta línea hace que Select2 lea el option inicial
+    });
+</script>

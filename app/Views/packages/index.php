@@ -196,10 +196,33 @@
                                             <small>
                                                 <strong>Destino final:</strong>
 
+                                                <?php
+                                                $destino = '';
+                                                $pendiente = true;
+
+                                                if (!empty($pkg['point_name'])) {
+
+                                                    $destino = esc($pkg['point_name']);
+                                                    $pendiente = false;
+                                                } elseif (!empty($pkg['destino_personalizado']) && strtolower($pkg['destino_personalizado']) !== 'casillero') {
+
+                                                    // Usar destino_personalizado SOLO si NO dice "Casillero"
+                                                    $destino = esc($pkg['destino_personalizado']);
+                                                    $pendiente = false;
+                                                } elseif (!empty($pkg['branch_name'])) {
+
+                                                    // Si es casillero en tipo 3, usar la sucursal
+                                                    $destino = 'Casillero → ' . esc($pkg['branch_name']);
+                                                    $pendiente = false;
+                                                } else {
+
+                                                    $destino = 'Destino pendiente';
+                                                    $pendiente = true;
+                                                }
+                                                ?>
+
                                                 <?php if ($pendiente): ?>
-                                                    <span class="badge bg-warning text-dark">
-                                                        <?= $destino ?>
-                                                    </span>
+                                                    <span class="badge bg-warning text-dark"><?= $destino ?></span>
                                                 <?php else: ?>
                                                     <span class="text-info"><?= $destino ?></span>
                                                 <?php endif; ?>
@@ -261,13 +284,19 @@
                                     </td>
                                     <td style="text-align:center; vertical-align:middle;">
                                         <div style="
-                                            display:flex;
                                             font-size: medium;
-                                            align-items:center;      /* centro vertical */
-                                            justify-content:center;  /* centro horizontal */
-                                            height:15px;             /* más altura del área */
+                                            align-items:center;
+                                            justify-content:center;
+                                            /* Aumenté un poco la altura para que quepan dos elementos lado a lado si es necesario */
+                                            height:25px; 
+                                            gap: 15px; /* Agrego un espacio entre los dos badges de estatus */
                                         ">
                                             <?= statusBadge($pkg['estatus']); ?>
+
+                                            <?php if (!empty($pkg['estatus2'])): ?>
+                                                <?= statusBadge($pkg['estatus2']); ?>
+                                            <?php endif; ?>
+
                                         </div>
                                     </td>
 
@@ -301,18 +330,22 @@
                                                     <?php endif; ?>
                                                 </li>
 
-                                                <!-- Editar -->
-                                                <?php if (
-                                                    $pkg['estatus'] == 'pendiente' ||
-                                                    $pkg['estatus'] == 'recolectado' ||
-                                                    $pkg['estatus'] == 'no_retirado'
-                                                ): ?>
-                                                    <li>
-                                                        <a class="dropdown-item"
-                                                            href="<?= base_url('packages/edit/' . $pkg['id']) ?>">
-                                                            <i class="fa-solid fa-pencil"></i>Editar paquete
-                                                        </a>
-                                                    </li>
+                                                <?php if ($pkg['estatus2'] != 'devuelto'): ?>
+
+                                                    <?php if (
+                                                        $pkg['estatus'] == 'pendiente' ||
+                                                        $pkg['estatus'] == 'recolectado' ||
+                                                        $pkg['estatus'] == 'en_casillero' ||
+                                                        $pkg['estatus'] == 'no_retirado'
+                                                    ): ?>
+                                                        <li>
+                                                            <a class="dropdown-item"
+                                                                href="<?= base_url('packages/edit/' . $pkg['id']) ?>">
+                                                                <i class="fa-solid fa-pencil"></i>Editar paquete
+                                                            </a>
+                                                        </li>
+                                                    <?php endif; ?>
+
                                                 <?php endif; ?>
                                                 <!-- AGREGAR DESTINO (solo si es recolecta y no tiene destino final) -->
                                                 <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
@@ -331,16 +364,23 @@
                                                     </li>
                                                 <?php endif; ?>
                                                 <!-- DEVOLVER PAQUETE -->
-                                                <?php if (
-                                                    $pkg['estatus'] == 'pendiente' ||
-                                                    $pkg['estatus'] == 'recolectado' ||
-                                                    $pkg['estatus'] == 'no_retirado'
-                                                ): ?>
-                                                    <li>
-                                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#devolucionModal<?= $pkg['id'] ?>">
-                                                            <i class="fa-solid fa-undo"></i> Devolver paquete
-                                                        </a>
-                                                    </li>
+                                                <?php if ($pkg['estatus2'] != 'devuelto'): ?>
+                                                    <?php if (
+                                                        $pkg['estatus'] == 'pendiente' ||
+                                                        $pkg['estatus'] == 'recolectado' ||
+                                                        $pkg['estatus'] == 'en_casillero' ||
+                                                        $pkg['estatus'] == 'no_retirado'
+                                                    ): ?>
+                                                        <li>
+                                                            <a class="dropdown-item btn-devolver"
+                                                                href="#"
+                                                                data-id="<?= $pkg['id'] ?>"
+                                                                data-foto="<?= esc($pkg['foto'] ?? '') ?>">
+                                                                <i class="fa-solid fa-undo"></i> Devolver paquete
+                                                            </a>
+
+                                                        </li>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </ul>
                                         </div>
@@ -379,6 +419,33 @@
 <script>
     $(document).ready(function() {
         // Interceptar SOLO los forms de agregar destino
+        $('#branch').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: 'Buscar sucursal...',
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: branchSearchUrl,
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.branch_name
+                        }))
+                    };
+                }
+            }
+        }).trigger('change'); // <-- Esta línea hace que Select2 lea el option inicial
+
+        // Interceptar el envío del form de agregar destino
         $("form[action*='packages-setDestino']").on("submit", function(e) {
             e.preventDefault();
             let form = this;
@@ -398,6 +465,67 @@
         });
     });
 </script>
+<script>
+document.querySelectorAll('.btn-devolver').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+
+        const packageId = this.dataset.id;
+        const foto = this.dataset.foto;
+
+        // Construir URL de la foto
+        let fotoUrl = '';
+        if (foto && foto.trim() !== '') {
+            fotoUrl = "<?= base_url('upload/paquetes') ?>/" + foto;
+        } else {
+            fotoUrl = "<?= base_url('upload/paquetes/default.png') ?>";
+        }
+
+        Swal.fire({
+            title: '¿Devolver paquete?',
+            html: `
+                <p>Este paquete se marcará como devuelto.</p>
+                <img src="${fotoUrl}" 
+                     style="max-width: 200px; border-radius: 10px; margin-top: 10px;" />
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, devolver',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33'
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                fetch('<?= base_url("packages-devolver") ?>/' + packageId, {
+                        method: 'POST'
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+
+                        if (data.status === "ok") {
+                            Swal.fire(
+                                '¡Devuelto!',
+                                'El paquete fue marcado como devuelto.',
+                                'success'
+                            ).then(() => location.reload());
+                        } else {
+                            Swal.fire(
+                                'Error',
+                                'Hubo un problema al devolver el paquete.',
+                                'error'
+                            );
+                        }
+                    });
+            }
+
+        });
+
+    });
+});
+</script>
+
 <script src="<?= base_url('backend/assets/js/scripts_destino_index_pkg.js') ?>"></script>
 <script src="<?= base_url('backend/assets/js/scripts_reenvio_index_pkg.js') ?>"></script>
 <?= $this->endSection() ?>

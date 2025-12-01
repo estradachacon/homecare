@@ -12252,6 +12252,35 @@ table th {
   max-width: 150px !important;
 }
 
+/* Clase personalizada para un naranja más oscuro que el warning */
+.badge-orange {
+  color: #212529;
+  /* Color de texto oscuro para buen contraste */
+  background-color: #FF8C00;
+  /* DarkOrange - el color que buscabas */
+}
+    .toggle-pill {
+        display: inline-flex;
+        border: 1px solid #ced4da;
+        border-radius: 30px;
+        overflow: hidden;
+    }
+
+    .toggle-pill input {
+        display: none;
+    }
+
+    .toggle-pill label {
+        padding: 6px 16px;
+        margin: 0;
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+    .toggle-pill input:checked+label {
+        background-color: #48b563ff;
+        color: white;
+    }
 /* .zoomed {
     transform: scale(2) !important;
     position: relative !important;
@@ -12452,47 +12481,61 @@ a#userDropdown {
 .bg-success {
   background-color: #5cb85c !important;
 }
+
 .toast-warning-strong {
-    background-color: #ffc107 !important; /* amarillo fuerte */
-    opacity: 0.95 !important; /* casi opaco */
-    color: #000 !important; /* buen contraste */
+  background-color: #ffc107 !important;
+  /* amarillo fuerte */
+  opacity: 0.95 !important;
+  /* casi opaco */
+  color: #000 !important;
+  /* buen contraste */
 }
+
 .filtro-rutas {
-    max-width: 220px !important;
-    min-width: 180px !important;
-    height: 32px !important;
+  max-width: 220px !important;
+  min-width: 180px !important;
+  height: 32px !important;
 }
 
 
 /* --- CONTENEDOR GENERAL --- */
 .select2-container {
-    width: 100% !important;       /* tamaño ideal */
-    font-size: 0.85rem;            /* texto compacto */
+  width: 100% !important;
+  /* tamaño ideal */
+  font-size: 0.85rem;
+  /* texto compacto */
 }
 
 /* --- ÁREA DEL SELECT MULTIPLE --- */
 .select2-selection--multiple {
-    min-height: 34px !important;   /* compacta pero usable */
-    padding: 3px 6px !important;   /* espacio interno elegante */
-    border-radius: 6px !important; /* esquinas suaves */
-    border: 1px solid #ced4da !important; /* igual a Bootstrap */
-    box-shadow: none !important;
-    display: flex;
-    align-items: center;
+  min-height: 34px !important;
+  /* compacta pero usable */
+  padding: 3px 6px !important;
+  /* espacio interno elegante */
+  border-radius: 6px !important;
+  /* esquinas suaves */
+  border: 1px solid #ced4da !important;
+  /* igual a Bootstrap */
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
 }
 
 /* --- PLACEHOLDER --- */
 .select2-selection__placeholder {
-    color: #6c757d !important;     /* gris suave */
+  color: #6c757d !important;
+  /* gris suave */
 }
 
 
 .select2-search__field::-webkit-search-cancel-button {
-    display: none !important;
+  display: none !important;
 }
+
 .select2-search__field::-ms-clear {
-    display: none !important;
+  display: none !important;
 }
+
 .select2-selection__clear {
-    display: none !important;
+  display: none !important;
 }

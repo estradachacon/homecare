@@ -26,7 +26,7 @@ $(document).ready(function () {
     $('#branch').select2({
         theme: 'bootstrap4',
         width: '100%',
-        placeholder: 'Buscar sucursal...',
+        placeholder: 'Buscar sucursal (Dejar en blanco para mantener datos)...',
         allowClear: true,
         minimumInputLength: 1,
         ajax: {

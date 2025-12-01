@@ -1,6 +1,5 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-<?= csrf_field() ?>
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm">
@@ -10,8 +9,6 @@
 
             <div class="card-body">
                 <form action="<?= base_url('cashiers/create') ?>" method="post">
-                    <?= csrf_field() ?>
-
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="name" class="form-label">Nombre de caja</label>

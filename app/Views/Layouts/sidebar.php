@@ -26,12 +26,13 @@
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash" aria-expanded="false"
                     aria-controls="cash">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-cash-register"></i></div>
-                    Cajas
+                    <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                    Finanzas
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                 </a>
                 <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
+                        <a class="nav-link" href="/transactions">Movimientos historicos</a>
                         <a class="nav-link" href="/cashiers">Lista de Cajas</a>
                         <a class="nav-link" href="/cashiers/new">Creación de
                             caja</a>

@@ -39,35 +39,24 @@ class PackageController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('branches', 'branches.id = packages.branch', 'left')
             ->orderBy('packages.id', 'DESC');
-
-        // FILTRO VENDEDOR
         if (!empty($filter_vendedor_id)) {
             $builder->where('vendedor', $filter_vendedor_id);
         }
-
-        // FILTRO ESTATUS
         if (!empty($filter_status)) {
             $builder->where('estatus', $filter_status);
         }
-
-        // FILTRO TIPO DE SERVICIO
         if (!empty($filter_service)) {
             $builder->where('tipo_servicio', $filter_service);
         }
-
-        // FILTRO FECHA DESDE
         if (!empty($filter_date_from)) {
             $builder->where('DATE(fecha_ingreso) >=', $filter_date_from);
         }
-
-        // FILTRO FECHA HASTA
         if (!empty($filter_date_to)) {
             $builder->where('DATE(fecha_ingreso) <=', $filter_date_to);
         }
 
-        // ⬅️ PAGINACIÓN CORRECTA
         $packages = $builder->paginate($perPage);
-        $pager = $builder->pager; // ⬅️ ESTE ES EL PAGER CORRECTO
+        $pager = $builder->pager;
 
         $sellers = $this->sellerModel->findAll();
         $puntos_fijos = $this->settledPointModel->findAll();
@@ -156,6 +145,7 @@ class PackageController extends BaseController
     public function store()
     {
         helper(['form']);
+        helper('transaction');
 
         $session = session();
         $userId = $session->get('user_id'); // 🛡️ OBTENER DE LA SESIÓN
@@ -166,6 +156,14 @@ class PackageController extends BaseController
         if ($foto && $foto->isValid() && !$foto->hasMoved()) {
             $fotoName = $foto->getRandomName();
             $foto->move('upload/paquetes', $fotoName);
+        }
+        // Determinar el estatus inicial
+        $estatusInicial = 'pendiente'; // Estatus por defecto
+
+        $tipoServicio = $this->request->getPost('tipo_servicio');
+        // ✨ LÓGICA CASILLERO (#4)
+        if ($tipoServicio == 4) {
+            $estatusInicial = 'en_casillero'; // Si es Casillero, el estatus inicial es 'casillero'
         }
 
         $dataToSave = [
@@ -190,7 +188,7 @@ class PackageController extends BaseController
             'foto' => $fotoName,
             'comentarios' => $this->request->getPost('comentarios'),
             'fragil' => $this->request->getPost('fragil'),
-            'estatus' => 'pendiente', // o el valor que corresponda
+            'estatus' => $estatusInicial, // o el valor que corresponda
             'branch' => $this->request->getPost('branch_id'), // o el valor que corresponda
             'user_id' => $userId, // Usamos el ID de la sesión
         ];
@@ -198,6 +196,37 @@ class PackageController extends BaseController
         $this->packageModel->save($dataToSave);
         $newPackageId = $this->packageModel->insertID();
 
+        // 🟨 REGISTRO DE TRANSACCIÓN
+        $pagoParcial = $this->request->getPost('pago_parcial'); // toggle
+        $fleteTotal = floatval($this->request->getPost('flete_total'));
+        $fletePagado = floatval($this->request->getPost('flete_pagado'));
+
+        $accountId = 1; // <-- AJUSTA si manejas diferentes cuentas
+
+        if ($pagoParcial) {
+            // 🟦 PAGO PARCIAL
+            if ($fletePagado > 0) {
+                registrarEntrada(
+                    $accountId,
+                    $fletePagado,
+                    'Pago parcial de envío',
+                    'Paquete ID ' . $newPackageId,
+                    $newPackageId
+                );
+            }
+        } else {
+            // 🟩 PAGO COMPLETO
+            if ($fleteTotal > 0) {
+                registrarEntrada(
+                    $accountId,
+                    $fleteTotal,
+                    'Pago completo de envío',
+                    'Paquete ID ' . $newPackageId,
+                    $newPackageId
+                );
+            }
+        }
+        
         // 📜 BITÁCORA: Registro de creación
         registrar_bitacora(
             'Registro de paquete',
@@ -250,7 +279,7 @@ class PackageController extends BaseController
     }
 
 
-// =====================================
+    // =====================================
     // ACTUALIZAR PAQUETE
     // =====================================
     public function update($id)
@@ -283,8 +312,6 @@ class PackageController extends BaseController
             'monto' => 'permit_empty|decimal',
             'fragil' => 'permit_empty|in_list[0,1]',
             'fecha_pack_entregado' => 'permit_empty|valid_date',
-            'estatus' => 'permit_empty',
-            'estatus2' => 'permit_empty',
             'comentarios' => 'permit_empty'
         ];
 
@@ -295,6 +322,9 @@ class PackageController extends BaseController
         // Datos limpios
         $data = $this->request->getPost();
 
+        if (isset($data['tipo_servicio']) && $data['tipo_servicio'] == 4) {
+            $data['estatus'] = 'en_casillero';
+        }
         // 2. Ejecutar la actualización
         $this->packages->update($id, $data);
 
@@ -304,8 +334,8 @@ class PackageController extends BaseController
         $changes = [];
 
         // Comparamos campos importantes (puedes agregar o quitar campos aquí)
-        $fields_to_check = ['vendedor', 'cliente', 'estatus', 'flete_total', 'flete_pagado', 'flete_pendiente', 'destino_personalizado', 'id_puntofijo', 'fecha_entrega_personalizado', 'fecha_entrega_puntofijo', 'monto']; 
-        
+        $fields_to_check = ['vendedor', 'cliente', 'estatus', 'flete_total', 'flete_pagado', 'flete_pendiente', 'destino_personalizado', 'id_puntofijo', 'fecha_entrega_personalizado', 'fecha_entrega_puntofijo', 'monto'];
+
         foreach ($fields_to_check as $field) {
             // Aseguramos que la clave existe y los valores son diferentes
             if (isset($data[$field]) && $data[$field] != $oldPackage[$field]) {
@@ -353,6 +383,7 @@ class PackageController extends BaseController
             $data = [
                 'id_puntofijo' => $puntoFijoId,
                 'fecha_entrega_puntofijo' => $fechaEntregaPuntoFijo,
+                'branch' => null,
 
                 // limpiar campos que no aplican
                 'destino_personalizado' => null,
@@ -368,7 +399,7 @@ class PackageController extends BaseController
             $data = [
                 'destino_personalizado' => $destinoPersonalizado,
                 'fecha_entrega_personalizado' => $fechaEntregaPersonalizado,
-
+                'branch' => null,
                 // limpiar campos que no aplican
                 'id_puntofijo' => null,
                 'fecha_entrega_puntofijo' => null,
@@ -377,10 +408,11 @@ class PackageController extends BaseController
             $log_message = 'Destino actualizado a PERSONALIZADO';
             $log_details = 'Dirección: ' . esc($destinoPersonalizado) . ', Fecha de entrega: ' . esc($fechaEntregaPersonalizado);
         } elseif ($tipo === 'casillero') {
-
+            $branchId = $this->request->getPost('branch');
             $data = [
                 'destino_personalizado' => 'Casillero',
                 'estatus' => 'en_casillero',
+                'branch' => $branchId,
 
                 // limpiar campos que no aplican
                 'id_puntofijo' => null,
@@ -455,5 +487,33 @@ class PackageController extends BaseController
             'tipo' => 'none',
             'mensaje' => 'El paquete no tiene destino configurado'
         ]);
+    }
+    public function devolver($id)
+    {
+        helper(['form']);
+        $session = session();
+
+        // ID del usuario que realiza la acción
+        $userId = $session->get('user_id');
+
+        // Datos para bitácora
+        $log_message = 'Devolución de paquete';
+        $log_details = 'El paquete fue marcado como devuelto por el usuario ' . $userId;
+
+        // Actualizar estatus
+        $this->packages->update($id, [
+            'estatus' => 'no_retirado',
+            'estatus2' => 'devuelto'
+        ]);
+
+        // Registrar bitácora
+        registrar_bitacora(
+            'Devolución de paquete ID ' . esc($id),
+            'Paquetería',
+            $log_message . ' para el paquete ' . esc($id) . '. Detalles: ' . $log_details,
+            $userId
+        );
+
+        return $this->response->setJSON(['status' => 'ok']);
     }
 }

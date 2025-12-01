@@ -16,12 +16,13 @@ function statusBadge($status)
 {
     $map = [
         'pendiente'     => 'warning',
+        'reenvio'     => 'orange',
+        'devuelto'      => 'success',
         'entregado'     => 'success',
         'asignado_para_entrega'      => 'info',
         'asignado_para_recolecta'      => 'info',
         'recolecta_fallida'      => 'warning',
         'asignado'      => 'info',
-        'devuelto'      => 'danger',
         'no_retirado'      => 'danger',
         'en_casillero'  => 'info',
         'recolectado'  => 'info',

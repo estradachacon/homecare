@@ -56,6 +56,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $route['upload-paquete'] = 'PackageController/subirImagen';
     $routes->post('packages/store', 'PackageController::store');
     $routes->post('packages-setDestino', 'PackageController::setDestino');
+    $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
     $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
     $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'show', 'create', 'edit', 'update']]);
@@ -67,4 +68,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('tracking-rendicion/(:num)', 'TrackingRendicionController::index/$1');
     $routes->post('tracking-rendicion/save', 'TrackingRendicionController::save');
     $routes->get('tracking-pdf/(:num)', 'TrackingRendicionController::pdf/$1');
+    $routes->get('transactions', 'TransactionsController::index');
 });

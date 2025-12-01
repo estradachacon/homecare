@@ -128,28 +128,7 @@
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
 
-    .toggle-pill {
-        display: inline-flex;
-        border: 1px solid #ced4da;
-        border-radius: 30px;
-        overflow: hidden;
-    }
 
-    .toggle-pill input {
-        display: none;
-    }
-
-    .toggle-pill label {
-        padding: 6px 16px;
-        margin: 0;
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-
-    .toggle-pill input:checked+label {
-        background-color: #48b563ff;
-        color: white;
-    }
 
     /* ===============================
    🎨 ESTILOS DATERANGEPICKER

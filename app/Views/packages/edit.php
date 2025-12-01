@@ -9,7 +9,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex">
+            <div class="card-header bg-primary text-white d-flex">
                 <h3 class="header-title">Editar Paquete ID: <?= $package['id'] ?></h3>
                 <hr>
             </div>
@@ -33,10 +33,10 @@
                     <?= csrf_field() ?>
                     <div class="row">
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 text-dark">
                             <label>Vendedor</label>
 
-                            <select name="vendedor" id="vendedor" class="form-control select2-seller">
+                            <select name="vendedor" id="vendedor" class="form-control select2-seller" required>
                                 <?php if (!empty($package['vendedor'])): ?>
                                     <option value="<?= esc($package['vendedor']) ?>" selected>
                                         <?= esc($package['seller_name']) ?>
@@ -49,7 +49,7 @@
                         <div class="col-md-6">
                             <label>Cliente</label>
                             <input type="text" name="cliente" class="form-control"
-                                value="<?= esc($package['cliente']) ?>">
+                                value="<?= esc($package['cliente']) ?>" required>
                         </div>
                         <?php
                         $tiposServicio = [
@@ -61,7 +61,7 @@
                         ?>
                         <div class="col-md-4 mt-3">
                             <label>Tipo Servicio</label>
-                            <select name="tipo_servicio" id="tipo_servicio" class="form-control">
+                            <select name="tipo_servicio" id="tipo_servicio" class="form-control" required>
                                 <option value="">Seleccione...</option>
 
                                 <?php foreach ($tiposServicio as $key => $nombre): ?>
@@ -150,18 +150,26 @@
                                 value="<?= esc($package['monto']) ?>">
                         </div>
 
-                        <div class="col-md-4 mt-3">
-                            <label>Estatus 2</label>
-                            <input type="text" name="estatus2" class="form-control"
-                                value="<?= esc($package['estatus2']) ?>">
-                        </div>
+                        <div class="col-md-4 text-center mt-3">
+                            <label class="form-label d-block mb-2">¿Es frágil?</label>
+                            <div class="toggle-pill">
 
-                        <div class="col-md-4 mt-3">
-                            <label>Fragil</label>
-                            <select name="fragil" class="form-control">
-                                <option value="0" <?= $package['fragil'] == 0 ? 'selected' : '' ?>>No</option>
-                                <option value="1" <?= $package['fragil'] == 1 ? 'selected' : '' ?>>Sí</option>
-                            </select>
+                                <input
+                                    type="radio"
+                                    id="fragilNo"
+                                    name="fragil"
+                                    value="0"
+                                    <?= $package['fragil'] == 0 ? 'checked' : '' ?>>
+                                <label for="fragilNo">No</label>
+
+                                <input
+                                    type="radio"
+                                    id="fragilSi"
+                                    name="fragil"
+                                    value="1"
+                                    <?= $package['fragil'] == 1 ? 'checked' : '' ?>>
+                                <label for="fragilSi">Sí</label>
+                            </div>
                         </div>
 
                         <div class="col-md-12 mt-3">
