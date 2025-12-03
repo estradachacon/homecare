@@ -43,16 +43,6 @@ class Accounts extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->createTable('accounts');
-
-        $this->db->table('accounts')->insert([
-            'id'          => 1,
-            'name'        => 'Efectivo',
-            'type'        => 'Efectivo',
-            'description' => 'Cuenta base',
-            'is_active'   => 1,
-            'created_at'  => date('Y-m-d H:i:s'),
-            'updated_at'  => date('Y-m-d H:i:s'),
-        ]);
     }
 
     public function down()
