@@ -16,7 +16,7 @@ class AddDataToAccounts extends Migration
                 'comment'    => '1=Activa, 0=Inactiva',
             ],
         ]);
-                $this->db->table('accounts')->insert([
+        $this->db->table('accounts')->insert([
             'id'          => 1,
             'name'        => 'Efectivo',
             'type'        => 'Efectivo',

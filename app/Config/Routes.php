@@ -86,4 +86,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('accounts', ['controller' => 'AccountController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('accounts/delete', 'AccountController::delete');
     $routes->get('accounts/searchAjax', 'AccountController::searchAjax');
+
+    // Módulo de mantenimiento de gastos
+    $routes->presenter('expensestype', ['controller' => 'ExpenseController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->post('expensestype/delete', 'ExpenseController::delete');
+    $routes->get('expensestype/searchAjax', 'ExpenseController::searchAjax');
 });

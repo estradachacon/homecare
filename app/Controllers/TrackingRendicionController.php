@@ -59,6 +59,7 @@ class TrackingRendicionController extends BaseController
     {
         // Cargar el helper 'form' y el que contiene 'registrar_bitacora'
         helper(['form', 'bitacora']); // Asumiendo que 'registrar_bitacora' está en un helper llamado 'bitacora'
+        helper('transaction');
 
         $trackingId = $this->request->getPost('tracking_id');
         $regresados = $this->request->getPost('regresados') ?? [];

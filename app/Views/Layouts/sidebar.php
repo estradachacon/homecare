@@ -53,6 +53,19 @@
                         <a class="nav-link" href="/transactions">Movimientos históricos</a>
                         <a class="nav-link" href="/balances">Saldos</a>
                         <a class="nav-link" href="/accounts">Cuentas</a>
+                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#purchase_orders"
+                            aria-expanded="false" aria-controls="purchase_orders">
+                            <div class="sb-nav-link-icon"><i class="fa-solid fa-bag-shopping"></i></div>
+                            Otros gastos
+                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                        </a>
+
+                        <div class="collapse" id="purchase_orders" aria-labelledby="headingOne" data-parent="#cash">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <a class="nav-link" href="#/purchase_orders">Lista de gastos</a>
+                                <a class="nav-link" href="#/purchase_returns">Tipos de gastos</a>
+                            </nav>
+                        </div>
 
                     </nav>
                 </div>
@@ -84,19 +97,6 @@
                         <a class="nav-link" href="#/invoices/create">Remunerar paquetes</a>
                         <a class="nav-link" href="#/invoices/create">Devolución de paquetes</a>
                         <a class="nav-link" href="#/invoices/create">Movimientos de caja actual</a>
-                    </nav>
-                </div>
-
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#purchase_orders"
-                    aria-expanded="false" aria-controls="purchase_orders">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-bag-shopping"></i></div>
-                    Otros gastos
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="purchase_orders" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="#/purchase_orders">Lista de gastos</a>
-                        <a class="nav-link" href="#/purchase_returns">Tipos de gastos</a>
                     </nav>
                 </div>
 
