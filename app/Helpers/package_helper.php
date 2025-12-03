@@ -26,7 +26,11 @@ function statusBadge($status)
         'no_retirado'      => 'danger',
         'en_casillero'  => 'info',
         'recolectado'  => 'info',
-        'finalizado'  => 'success'
+        'finalizado'  => 'success',
+        'Activo'  => 'success',
+        'Inactivo'  => 'danger',
+        'Efectivo'  => 'success',
+        'Banco'  => 'info'
     ];
 
     $color = $map[$status] ?? 'secondary';

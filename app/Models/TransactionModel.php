@@ -57,7 +57,14 @@ class TransactionModel extends Model
     public function getByAccount($accountId)
     {
         return $this->where('account_id', $accountId)
-                    ->orderBy('created_at', 'DESC')
-                    ->findAll();
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+    }
+    public function getTransactionsWithAccountName()
+    {
+        return $this->select('transactions.*, accounts.name AS account_name')
+            ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->orderBy('transactions.created_at', 'DESC')
+            ->findAll();
     }
 }

@@ -27,7 +27,7 @@
                             <?php foreach ($transactions as $t): ?>
                                 <tr>
                                     <td><?= esc($t->id) ?></td>
-                                    <td><?= esc($t->account_id) ?></td>
+                                    <td><?= esc($t->account_name) ?></td>
 
                                     <td>
                                         <?php if ($t->tipo == 'entrada'): ?>

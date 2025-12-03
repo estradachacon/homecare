@@ -14,8 +14,9 @@ class AccountModel extends Model
 
     protected $allowedFields = [
         'name',
-        'type',
         'description',
+        'type',
+        'is_active',
     ];
 
     /**
@@ -37,5 +38,11 @@ class AccountModel extends Model
 
         return $query ? $query->balance : 0;
     }
-
+    public function getTransactionsWithAccountName()
+    {
+        return $this->select('transactions.*, accounts.name AS account_name')
+            ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->orderBy('transactions.created_at', 'DESC')
+            ->findAll();
+    }
 }

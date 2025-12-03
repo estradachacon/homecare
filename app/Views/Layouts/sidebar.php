@@ -30,16 +30,33 @@
                     Finanzas
                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                 </a>
+
                 <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/transactions">Movimientos historicos</a>
-                        <a class="nav-link" href="/cashiers">Lista de Cajas</a>
-                        <a class="nav-link" href="/cashiers/new">Creación de
-                            caja</a>
-                        <a class="nav-link" href="#/cash_movement/create?cashmov_type=Closing">Corte
-                            de caja</a>
+
+                        <!-- Submenú de Cajas -->
+                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#subCajas"
+                            aria-expanded="false" aria-controls="subCajas">
+                            Cajas
+                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                        </a>
+
+                        <div class="collapse" id="subCajas" data-parent="#cash">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <a class="nav-link" href="/cashiers">Lista de Cajas</a>
+                                <a class="nav-link" href="/cashiers/new">Creación de caja</a>
+                                <a class="nav-link" href="/cash_movement/create?cashmov_type=Closing">Corte de caja</a>
+                            </nav>
+                        </div>
+
+                        <!-- Otros elementos fuera del submenú -->
+                        <a class="nav-link" href="/transactions">Movimientos históricos</a>
+                        <a class="nav-link" href="/balances">Saldos</a>
+                        <a class="nav-link" href="/accounts">Cuentas</a>
+
                     </nav>
                 </div>
+
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales" aria-expanded="false"
                     aria-controls="sales">
@@ -172,11 +189,11 @@
 
 <!-- Lógica de activación de Sidebar (requiere jQuery y Bootstrap JS) -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Obtener la ruta actual, normalizada para eliminar la barra inicial si existe, 
         // y limpiar parámetros de consulta si los hay.
         let currentPath = window.location.pathname;
-        
+
         // Si estás en la raíz (/), el path será solo /.
         if (currentPath === '/') {
             currentPath = '/dashboard'; // Asume que la raíz lleva al dashboard
@@ -196,7 +213,7 @@
                 let normalizedLink = linkHref.startsWith('/') ? linkHref.substring(1) : linkHref;
                 // Eliminar el hash inicial de las URLs que usan solo anclas (e.g. #/reports -> /reports)
                 normalizedLink = normalizedLink.startsWith('#') ? normalizedLink.substring(1) : normalizedLink;
-                
+
                 // Si la URL del enlace coincide exactamente con el path actual:
                 if (currentPath === normalizedLink) {
                     // 2. Resaltar el enlace
@@ -209,12 +226,12 @@
                     if (parentCollapse) {
                         // Añadir la clase 'show' para abrir el submenú
                         parentCollapse.classList.add('show');
-                        
+
                         // Encontrar el enlace padre que controla este colapso (a.nav-link.collapsed)
                         // Usamos el ID del colapso para encontrar el data-target coincidente
                         const targetId = '#' + parentCollapse.id;
                         const parentLink = document.querySelector(`a[data-target="${targetId}"]`);
-                        
+
                         if (parentLink) {
                             // Marcar el enlace padre como no colapsado y activo visualmente
                             parentLink.classList.remove('collapsed');

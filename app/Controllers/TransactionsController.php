@@ -12,7 +12,7 @@ class TransactionsController extends BaseController
     public function index()
     {
         $model = new TransactionModel();
-        $data['transactions'] = $model->orderBy('created_at', 'DESC')->findAll();
+        $data['transactions'] = $model->getTransactionsWithAccountName();
 
         return view('transactions/index', $data);
     }
