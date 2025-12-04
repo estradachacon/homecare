@@ -80,15 +80,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('tracking-rendicion/(:num)', 'TrackingRendicionController::index/$1');
     $routes->post('tracking-rendicion/save', 'TrackingRendicionController::save');
     $routes->get('tracking-pdf/(:num)', 'TrackingRendicionController::pdf/$1');
-    $routes->get('transactions', 'TransactionsController::index');
 
     // Módulo de mantenimiento de cuentas
     $routes->presenter('accounts', ['controller' => 'AccountController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('accounts/delete', 'AccountController::delete');
     $routes->get('accounts/searchAjax', 'AccountController::searchAjax');
-
-    // Módulo de mantenimiento de gastos
-    $routes->presenter('expensestype', ['controller' => 'ExpenseController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
-    $routes->post('expensestype/delete', 'ExpenseController::delete');
-    $routes->get('expensestype/searchAjax', 'ExpenseController::searchAjax');
+    $routes->get('accounts-list', 'AccountController::list');
+    // Rutas para el módulo de transacciones
+    $routes->get('transactions', 'TransactionsController::index');
+    $routes->post('transactions/addSalida', 'TransactionsController::addSalida');
 });

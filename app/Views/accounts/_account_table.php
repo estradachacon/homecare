@@ -2,9 +2,10 @@
     <thead>
         <tr>
             <th class="col-1">ID</th>
-            <th class="col-3">Nombre de cuenta</th>
+            <th class="col-2">Nombre de cuenta</th>
             <th class="col-3">Descripción</th>
-            <th class="col-2">Tipo</th>
+            <th class="col-2">Saldo</th>
+            <th class="col-1">Tipo</th>
             <th class="col-1">Estado</th>
             <th class="col-2">Acciones</th>
         </tr>
@@ -16,6 +17,7 @@
                     <td class="text-center fw-bold"><?= esc($account->id) ?></td>
                     <td><strong><?= esc($account->name) ?></strong></td>
                     <td><strong><?= esc($account->description) ?></strong></td>
+                    <td class="text-center"><strong>$<?= number_format($account->balance, 2) ?></strong></td>
                     <td class="text-center"><strong><?= statusBadge($account->type) ?></strong></td>
                     <td class="text-center">
                         <?= statusBadge($account->is_active ? 'Activo' : 'Inactivo') ?>
@@ -38,7 +40,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center">No hay Cuentas registradas<?= !empty($q) ? ' para la búsqueda "' . esc($q) . '"' : '' ?></td>
+                    <td colspan="7" class="text-center">No hay Cuentas registradas<?= !empty($q) ? ' para la búsqueda "' . esc($q) . '"' : '' ?></td>
                 </tr>
             <?php endif; ?>
     </tbody>

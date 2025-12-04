@@ -86,8 +86,6 @@ class TrackingController extends BaseController
     }
     public function new()
     {
-        helper('form');
-
         // Modelos
         $userModel = new \App\Models\UserModel();
         $rutaModel = new RouteModel();

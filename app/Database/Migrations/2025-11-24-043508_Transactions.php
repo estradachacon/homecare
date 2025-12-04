@@ -22,6 +22,14 @@ class Transactions extends Migration
                 'unsigned' => true,
             ],
 
+            'cashier_session_id' => [ 
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
+                'null'           => true,
+                'comment'        => 'FK a la sesión de caja activa que realizó el movimiento. Null si es movimiento de banco/ajuste.',
+            ],
+
             'tracking_id' => [
                 'type' => 'INT',
                 'constraint' => 11,

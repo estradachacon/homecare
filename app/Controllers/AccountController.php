@@ -79,7 +79,7 @@ class AccountController extends BaseController
 
         if ($id == 1) {
             return redirect()->to('/accounts')
-                            ->with('error', 'Este registro no se puede editar.');
+                ->with('error', 'Este registro no se puede editar.');
         }
         // 1. Obtener la caja a editar
         $account = $this->accountModel->find($id);
@@ -100,63 +100,63 @@ class AccountController extends BaseController
      * Procesa y actualiza los datos de la caja.
      * @param int $id El ID de la caja a actualizar (viene del segmento de la URL).
      */
-public function update($id)
-{
-    helper(['form']);
-    $session = session();
-    $accountModel = $this->accountModel;
+    public function update($id)
+    {
+        helper(['form']);
+        $session = session();
+        $accountModel = $this->accountModel;
 
-    // 1. Obtener los datos nuevos del formulario
-    $newData = [
-        'name'        => $this->request->getPost('name'),
-        'description' => $this->request->getPost('description'),
-        'type'        => $this->request->getPost('type'),
-    ];
+        // 1. Obtener los datos nuevos del formulario
+        $newData = [
+            'name'        => $this->request->getPost('name'),
+            'description' => $this->request->getPost('description'),
+            'type'        => $this->request->getPost('type'),
+        ];
 
-    // 2. Obtener la cuenta antigua para referencia de nombre y comparación
-    $oldAccount = $accountModel->find($id);
+        // 2. Obtener la cuenta antigua para referencia de nombre y comparación
+        $oldAccount = $accountModel->find($id);
 
-    if (!$oldAccount) {
-        return redirect()->to('/accounts')->with('error', 'Cuenta no encontrada.');
-    }
-
-    // 3. Usar el método update de CodeIgniter. 
-    // Por defecto, solo actualiza si hay cambios, y el modelo solo permite campos 'allowedFields'.
-    $accountModel->update($id, $newData);
-    
-    // El método update de CI4 devuelve true si se actualizó al menos 1 fila, o false si no hubo cambios.
-    // Aunque el modelo de CI4 no siempre indica *si* hubo cambios, podemos asumir que si llegamos aquí, 
-    // la intención fue actualizar, o revisar si el modelo lo permite. 
-    // Para simplificar, nos centraremos en los campos clave.
-
-    // 4. Crear un resumen de los cambios (más conciso)
-    $changesSummary = [];
-    foreach ($newData as $key => $value) {
-        // Asumiendo que $oldAccount es un objeto
-        if (isset($oldAccount->$key) && $oldAccount->$key != $value) {
-            $changesSummary[] = ucfirst($key) . " de '{$oldAccount->$key}' a '{$value}'";
+        if (!$oldAccount) {
+            return redirect()->to('/accounts')->with('error', 'Cuenta no encontrada.');
         }
+
+        // 3. Usar el método update de CodeIgniter. 
+        // Por defecto, solo actualiza si hay cambios, y el modelo solo permite campos 'allowedFields'.
+        $accountModel->update($id, $newData);
+
+        // El método update de CI4 devuelve true si se actualizó al menos 1 fila, o false si no hubo cambios.
+        // Aunque el modelo de CI4 no siempre indica *si* hubo cambios, podemos asumir que si llegamos aquí, 
+        // la intención fue actualizar, o revisar si el modelo lo permite. 
+        // Para simplificar, nos centraremos en los campos clave.
+
+        // 4. Crear un resumen de los cambios (más conciso)
+        $changesSummary = [];
+        foreach ($newData as $key => $value) {
+            // Asumiendo que $oldAccount es un objeto
+            if (isset($oldAccount->$key) && $oldAccount->$key != $value) {
+                $changesSummary[] = ucfirst($key) . " de '{$oldAccount->$key}' a '{$value}'";
+            }
+        }
+
+        // Título descriptivo para la bitácora
+        $logTitle = 'Cuenta Actualizada: ' . $oldAccount->name;
+
+        if (empty($changesSummary)) {
+            $logDetails = "Se intentó editar la cuenta '{$oldAccount->name}' (ID: {$id}), pero no se detectaron cambios en los campos clave.";
+        } else {
+            $logDetails = "Se editaron los siguientes campos en la cuenta '{$oldAccount->name}' (ID: {$id}): " . implode(', ', $changesSummary) . ".";
+        }
+
+        // 5. Registrar en la Bitácora
+        registrar_bitacora(
+            $logTitle,
+            'Finanzas/Cuentas',
+            $logDetails,
+            $session->get('user_id')
+        );
+
+        return redirect()->to('/accounts')->with('success', 'Cuenta actualizada exitosamente.');
     }
-
-    // Título descriptivo para la bitácora
-    $logTitle = 'Cuenta Actualizada: ' . $oldAccount->name;
-    
-    if (empty($changesSummary)) {
-        $logDetails = "Se intentó editar la cuenta '{$oldAccount->name}' (ID: {$id}), pero no se detectaron cambios en los campos clave.";
-    } else {
-        $logDetails = "Se editaron los siguientes campos en la cuenta '{$oldAccount->name}' (ID: {$id}): " . implode(', ', $changesSummary) . ".";
-    }
-
-    // 5. Registrar en la Bitácora
-    registrar_bitacora(
-        $logTitle,
-        'Finanzas/Cuentas',
-        $logDetails,
-        $session->get('user_id')
-    );
-
-    return redirect()->to('/accounts')->with('success', 'Cuenta actualizada exitosamente.');
-}
 
     public function delete()
     {
@@ -272,5 +272,23 @@ public function update($id)
         // Importante: Devolvemos una vista parcial que solo contiene la tabla.
         // Tienes que crear esta nueva vista.
         return view('accounts/_account_table', $data);
+    }
+    public function list()
+    {
+        $accountModel = new AccountModel();
+
+        // Obtener término buscado en Select2
+        $q = $this->request->getGet('q');
+
+        $builder = $accountModel
+            ->select('id, name')
+            ->where('is_active', 1);
+
+        // Si hay búsqueda, filtrar
+        if (!empty($q)) {
+            $builder->like('name', $q);
+        }
+
+        return $this->response->setJSON($builder->findAll());
     }
 }

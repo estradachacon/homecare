@@ -17,12 +17,9 @@ class AccountModel extends Model
         'description',
         'type',
         'is_active',
+        'balance',
     ];
 
-    /**
-     * Obtener saldo de la cuenta
-     * SUMA entradas - SUMA salidas
-     */
     public function getBalance($accountId)
     {
         $db = \Config\Database::connect();
