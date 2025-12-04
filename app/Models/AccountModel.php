@@ -17,7 +17,7 @@ class AccountModel extends Model
         'description',
         'type',
         'is_active',
-        'balance',
+        'balance'
     ];
 
     public function getBalance($accountId)

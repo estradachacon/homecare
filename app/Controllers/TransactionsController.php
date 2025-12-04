@@ -18,10 +18,10 @@ class TransactionsController extends BaseController
     }
     public function addSalida()
     {
-        helper(['form', 'bitacora']);
+        helper(['form', 'bitacora', 'account']);
         $session = session();
-
         $request = service('request');
+
         $accountId = $request->getPost('account');
         $monto     = $request->getPost('gastoMonto');
         $origen = $request->getPost('gastoDescripcion');
@@ -32,6 +32,15 @@ class TransactionsController extends BaseController
                 'status' => 'error',
                 'message' => 'Datos incompletos'
             ], 400);
+        }
+
+        $montoSalida = -abs($monto);
+        $balanceUpdate = updateAccountBalance($accountId, $montoSalida);
+        if (!$balanceUpdate['status']) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo actualizar la cuenta: ' . $balanceUpdate['message']
+            ]);
         }
 
         $transaction = new TransactionModel();
@@ -53,7 +62,8 @@ class TransactionsController extends BaseController
         );
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Gasto registrado'
+            'message' => 'Gasto registrado',
+            'newBalance' => $balanceUpdate['newBalance']
         ]);
     }
 }
