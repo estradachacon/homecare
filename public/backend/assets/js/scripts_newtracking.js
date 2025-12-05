@@ -427,7 +427,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     modalEspeciales.on("shown.bs.modal", () => {
-        if (!listaEspeciales.length) loadEspeciales();
+        modalEspeciales.on("shown.bs.modal", () => {
+            loadEspeciales();
+        });
     });
 
     modalPendientes3.on("shown.bs.modal", () => {
