@@ -103,7 +103,7 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success" id="btn-guardar-gasto">
                         <i class="fa-solid fa-save"></i> Guardar Gasto
                     </button>

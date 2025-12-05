@@ -5,13 +5,18 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Cuentas</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('accounts/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Nuevo</a>
+
+                <button class="btn btn-warning btn-sm ml-auto" data-toggle="modal" data-target="#transferModal">
+                    <i class="fa-solid fa-exchange-alt"></i> Realizar Transferencia
+                </button>
+                <a class="btn btn-primary btn-sm ml-2" href="<?= base_url('accounts/new') ?>">
+                    <i class="fa-solid fa-plus"></i> Nueva cuenta
+                </a>
             </div>
             <div class="card-body">
 
                 <div class="row mb-3 align-items-end">
-                    
+
                     <div class="col-md-10">
                         <label for="searchInput">Buscar cuenta</label>
                         <div class="input-group">
@@ -29,7 +34,7 @@
                     </div>
 
                     <div class="col-md-2">
-                        <div class="d-flex justify-content-end align-items-center"> 
+                        <div class="d-flex justify-content-end align-items-center">
                             <label for="perPageSelect" class="mr-2 mb-0">Resultados:</label>
                             <select id="perPageSelect" class="form-control form-control-sm" style="width: 80px;">
                                 <option value="5" <?= ($perPage == 5) ? 'selected' : '' ?>>5</option>
@@ -47,9 +52,132 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="transferModal" tabindex="-1" role="dialog" aria-labelledby="transferModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transferModalLabel">Hacer Transferencia</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="transferForm" action="<?= base_url('accounts-transfer') ?>" method="post">
+                    <div class="mt-3 divAccount" id="gastoCuenta<?= esc($q['id'] ?? '') ?>">
+                        <label class="form-label mb-3">Cuenta inicial</label>
+                        <select name="account_source"
+                            id="account_source"
+                            class="form-control select2-account"
+                            data-initial-id=""
+                            data-initial-text="">
+                        </select>
+                    </div>
+
+                    <!-- Cuenta destino -->
+                    <div class="form-group">
+                        <label for="cuentaDestino">Cuenta Destino</label>
+                        <select name="account_destination"
+                            id="account_destination"
+                            class="form-control select2-account"
+                            data-initial-id=""
+                            data-initial-text="">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="montoTransferir">Monto</label>
+                        <input type="number" class="form-control" id="montoTransferir" name="monto" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcionTransferencia">Descripción</label>
+                        <input type="text" class="form-control" id="descripcionTransferencia" name="descripcion" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Realizar Transferencia</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const accountSearchUrl = "<?= base_url('accounts-list') ?>";
+    $('#transferForm').on('submit', function(e) {
+        e.preventDefault(); // Evita recargar la página
+
+        $.ajax({
+            url: "/accounts-transfer",
+            method: "POST",
+            data: $(this).serialize(),
+            dataType: "json",
+            success: function(response) {
+
+                if (response.status === "success") {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: response.message,
+                        confirmButtonText: "Aceptar"
+                    }).then(() => {
+                        window.location.href = "/accounts";
+                    });
+
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: response.message
+                    });
+                }
+
+            },
+            error: function() {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "No se pudo procesar la transferencia."
+                });
+            }
+        });
+    });
+
+    $(document).ready(function() {
+        $.fn.modal.Constructor.prototype._enforceFocus = function() {};
+        // Interceptar SOLO los forms de agregar destino
+        $('.select2-account').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: 'Buscar cuenta...',
+            allowClear: true,
+            minimumInputLength: 1,
+            dropdownParent: $('#transferModal'), // importante dentro del modal
+            ajax: {
+                url: accountSearchUrl,
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+
+
+                processResults: function(data) {
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.name
+                        }))
+                    };
+                }
+            }
+        });
+
+    });
+</script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('searchInput');
         const tableContainer = document.getElementById('table-container');
         const loadingSpinner = document.getElementById('loading-spinner');
@@ -80,7 +208,7 @@
         }
 
         // 🔥 Cuando cambias los resultados por página
-        document.getElementById('perPageSelect').addEventListener('change', function () {
+        document.getElementById('perPageSelect').addEventListener('change', function() {
             const query = searchInput.value.trim();
             loadResults(query, 1);
         });
@@ -88,7 +216,7 @@
         // Re-adjuntar eventos (paginación y delete)
         function rebindEvents() {
             document.querySelectorAll('#pagination-links a').forEach(link => {
-                link.addEventListener('click', function (e) {
+                link.addEventListener('click', function(e) {
                     e.preventDefault();
                     const url = new URL(this.href);
                     const page = url.searchParams.get('page');
@@ -105,7 +233,7 @@
         }
 
         // Búsqueda en vivo
-        searchInput.addEventListener('input', function () {
+        searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             const query = this.value.trim();
             searchTimeout = setTimeout(() => {
@@ -113,7 +241,7 @@
             }, 300);
         });
 
-        clearSearchBtn.addEventListener('click', function () {
+        clearSearchBtn.addEventListener('click', function() {
             searchInput.value = '';
             loadResults('');
             updateClearButton('');
@@ -142,13 +270,15 @@
                     const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
 
                     fetch("<?= base_url('accounts/delete') ?>", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: new URLSearchParams({ id })
-                    })
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams({
+                                id
+                            })
+                        })
                         .then(response => response.json())
                         .then(data => {
                             Swal.fire({
@@ -170,7 +300,7 @@
 
         // Toggle detalles
         document.querySelectorAll('.toggle-details').forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function() {
                 const details = this.closest('.card').querySelector('.details');
                 details.classList.toggle('d-none');
                 this.textContent = details.classList.contains('d-none') ? 'Ver' : 'Ocultar';

@@ -5,14 +5,17 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\AccountModel;
+use App\Models\TransactionModel;
 
 class AccountController extends BaseController
 {
     protected $accountModel;
+    protected $transactionModel;
 
     public function __construct()
     {
         $this->accountModel = new AccountModel();
+        $this->transactionModel = new TransactionModel();
     }
 
     public function index()
@@ -291,4 +294,101 @@ class AccountController extends BaseController
 
         return $this->response->setJSON($builder->findAll());
     }
+
+public function processTransfer()
+{
+    // SOLO aceptar AJAX
+    if (! $this->request->isAJAX()) {
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'Solicitud inválida.'
+        ]);
+    }
+
+    $request = $this->request;
+
+    // Forzar tipos
+    $origenId  = (int) $request->getPost('account_source');
+    $destinoId = (int) $request->getPost('account_destination');
+    $monto     = (float) $request->getPost('monto');
+    $descripcion = $request->getPost('descripcion') ?? '';
+
+    // Validaciones básicas
+    if ($origenId <= 0 || $destinoId <= 0) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Cuenta origen o destino inválida.']);
+    }
+    if ($origenId === $destinoId) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'La cuenta origen y destino no pueden ser la misma.']);
+    }
+    if ($monto <= 0) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'El monto debe ser positivo.']);
+    }
+
+    $db = \Config\Database::connect();
+    $db->transBegin();
+
+    try {
+        $transactionModel = new TransactionModel();
+        $accountModel = new AccountModel();
+
+        $originAccount = $accountModel->find($origenId);
+        $destAccount   = $accountModel->find($destinoId);
+
+        if (!$originAccount || !$destAccount) {
+            throw new \Exception('Cuenta origen o destino no encontrada.');
+        }
+
+        // Saldo suficiente (si la tabla tiene balance)
+        if (isset($originAccount->balance) && $originAccount->balance < $monto) {
+            throw new \Exception('Saldo insuficiente en la cuenta origen.');
+        }
+
+        // Insertar transacciones
+        $transactionModel->insert([
+            'account_id'  => $origenId,
+            'tipo'        => 'salida',
+            'monto'      => -$monto * -1,
+            'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ': ' . $descripcion,
+        ]);
+
+        $transactionModel->insert([
+            'account_id'  => $destinoId,
+            'tipo'        => 'entrada',
+            'monto'      => $monto,
+            'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ': ' . $descripcion,
+        ]);
+
+        // Actualizar balances
+        $db->table('accounts')
+            ->set('balance', "balance - {$monto}", false)
+            ->where('id', $origenId)
+            ->update();
+
+        $db->table('accounts')
+            ->set('balance', "balance + {$monto}", false)
+            ->where('id', $destinoId)
+            ->update();
+
+        if ($db->transStatus() === false) {
+            throw new \Exception('Error al ejecutar la transferencia.');
+        }
+
+        $db->transCommit();
+
+        // 🟢 AQUÍ RESPONDEMOS JSON, NO REDIRECT
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => '¡Transferencia realizada con éxito!'
+        ]);
+
+    } catch (\Exception $e) {
+        $db->transRollback();
+
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+}
+
 }

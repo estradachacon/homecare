@@ -86,6 +86,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('accounts/delete', 'AccountController::delete');
     $routes->get('accounts/searchAjax', 'AccountController::searchAjax');
     $routes->get('accounts-list', 'AccountController::list');
+    $routes->post('accounts-transfer', 'AccountController::processTransfer');
     // Rutas para el módulo de transacciones
     $routes->get('transactions', 'TransactionsController::index');
     $routes->post('transactions/addSalida', 'TransactionsController::addSalida');
