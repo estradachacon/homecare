@@ -1,17 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
-
-    // =========================================================
     // VARIABLES GLOBALES
-    // =========================================================
     let paquetesSeleccionados = {};   // id => paquete seleccionado
     let paquetesCache = {};           // id => paquete cargado de API
     let listaRuta = [];               // paquetes filtrados por ruta
     let listaEspeciales = [];         // paquetes tipo 2 y 3
     let listaPendientes3 = [];
 
-    // =========================================================
     // ELEMENTOS DEL DOM
-    // =========================================================
     const tablaTracking = document.getElementById("tracking-body");
 
     const modalRutas = $("#modalRutas");          // Bootstrap 4
@@ -33,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalPendientes3 = $("#modalPendientes3");
     const tablaPendientes3 = document.getElementById("tablaPendientes3");
     const btnAgregarPendientes3 = document.getElementById("agregarPendientes3");
-
 
     // CSRF si existe
     const csrfInput = document.querySelector("input[name='csrf_test_name']");
@@ -417,19 +411,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
-    // =========================================================
     // CARGA AUTOMÁTICA DE LISTAS AL ABRIR MODALES
-    // =========================================================
     selectRuta.addEventListener("change", () => {
         if (!selectRuta.value) return;
         loadPaquetesPorRuta(selectRuta.value);
     });
 
     modalEspeciales.on("shown.bs.modal", () => {
-        modalEspeciales.on("shown.bs.modal", () => {
-            loadEspeciales();
-        });
+        loadEspeciales();
     });
 
     modalPendientes3.on("shown.bs.modal", () => {

@@ -306,9 +306,10 @@ public function processTransfer()
     }
 
     $request = $this->request;
+    $session = session(); // 👈 Obtenemos la sesión para el user_id
 
     // Forzar tipos
-    $origenId  = (int) $request->getPost('account_source');
+    $origenId = (int) $request->getPost('account_source');
     $destinoId = (int) $request->getPost('account_destination');
     $monto     = (float) $request->getPost('monto');
     $descripcion = $request->getPost('descripcion') ?? '';
@@ -332,7 +333,7 @@ public function processTransfer()
         $accountModel = new AccountModel();
 
         $originAccount = $accountModel->find($origenId);
-        $destAccount   = $accountModel->find($destinoId);
+        $destAccount = $accountModel->find($destinoId);
 
         if (!$originAccount || !$destAccount) {
             throw new \Exception('Cuenta origen o destino no encontrada.');
@@ -345,17 +346,18 @@ public function processTransfer()
 
         // Insertar transacciones
         $transactionModel->insert([
-            'account_id'  => $origenId,
-            'tipo'        => 'salida',
-            'monto'      => -$monto * -1,
-            'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ': ' . $descripcion,
+            'account_id' => $origenId,
+            'tipo'       => 'salida',
+            // El campo monto se usó de forma negativa en la inserción original. Mantenemos el ajuste.
+            'monto'      => -$monto, // Aseguramos que sea negativo para egreso
+            'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ' (' . $destAccount->name . '): ' . $descripcion,
         ]);
 
         $transactionModel->insert([
-            'account_id'  => $destinoId,
-            'tipo'        => 'entrada',
-            'monto'      => $monto,
-            'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ': ' . $descripcion,
+            'account_id'    => $destinoId,
+            'tipo'       => 'entrada',
+            'monto'      => $monto, // Positivo para ingreso
+            'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ' (' . $originAccount->name . '): ' . $descripcion,
         ]);
 
         // Actualizar balances
@@ -374,8 +376,19 @@ public function processTransfer()
         }
 
         $db->transCommit();
+        
+        // 🚀 REGISTRO EN LA BITÁCORA - ÉXITO 🚀
+        $logDetails = "Se transfirieron **{$monto}** de la cuenta **{$originAccount->name}** (ID: {$origenId}) a la cuenta **{$destAccount->name}** (ID: {$destinoId}). Descripción: " . ($descripcion ?: 'Sin descripción.');
 
-        // 🟢 AQUÍ RESPONDEMOS JSON, NO REDIRECT
+        registrar_bitacora(
+            'Transferencia exitosa',
+            'Finanzas/Transferencias',
+            $logDetails,
+            $session->get('user_id') // Asume que tienes el user_id en la sesión
+        );
+        // ------------------------------------
+
+        // 🟢 AQUÍ RESPONDEMOS JSON
         return $this->response->setJSON([
             'status' => 'success',
             'message' => '¡Transferencia realizada con éxito!'
@@ -383,12 +396,21 @@ public function processTransfer()
 
     } catch (\Exception $e) {
         $db->transRollback();
+        
+        // 🚨 REGISTRO EN LA BITÁCORA - ERROR 🚨
+        $errorDetails = "Transferencia fallida entre ID {$origenId} y ID {$destinoId}. Error: " . $e->getMessage();
+        registrar_bitacora(
+            'Error de Transferencia',
+            'Finanzas/Transferencias',
+            $errorDetails,
+            $session->get('user_id')
+        );
+        // ------------------------------------
 
         return $this->response->setJSON([
             'status' => 'error',
             'message' => $e->getMessage()
         ]);
     }
-}
-
+    }   
 }
