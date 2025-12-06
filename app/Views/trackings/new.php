@@ -4,9 +4,7 @@
 <div class="row">
     <div class="col-md-12">
 
-        <!-- ===============================
-          ENCABEZADO DEL TRACKING
-    ================================ -->
+        <!-- ENCABEZADO DEL TRACKING -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">Nuevo Tracking</h5>
@@ -196,8 +194,10 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
+                            <th>ID</th> 
+                            <th>Vendedor</th>
                             <th>Cliente</th>
-                            <th>Destino / Recolección</th>
+                            <th>Destino personalizado</th>
                             <th>Monto</th>
                         </tr>
                     </thead>

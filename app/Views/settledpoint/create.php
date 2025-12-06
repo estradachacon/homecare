@@ -1,5 +1,119 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    /* Fuerza a que la celda activa se vea verde */
+    td.day-active {
+        background-color: #c8f7c5 !important;
+        /* un verde suave */
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    table.table td {
+        height: 48px;
+        /* Ajusta a tu gusto: 40, 50, 60... */
+        vertical-align: middle !important;
+        /* Centra el contenido verticalmente */
+    }
+
+    /* Ajustar padding para dar más espacio dentro del td */
+    table.table td {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+    }
+
+    /* Centrar el switch dentro de la celda */
+    td .day-switch {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        /* Usa toda la altura */
+    }
+
+    /* Asegura que no haya padding que rompa el borde */
+    .day-switch .form-check-input {
+        cursor: pointer;
+    }
+
+    /* Para centrar mejor el switch dentro de la celda */
+    td .day-switch {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 6px 0;
+    }
+
+    .day-container {
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        user-select: none;
+    }
+
+    /* Ocultar checkbox original */
+    .day-container input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    /* Caja del checkbox */
+    .day-checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 28px;
+        width: 28px;
+        background-color: #f8f3f3ff;
+        border: #28a745 2px solid;
+        border-radius: 7px;
+        transition: 0.25s;
+    }
+
+    /* Hover */
+    .day-container:hover input~.day-checkmark {
+        background-color: #f6f4f4ff;
+    }
+
+    /* Estados de color según seleccionado */
+    .day-container input:checked~.day-checkmark {
+        background-color: #28a745;
+        /* Verde similar al que me mostraste */
+    }
+
+    /* Estilo del “check” interno */
+    .day-checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    /* Mostrar el checkmark */
+    .day-container input:checked~.day-checkmark:after {
+        display: block;
+    }
+
+    /* Diseño del check interno */
+    .day-container .day-checkmark:after {
+        left: 9px;
+        top: 5px;
+        width: 6px;
+        height: 12px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+    }
+
+    /* Altura de celda para que se vea bonito */
+    table.table td {
+        height: 48px !important;
+        vertical-align: middle !important;
+    }
+</style>
 
 <div class="row">
     <div class="col-md-12">
@@ -77,14 +191,15 @@
                                         $oldDays = session()->getFlashdata('days') ?? []; // Para retener el estado después del error
                                         foreach ($days as $day):
                                         ?>
-                                            <td class="p-0">
-                                                <div class="form-check form-switch day-switch">
-                                                    <!-- El hidden asegura que se envíe '0' si el checkbox no está marcado -->
-                                                    <input type="hidden" name="<?= $day ?>" value="0">
-                                                    <input type="checkbox" class="form-check-input" id="<?= $day ?>" name="<?= $day ?>" value="1"
+                                            <td class="p-0 text-center">
+                                                <label class="day-container">
+                                                    <input type="hidden" name="<?= $day ?>" value="0"> <!-- SIEMPRE manda 0 si no se chequea -->
+                                                    <input type="checkbox" name="<?= $day ?>" id="<?= $day ?>" value="1"
                                                         <?= in_array($day, $oldDays) || old($day) == 1 ? 'checked' : '' ?>>
-                                                </div>
+                                                    <span class="day-checkmark"></span>
+                                                </label>
                                             </td>
+
                                         <?php endforeach; ?>
                                     </tr>
                                 </tbody>
@@ -110,8 +225,8 @@
                     </div>
 
                     <div class="d-flex justify-content-end pt-3 border-top">
-                        <a href="<?= base_url('settledpoint') ?>" class="btn btn-secondary me-2">Cancelar</a>
-                        <button type="submit" class="btn btn-success">Guardar Punto Fijo</button>
+                        <a href="<?= base_url('settledpoint') ?>" class="btn btn-secondary m-1">Cancelar</a>
+                        <button type="submit" class="btn btn-success m-1">Guardar Punto Fijo</button>
                     </div>
                 </form>
             </div>

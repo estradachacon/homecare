@@ -203,30 +203,42 @@ class PackageController extends BaseController
 
         $accountId = 1; // <-- AJUSTA si manejas diferentes cuentas
 
-        if ($pagoParcial) {
-            // 🟦 PAGO PARCIAL
-            if ($fletePagado > 0) {
-                registrarEntrada(
-                    $accountId,
-                    $fletePagado,
-                    'Pago parcial de envío',
-                    'Paquete ID ' . $newPackageId,
-                    $newPackageId
-                );
+        // 🚫 NO REGISTRAR TRANSACCIÓN SI tipo_servicio == 3 (recolecta)
+        if ($tipoServicio != 3) {
+
+            if ($pagoParcial) {
+                // 🟦 PAGO PARCIAL
+                if ($fletePagado > 0) {
+                    registrarEntrada(
+                        $accountId,
+                        $fletePagado,
+                        'Pago parcial de envío',
+                        'Paquete ID ' . $newPackageId,
+                        $newPackageId
+                    );
+                }
+            } else {
+                // 🟩 PAGO COMPLETO
+                if ($fleteTotal > 0) {
+                    registrarEntrada(
+                        $accountId,
+                        $fleteTotal,
+                        'Pago completo de envío',
+                        'Paquete ID ' . $newPackageId,
+                        $newPackageId
+                    );
+                }
             }
         } else {
-            // 🟩 PAGO COMPLETO
-            if ($fleteTotal > 0) {
-                registrarEntrada(
-                    $accountId,
-                    $fleteTotal,
-                    'Pago completo de envío',
-                    'Paquete ID ' . $newPackageId,
-                    $newPackageId
-                );
-            }
+            // 👇 OPCIONAL: puedes dejar una bitácora para control interno
+            registrar_bitacora(
+                'Servicio de recolecta',
+                'Paquetería',
+                'Se registró paquete ID ' . $newPackageId . ' sin pago porque el motorista traerá el dinero.',
+                $userId
+            );
         }
-        
+
         // 📜 BITÁCORA: Registro de creación
         registrar_bitacora(
             'Registro de paquete',

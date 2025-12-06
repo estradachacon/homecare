@@ -12539,3 +12539,11 @@ a#userDropdown {
 .select2-selection__clear {
   display: none !important;
 }
+
+    /* Limitar altura de modales grandes */
+    #modalEspeciales .modal-body,
+    #modalRutas .modal-body,
+    #modalPendientes3 .modal-body {
+        max-height: 70vh;   /* 70% del alto de la pantalla */
+        overflow-y: auto;   /* Scroll vertical */
+    }

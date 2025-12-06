@@ -160,9 +160,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
             <td><input type="checkbox" class="chkEspecial" data-id="${p.id}"></td>
+            <td>${p.id}</td>
             <td>${p.cliente}</td>
+            <td>${p.vendedor}</td>
             <td>${p.tipo_servicio == 2 ? p.destino_personalizado : p.lugar_recolecta_paquete}</td>
-            <td>$${parseFloat(p.monto).toFixed(2)}</td>
+            <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
         `;
             tablaEspecialesBody.appendChild(tr);
         });
@@ -394,7 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${tipoTexto}</td>
                 <td>${pkg.cliente}</td>
                 <td>${destino}</td>
-                <td>$${parseFloat(pkg.monto).toFixed(2)}</td>
+                <td>${ isNaN(parseFloat(pkg.monto)) ? 'Cancelado' : '$' + parseFloat(pkg.monto).toFixed(2) }</td>
                 <td><button class="btn btn-danger btn-sm btnQuit" data-id="${pkg.id}">X</button></td>
             `;
 

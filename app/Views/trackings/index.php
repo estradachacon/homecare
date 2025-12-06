@@ -130,8 +130,8 @@
 
                         <!-- Botones de Acción -->
                         <div class="col-md-3 d-flex">
-                            <button type="submit" class="btn btn-primary w-50 me-2">Filtrar</button>
-                            <a href="<?= base_url('tracking') ?>" class="btn btn-secondary w-50 me-2">Limpiar</a>
+                            <button type="submit" class="btn btn-primary w-50 mt-5 m-2">Filtrar</button>
+                            <a href="<?= base_url('tracking') ?>" class="btn btn-secondary w-50 mt-5 m-2">Limpiar</a>
                         </div>
                     </div>
                 </form>
