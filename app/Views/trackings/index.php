@@ -187,7 +187,7 @@
 
                                                 <!-- MODIFICACIÓN: Ocultar si el estado es 'finalizado' -->
                                                 <?php if ($t->status !== 'finalizado'): ?>
-                                                    <a class="dropdown-item" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
+                                                    <a class="dropdown-itgitñem" href="<?= base_url('tracking-rendicion/' . $t->id) ?>">
                                                         <i class="fa-solid fa-truck"></i> Seguimiento
                                                     </a>
                                                     </li>

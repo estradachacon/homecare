@@ -41,13 +41,20 @@ function registrarEntrada($accountId, $monto, $origen = null, $referencia = null
 {
     $model = new TransactionModel();
 
+    $monto = floatval($monto);
+
+    // ❌ No registrar montos vacíos o cero
+    if ($monto <= 0) {
+        return false;
+    }
+
     $model->insert([
-        'account_id'  => $accountId,
+        'account_id' => $accountId,
         'tracking_id' => $trackingId,
-        'tipo'        => 'entrada',
-        'monto'       => $monto,
-        'origen'      => $origen,
-        'referencia'  => $referencia,
+        'tipo' => 'entrada',
+        'monto' => $monto,
+        'origen' => $origen,
+        'referencia' => $referencia,
     ]);
     actualizarSaldoCuenta($accountId);
 }
@@ -56,13 +63,20 @@ function registrarSalida($accountId, $monto, $origen = null, $referencia = null,
 {
     $model = new TransactionModel();
 
+    $monto = floatval($monto);
+
+    // ❌ No registrar montos vacíos o cero
+    if ($monto <= 0) {
+        return false;
+    }
+    
     $model->insert([
-        'account_id'  => $accountId,
+        'account_id' => $accountId,
         'tracking_id' => $trackingId,
-        'tipo'        => 'salida',
-        'monto'       => $monto,
-        'origen'      => $origen,
-        'referencia'  => $referencia,
+        'tipo' => 'salida',
+        'monto' => $monto,
+        'origen' => $origen,
+        'referencia' => $referencia,
     ]);
     actualizarSaldoCuenta($accountId);
 }
