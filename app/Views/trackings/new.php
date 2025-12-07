@@ -60,7 +60,8 @@
                 <table class="table table-bordered table-sm" id="tablaTracking">
                     <thead>
                         <tr>
-                            <th>Tipo</th>
+                            <th>Tipo de servicio</th>
+                            <th>ID</th>
                             <th>Cliente</th>
                             <th>Destino</th>
                             <th>Monto</th>

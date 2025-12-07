@@ -57,22 +57,17 @@ class TrackingRendicionController extends BaseController
 
     public function save()
     {
-        // Cargar el helper 'form' y el que contiene 'registrar_bitacora'
-        helper(['form', 'bitacora']); // Asumiendo que 'registrar_bitacora' está en un helper llamado 'bitacora'
-        helper('transaction');
+        helper(['form', 'bitacora', 'transaction']);
 
-        $trackingId = $this->request->getPost('tracking_id');
-        $regresados = $this->request->getPost('regresados') ?? [];
-        
-        // 🎯 NUEVO: Recibimos el array de paquetes solo recolectados (no entregados aún)
+        $trackingId       = $this->request->getPost('tracking_id');
+        $regresados       = $this->request->getPost('regresados') ?? [];
         $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
 
-        // Cargar los paquetes asociados al tracking
+        // Paquetes del tracking
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
-
         $packageModel = new \App\Models\PackageModel();
 
-        // Obtener el nombre del motorista
+        // Info del motorista
         $header = $this->headerModel->find($trackingId);
         $motoristaNombre = '';
         if ($header) {
@@ -82,95 +77,161 @@ class TrackingRendicionController extends BaseController
         }
 
         $session = session();
-        $userId = $session->get('user_id');
+        $userId  = $session->get('user_id');
+        $today   = date('Y-m-d');
 
-        $today = date('Y-m-d'); // Fecha actual para los paquetes entregados
-
-        // Array para registrar la bitácora: lista de IDs de paquetes modificados
-        $paquetesModificados = []; 
+        $paquetesModificados = [];
 
         foreach ($paquetes as $p) {
-            
-            // Contar destinos (solo aplica para tipo_servicio = 3)
-            $destinoCount = 1; // mínimo 1
+
+            // ============================================================
+            // 1) CONTAR DESTINOS (solo tipo 3)
+            // ============================================================
+            $destinoCount = 1;
             if ($p->tipo_servicio == 3) {
-                if (!empty($p->destino_personalizado))
-                    $destinoCount++;
-                if (!empty($p->puntofijo_nombre))
-                    $destinoCount++;
+                if (!empty($p->destino_personalizado)) $destinoCount++;
+                if (!empty($p->puntofijo_nombre)) $destinoCount++;
             }
 
-            // Determinar nuevo estatus
+            // ============================================================
+            // 2) DETERMINAR EL NUEVO ESTATUS
+            // ============================================================
             if (in_array($p->id, $regresados)) {
-                // ❌ No exitoso (La lógica se mantiene)
+
                 if ($p->tipo_servicio == 3) {
-                    $newStatus = ($destinoCount == 1) ? 'recolecta_fallida' : 'no_retirado';
+                    $newStatus = ($destinoCount == 1)
+                        ? 'recolecta_fallida'
+                        : 'no_retirado';
                 } else {
                     $newStatus = 'no_retirado';
                 }
             } else {
-                // ✅ Exitoso (Lógica modificada para el tipo 3)
+
+                // EXITOSO
                 if ($p->tipo_servicio == 3) {
+
                     if ($destinoCount == 1) {
-                        // Solo recolección, se marca como 'recolectado'
                         $newStatus = 'recolectado';
                     } elseif ($destinoCount >= 2) {
-                        // Recolecta y Entrega (Aquí aplicamos el control del usuario)
+
                         if (in_array($p->id, $recolectadosSolo)) {
-                            // Si el usuario marcó que solo se recolectó, pero no se entregó aún
-                            $newStatus = 'recolectado'; 
+                            $newStatus = 'recolectado';
                         } else {
-                            // Si no se marcó, se asume que se entregó de una vez
                             $newStatus = 'entregado';
                         }
                     }
                 } else {
-                    // Otros servicios son 'entregado'
                     $newStatus = 'entregado';
                 }
             }
 
-            // Preparar datos de actualización
+            // ============================================================
+            // 3) PREPARAR UPDATE EN DB
+            // ============================================================
             $updateData = ['estatus' => $newStatus];
 
-            // Si es entregado O recolectado, escribir fecha en fecha_pack_entregado
             if ($newStatus === 'entregado' || $newStatus === 'recolectado') {
                 $updateData['fecha_pack_entregado'] = $today;
             }
-            // Actualizar estatus y fecha en la tabla packages
+
             $packageModel->update($p->package_id, $updateData);
 
-            // Registrar el ID y el nuevo estatus para la bitácora
+            // Guardar cambios para bitácora
             $paquetesModificados[] = "ID {$p->package_id} → {$newStatus}";
+
+            // ============================================================
+            // 4) TRANSACCIONES PARA RENDICIÓN
+            // ============================================================
+
+            // ❌ NO SE REGISTRA NADA PARA PAQUETES REGRESADOS
+            if (in_array($p->id, $regresados)) {
+                continue;
+            }
+
+            // Cuentas: aquí ajusta la cuenta destino según tu sistema
+            $cuentaDeIngreso = 1; // ejemplo: cuenta de la empresa
+
+            // ----- Determinar montos -----
+            $montoPaquete = floatval($p->monto);
+
+            // Flete dependiendo del toggle parcial
+            $montoVendedor = ($p->toggle_pago_parcial == 0)
+                ? floatval($p->flete_total)
+                : floatval($p->flete_pagado);
+            $togglePago = intval($p->toggle_pago_parcial);
+            // ----- Registrar según caso -----
+            // ----- Registrar según caso -----
+            if ($p->tipo_servicio == 3) {
+
+                // 🟡 SOLO RECOLECTA (no hubo entrega final)
+                if (in_array($p->id, $recolectadosSolo)) {
+
+                    // 1️⃣ Flete (solo se cobra el flete porque no hubo entrega final)
+                    registrarEntrada(
+                        $cuentaDeIngreso,
+                        $montoVendedor,
+                        ($togglePago === 0 ? "Flete completo (solo recolección)" : "Flete parcial (solo recolección)"),
+                        "Paquete {$p->package_id} | Tracking {$trackingId}",
+                        $trackingId
+                    );
+
+                    // En este modo NO sumas remuneración porque aún no hay entrega
+
+                } else {
+
+                    // 🟢 RECOLECTA + ENTREGA FINAL
+                    // Se debe separar remuneración y flete en dos transacciones
+
+                    // 1️⃣ Remuneración del paquete
+                    registrarEntrada(
+                        $cuentaDeIngreso,
+                        $montoPaquete,
+                        "Remuneración del paquete (recolección + entrega)",
+                        "Paquete {$p->package_id} | Tracking {$trackingId}",
+                        $trackingId
+                    );
+
+                    // 2️⃣ Flete (total o parcial)
+                    registrarEntrada(
+                        $cuentaDeIngreso,
+                        $montoVendedor,
+                        ($togglePago === 0 ? "Flete completo" : "Flete parcial"),
+                        "Paquete {$p->package_id} | Tracking {$trackingId}",
+                        $trackingId
+                    );
+                }
+            } else {
+                registrarEntrada(
+                    $cuentaDeIngreso,
+                    $montoPaquete,
+                    "Recolecta de remuneración (entrega directa)",
+                    "Paquete {$p->package_id} | Tracking {$trackingId}",
+                    $trackingId
+                );
+            }
         }
 
-        // Finalmente, marcar el tracking como finalizado
+        // 5) MARCAR EL TRACKING COMO FINALIZADO
         $this->headerModel->update($trackingId, ['status' => 'finalizado']);
-        
-        // =========================================================
-        // 🎯 REGISTRO EN BITÁCORA 🎯
-        // =========================================================
-        $descripcionDetallada = 
-            "Se procesó la rendición del Tracking ID " . esc($trackingId) . 
-            " (Motorista: " . esc($motoristaNombre) . "). " . 
-            "Estados de paquetes: " . implode(', ', $paquetesModificados) . ".";
 
+        // 6) BITÁCORA
         registrar_bitacora(
             'Rendición de Tracking Finalizada',
             'Tracking',
-            $descripcionDetallada,
+            "Se procesó la rendición del Tracking ID $trackingId (Motorista: $motoristaNombre). Estados: "
+                . implode(', ', $paquetesModificados),
             $userId
         );
-        // =========================================================
 
         return redirect()->to('tracking/' . $trackingId)
             ->with('success', 'Rendición procesada con éxito.');
     }
 
+
     public function pdf($trackingId)
     {
         // ... (Tu código existente para pdf)
-        
+
         // 1. Cargar datos
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
@@ -204,10 +265,10 @@ class TrackingRendicionController extends BaseController
         // 3. Inicializar mPDF con la configuración más segura
         // La ruta temporal DEBE existir y DEBE ser escribible por el servidor web.
         $mpdf = new Mpdf([
-            'mode' => 'utf-8', 
-            'format' => 'A4', 
+            'mode' => 'utf-8',
+            'format' => 'A4',
             // Usamos WRITEPATH, que es la forma correcta en CodeIgniter
-            'tempDir' => WRITEPATH . 'temp' 
+            'tempDir' => WRITEPATH . 'temp'
         ]);
 
         // 4. Escribir el HTML

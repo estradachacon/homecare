@@ -398,6 +398,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             tr.innerHTML = `
                 <td>${tipoTexto}</td>
+                <td>${pkg.id}</td>
                 <td>${pkg.cliente}</td>
                 <td>${destino}</td>
                 <td>${ isNaN(parseFloat(pkg.monto)) ? 'Cancelado' : '$' + parseFloat(pkg.monto).toFixed(2) }</td>

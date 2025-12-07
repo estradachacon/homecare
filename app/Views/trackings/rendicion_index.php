@@ -176,7 +176,7 @@
                                             <span class="badge-pill <?= $badgeColor ?>"><?= $tipoBadge ?></span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center paquete-monto-celda">
                                         <?php
                                         // Condición inicial para el paquete (asumiendo que 'recolectado' aplica a "Solo Recolectado")
                                         $isRecolectadoSolo = ($p->status == 'recolectado' && $isRecolectaMultiple);
@@ -187,16 +187,15 @@
                                         </strong>
                                     </td>
                                     <td class="aporte-rendicion">
-                                        <?= $p->tipo_servicio == 3
-                                            ? (
-                                                $p->toggle_pago_parcial == 1
+                                        <?php if ($p->tipo_servicio == 3): ?>
+                                            <?= $p->toggle_pago_parcial == 1
                                                 ? '$' . number_format($p->flete_pagado, 2)
                                                 : '$' . number_format($p->flete_total, 2)
-                                            )
-                                            : '$' . number_format($p->monto, 2)
-                                        ?>
+                                            ?>
+                                        <?php else: ?>
+                                            <!-- No mostrar nada -->
+                                        <?php endif; ?>
                                     </td>
-
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
