@@ -125,6 +125,8 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
+                            <th>ID</th>
+                            <th>Vendedor</th>
                             <th>Cliente</th>
                             <th>Punto fijo</th>
                             <th>Monto</th>
@@ -239,8 +241,10 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
+                            <th>ID</th> 
+                            <th>Vendedor</th>
                             <th>Cliente</th>
-                            <th>Descripción</th>
+                            <th>Destino</th>
                             <th>Monto</th>
                         </tr>
                     </thead>

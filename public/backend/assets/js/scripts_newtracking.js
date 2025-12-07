@@ -107,6 +107,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
             <td><input type="checkbox" class="chkRuta" data-id="${p.id}"></td>
+            <td>${p.id}</td>
+            <td>${p.vendedor}</td>
             <td>${p.cliente}</td>
             <td>${p.punto_fijo_nombre}</td>
             <td>$${parseFloat(p.monto).toFixed(2)}</td>
@@ -135,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             renderEspeciales();
         } catch (err) {
-            tablaEspecialesBody.innerHTML = `<tr><td colspan="4">Error</td></tr>`;
+            tablaEspecialesBody.innerHTML = `<tr><td colspan="6">Error</td></tr>`;
         }
     }
 
@@ -152,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (!lista.length) {
-            tablaEspecialesBody.innerHTML = `<tr><td colspan="4">Sin resultados para esta fecha</td></tr>`;
+            tablaEspecialesBody.innerHTML = `<tr><td colspan="6">Sin resultados para esta fecha</td></tr>`;
             return;
         }
 
@@ -187,7 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderPendientes3();
 
         } catch (e) {
-            tablaPendientes3.innerHTML = `<tr><td colspan="4">Error</td></tr>`;
+            tablaPendientes3.innerHTML = `<tr><td colspan="6">Error</td></tr>`;
         }
     }
 
@@ -195,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tablaPendientes3.innerHTML = "";
 
         if (!listaPendientes3.length) {
-            tablaPendientes3.innerHTML = `<tr><td colspan="4">No hay paquetes pendientes de recolecta</td></tr>`;
+            tablaPendientes3.innerHTML = `<tr><td colspan="6">No hay paquetes pendientes de recolecta</td></tr>`;
             return;
         }
 
@@ -203,6 +205,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td><input type="checkbox" class="chkPend3" data-id="${p.id}"></td>
+                <td>${p.id}</td>
+                <td>${p.vendedor}</td>
                 <td>${p.cliente}</td>
                 <td>${p.descripcion || p.destino_personalizado || p.punto_fijo_nombre || "Sin información"}</td>
                 <td>$${parseFloat(p.monto).toFixed(2)}</td>

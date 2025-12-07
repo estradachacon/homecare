@@ -1,5 +1,48 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    .muteado {
+        background-color: #e9ecef !important;
+        /* gris claro */
+        color: #6c757d !important;
+        /* gris oscuro */
+        text-decoration: line-through;
+        /* rayitas */
+    }
+
+    /* Estilos existentes */
+    .bg-danger-light {
+        background-color: #ffe5e5 !important;
+    }
+
+    .bg-warning-light {
+        background-color: #fff3cd !important;
+    }
+
+    .bg-info-light {
+        background-color: #d1e7dd !important;
+        color: #0f5132;
+    }
+
+    .badge-pill {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 999px;
+        margin-left: 0.5rem;
+    }
+
+    /* Nuevo estilo para Recolectado + Entregado Exitoso */
+    .bg-success-light {
+        background-color: #d4edda !important;
+    }
+
+    /* Nuevo estilo para Recolectado (Pendiente de Entrega Final) */
+    .bg-info-light {
+        background-color: #cce5ff !important;
+    }
+</style>
 <div class="row">
     <div class="col-md-12">
 
@@ -25,6 +68,7 @@
                                 <th class="col-md-3">Vendedor → Cliente</th>
                                 <th class="col-md-4">Destino / Tipo</th>
                                 <th class="col-md-2">Monto</th>
+                                <th>Aporte Rendición</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,8 +138,13 @@
                                 }
                                 ?>
                                 <tr class="paquete-row <?= $rowClass ?>" title="<?= $tooltip ?>"
-                                    data-tipo="<?= $p->tipo_servicio ?>" data-destinos="<?= $destinoCount ?>">
-                                    <td class="text-center">
+                                    data-tipo="<?= $p->tipo_servicio ?>"
+                                    data-destinos="<?= $destinoCount ?>"
+                                    data-monto="<?= $p->monto ?>"
+                                    data-toggle="<?= $p->toggle_pago_parcial ?>"
+                                    data-flete-total="<?= $p->flete_total ?>"
+                                    data-flete-pagado="<?= $p->flete_pagado ?>">
+                                    <td class="text-center aporte-monto">
                                         <input type="checkbox" class="regresado-checkbox" name="regresados[]"
                                             value="<?= $p->id ?>" data-monto="<?= $p->monto ?? 0 ?>"
                                             <?= ($p->status == 'regresado' ? 'checked' : '') ?>>
@@ -110,7 +159,7 @@
                                         );
 
                                         if ($isRecolectaMultiple):
-                                            ?>
+                                        ?>
                                             <input type="checkbox" class="recolectado-solo-checkbox" name="recolectados_solo[]"
                                                 value="<?= $p->id ?>" data-id="<?= $p->id ?>"
                                                 title="Marcar si el paquete fue recolectado pero la entrega final está pendiente."
@@ -127,7 +176,27 @@
                                             <span class="badge-pill <?= $badgeColor ?>"><?= $tipoBadge ?></span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center"><strong>$<?= number_format($p->monto ?? 0, 2) ?></strong></td>
+                                    <td class="text-center">
+                                        <?php
+                                        // Condición inicial para el paquete (asumiendo que 'recolectado' aplica a "Solo Recolectado")
+                                        $isRecolectadoSolo = ($p->status == 'recolectado' && $isRecolectaMultiple);
+                                        $muteClass = $isRecolectadoSolo ? 'muteado' : '';
+                                        ?>
+                                        <strong class="paquete-monto-total <?= $muteClass ?>">
+                                            $<?= number_format($p->monto ?? 0, 2) ?>
+                                        </strong>
+                                    </td>
+                                    <td class="aporte-rendicion">
+                                        <?= $p->tipo_servicio == 3
+                                            ? (
+                                                $p->toggle_pago_parcial == 1
+                                                ? '$' . number_format($p->flete_pagado, 2)
+                                                : '$' . number_format($p->flete_total, 2)
+                                            )
+                                            : '$' . number_format($p->monto, 2)
+                                        ?>
+                                    </td>
+
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -147,116 +216,108 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
 
         // Función para sincronizar los checkboxes y actualizar el total
         function actualizarEstadoYTotal() {
             let total = 0;
 
-            // 1. Recorrer todos los paquetes
             document.querySelectorAll('.paquete-row').forEach(row => {
+
                 const cbRegresado = row.querySelector('.regresado-checkbox');
                 const cbRecolectadoSolo = row.querySelector('.recolectado-solo-checkbox');
+                const strongMonto = row.querySelector('.paquete-monto-total');
 
                 const tipo = parseInt(row.dataset.tipo);
                 const destinos = parseInt(row.dataset.destinos);
 
+                const montoPaquete = Number(row.dataset.monto) || 0;
+                const togglePago = parseInt(row.dataset.toggle);
+                const fleteTotal = Number(row.dataset.fleteTotal) || 0;
+                const fletePagado = Number(row.dataset.fletePagado) || 0;
+
+                // Determinar cuál flete usar
+                const montoVendedor = (togglePago === 0) ?
+                    fleteTotal // Pago completo
+                    :
+                    fletePagado; // Pago parcial
+
                 // =======================================================
-                // A. LÓGICA DE SINCRONIZACIÓN (Regresado vs RecolectadoSolo)
+                // A. SINCRONIZACIÓN (Regresado vs Solo Recolectado)
                 // =======================================================
                 if (cbRegresado && cbRecolectadoSolo) {
-                    // Si se marca 'No exitoso', se debe desmarcar 'Solo Recolectado'
                     if (cbRegresado.checked) {
                         cbRecolectadoSolo.disabled = true;
                         cbRecolectadoSolo.checked = false;
                     } else {
-                        // Si es exitoso, se habilita el control de 'Solo Recolectado'
                         cbRecolectadoSolo.disabled = false;
                     }
-                } else if (cbRegresado && tipo === 3 && destinos === 1) {
-                    // Si es Recolección Única, el checkbox de "Solo Recolectado" no existe,
-                    // y el checkbox "No exitoso" lo marca como Recolección Fallida o Recolectado.
-                    // No hay estado intermedio.
                 }
 
-                // =======================================================
-                // B. LÓGICA DE CÁLCULO DE TOTAL Y ESTILOS
-                // =======================================================
-                row.classList.remove('bg-warning', 'bg-danger-light', 'bg-success-light');
+                // Limpieza de clases
+                row.classList.remove('bg-warning', 'bg-danger-light', 'bg-success-light', 'bg-info-light');
 
-                if (cbRegresado && cbRegresado.checked) {
-                    // Si está marcado como NO EXITOSO (Regresado)
+                // B. REGLA 1: Si está regresado → NO SUMA NADA
+                if (cbRegresado.checked) {
+
                     if (tipo === 3 && destinos === 1) {
-                        row.classList.add('bg-danger-light'); // Recolección fallida
+                        row.classList.add('bg-danger-light'); // Falló la recolección única
                     } else {
-                        row.classList.add('bg-warning'); // No Retirado
+                        row.classList.add('bg-warning'); // No retirado general
                     }
-                } else {
-                    // Si es EXITOSO
-                    const monto = Number(cbRegresado.dataset.monto) || 0;
-                    total += monto;
 
+                    return;
+                }
+
+                // 🟢 SERVICIO DE RECOLECCIÓN
+                if (tipo === 3) {
+
+                    // Caso: Solo recolectado (sin entrega final)
                     if (cbRecolectadoSolo && cbRecolectadoSolo.checked) {
-                        // Recolectado pero pendiente de Entrega Final
-                        row.classList.add('bg-info-light');
+
+                        // 🚀 Aplicar Muteado 🚀
+                        if (strongMonto) strongMonto.classList.add('muteado');
+
+                        total += montoVendedor; // solo flete
+                        row.classList.add('bg-info-light'); // pendiente de entrega
+
                     } else {
-                        // Éxito Final (Entregado o Recolección Única Exitosa)
+
+                        // 🛑 Quitar Muteado (Se asume Recolectado + Entregado Exitoso) 🛑
+                        if (strongMonto) strongMonto.classList.remove('muteado');
+
+                        // Caso: recolectado + entregado
+                        total += montoPaquete;
+                        total += montoVendedor;
+
                         row.classList.add('bg-success-light');
                     }
+
+                } else {
+
+                    // 🟦 SERVICIO NORMAL (1 y 2)
+
+                    // 🛑 Quitar Muteado (No aplica para servicios normales) 🛑
+                    if (strongMonto) strongMonto.classList.remove('muteado');
+
+                    total += montoPaquete;
+                    row.classList.add('bg-success-light');
                 }
             });
 
             document.getElementById('total-entregar').innerText = '$' + total.toFixed(2);
         }
 
-        // Ejecutar al cargar la página
         actualizarEstadoYTotal();
 
-        // Ejecutar al cambiar cualquier checkbox de NO EXITOSO
         document.querySelectorAll('.regresado-checkbox').forEach(cb => {
             cb.addEventListener('change', actualizarEstadoYTotal);
         });
 
-        // Ejecutar al cambiar cualquier checkbox de SOLO RECOLECTADO
         document.querySelectorAll('.recolectado-solo-checkbox').forEach(cb => {
             cb.addEventListener('change', actualizarEstadoYTotal);
         });
     });
 </script>
-
-<style>
-    /* Estilos existentes */
-    .bg-danger-light {
-        background-color: #ffe5e5 !important;
-    }
-
-    .bg-warning-light {
-        background-color: #fff3cd !important;
-    }
-
-    .bg-info-light {
-        background-color: #d1e7dd !important;
-        color: #0f5132;
-    }
-
-    .badge-pill {
-        display: inline-block;
-        padding: 0.25em 0.6em;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 999px;
-        margin-left: 0.5rem;
-    }
-
-    /* Nuevo estilo para Recolectado + Entregado Exitoso */
-    .bg-success-light {
-        background-color: #d4edda !important;
-    }
-
-    /* Nuevo estilo para Recolectado (Pendiente de Entrega Final) */
-    .bg-info-light {
-        background-color: #cce5ff !important;
-    }
-</style>
 
 <?= $this->endSection() ?>
