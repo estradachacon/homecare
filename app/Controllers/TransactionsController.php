@@ -11,11 +11,15 @@ class TransactionsController extends BaseController
 {
     public function index()
     {
+    $chk = requerirPermiso('ver_transacciones');
+    if ($chk !== true) return $chk;
+    
         $model = new TransactionModel();
         $data['transactions'] = $model->getTransactionsWithAccountName();
 
         return view('transactions/index', $data);
     }
+
     public function addSalida()
     {
         helper(['form', 'bitacora', 'account']);

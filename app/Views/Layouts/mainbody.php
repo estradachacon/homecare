@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-        <!-- Core Js  -->
+    <!-- Core Js  -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <meta charset="utf-8" />
     <title>FC Encomiendas</title>
@@ -212,6 +212,28 @@
                 <div class="content-wrapper">
                     <?= $this->renderSection('content') ?>
                 </div>
+                <!-- Permiso Error Toast -->
+                <?php if (session()->getFlashdata('permiso_error')): ?>
+
+                    <div aria-live="polite" aria-atomic="true" style="position: relative; z-index: 2000;">
+                        <div class="toast" style="position: absolute; top: 20px; right: 20px;" data-delay="4500">
+                            <div class="toast-header bg-danger text-white">
+                                <strong class="mr-auto">Permiso requerido</strong>
+                                <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
+                            </div>
+                            <div class="toast-body">
+                                <?= session()->getFlashdata('permiso_error') ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        $(document).ready(function() {
+                            $('.toast').toast('show');
+                        });
+                    </script>
+
+                <?php endif; ?>
 
 
             </main>

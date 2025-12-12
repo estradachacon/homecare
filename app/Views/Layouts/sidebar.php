@@ -50,7 +50,9 @@
                         </div>
 
                         <!-- Otros elementos fuera del submenú -->
-                        <a class="nav-link" href="/transactions">Movimientos históricos</a>
+                         <?php if (tienePermiso('ver_transacciones')) : ?>
+                            <a class="nav-link" href="/transactions">Movimientos históricos</a>
+                        <?php endif; ?>
                         <a class="nav-link" href="/accounts">Cuentas</a>
                     </nav>
                 </div>
