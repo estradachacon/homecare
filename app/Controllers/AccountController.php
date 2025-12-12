@@ -284,7 +284,7 @@ class AccountController extends BaseController
         $q = $this->request->getGet('q');
 
         $builder = $accountModel
-            ->select('id, name')
+            ->select('id, name, balance')
             ->where('is_active', 1);
 
         // Si hay búsqueda, filtrar

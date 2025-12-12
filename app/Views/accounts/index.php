@@ -64,7 +64,7 @@
             <div class="modal-body">
                 <form id="transferForm" action="<?= base_url('accounts-transfer') ?>" method="post">
                     <div class="mt-3 divAccount" id="gastoCuenta<?= esc($q['id'] ?? '') ?>">
-                        <label class="form-label mb-3">Cuenta inicial</label>
+                        <label class="form-label">Cuenta inicial</label>
                         <select name="account_source"
                             id="account_source"
                             class="form-control select2-account"
@@ -74,7 +74,7 @@
                     </div>
 
                     <!-- Cuenta destino -->
-                    <div class="form-group">
+                    <div class="form-group mt-3">
                         <label for="cuentaDestino">Cuenta Destino</label>
                         <select name="account_destination"
                             id="account_destination"
@@ -166,7 +166,7 @@
                     return {
                         results: data.map(item => ({
                             id: item.id,
-                            text: item.name
+                            text: item.name + "  ||  Saldo: $" + item.balance
                         }))
                     };
                 }
