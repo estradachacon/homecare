@@ -9,8 +9,10 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Paquetes</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('packages/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Registrar nuevo</a>
+                <?php if (tienePermiso('crear_paquetes')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('packages/new') ?>"><i
+                            class="fa-solid fa-plus"></i> Registrar nuevo</a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
                 <form method="GET" action="<?= base_url('packages') ?>" class="mb-3">

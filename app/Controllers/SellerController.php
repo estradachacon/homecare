@@ -17,6 +17,9 @@ class SellerController extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_vendedores');
+        if ($chk !== true) return $chk;
+
         $q = trim($this->request->getGet('q') ?? '');
         $alpha = trim($this->request->getGet('alpha') ?? '');
         $perPage = intval($this->request->getGet('perPage') ?? 10);
@@ -53,6 +56,9 @@ class SellerController extends BaseController
 
     public function new()
     {
+        $chk = requerirPermiso('crear_vendedor');
+        if ($chk !== true) return $chk;
+
         return view('sellers/create');
     }
 
@@ -86,6 +92,9 @@ class SellerController extends BaseController
 
     public function edit($id)
     {
+        $chk = requerirPermiso('editar_vendedor');
+        if ($chk !== true) return $chk;
+
         // 1. Obtener la caja a editar
         $seller = $this->sellerModel->find($id);
 

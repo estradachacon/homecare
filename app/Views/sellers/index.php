@@ -5,8 +5,10 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Vendedores</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('sellers/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php if (tienePermiso('crear_vendedor')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('sellers/new') ?>"><i
+                            class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
 

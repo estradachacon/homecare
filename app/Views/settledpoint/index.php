@@ -5,8 +5,10 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Puntos fijos</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('settledpoint/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php if (tienePermiso('crear_puntofijo')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('settledpoint/new') ?>"><i
+                            class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered table-hover">
@@ -54,11 +56,15 @@
                                     </td>
                                     <td class="text-center"><?= esc($settledPoint->hora_inicio . ' - ' . $settledPoint->hora_fin) ?></td>
                                     <td>
-                                        <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"
-                                            class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $settledPoint->id ?>">
-                                            <i class="fa-solid fa-trash"></i>
+                                        <?php if (tienePermiso('editar_puntofijo')): ?>
+                                            <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"
+                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('eliminar_puntofijo')): ?>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $settledPoint->id ?>">
+                                                <i class="fa-solid fa-trash"></i>
                                         </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

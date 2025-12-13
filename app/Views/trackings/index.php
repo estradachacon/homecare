@@ -52,13 +52,14 @@
 
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Trackings</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('tracking/new') ?>">
-                    <i class="fa-solid fa-plus"></i> Nuevo Tracking
-                </a>
+                <?php if (tienePermiso('crear_tracking')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('tracking/new') ?>">
+                        <i class="fa-solid fa-plus"></i> Nuevo Tracking
+                    </a>
+                <?php endif; ?>
             </div>
 
             <div class="card-body">
-
                 <!-- Formulario de filtros REORGANIZADO -->
                 <form method="GET" action="<?= base_url('tracking') ?>" class="mb-4">
 

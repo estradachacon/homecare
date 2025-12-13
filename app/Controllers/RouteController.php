@@ -19,6 +19,9 @@ class RouteController extends BaseController
     // 🟦 1. INDEX: lista todas las sucursales
     public function index()
     {
+        $chk = requerirPermiso('ver_rutas');
+        if ($chk !== true) return $chk;
+
         $data['routes'] = $this->routeModel->findAll();
         return view('routes/index', $data);
     }
@@ -26,6 +29,9 @@ class RouteController extends BaseController
     // 🟩 2. NEW: muestra el formulario de creación
     public function new()
     {
+        $chk = requerirPermiso('crear_ruta');
+        if ($chk !== true) return $chk;
+
         return view('routes/create');
     }
 
@@ -83,15 +89,20 @@ class RouteController extends BaseController
             ]);
         }
 
-        return $this->response->setJSON(['status' => 'error', 
-        'message' => 'No se pudo eliminar la sucursal.',                 
-        'csrf'    => [
-            'token'  => csrf_hash(),
-            'header' => csrf_header(),
-        ]]);
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'No se pudo eliminar la sucursal.',
+            'csrf'    => [
+                'token'  => csrf_hash(),
+                'header' => csrf_header(),
+            ]
+        ]);
     }
-        public function edit($id)
+    public function edit($id)
     {
+        $chk = requerirPermiso('editar_ruta');
+        if ($chk !== true) return $chk;
+
         // 1. Obtener la caja a editar
         $route = $this->routeModel->find($id);
 

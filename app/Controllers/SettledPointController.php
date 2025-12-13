@@ -20,6 +20,9 @@ class SettledPointController extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_puntosfijos');
+        if ($chk !== true) return $chk;
+
         $settledPointsModel = new SettledPointModel();
 
         $settledPoints = $settledPointsModel
@@ -35,6 +38,9 @@ class SettledPointController extends BaseController
 
     public function new()
     {
+        $chk = requerirPermiso('crear_puntofijo');
+        if ($chk !== true) return $chk;
+
         $routes = $this->routeModel->findAll();
 
         $data = [
@@ -101,6 +107,9 @@ class SettledPointController extends BaseController
 
     public function edit($id)
     {
+        $chk = requerirPermiso('editar_puntofijo');
+        if ($chk !== true) return $chk;
+
         $routes = $this->routeModel->findAll();
         // 1. Obtener la caja a editar
         $settledPoint = $this->settledPointModel->find($id);

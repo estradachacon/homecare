@@ -5,17 +5,19 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Rutas</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('routes/new') ?>"><i
-                        class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php if (tienePermiso('crear_ruta')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('routes/new') ?>"><i
+                            class="fa-solid fa-plus"></i> Nuevo</a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered table-hover">
                     <thead>
                         <tr>
                             <th class="col-1">ID</th>
-                            <th class="col-5">Ruta</th>
+                            <th class="col-6">Ruta</th>
                             <th class="col-4">Descripción</th>
-                            <th class="col-2">Acciones</th>
+                            <th class="col-1">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -26,11 +28,15 @@
                                     <td><?= esc($route->route_name) ?></td>
                                     <td class="text-center"><?= esc($route->description) ?></td>
                                     <td>
-                                        <a href="<?= base_url('routes/edit/' . $route->id) ?>"
-                                            class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $route->id ?>">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
+                                        <?php if (tienePermiso('editar_ruta')): ?>
+                                            <a href="<?= base_url('routes/edit/' . $route->id) ?>"
+                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('eliminar_ruta')): ?>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $route->id ?>">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

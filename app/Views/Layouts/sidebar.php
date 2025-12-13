@@ -152,7 +152,7 @@
                 <?php endif; ?>
 
                 <?php if (
-                    tienePermiso('ver_puntosfjos') ||
+                    tienePermiso('ver_puntosfijos') ||
                     tienePermiso('ver_rutas')
                 ): ?>
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
@@ -163,7 +163,7 @@
                     </a>
                     <div class="collapse" id="settledpoint" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
-                            <?php if (tienePermiso('ver_puntosfjos')): ?>
+                            <?php if (tienePermiso('ver_puntosfijos')): ?>
                                 <a class="nav-link" href="/settledpoint">Puntos fijos</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_rutas')): ?>
@@ -195,13 +195,6 @@
                     </div>
                 <?php endif; ?>
 
-                <?php if (tienePermiso('ver_reportes')): ?>
-                    <a class="nav-link" href="/reports">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
-                        Reportería
-                    </a>
-                <?php endif; ?>
-
                 <?php if (
                     tienePermiso('ver_configuracion') ||
                     tienePermiso('ver_sucursales') ||
@@ -215,50 +208,64 @@
                         Ajustes del sistema
                         <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-                    <div class="collapse" id="company_settings" aria-labelledby="headingOne"
+                    <div class="collapse" id="company_settings"
+                        aria-labelledby="headingOne"
                         data-parent="#sidenavAccordion">
+
                         <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('ver_usuarios') || tienePermiso('ver_roles')): ?>
+
+                                <a class="nav-link collapsed" href="#"
+                                    data-toggle="collapse"
+                                    data-target="#staffs"
+                                    aria-expanded="false"
+                                    aria-controls="staffs">
+                                    Gestión de usuarios
+                                    <div class="sb-sidenav-collapse-arrow">
+                                        <i class="fa-solid fa-angle-down"></i>
+                                    </div>
+                                </a>
+
+                                <div class="collapse" id="staffs">
+                                    <nav class="sb-sidenav-menu-nested nav">
+
+                                        <?php if (tienePermiso('ver_usuarios')): ?>
+                                            <a class="nav-link" href="/users">Lista de usuarios</a>
+                                        <?php endif; ?>
+
+                                        <?php if (tienePermiso('ver_roles')): ?>
+                                            <a class="nav-link" href="/roles">Roles</a>
+                                        <?php endif; ?>
+
+                                    </nav>
+                                </div>
+
+                            <?php endif; ?>
+
                             <?php if (tienePermiso('ver_configuracion')): ?>
-                            <a class="nav-link" href="/settings">Configuración general</a>
+                                <a class="nav-link" href="/settings">Información de Sistema</a>
                             <?php endif; ?>
+
                             <?php if (tienePermiso('ver_sucursales')): ?>
-                            <a class="nav-link" href="/branches">Listado de sucursales</a>
+                                <a class="nav-link" href="/branches">Listado de sucursales</a>
                             <?php endif; ?>
+
                             <?php if (tienePermiso('ver_almacenamiento')): ?>
-                            <a class="nav-link" href="#/admin/administration/general_settings">Ver
-                                almacenamiento</a>
+                                <a class="nav-link" href="#/admin/administration/general_settings">
+                                    Ver almacenamiento
+                                </a>
                             <?php endif; ?>
                         </nav>
                     </div>
+
                 <?php endif; ?>
-
-                <?php if (
-                    tienePermiso('ver_usuarios') ||
-                    tienePermiso('ver_roles')
-                ): ?>
-
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#staffs"
-                        aria-expanded="false" aria-controls="staffs">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-users"></i></div>
-                        Gestión de usuarios
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                <?php if (tienePermiso('ver_reportes')): ?>
+                    <a class="nav-link" href="/reports">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                        Reportería
                     </a>
-
-                    <div class="collapse" id="staffs" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-
-                            <?php if (tienePermiso('ver_usuarios')): ?>
-                                <a class="nav-link" href="/users">Lista de usuarios</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_roles')): ?>
-                                <a class="nav-link" href="/roles">Roles</a>
-                            <?php endif; ?>
-
-                        </nav>
-                    </div>
                 <?php endif; ?>
-
                 <a class="nav-link" href="/logs">
                     <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
                 </a>

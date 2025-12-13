@@ -23,11 +23,13 @@ class PermisosSeed extends Seeder
             'crear_cuenta',
             'ver_caja_actual',
             'registrar_gasto',
+            'registrar_transferencia',
 
             // ===== PAQUETERÍA =====
             'crear_paquetes',
             'ver_paquetes',
             'ver_tracking',
+            'crear_tracking',
 
             // ===== REMUNERACIONES =====
             'remunerar_paquetes',
@@ -35,10 +37,20 @@ class PermisosSeed extends Seeder
 
             // ===== VENDEDORES =====
             'ver_vendedores',
+            'crear_vendedor',
+            'editar_vendedor',
+            'eliminar_vendedor',
 
             // ===== PUNTOS FIJOS Y RUTAS =====
-            'ver_puntosfjos',
+            'ver_puntosfijos',
+            'crear_puntofijo',
+            'editar_puntofijo',
+            'eliminar_puntofijo',
+
             'ver_rutas',
+            'crear_ruta',
+            'editar_ruta',
+            'eliminar_ruta',
 
             // ===== SOLICITUDES =====
             'invalidar_pago',

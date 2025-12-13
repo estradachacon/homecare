@@ -9,6 +9,9 @@ class ReportController extends BaseController
 {
     public function index()
     {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
+        
         return view('reports/index');
     }
 }

@@ -5,13 +5,16 @@
         <div class="card">
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Cuentas</h4>
-
-                <button class="btn btn-warning btn-sm ml-auto" data-toggle="modal" data-target="#transferModal">
-                    <i class="fa-solid fa-exchange-alt"></i> Realizar Transferencia
-                </button>
-                <a class="btn btn-primary btn-sm ml-2" href="<?= base_url('accounts/new') ?>">
-                    <i class="fa-solid fa-plus"></i> Nueva cuenta
-                </a>
+                <?php if (tienePermiso('registrar_transferencia')): ?>
+                    <button class="btn btn-warning btn-sm ml-auto" data-toggle="modal" data-target="#transferModal">
+                        <i class="fa-solid fa-exchange-alt"></i> Realizar Transferencia
+                    </button>
+                <?php endif; ?>
+                <?php if (tienePermiso('crear_cuenta')): ?>
+                    <a class="btn btn-primary btn-sm ml-2" href="<?= base_url('accounts/new') ?>">
+                        <i class="fa-solid fa-plus"></i> Nueva cuenta
+                    </a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
 
