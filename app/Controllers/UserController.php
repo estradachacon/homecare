@@ -164,8 +164,6 @@ class UserController extends BaseController
 
     public function delete()
     {
-        $chk = requerirPermiso('eliminar_usuarios');
-        if ($chk !== true) return $chk;
 
         helper(['form']);
         $session = session();

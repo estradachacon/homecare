@@ -112,23 +112,35 @@
 
                         </nav>
                     </div>
-
                 <?php endif; ?>
 
+                <?php if (
+                    tienePermiso('remunerar_paquetes') ||
+                    tienePermiso('devolver_paquetes') ||
+                    tienePermiso('ver_tracking')
+                ): ?>
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
+                        aria-expanded="false" aria-controls="treasury">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                        Remuneraciones
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="treasury" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
+                            <?php if (tienePermiso('remunerar_paquetes')): ?>
+                                <a class="nav-link" href="remu/create">Remunerar paquetes</a>
+                            <?php endif; ?>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
-                    aria-expanded="false" aria-controls="treasury">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
-                    Remuneraciones
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="treasury" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
-                        <a class="nav-link" href="#/invoices/create">Remunerar paquetes</a>
-                        <a class="nav-link" href="#/invoices/create">Devolución de paquetes</a>
-                        <a class="nav-link" href="#/invoices/create">Movimientos de caja actual</a>
-                    </nav>
-                </div>
+                            <?php if (tienePermiso('devolver_paquetes')): ?>
+                                <a class="nav-link" href="packages/return">Devolución de paquetes</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_caja_actual')): ?>
+                                <a class="nav-link" href="cashiers/now">Movimientos de caja actual</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (
                     tienePermiso('ver_vendedores')
@@ -139,58 +151,86 @@
                     </a>
                 <?php endif; ?>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
-                    aria-expanded="false" aria-controls="settledpoint">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
-                    Puntos fijos y Rutas
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="settledpoint" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/settledpoint">Puntos fijos</a>
-                        <a class="nav-link" href="/routes">Rutas</a>
-                    </nav>
-                </div>
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#accounts"
-                    aria-expanded="false" aria-controls="accounts">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-file"></i></div>
-                    Solicitudes
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="accounts" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="#/accounts">Reversión
-                            de pagos</a>
-                        <a class="nav-link" href="#/accounts/create">Anular flete</a>
-                    </nav>
-                </div>
+                <?php if (
+                    tienePermiso('ver_puntosfjos') ||
+                    tienePermiso('ver_rutas')
+                ): ?>
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
+                        aria-expanded="false" aria-controls="settledpoint">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
+                        Puntos fijos y Rutas
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="settledpoint" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_puntosfjos')): ?>
+                                <a class="nav-link" href="/settledpoint">Puntos fijos</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_rutas')): ?>
+                                <a class="nav-link" href="/routes">Rutas</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (
-                    tienePermiso('ver_reportes')
+                    tienePermiso('invalidar_pago') ||
+                    tienePermiso('invalidar_flete')
                 ): ?>
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#accounts"
+                        aria-expanded="false" aria-controls="accounts">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-file"></i></div>
+                        Solicitudes
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="accounts" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('invalidar_pago')): ?>
+                                <a class="nav-link" href="invalidatepayments">Reversión de pagos</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('invalidar_flete')): ?>
+                                <a class="nav-link" href="invalidatefreight">Anular flete</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (tienePermiso('ver_reportes')): ?>
                     <a class="nav-link" href="/reports">
                         <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
                         Reportería
                     </a>
                 <?php endif; ?>
 
-                <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
+                <?php if (
+                    tienePermiso('ver_configuracion') ||
+                    tienePermiso('ver_sucursales') ||
+                    tienePermiso('ver_almacenamiento')
+                ): ?>
+                    <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
-                    aria-expanded="false" aria-controls="company_settings">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-cog"></i></div>
-                    Ajustes del sistema
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="company_settings" aria-labelledby="headingOne"
-                    data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/settings">Configuración general</a>
-                        <a class="nav-link" href="/branches">Listado de sucursales</a>
-                        <a class="nav-link" href="#/admin/administration/general_settings">Ver
-                            almacenamiento</a>
-                    </nav>
-                </div>
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
+                        aria-expanded="false" aria-controls="company_settings">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-cog"></i></div>
+                        Ajustes del sistema
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="company_settings" aria-labelledby="headingOne"
+                        data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_configuracion')): ?>
+                            <a class="nav-link" href="/settings">Configuración general</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_sucursales')): ?>
+                            <a class="nav-link" href="/branches">Listado de sucursales</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_almacenamiento')): ?>
+                            <a class="nav-link" href="#/admin/administration/general_settings">Ver
+                                almacenamiento</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (
                     tienePermiso('ver_usuarios') ||
@@ -217,9 +257,7 @@
 
                         </nav>
                     </div>
-
                 <?php endif; ?>
-
 
                 <a class="nav-link" href="/logs">
                     <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
