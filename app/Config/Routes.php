@@ -90,4 +90,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para el módulo de transacciones
     $routes->get('transactions', 'TransactionsController::index');
     $routes->post('transactions/addSalida', 'TransactionsController::addSalida');
+
+    //Rutas para reportería
+    $routes->get('reports', 'ReportController::index');
 });

@@ -165,21 +165,14 @@
                     </nav>
                 </div>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#reports"
-                    aria-expanded="false" aria-controls="reports">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-file-export"></i></div>
-                    Informes
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="reports" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="#/reports/account_statement">Informe de Remuneraciones</a>
-                        <a class="nav-link" href="#/reports/account_statement">Informe de Cobros de envio</a>
-                        <a class="nav-link" href="#/reports/account_statement">Informe de No retirados</a>
-                        <a class="nav-link" href="#/reports/account_statement">Informe de gastos</a>
-                        <a class="nav-link" href="#/reports/account_statement">Balance por rango de fechas</a>
-                    </nav>
-                </div>
+                <?php if (
+                    tienePermiso('ver_reportes')
+                ): ?>
+                    <a class="nav-link" href="/reports">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
+                        Reportería
+                    </a>
+                <?php endif; ?>
 
                 <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 
