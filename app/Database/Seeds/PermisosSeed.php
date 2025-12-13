@@ -17,8 +17,12 @@ class PermisosSeed extends Seeder
             'ver_transacciones',
             'ver_cajas',
             'crear_caja',
+            'editar_caja',
+            'eliminar_caja',
             'ver_cuentas',
+            'crear_cuenta',
             'ver_caja_actual',
+            'registrar_gasto',
 
             // ===== PAQUETERÍA =====
             'crear_paquetes',

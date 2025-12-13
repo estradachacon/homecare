@@ -11,9 +11,9 @@ class TransactionsController extends BaseController
 {
     public function index()
     {
-    $chk = requerirPermiso('ver_transacciones');
-    if ($chk !== true) return $chk;
-    
+        $chk = requerirPermiso('ver_transacciones');
+        if ($chk !== true) return $chk;
+
         $model = new TransactionModel();
         $data['transactions'] = $model->getTransactionsWithAccountName();
 
@@ -21,7 +21,7 @@ class TransactionsController extends BaseController
     }
 
     public function addSalida()
-    {
+    {        
         helper(['form', 'bitacora', 'account']);
         $session = session();
         $request = service('request');

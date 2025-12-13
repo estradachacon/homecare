@@ -25,7 +25,6 @@ class CashierController extends Controller
      */
     public function index()
     {
-
         $chk = requerirPermiso('ver_cajas');
         if ($chk !== true) return $chk;
         
@@ -94,6 +93,9 @@ class CashierController extends Controller
      */
     public function edit($id)
     {
+        $chk = requerirPermiso('editar_caja');
+        if ($chk !== true) return $chk;
+
         // 1. Obtener la caja a editar
         $cashier = $this->cashierModel->find($id);
 

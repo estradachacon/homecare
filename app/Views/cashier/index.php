@@ -5,9 +5,13 @@
         <div class="card">
             <div class="card-header d-flex align-items-center">
                 <h4 class="header-title">Lista de cajas</h4>
-                <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('cashiers/new') ?>">
-                    <i class="fa-solid fa-plus"></i> Crear caja
-                </a>
+                <?php if (
+                    tienePermiso('crear_caja')
+                ): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('cashiers/new') ?>">
+                        <i class="fa-solid fa-plus"></i> Crear caja
+                    </a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
 
@@ -40,8 +44,12 @@
                                     <div class="text-center mt-2">
                                         <a href="<?= base_url('cashiers/show/' . $cashier->id) ?>"
                                             class="btn btn-sm btn-primary"><i class="fa-solid fa-eye"></i></a>
-                                        <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
-                                            class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                            
+                                        <?php if (tienePermiso('editar_caja')): ?>
+                                            <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
+                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                        <?php endif; ?> 
+
                                         <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $cashier->id ?>"><i
                                                 class="fa-solid fa-trash"></i></button>
                                     </div>
@@ -101,10 +109,14 @@
                                         <td class="text-center">
                                             <a href="<?= base_url('cashiers/show/' . $cashier->id) ?>"
                                                 class="btn btn-sm btn-primary"><i class="fa-solid fa-eye"></i></a>
-                                            <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
-                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                            <button class="btn btn-danger btn-sm delete-btn" data-id="<?= $cashier->id ?>"><i
-                                                    class="fa-solid fa-trash"></i></button>
+                                            <?php if (tienePermiso('editar_caja')): ?>
+                                                <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
+                                                    class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                            <?php endif; ?>
+                                            <?php if (tienePermiso('eliminar_caja')): ?>
+                                                <button class="btn btn-danger btn-sm delete-btn" data-id="<?= $cashier->id ?>"><i
+                                                        class="fa-solid fa-trash"></i></button>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

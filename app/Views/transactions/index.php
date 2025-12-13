@@ -9,9 +9,11 @@
             </div>
             <div class="card-body">
                 <div class="mb-3 d-flex justify-content-end">
-                    <button type="button" class="btn btn-success" id="btn-nuevo-gasto">
-                        <i class="fa-solid fa-plus-circle"></i> Registrar Nuevo Gasto
-                    </button>
+                    <?php if (tienePermiso('registrar_gasto')): ?>
+                        <button type="button" class="btn btn-success" id="btn-nuevo-gasto">
+                            <i class="fa-solid fa-plus-circle"></i> Registrar Nuevo Gasto
+                        </button>
+                    <?php endif; ?>
                 </div>
 
                 <div class="table-responsive">
