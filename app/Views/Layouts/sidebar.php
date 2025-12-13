@@ -21,57 +21,100 @@
 
                 <a class="nav-link" href="/dashboard">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-house"></i></div>
-                    Menú General
+                    Inicio
                 </a>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash" aria-expanded="false"
-                    aria-controls="cash">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
-                    Finanzas
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
+                <?php if (
+                    tienePermiso('ver_transacciones') ||
+                    tienePermiso('ver_cajas') ||
+                    tienePermiso('crear_caja') ||
+                    tienePermiso('ver_cuentas')
+                ): ?>
 
-                <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash" aria-expanded="false"
+                        aria-controls="cash">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                        Finanzas
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
 
-                        <!-- Submenú de Cajas -->
-                        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#subCajas"
-                            aria-expanded="false" aria-controls="subCajas">
-                            Cajas
-                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                        </a>
+                    <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
 
-                        <div class="collapse" id="subCajas" data-parent="#cash">
-                            <nav class="sb-sidenav-menu-nested nav">
-                                <a class="nav-link" href="/cashiers">Lista de Cajas</a>
-                                <a class="nav-link" href="/cashiers/new">Creación de caja</a>
-                                <a class="nav-link" href="/cash_movement/create?cashmov_type=Closing">Corte de caja</a>
-                            </nav>
-                        </div>
+                            <!-- SUBMENÚ CAJAS -->
+                            <?php if (
+                                tienePermiso('ver_cajas') ||
+                                tienePermiso('crear_caja')
+                            ): ?>
 
-                        <!-- Otros elementos fuera del submenú -->
-                         <?php if (tienePermiso('ver_transacciones')) : ?>
-                            <a class="nav-link" href="/transactions">Movimientos históricos</a>
-                        <?php endif; ?>
-                        <a class="nav-link" href="/accounts">Cuentas</a>
-                    </nav>
-                </div>
+                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#subCajas"
+                                    aria-expanded="false" aria-controls="subCajas">
+                                    Cajas
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                </a>
 
+                                <div class="collapse" id="subCajas" data-parent="#cash">
+                                    <nav class="sb-sidenav-menu-nested nav">
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales" aria-expanded="false"
-                    aria-controls="sales">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-box-open"></i></div>
-                    Paquetería
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="sales" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/packages/new">Registrar paquete</a>
-                        <a class="nav-link" href="/packages">Lista de
-                            paquetes</a>
-                        <a class="nav-link" href="/tracking">Seguimiento de paquetes</a>
-                    </nav>
-                </div>
+                                        <?php if (tienePermiso('ver_cajas')): ?>
+                                            <a class="nav-link" href="/cashiers">Lista de Cajas</a>
+                                        <?php endif; ?>
+
+                                        <?php if (tienePermiso('crear_caja')): ?>
+                                            <a class="nav-link" href="/cashiers/new">Creación de caja</a>
+                                        <?php endif; ?>
+
+                                    </nav>
+                                </div>
+
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_transacciones')): ?>
+                                <a class="nav-link" href="/transactions">Movimientos históricos</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_cuentas')): ?>
+                                <a class="nav-link" href="/accounts">Cuentas</a>
+                            <?php endif; ?>
+
+                        </nav>
+                    </div>
+
+                <?php endif; ?>
+
+                <?php if (
+                    tienePermiso('crear_paquetes') ||
+                    tienePermiso('ver_paquetes') ||
+                    tienePermiso('ver_tracking')
+                ): ?>
+
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales" aria-expanded="false"
+                        aria-controls="sales">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-box-open"></i></div>
+                        Paquetería
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+
+                    <div class="collapse" id="sales" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('crear_paquetes')): ?>
+                                <a class="nav-link" href="/packages/new">Registrar paquete</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_paquetes')): ?>
+                                <a class="nav-link" href="/packages">Lista de paquetes</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_tracking')): ?>
+                                <a class="nav-link" href="/tracking">Seguimiento de paquetes</a>
+                            <?php endif; ?>
+
+                        </nav>
+                    </div>
+
+                <?php endif; ?>
+
 
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
                     aria-expanded="false" aria-controls="treasury">
@@ -87,10 +130,15 @@
                     </nav>
                 </div>
 
-                <a class="nav-link" href="/sellers">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-address-book"></i></div>
-                    Vendedores
-                </a>
+                <?php if (
+                    tienePermiso('ver_vendedores')
+                ): ?>
+                    <a class="nav-link" href="/sellers">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-address-book"></i></div>
+                        Vendedores
+                    </a>
+                <?php endif; ?>
+
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
                     aria-expanded="false" aria-controls="settledpoint">
                     <div class="sb-nav-link-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
@@ -151,20 +199,34 @@
                     </nav>
                 </div>
 
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#staffs"
-                    aria-expanded="false" aria-controls="staffs">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-users"></i></div>
-                    Gestión de usuarios
-                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                </a>
-                <div class="collapse" id="staffs" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/users">Lista de usuarios</a>
-                    </nav>
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <a class="nav-link" href="/roles">Roles</a>
-                    </nav>
-                </div>
+                <?php if (
+                    tienePermiso('ver_usuarios') ||
+                    tienePermiso('ver_roles')
+                ): ?>
+
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#staffs"
+                        aria-expanded="false" aria-controls="staffs">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-users"></i></div>
+                        Gestión de usuarios
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+
+                    <div class="collapse" id="staffs" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('ver_usuarios')): ?>
+                                <a class="nav-link" href="/users">Lista de usuarios</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_roles')): ?>
+                                <a class="nav-link" href="/roles">Roles</a>
+                            <?php endif; ?>
+
+                        </nav>
+                    </div>
+
+                <?php endif; ?>
+
 
                 <a class="nav-link" href="/logs">
                     <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora

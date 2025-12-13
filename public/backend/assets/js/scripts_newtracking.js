@@ -465,16 +465,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Comprobación de motorista (esto ya lo tenías)
-        if (!motorista.value) {
-            Swal.fire({
-                icon: "warning",
-                title: "Motorista faltante",
-                text: "Seleccione un motorista."
-            });
-            return;
-        }
-
         // 📌 SOLUCIÓN #2: Validación estricta del campo de Flatpickr
         const fechaSeleccionada = fechaTracking.value ? fechaTracking.value.trim() : '';
 

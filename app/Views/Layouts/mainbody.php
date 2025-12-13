@@ -182,8 +182,6 @@
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                         <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i> Mi perfil</a>
                         <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i> Configuración</a>
-                        <a class="dropdown-item" href="#/profile/change_password"><i class="fa-solid fa-key"></i> Cambiar contraseña</a>
-                        <a class="dropdown-item" href="#/admin/administration/general_settings"><i class="fa-solid fa-layer-group"></i> Ajustes del sistema</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
                     </div>

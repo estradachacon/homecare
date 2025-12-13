@@ -25,6 +25,10 @@ class CashierController extends Controller
      */
     public function index()
     {
+
+        $chk = requerirPermiso('ver_cajas');
+        if ($chk !== true) return $chk;
+        
         $cashiers = $this->cashierModel
             ->select('cashier.*, users.user_name, branches.branch_name')
             ->join('users', 'users.id = cashier.user_id', 'left')
@@ -44,6 +48,9 @@ class CashierController extends Controller
      */
     public function new()
     {
+        $chk = requerirPermiso('crear_caja');
+        if ($chk !== true) return $chk;
+
         $branches = $this->branchModel->findAll();
         $users = $this->userModel->findAll();
 

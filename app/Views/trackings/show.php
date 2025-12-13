@@ -20,7 +20,8 @@ $tiposServicio = [
             </div>
             <div class="card-body">
                 <p><strong>Motorista:</strong> <?= $tracking->motorista_name ?? 'N/A' ?></p>
-                <p><strong>Fecha:</strong> <?= $tracking->date ?></p>
+                <p><strong>Creación:</strong> <?= date('d/m/Y H:i', strtotime($tracking->created_at)) ?></p>
+                <p><strong>Fecha de entrega:</strong> <?= date('d/m/Y', strtotime($tracking->date)) ?></p>
 
                 <hr>
 
@@ -28,7 +29,9 @@ $tiposServicio = [
                 <table class="table table-bordered table-sm">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Tipo</th>
+                            <th>Vendedor</th>
                             <th>Cliente</th>
                             <th>Destino / Recolección</th>
                             <th>Monto</th>
@@ -64,7 +67,9 @@ $tiposServicio = [
                                 ?>
 
                                 <tr>
+                                    <td><?= esc($d->id) ?></td>
                                     <td><?= esc($tipo) ?></td>
+                                    <td><?= esc($d->vendedor) ?></td>
                                     <td><?= esc($d->cliente) ?></td>
 
                                     <td>

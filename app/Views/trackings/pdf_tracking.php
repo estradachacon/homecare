@@ -20,7 +20,7 @@ $titulo = 'Rendición de Tracking ID: ' . $tracking->id;
 
         .container {
             width: 100%;
-            padding: 20px;
+            padding: 0px;
         }
 
         .header {
@@ -35,28 +35,28 @@ $titulo = 'Rendición de Tracking ID: ' . $tracking->id;
 
         .header h1 {
             margin: 0;
-            font-size: 18pt;
+            font-size: 15pt;
             font-weight: 500;
         }
 
         .header p {
-            margin: 5px 0 0;
-            font-size: 11pt;
+            margin: 0px 0 0;
+            font-size: 9pt;
             opacity: 0.9;
         }
 
         .card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            padding: 4px;
+            margin-bottom: 0px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
 
         .card h2 {
             font-size: 14pt;
             color: #1a73e8;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             padding-bottom: 5px;
             margin: 0 0 15px 0;
         }
@@ -203,7 +203,7 @@ $titulo = 'Rendición de Tracking ID: ' . $tracking->id;
                 <span class="info-value"><?= date('d/m/Y', strtotime($tracking->created_at)) ?></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Estatus General:</span>
+                <span class="info-label">Estatus:</span>
                 <span class="info-value"><?= ucwords(str_replace('_', ' ', $tracking->status)) ?></span>
             </div>
         </div>
@@ -217,7 +217,8 @@ $titulo = 'Rendición de Tracking ID: ' . $tracking->id;
                         <th>ID Paquete</th>
                         <th>Tipo Servicio</th>
                         <th>Vendedor</th>
-                        <th>Estatus Final</th>
+                        <th>Cliente</th>
+                        <th>Monto Paq.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -234,8 +235,9 @@ $titulo = 'Rendición de Tracking ID: ' . $tracking->id;
                             <tr>
                                 <td><?= $detalle->package_id ?></td>
                                 <td><?= $serviceName ?></td>
-                                <td><?= $detalle->vendedor_nombre ?? 'N/A' ?></td>
-                                <td><span class="status <?= $statusClass ?>"><?= ucwords(str_replace('_', ' ', $detalle->status)) ?></span></td>
+                                <td><?= $detalle->vendedor ?? 'N/A' ?></td>
+                                <td><?= $detalle->cliente ?? 'N/A' ?></td>
+                                <td><?= '$' . number_format($detalle->monto, 2) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>

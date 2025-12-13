@@ -24,6 +24,9 @@ class PackageController extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_paquetes');
+        if ($chk !== true) return $chk;
+
         // Cantidad de resultados por página (GET o 10 por defecto)
         $perPage = $this->request->getGet('per_page') ?? 10;
 
@@ -133,6 +136,9 @@ class PackageController extends BaseController
 
     public function new()
     {
+        $chk = requerirPermiso('crear_paquetes');
+        if ($chk !== true) return $chk;
+
         $settledPoint = $this->settledPointModel->findAll();
         $session = session();
 

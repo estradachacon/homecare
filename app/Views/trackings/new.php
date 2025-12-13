@@ -18,7 +18,7 @@
                     <div class="form-group col-md-4">
                         <label>Asignar Motorista</label>
                         <select id="motorista" name="motorista" class="form-control" required>
-                            <option>Seleccione</option>
+                            <option value="">Seleccione</option>
                             <?php foreach ($motoristas as $m): ?>
                                 <option value="<?= $m['id'] ?>"><?= $m['user_name'] ?></option>
                             <?php endforeach; ?>
@@ -152,7 +152,7 @@
 <!-- Inicialización de Select2 -->
 <script>
     $(document).ready(function() {
-        $('#modalRutas').on('shown.bs.modal', function () {
+        $('#modalRutas').on('shown.bs.modal', function() {
             if (!$('#ruta_select').hasClass('select2-hidden-accessible')) {
                 $('#ruta_select').select2({
                     theme: 'bootstrap4',
@@ -197,7 +197,7 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
-                            <th>ID</th> 
+                            <th>ID</th>
                             <th>Vendedor</th>
                             <th>Cliente</th>
                             <th>Destino personalizado</th>
@@ -242,7 +242,7 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"></th>
-                            <th>ID</th> 
+                            <th>ID</th>
                             <th>Vendedor</th>
                             <th>Cliente</th>
                             <th>Destino</th>

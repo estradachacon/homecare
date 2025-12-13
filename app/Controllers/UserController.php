@@ -23,6 +23,9 @@ class UserController extends BaseController
     }
     public function index()
     {
+        $chk = requerirPermiso('ver_usuarios');
+        if ($chk !== true) return $chk;
+
         // 1. Instanciamos el modelo de usuario.
         $userModel = new UserModel();
 
@@ -43,6 +46,9 @@ class UserController extends BaseController
     }
     public function new()
     {
+        $chk = requerirPermiso('crear_usuarios');
+        if ($chk !== true) return $chk;
+
         $branches = $this->branchModel->findAll();
         $roles = $this->roleModel->findAll();
         $users = $this->userModel->findAll();
@@ -57,6 +63,9 @@ class UserController extends BaseController
     }
     public function create()
     {
+        $chk = requerirPermiso('crear_usuarios');
+        if ($chk !== true) return $chk;
+
         helper(['form']);
         $session = session();
 
@@ -155,6 +164,9 @@ class UserController extends BaseController
 
     public function delete()
     {
+        $chk = requerirPermiso('eliminar_usuarios');
+        if ($chk !== true) return $chk;
+
         helper(['form']);
         $session = session();
         $id = $this->request->getPost('id');

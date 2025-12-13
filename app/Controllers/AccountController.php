@@ -20,6 +20,9 @@ class AccountController extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_cuentas');
+        if ($chk !== true) return $chk;
+
         $q = trim($this->request->getGet('q') ?? '');
         $alpha = trim($this->request->getGet('alpha') ?? '');
         $perPage = intval($this->request->getGet('perPage') ?? 10);
@@ -53,6 +56,9 @@ class AccountController extends BaseController
 
     public function new()
     {
+        $chk = requerirPermiso('crear_cuenta');
+        if ($chk !== true) return $chk;
+
         return view('accounts/create');
     }
 

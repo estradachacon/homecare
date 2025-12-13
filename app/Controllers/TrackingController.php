@@ -9,6 +9,7 @@ use App\Models\TrackingHeaderModel;
 use App\Models\TrackingDetailsModel;
 use App\Models\RouteModel;
 
+
 class TrackingController extends BaseController
 {
     protected $trackingHeaderModel;
@@ -25,7 +26,9 @@ class TrackingController extends BaseController
     }
     public function index()
     {
-        // ... (Código de index se mantiene sin cambios) ...
+        $chk = requerirPermiso('ver_tracking');
+        if ($chk !== true) return $chk;
+
         $perPage = 10;
         $routeModel = new RouteModel();
         // Filtros
@@ -86,6 +89,9 @@ class TrackingController extends BaseController
     }
     public function new()
     {
+        $chk = requerirPermiso('crear_tracking');
+        if ($chk !== true) return $chk;
+
         // Modelos
         $userModel = new \App\Models\UserModel();
         $rutaModel = new RouteModel();
