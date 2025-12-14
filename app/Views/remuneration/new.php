@@ -421,7 +421,7 @@
                 `/upload/no-image.png`;
 
             const col = document.createElement('div');
-            col.className = 'col-md-4 mb-3';
+            col.className = 'col-md-3 mb-3';
 
             col.innerHTML = `
             <div class="card package-card h-100 shadow-sm">

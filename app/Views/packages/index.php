@@ -286,21 +286,21 @@
                                     </td>
                                     <td style="text-align:center; vertical-align:middle;">
                                         <div style="
-                                            font-size: medium;
-                                            align-items:center;
-                                            justify-content:center;
-                                            /* Aumenté un poco la altura para que quepan dos elementos lado a lado si es necesario */
-                                            height:25px; 
-                                            gap: 15px; /* Agrego un espacio entre los dos badges de estatus */
-                                        ">
+                                                display: flex;
+                                                flex-direction: column;
+                                                gap: 4px;
+                                                align-items: center;
+                                                justify-content: center;
+                                                font-size: medium;
+                                            ">
                                             <?= statusBadge($pkg['estatus']); ?>
 
                                             <?php if (!empty($pkg['estatus2'])): ?>
                                                 <?= statusBadge($pkg['estatus2']); ?>
                                             <?php endif; ?>
-
                                         </div>
                                     </td>
+
 
                                     <td>
                                         <div class="dropdown">
@@ -468,64 +468,64 @@
     });
 </script>
 <script>
-document.querySelectorAll('.btn-devolver').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
+    document.querySelectorAll('.btn-devolver').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
 
-        const packageId = this.dataset.id;
-        const foto = this.dataset.foto;
+            const packageId = this.dataset.id;
+            const foto = this.dataset.foto;
 
-        // Construir URL de la foto
-        let fotoUrl = '';
-        if (foto && foto.trim() !== '') {
-            fotoUrl = "<?= base_url('upload/paquetes') ?>/" + foto;
-        } else {
-            fotoUrl = "<?= base_url('upload/paquetes/default.png') ?>";
-        }
+            // Construir URL de la foto
+            let fotoUrl = '';
+            if (foto && foto.trim() !== '') {
+                fotoUrl = "<?= base_url('upload/paquetes') ?>/" + foto;
+            } else {
+                fotoUrl = "<?= base_url('upload/paquetes/default.png') ?>";
+            }
 
-        Swal.fire({
-            title: '¿Devolver paquete?',
-            html: `
+            Swal.fire({
+                title: '¿Devolver paquete?',
+                html: `
                 <p>Este paquete se marcará como devuelto.</p>
                 <img src="${fotoUrl}" 
                      style="max-width: 200px; border-radius: 10px; margin-top: 10px;" />
             `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, devolver',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33'
-        }).then((result) => {
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, devolver',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
 
-            if (result.isConfirmed) {
+                if (result.isConfirmed) {
 
-                fetch('<?= base_url("packages-devolver") ?>/' + packageId, {
-                        method: 'POST'
-                    })
-                    .then(res => res.json())
-                    .then(data => {
+                    fetch('<?= base_url("packages-devolver") ?>/' + packageId, {
+                            method: 'POST'
+                        })
+                        .then(res => res.json())
+                        .then(data => {
 
-                        if (data.status === "ok") {
-                            Swal.fire(
-                                '¡Devuelto!',
-                                'El paquete fue marcado como devuelto.',
-                                'success'
-                            ).then(() => location.reload());
-                        } else {
-                            Swal.fire(
-                                'Error',
-                                'Hubo un problema al devolver el paquete.',
-                                'error'
-                            );
-                        }
-                    });
-            }
+                            if (data.status === "ok") {
+                                Swal.fire(
+                                    '¡Devuelto!',
+                                    'El paquete fue marcado como devuelto.',
+                                    'success'
+                                ).then(() => location.reload());
+                            } else {
+                                Swal.fire(
+                                    'Error',
+                                    'Hubo un problema al devolver el paquete.',
+                                    'error'
+                                );
+                            }
+                        });
+                }
+
+            });
 
         });
-
     });
-});
 </script>
 
 <script src="<?= base_url('backend/assets/js/scripts_destino_index_pkg.js') ?>"></script>

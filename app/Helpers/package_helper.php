@@ -27,6 +27,7 @@ function statusBadge($status)
         'en_casillero'  => 'info',
         'recolectado'  => 'info',
         'finalizado'  => 'success',
+        'remunerado'  => 'success',
         'Activo'  => 'success',
         'Inactivo'  => 'danger',
         'Efectivo'  => 'success',
