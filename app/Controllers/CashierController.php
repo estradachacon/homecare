@@ -27,7 +27,7 @@ class CashierController extends Controller
     {
         $chk = requerirPermiso('ver_cajas');
         if ($chk !== true) return $chk;
-        
+
         $cashiers = $this->cashierModel
             ->select('cashier.*, users.user_name, branches.branch_name')
             ->join('users', 'users.id = cashier.user_id', 'left')
@@ -182,5 +182,115 @@ class CashierController extends Controller
         }
 
         return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar la caja.']);
+    }
+    public function sessionStatus()
+    {
+        $userId = session()->get('id');
+        $db = db_connect();
+
+        // 🔹 Buscar sesión abierta
+        $session = $db->table('cashier_sessions cs')
+            ->select('cs.*, c.name, c.current_balance')
+            ->join('cashier c', 'c.id = cs.cashier_id')
+            ->where('cs.user_id', $userId)
+            ->where('cs.status', 'open')
+            ->get()
+            ->getRowArray();
+
+        if ($session) {
+            return $this->response->setJSON([
+                'hasOpenSession' => true,
+                'cashier' => [
+                    'id' => $session['cashier_id'],
+                    'name' => $session['name'],
+                    'current_balance' => $session['current_balance'],
+                ],
+                'session' => [
+                    'id' => $session['id'],
+                    'initial_amount' => $session['initial_amount'],
+                    'open_time' => $session['open_time'],
+                ]
+            ]);
+        }
+
+        // 🔹 NO hay sesión → buscar caja asignada
+        $cashier = $db->table('cashier')
+            ->where('user_id', $userId)
+            ->where('is_open', 0)
+            ->get()
+            ->getRowArray();
+            
+        return $this->response->setJSON([
+            'hasOpenSession' => false,
+            'initial_amount' => $cashier ? $cashier['initial_balance'] : 0
+        ]);
+    }
+
+
+    public function open()
+    {
+        $userId = session()->get('id');
+
+        $db = db_connect();
+        $db->transStart();
+
+        // 1️⃣ Buscar caja asignada al usuario
+        $cashier = $db->table('cashier')
+            ->where('user_id', $userId)
+            ->where('is_open', 0)
+            ->get()
+            ->getRowArray();
+
+        $exists = $db->table('cashier_sessions')
+            ->where('user_id', $userId)
+            ->where('status', 'open')
+            ->countAllResults();
+
+        if ($exists > 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ya existe una sesión abierta'
+            ]);
+        }
+
+
+        if (!$cashier) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No hay caja disponible para abrir'
+            ]);
+        }
+
+        // 2️⃣ Abrir caja
+        $db->table('cashier')
+            ->where('id', $cashier['id'])
+            ->update([
+                'is_open' => 1,
+                'current_balance' => $cashier['initial_balance'],
+            ]);
+
+        // 3️⃣ Crear sesión
+        $db->table('cashier_sessions')->insert([
+            'cashier_id'     => $cashier['id'],
+            'user_id'        => $userId,
+            'branch_id'      => $cashier['branch_id'],
+            'initial_amount' => $cashier['initial_balance'],
+            'status'         => 'open',
+            'open_time'      => date('Y-m-d H:i:s'),
+        ]);
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error al abrir la caja'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'amount'  => $cashier['initial_balance']
+        ]);
     }
 }

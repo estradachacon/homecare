@@ -37,7 +37,7 @@ class PackageModel extends Model
     ];
     protected $updatedField = 'updated_at';
     protected $createdField = 'created_at';
-    
+
     public function getFullPackage($id)
     {
         return $this->select('
@@ -47,5 +47,21 @@ class PackageModel extends Model
             ->join('puntos_fijos', 'puntos_fijos.id = packages.id_puntofijo', 'left')
             ->where('packages.id', $id)
             ->first();
+    }
+    public function getPackagesPendingPaymentBySeller(int $sellerId)
+    {
+        return $this->select([
+            'id',
+            'cliente',
+            'monto',
+            'flete_pendiente',
+            'foto',
+            'fecha_ingreso'
+        ])
+            ->where('vendedor', $sellerId)
+            ->where('estatus', 'entregado')
+            ->where('monto >', 0)
+            ->orderBy('fecha_ingreso', 'ASC')
+            ->findAll();
     }
 }

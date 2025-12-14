@@ -29,9 +29,16 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
+    $routes->get(
+        'payments/packages-by-seller/(:num)',
+        'PaymentController::packagesBySeller/$1'
+    );
+
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'show', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
+    $routes->get('cashier/session/status', 'CashierController::sessionStatus');
+    $routes->post('cashier/open', 'CashierController::open');
 
     // Módulo de mantenimiento de usuarios
     $routes->presenter('users', ['controller' => 'UserController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
@@ -70,6 +77,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('packages-setDestino', 'PackageController::setDestino');
     $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
     $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
+
+    // Remuneraciones 
+    $routes->get('remu/create', 'RemunerationController::create');
 
     // Módulo de mantenimiento de tracking
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'show', 'create', 'edit', 'update']]);

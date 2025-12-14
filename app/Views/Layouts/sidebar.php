@@ -128,7 +128,7 @@
                     <div class="collapse" id="treasury" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
                             <?php if (tienePermiso('remunerar_paquetes')): ?>
-                                <a class="nav-link" href="remu/create">Remunerar paquetes</a>
+                                <a class="nav-link" href="/remu/create">Remunerar paquetes</a>
                             <?php endif; ?>
 
                             <?php if (tienePermiso('devolver_paquetes')): ?>
@@ -198,7 +198,9 @@
                 <?php if (
                     tienePermiso('ver_configuracion') ||
                     tienePermiso('ver_sucursales') ||
-                    tienePermiso('ver_almacenamiento')
+                    tienePermiso('ver_almacenamiento') ||
+                    tienePermiso('ver_usuarios') ||
+                    tienePermiso('ver_roles')
                 ): ?>
                     <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 

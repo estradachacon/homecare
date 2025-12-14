@@ -262,9 +262,6 @@
 
 
     <!-- App js -->
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/TableDnD/0.9.1/jquery.tablednd.js"
-        integrity="sha256-d3rtug+Hg1GZPB7Y/yTcRixO/wlI78+2m08tosoRn7A=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script>
 
     <script src="<?= base_url('backend/assets/js/scripts.js') ?>"></script>

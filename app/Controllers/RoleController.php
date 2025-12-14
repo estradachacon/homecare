@@ -144,9 +144,8 @@ class RoleController extends BaseController
 
     public function saveAccess($roleId)
     {
-        if (!tienePermiso('ver_roles')) {
-            return redirect()->back()->with('error', 'Acceso no autorizado');
-        }
+        $chk = requerirPermiso('ver_roles');
+        if ($chk !== true) return $chk;
 
         $permisoRolModel = new PermisoRolModel();
 
@@ -170,10 +169,8 @@ class RoleController extends BaseController
 
     public function access($roleId)
     {
-        // Seguridad básica
-        if (!tienePermiso('ver_roles')) {
-            return redirect()->back()->with('error', 'Acceso no autorizado');
-        }
+        $chk = requerirPermiso('asignar_permisos');
+        if ($chk !== true) return $chk;
 
         $roleModel = new RoleModel();
         $permisoRolModel = new PermisoRolModel();
