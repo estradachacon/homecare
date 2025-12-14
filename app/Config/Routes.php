@@ -91,6 +91,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('transactions', 'TransactionsController::index');
     $routes->post('transactions/addSalida', 'TransactionsController::addSalida');
 
+    //Rutas para el mantenimiento de roles 
+    $routes->presenter('roles', ['controller' => 'RoleController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->post('roles/delete', 'RoleController::delete');
+    $routes->get('access/(:num)', 'RoleController::access/$1');
+    $routes->put('access/(:num)', 'RoleController::saveAccess/$1');
+
     //Rutas para reportería
     $routes->get('reports', 'ReportController::index');
 });

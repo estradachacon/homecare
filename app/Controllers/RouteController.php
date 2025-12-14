@@ -82,20 +82,12 @@ class RouteController extends BaseController
             return $this->response->setJSON([
                 'status'  => 'success',
                 'message' => 'Ruta eliminada correctamente.',
-                'csrf'    => [
-                    'token'  => csrf_hash(),
-                    'header' => csrf_header(),
-                ]
             ]);
         }
 
         return $this->response->setJSON([
             'status' => 'error',
-            'message' => 'No se pudo eliminar la sucursal.',
-            'csrf'    => [
-                'token'  => csrf_hash(),
-                'header' => csrf_header(),
-            ]
+            'message' => 'No se pudo eliminar la ruta.',
         ]);
     }
     public function edit($id)

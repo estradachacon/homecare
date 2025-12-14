@@ -1,19 +1,14 @@
 <?php
 
-namespace App\Database\Seeds;
+namespace Config;
 
-use CodeIgniter\Database\Seeder;
+use CodeIgniter\Config\BaseConfig;
 
-class PermisosSeed extends Seeder
+class Permisos extends BaseConfig
 {
-    public function run()
-    {
-        // ID DEL ROL ADMINISTRADOR
-        $adminRoleId = 1;
+    public array $modulos = [
 
-        $permisos = [
-
-            // ===== FINANZAS =====
+        'Finanzas' => [
             'ver_transacciones',
             'ver_cajas',
             'crear_caja',
@@ -24,75 +19,63 @@ class PermisosSeed extends Seeder
             'ver_caja_actual',
             'registrar_gasto',
             'registrar_transferencia',
+        ],
 
-            // ===== PAQUETERÍA =====
+        'Paquetería' => [
             'crear_paquetes',
             'ver_paquetes',
             'ver_tracking',
             'crear_tracking',
+        ],
 
-            // ===== REMUNERACIONES =====
+        'Remuneraciones' => [
             'remunerar_paquetes',
             'devolver_paquetes',
+        ],
 
-            // ===== VENDEDORES =====
+        'Vendedores' => [
             'ver_vendedores',
             'crear_vendedor',
             'editar_vendedor',
             'eliminar_vendedor',
+        ],
 
-            // ===== PUNTOS FIJOS Y RUTAS =====
+        'Puntos fijos y rutas' => [
             'ver_puntosfijos',
             'crear_puntofijo',
             'editar_puntofijo',
             'eliminar_puntofijo',
-
             'ver_rutas',
             'crear_ruta',
             'editar_ruta',
             'eliminar_ruta',
+        ],
 
-            // ===== SOLICITUDES =====
+        'Solicitudes' => [
             'invalidar_pago',
             'invalidar_flete',
+        ],
 
-            // ===== REPORTES =====
+        'Reportes' => [
             'ver_reportes',
+        ],
 
-            // ===== AJUSTES DEL SISTEMA =====
+        'Ajustes del sistema' => [
             'ver_configuracion',
             'ver_sucursales',
             'ver_almacenamiento',
+        ],
 
-            // ===== GESTIÓN DE USUARIOS =====
+        'Gestión de usuarios' => [
             'ver_usuarios',
             'crear_usuarios',
             'editar_usuarios',
             'eliminar_usuarios',
-
             'ver_roles',
             'editar_roles',
             'eliminar_roles',
             'crear_roles',
-
             'asignar_permisos',
-        ];
-
-        foreach ($permisos as $accion) {
-
-            $exists = $this->db->table('permisos_rol')
-                ->where('role_id', $adminRoleId)
-                ->where('nombre_accion', $accion)
-                ->get()
-                ->getRow();
-
-            if (!$exists) {
-                $this->db->table('permisos_rol')->insert([
-                    'role_id'       => $adminRoleId,
-                    'nombre_accion' => $accion,
-                    'habilitado'    => 1,
-                ]);
-            }
-        }
-    }
+        ],
+    ];
 }
