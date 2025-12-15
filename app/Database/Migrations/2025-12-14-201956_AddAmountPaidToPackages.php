@@ -4,22 +4,22 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class AddCashierReservToCajas extends Migration
+class AddAmountPaidToPackages extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('cashier', [
-            'cashier_reserv' => [
+        $this->forge->addColumn('packages', [
+            'amount_paid' => [
                 'type'       => 'DECIMAL',
                 'constraint' => '12,2',
                 'default'    => 0.00,
-                'after'      => 'current_balance', // ajusta si quieres
+                'after'      => 'monto', // ajusta según tu tabla
             ],
         ]);
     }
 
     public function down()
     {
-        $this->forge->dropColumn('cashier', 'cashier_reserv');
+        $this->forge->dropColumn('packages', 'amount_paid');
     }
 }

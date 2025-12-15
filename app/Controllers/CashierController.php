@@ -219,7 +219,7 @@ class CashierController extends Controller
             ->where('is_open', 0)
             ->get()
             ->getRowArray();
-            
+
         return $this->response->setJSON([
             'hasOpenSession' => false,
             'initial_amount' => $cashier ? $cashier['initial_balance'] : 0
@@ -229,6 +229,9 @@ class CashierController extends Controller
 
     public function open()
     {
+        helper(['form']);
+        $session = session();
+
         $userId = session()->get('id');
 
         $db = db_connect();
@@ -261,6 +264,40 @@ class CashierController extends Controller
             ]);
         }
 
+        // 💰 Monto de apertura
+        $openingAmount = (float) $cashier['initial_balance'];
+
+        // 🔹 Obtener cuenta efectivo (ID = 1)
+        $account = $db->table('accounts')
+            ->where('id', 1)
+            ->get()
+            ->getRowArray();
+
+        if (!$account) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Cuenta de efectivo no encontrada'
+            ]);
+        }
+
+        // ❌ Saldo insuficiente
+        if ((float)$account['balance'] < $openingAmount) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Saldo insuficiente en la cuenta de efectivo'
+            ]);
+        }
+
+        // 🔻 Actualizar cuenta efectivo
+        $db->table('accounts')
+            ->where('id', 1)
+            ->update([
+                'balance'        => $account['balance'] - $openingAmount,
+                'cashier_reserv' => $account['cashier_reserv'] + $openingAmount,
+            ]);
+
         // 2️⃣ Abrir caja
         $db->table('cashier')
             ->where('id', $cashier['id'])
@@ -279,6 +316,23 @@ class CashierController extends Controller
             'open_time'      => date('Y-m-d H:i:s'),
         ]);
 
+        $cashierSessionId = $db->insertID();
+
+        // 4️⃣ Crear registro de movimiento de apertura
+        $db->table('cashier_movements')->insert([
+            'cashier_id'         => $cashier['id'],
+            'cashier_session_id' => $cashierSessionId, // ✅ ya existe
+            'user_id'            => $userId,
+            'branch_id'          => $cashier['branch_id'],
+            'type'               => 'in',
+            'amount'             => $cashier['initial_balance'],
+            'balance_after'      => $cashier['initial_balance'],
+            'concept'            => 'Apertura de caja',
+            'reference_type'     => 'cashier_session',
+            'reference_id'       => $cashierSessionId,
+            'created_at'         => date('Y-m-d H:i:s'),
+        ]);
+
         $db->transComplete();
 
         if ($db->transStatus() === false) {
@@ -287,6 +341,13 @@ class CashierController extends Controller
                 'message' => 'Error al abrir la caja'
             ]);
         }
+        // Registrar bitácora
+        registrar_bitacora(
+            'Apertura de caja',
+            'Remuneraciones',
+            'Se abrió la caja con ID ' . esc($cashier['id']) . '.',
+            $userId
+        );
 
         return $this->response->setJSON([
             'success' => true,

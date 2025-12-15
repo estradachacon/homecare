@@ -26,7 +26,7 @@
                                     <span><strong>Nombre / Usuario:</strong> <?= esc($cashier->name) ?> || <?= esc($cashier->user_name) ?></span>
                                 </div>
                                 <div>
-                                    <span><strong>Monto inicial:</strong> <?= esc($cashier->initial_balance) ?></span>
+                                    <span><strong>Monto Asignado:</strong> <?= esc($cashier->initial_balance) ?></span>
                                 </div>
                                 <div>
                                     <p><strong>Sucursal:</strong> <?= esc($cashier->branch_name) ?></p>

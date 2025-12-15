@@ -115,6 +115,10 @@
         color: #dc3545;
         font-size: .85rem;
     }
+
+    #cart-items .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
 </style>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 
@@ -128,7 +132,6 @@
             <div class="card-body">
                 <form id="formPaquete" enctype="multipart/form-data">
                     <div class="row g-3">
-                        <!-- Select del vendedor -->
                         <div class="col-md-6">
                             <label for="seller_id" class="form-label">Vendedor</label>
                             <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;" required>
@@ -136,7 +139,16 @@
                             </select>
                             <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
                         </div>
-                        <!-- Usuario -->
+
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="p-3 w-50 rounded shadow-sm text-center" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                                <small class="text-muted d-block fw-bold"><strong>Disponible para remunerar</strong></small>
+                                <strong id="available-amount" class="fs-4 text-success"> <span class="fs-5 fw-bold text-success">
+                                        $<?= number_format($availableAmount, 2) ?>
+                                    </span></strong>
+                            </div>
+                        </div>
+
                         <div class="col-md-12">
                             <input type="hidden" name="user_id" value="<?= session('id') ?>">
                         </div>
@@ -175,21 +187,6 @@
             <button id="btnPay" class="btn btn-success w-100">
                 Pagar remuneración
             </button>
-        </div>
-    </div>
-
-</div>
-
-<!-- Contenedor de toast -->
-<div class="toast-container" aria-live="polite" aria-atomic="true">
-    <div id="successToast" class="toast text-white bg-success" data-delay="2800">
-        <div class="toast-header bg-success text-white">
-            <strong class="mr-auto">Éxito</strong>
-            <small>Ahora</small>
-            <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
-        </div>
-        <div class="toast-body">
-            Remuneración registrada correctamente.
         </div>
     </div>
 </div>
@@ -292,98 +289,6 @@
                 cache: true
             }
         });
-
-        $('#formCreateSeller').on('submit', function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: '<?= base_url('sellers/create-ajax') ?>',
-                type: 'POST',
-                data: $(this).serialize(),
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'success') {
-                        $('#modalCreateSeller').modal('hide');
-                        const option = new Option(response.data.text, response.data.id, true, true);
-                        $('#seller_id').append(option).trigger('change');
-                        Swal.fire('Éxito', 'Vendedor creado correctamente.', 'success');
-                    } else {
-                        Swal.fire('Error', response.message || 'No se pudo crear.', 'error');
-                    }
-                },
-                error: () => Swal.fire('Error', 'Error de petición.', 'error')
-            });
-        });
-
-        /* -----------------------------------------------------------
-         * AJAX – Envío del formulario con barra de progreso
-         * ----------------------------------------------------------- */
-
-        const form = document.getElementById("formPaquete");
-
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-
-            let formData = new FormData(form);
-
-            // SweetAlert de progreso
-            Swal.fire({
-                title: "Subiendo paquete...",
-                html: `
-            <div class="progress" style="height: 22px;">
-                <div id="uploadProgress" class="progress-bar progress-bar-striped progress-bar-animated"
-                    role="progressbar" style="width: 0%">0%</div>
-            </div>
-        `,
-                allowOutsideClick: false,
-                showConfirmButton: false
-            });
-
-            let xhr = new XMLHttpRequest();
-
-            // Progreso de subida
-            xhr.upload.addEventListener("progress", function(e) {
-                if (e.lengthComputable) {
-                    let percent = Math.round((e.loaded / e.total) * 100);
-
-                    let bar = document.getElementById("uploadProgress");
-                    bar.style.width = percent + "%";
-                    bar.textContent = percent + "%";
-                }
-            });
-
-            // Respuesta del servidor
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-
-                    Swal.close();
-
-                    if (xhr.status === 200) {
-                        let response = JSON.parse(xhr.responseText);
-
-                        if (response.status === "success") {
-                            Swal.close();
-                            // Redirige al mismo view pero con query param
-                            window.location.href = "<?= base_url('/packages/new') ?>?created=1";
-
-                        } else {
-                            Swal.fire("Error", response.message, "error");
-                        }
-
-                    } else {
-                        Swal.fire("Error", "Hubo un problema en el servidor.", "error");
-                    }
-                }
-            };
-
-            xhr.open("POST", "<?= base_url('packages/store') ?>");
-            xhr.send(formData);
-        });
-    });
-    $(document).ready(function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('created') === '1') {
-            $('#successToast').toast('show');
-        }
     });
 </script>
 <script>
@@ -394,6 +299,20 @@
         items: [],
         total: 0
     };
+
+    function formatFechaSV(fecha) {
+        if (!fecha) return '—';
+
+        const date = new Date(fecha);
+
+        return new Intl.DateTimeFormat('es-SV', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            timeZone: 'America/El_Salvador'
+        }).format(date);
+    }
 
     function renderPackages(packages) {
         const container = document.getElementById('packages-container');
@@ -433,10 +352,14 @@
                 <div class="card-body">
                     <h6 class="mb-1">Paquete #${pkg.id}</h6>
                     <h6 class="mb-1">Cliente: ${pkg.cliente}</h6>
+                    <h6 class="mb-1">
+                        Fecha entregado: ${formatFechaSV(pkg.fecha_pack_entregado)}
+                    </h6>
+
 
                     <hr>
 
-                    <div>Monto base: $</div>
+                    <div>Valor Paq: $</div>
                     <div class="package-amount fw-bold">
                         ${monto.toFixed(2)}
                     </div>
@@ -458,10 +381,9 @@
                 </div>
 
                 <div class="p-2">
-                    <button class="btn btn-outline-success w-100 btn-add">
+                    <button type="button" class="btn btn-outline-success w-100 btn-add">
                         Agregar al pago
                     </button>
-                </div>
             </div>
         `;
 
@@ -469,7 +391,9 @@
                 addToCart({
                     id: pkg.id,
                     code: `PK-${pkg.id}`,
-                    amount: netAmount
+                    amount: netAmount,
+                    photo: pkg.foto ?
+                        `/upload/paquetes/${pkg.foto}` : `/upload/no-image.png`
                 });
             });
 
@@ -507,14 +431,38 @@
 
         cart.items.forEach(item => {
             const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.className = 'list-group-item p-2';
 
             li.innerHTML = `
-            <div>
-                <strong>${item.code}</strong><br>
-                <small>$${parseFloat(item.amount).toFixed(2)}</small>
+            <div class="d-flex align-items-center">
+                
+                <!-- FOTO -->
+                <div style="
+                    width:45px;
+                    height:45px;
+                    flex-shrink:0;
+                    border-radius:6px;
+                    overflow:hidden;
+                    border:1px solid #ddd;
+                    margin-right:10px;
+                ">
+                    <img src="${item.photo}"
+                         style="width:100%; height:100%; object-fit:cover;">
+                </div>
+
+                <!-- INFO -->
+                <div class="flex-grow-1">
+                    <strong>${item.code}</strong><br>
+                    <small class="text-muted">
+                        $${parseFloat(item.amount).toFixed(2)}
+                    </small>
+                </div>
+
+                <!-- BOTÓN -->
+                <button class="btn btn-sm btn-outline-danger ms-2">
+                    &times;
+                </button>
             </div>
-            <button class="btn btn-sm btn-danger">&times;</button>
         `;
 
             li.querySelector('button')
@@ -523,6 +471,18 @@
             list.appendChild(li);
         });
     }
+
+    function updateAvailableAmount() {
+        fetch('<?= site_url("cashier/available-amount") ?>')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('available-amount').innerText =
+                        `$${parseFloat(data.available).toFixed(2)}`;
+                }
+            });
+    }
+
 
     function recalcCart() {
         cart.total = cart.items.reduce((sum, i) => sum + parseFloat(i.amount), 0);
@@ -644,12 +604,25 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
+
                                 Swal.fire('Pago realizado', '', 'success');
+
+                                // Limpiar carrito
                                 cart = {
                                     items: [],
                                     total: 0
                                 };
                                 recalcCart();
+
+                                // Recargar paquetes del vendedor actual
+                                const sellerId = $('#seller_id').val();
+
+                                fetch(`<?= site_url('payments/packages-by-seller') ?>/${sellerId}`)
+                                    .then(res => res.json())
+                                    .then(packages => {
+                                        renderPackages(packages);
+                                        updateAvailableAmount();
+                                    });
                             } else {
                                 Swal.fire('Error', data.message, 'error');
                             }
@@ -657,7 +630,7 @@
                 });
             });
 
-        
+
     });
 </script>
 

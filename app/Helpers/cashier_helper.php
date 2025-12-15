@@ -72,3 +72,5 @@ function registerCashierMovement(array $data): bool
 
     return true;
 }
+
+

@@ -26,6 +26,7 @@ class PackageModel extends Model
         'flete_pendiente',
         'nocobrar_pack_cancelado',
         'monto',
+        'amount_paid',
         'foto',
         'comentarios',
         'fragil',
@@ -56,6 +57,7 @@ class PackageModel extends Model
             'monto',
             'flete_pendiente',
             'foto',
+            'fecha_pack_entregado',
             'fecha_ingreso'
         ])
             ->where('vendedor', $sellerId)

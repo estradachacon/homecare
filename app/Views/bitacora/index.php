@@ -4,7 +4,7 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex">
-                <h4 class="mb-4"><?= esc($title) ?></h4>
+                <h5><?= esc($title) ?></h4>
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-3">
