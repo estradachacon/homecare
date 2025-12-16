@@ -15,20 +15,23 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
-                <form method="GET" action="<?= base_url('packages') ?>" class="mb-3">
+                <form id="formPaquete" method="GET" action="<?= base_url('packages') ?>" class="mb-3">
                     <div class="row">
 
                         <!-- Vendedor -->
-                        <div class="col-md-3">
-                            <label class="form-label">Vendedor</label>
-                            <select name="vendedor_id" id="filter_seller" class="form-control">
-                                <option value="">-- Todos --</option>
-                                <?php foreach ($sellers as $s): ?>
-                                    <option value="<?= esc($s->id) ?>" <?= ($filter_vendedor_id == $s->id) ? 'selected' : '' ?>>
-                                        <?= esc($s->seller) ?>
+                        <div class="col-md-4">
+                            <label for="seller_id" class="form-label">Vendedor</label>
+                            <select id="seller_id" name="vendedor_id" class="form-select" style="width: 100%;">
+                                <option value=""></option>
+
+                                <?php if (!empty($seller_selected)): ?>
+                                    <option value="<?= esc($seller_selected->id) ?>" selected>
+                                        <?= esc($seller_selected->seller) ?>
                                     </option>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
+
+                            <small class="form-text text-muted">Escribí para buscar un vendedor.</small>
                         </div>
 
                         <!-- Estatus -->
@@ -38,14 +41,24 @@
                                 <option value="">Todos</option>
                                 <option value="pendiente" <?= ($filter_status == 'pendiente') ? 'selected' : '' ?>>
                                     Pendiente</option>
-                                <option value="asignado" <?= ($filter_status == 'asignado') ? 'selected' : '' ?>>Asignado
+                                <option value="asignado_para_recolecta" <?= ($filter_status == 'asignado_para_recolecta') ? 'selected' : '' ?>>Asignado para recolecta
+                                </option>
+                                <option value="asignado_para_entrega" <?= ($filter_status == 'asignado_para_entrega') ? 'selected' : '' ?>>Asignado para entrega
+                                </option>
+                                <option value="recolectado" <?= ($filter_status == 'recolectado') ? 'selected' : '' ?>>Recolectado
                                 </option>
                                 <option value="entregado" <?= ($filter_status == 'entregado') ? 'selected' : '' ?>>
                                     Entregado</option>
                                 <option value="en_casillero" <?= ($filter_status == 'en_casillero') ? 'selected' : '' ?>>
                                     En casillero</option>
-                                <option value="cancelado" <?= ($filter_status == 'cancelado') ? 'selected' : '' ?>>
-                                    Cancelado</option>
+                                <option value="finalizado" <?= ($filter_status == 'finalizado') ? 'selected' : '' ?>>
+                                    Finalizado</option>
+                                <option value="remunerado" <?= ($filter_status == 'remunerado') ? 'selected' : '' ?>>
+                                    Remunerado</option>
+                                <option value="no_retirado" <?= ($filter_status == 'no_retirado') ? 'selected' : '' ?>>
+                                    No retirado</option>
+                                <option value="devuelto" <?= ($filter_status == 'devuelto') ? 'selected' : '' ?>>
+                                    Devuelto</option>
                             </select>
                         </div>
 
@@ -420,6 +433,45 @@
 </div>
 <script>
     $(document).ready(function() {
+        /* -----------------------------------------------------------
+         * SELECT2 – Vendedores
+         * ----------------------------------------------------------- */
+        $('#seller_id').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#formPaquete'), // 👈 CLAVE
+            placeholder: '🔍 Buscar vendedor...',
+            allowClear: true,
+            minimumInputLength: 2,
+            width: '100%',
+            language: {
+                inputTooShort: function(args) {
+                    let remaining = args.minimum - args.input.length;
+                    return `Por favor ingrese ${remaining} caracter${remaining === 1 ? '' : 'es'} o más`;
+                },
+                searching: function() {
+                    return "Buscando...";
+                },
+                noResults: function() {
+                    return "No se encontraron resultados";
+                }
+            },
+            ajax: {
+                url: '<?= base_url('sellers-search') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: function(data, params) {
+                    let results = data || [];
+                    return {
+                        results
+                    };
+                },
+                cache: true
+            }
+        });
+
         // Interceptar SOLO los forms de agregar destino
         $('#branch').select2({
             theme: 'bootstrap4',

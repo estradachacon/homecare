@@ -28,8 +28,8 @@
                             <?php foreach ($transactions as $t): ?>
                                 <tr>
                                     <td><?= esc($t->id) ?></td>
-                                    <td><?= esc($t->cashier_id) ?> || <?= esc($t->user_name) ?></td>
-                                    <td><?= esc($t->cashier_session_id) ?></td>
+                                    <td class="text-center"><?= esc($t->cashier_id) ?> || <?= esc($t->user_name) ?></td>
+                                    <td class="text-center"><?= esc($t->cashier_session_id) ?></td>
                                     <td>
                                         <?php if ($t->type === 'in'): ?>
                                             <span class="badge bg-success text-white">INGRESO</span>
@@ -56,6 +56,7 @@ $(document).ready(function () {
     $('#transactionsTable').DataTable({
         pageLength: 25, // cantidad por defecto
         lengthMenu: [5, 10, 25, 50, 100],
+        order: [[0, "desc"]], // ordenar por fecha descendente
         ordering: true,
         searching: true,
         paging: true,

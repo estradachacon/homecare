@@ -42,11 +42,13 @@ class PackageController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('branches', 'branches.id = packages.branch', 'left')
             ->orderBy('packages.id', 'DESC');
+
         if (!empty($filter_vendedor_id)) {
             $builder->where('vendedor', $filter_vendedor_id);
         }
         if (!empty($filter_status)) {
-            $builder->where('estatus', $filter_status);
+            $builder->where('estatus', $filter_status)
+            ->orWhere('estatus2', $filter_status);
         }
         if (!empty($filter_service)) {
             $builder->where('tipo_servicio', $filter_service);
@@ -64,6 +66,16 @@ class PackageController extends BaseController
         $sellers = $this->sellerModel->findAll();
         $puntos_fijos = $this->settledPointModel->findAll();
 
+        $filter_vendedor_id = $this->request->getGet('vendedor_id');
+
+        $seller_selected = null;
+        if (!empty($filter_vendedor_id)) {
+            $seller_selected = $this->sellerModel
+                ->select('id, seller')
+                ->find($filter_vendedor_id);
+        }
+
+
         return view('packages/index', [
             'packages' => $packages,
             'pager' => $pager,
@@ -76,6 +88,8 @@ class PackageController extends BaseController
             'filter_date_to' => $filter_date_to,
             'perPage' => $perPage,
             'puntos_fijos' => $puntos_fijos,
+            'filter_seller_id' => $filter_vendedor_id,
+            'seller_selected'  => $seller_selected
         ]);
     }
 
@@ -534,5 +548,4 @@ class PackageController extends BaseController
 
         return $this->response->setJSON(['status' => 'ok']);
     }
-    
 }

@@ -137,7 +137,7 @@
                             <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;" required>
                                 <option value=""></option>
                             </select>
-                            <small class="form-text text-muted">Escribí para buscar o crear un nuevo vendedor.</small>
+                            <small class="form-text text-muted">Escribí para buscar un vendedor.</small>
                         </div>
 
                         <div class="col-md-6 d-flex align-items-center">
