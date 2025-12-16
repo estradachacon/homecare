@@ -354,4 +354,26 @@ class CashierController extends Controller
             'amount'  => $cashier['initial_balance']
         ]);
     }
+    public function transactions()
+    {
+        $chk = requerirPermiso('ver_historicos_de_caja');
+        if ($chk !== true) return $chk;
+        $session = session();
+        
+        $db = db_connect();
+
+        $transactions = $db->table('cashier_movements cm')
+            ->select('cm.*, u.user_name')
+            ->join('users u', 'u.id = cm.user_id', 'left')
+            ->orderBy('cm.created_at', 'DESC')
+            ->get()
+            ->getResultObject();
+
+        $data = [
+            'title' => 'Movimientos de Caja',
+            'transactions' => $transactions
+        ];
+
+        return view('cashier/movements', $data);
+    }
 }

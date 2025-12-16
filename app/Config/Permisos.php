@@ -16,7 +16,7 @@ class Permisos extends BaseConfig
             'eliminar_caja',
             'ver_cuentas',
             'crear_cuenta',
-            'ver_caja_actual',
+            'ver_historicos_de_caja',
             'registrar_gasto',
             'registrar_transferencia',
         ],

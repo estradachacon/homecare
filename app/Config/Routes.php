@@ -36,11 +36,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('payments/packages-by-seller/(:num)', 'PaymentController::packagesBySeller/$1');
 
     // Mantenimientos de cajas
-    $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'show', 'new', 'create', 'edit', 'update']]);
+    $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
     $routes->get('cashier/session/status', 'CashierController::sessionStatus');
     $routes->post('cashier/open', 'CashierController::open');
     $routes->get('cashier/available-amount', 'RemunerationController::availableAmount');
+    $routes->get('cashier/transactions', 'CashierController::transactions');
 
     // Módulo de mantenimiento de usuarios
     $routes->presenter('users', ['controller' => 'UserController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);

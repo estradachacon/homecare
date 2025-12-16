@@ -44,6 +44,7 @@
                             <!-- SUBMENÚ CAJAS -->
                             <?php if (
                                 tienePermiso('ver_cajas') ||
+                                tienePermiso('ver_historicos_de_caja') ||
                                 tienePermiso('crear_caja')
                             ): ?>
 
@@ -64,6 +65,9 @@
                                             <a class="nav-link" href="/cashiers/new">Creación de caja</a>
                                         <?php endif; ?>
 
+                                        <?php if (tienePermiso('ver_historicos_de_caja')): ?>
+                                            <a class="nav-link" href="/cashier/transactions">Movimientos de caja</a>
+                                        <?php endif; ?>
                                     </nav>
                                 </div>
 
@@ -133,10 +137,6 @@
 
                             <?php if (tienePermiso('devolver_paquetes')): ?>
                                 <a class="nav-link" href="packages/return">Devolución de paquetes</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_caja_actual')): ?>
-                                <a class="nav-link" href="cashiers/now">Movimientos de caja actual</a>
                             <?php endif; ?>
                         </nav>
                     </div>
