@@ -195,7 +195,7 @@ class SellerController extends BaseController
         $session = session();
         $data = [
             'seller' => $this->request->getPost('seller'),
-            'telefono' => $this->request->getPost('tel_seller'),
+            'tel_seller' => $this->request->getPost('tel_seller'),
         ];
 
         if (empty($data['seller'])) {

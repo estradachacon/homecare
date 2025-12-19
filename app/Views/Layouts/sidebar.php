@@ -174,28 +174,6 @@
                 <?php endif; ?>
 
                 <?php if (
-                    tienePermiso('invalidar_pago') ||
-                    tienePermiso('invalidar_flete')
-                ): ?>
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#accounts"
-                        aria-expanded="false" aria-controls="accounts">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-file"></i></div>
-                        Solicitudes
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                    </a>
-                    <div class="collapse" id="accounts" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-                            <?php if (tienePermiso('invalidar_pago')): ?>
-                                <a class="nav-link" href="invalidatepayments">Reversión de pagos</a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('invalidar_flete')): ?>
-                                <a class="nav-link" href="invalidatefreight">Anular flete</a>
-                            <?php endif; ?>
-                        </nav>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (
                     tienePermiso('ver_configuracion') ||
                     tienePermiso('ver_sucursales') ||
                     tienePermiso('ver_almacenamiento') ||
