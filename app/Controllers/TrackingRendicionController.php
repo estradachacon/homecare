@@ -159,7 +159,7 @@ class TrackingRendicionController extends BaseController
                 ? floatval($p->flete_total)
                 : floatval($p->flete_pagado);
             $togglePago = intval($p->toggle_pago_parcial);
-            // ----- Registrar según caso -----
+            
             // ----- Registrar según caso -----
             if ($p->tipo_servicio == 3) {
 

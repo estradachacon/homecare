@@ -3,7 +3,10 @@
 namespace App\Controllers;
 
 use App\Models\CashierModel;
+use App\Models\CashierSessionsModel;
+use App\Models\CashierMovementModel;
 use CodeIgniter\Controller;
+use Config\Database;
 
 class CashierController extends Controller
 {
@@ -229,7 +232,7 @@ class CashierController extends Controller
 
     public function open()
     {
-        helper(['form']);
+        helper(['form', 'transaction']);
         $session = session();
 
         $userId = session()->get('id');
@@ -328,7 +331,7 @@ class CashierController extends Controller
             'amount'             => $cashier['initial_balance'],
             'balance_after'      => $cashier['initial_balance'],
             'concept'            => 'Apertura de caja',
-            'reference_type'     => 'cashier_session',
+            'reference_type'     => 'Reserva de efectivo en caja',
             'reference_id'       => $cashierSessionId,
             'created_at'         => date('Y-m-d H:i:s'),
         ]);
@@ -349,6 +352,14 @@ class CashierController extends Controller
             $userId
         );
 
+        registrarSalida(
+            1,
+            $openingAmount,
+            "Apertura (Reserva) de caja ID {$cashier['id']}",
+            "Apertura de caja con ID de Sesión {$cashierSessionId}",
+            $cashierSessionId
+        );
+
         return $this->response->setJSON([
             'success' => true,
             'amount'  => $cashier['initial_balance']
@@ -359,7 +370,7 @@ class CashierController extends Controller
         $chk = requerirPermiso('ver_historicos_de_caja');
         if ($chk !== true) return $chk;
         $session = session();
-        
+
         $db = db_connect();
 
         $transactions = $db->table('cashier_movements cm')
@@ -375,5 +386,146 @@ class CashierController extends Controller
         ];
 
         return view('cashier/movements', $data);
+    }
+    public function summary(int $cashierId)
+    {
+        if (!tienePermiso('hacer_corte')) {
+            return $this->response->setJSON(['error' => 'No autorizado'])->setStatusCode(403);
+        }
+
+        $sessionModel  = new CashierSessionsModel();
+        $movementModel = new CashierMovementModel();
+
+        $session = $sessionModel
+            ->where('cashier_id', $cashierId)
+            ->where('status', 'open')
+            ->first();
+
+        if (!$session) {
+            return $this->response->setJSON(['error' => 'No hay sesión abierta'])->setStatusCode(404);
+        }
+
+        $totalIn = $movementModel
+            ->selectSum('amount')
+            ->where('cashier_session_id', $session->id)
+            ->where('type', 'in')
+            ->get()->getRow()->amount ?? 0;
+
+        $totalOut = $movementModel
+            ->selectSum('amount')
+            ->where('cashier_session_id', $session->id)
+            ->where('type', 'out')
+            ->get()->getRow()->amount ?? 0;
+
+        $expected = $totalIn - $totalOut;
+
+        return $this->response->setJSON([
+            'session_id'     => $session->id,
+            'initial_amount' => number_format($session->initial_amount, 2),
+            'total_in'       => number_format($totalIn, 2),
+            'total_out'      => number_format($totalOut, 2),
+            'expected'       => number_format($expected, 2),
+            'expected_raw'   => $expected,
+        ]);
+    }
+
+    public function close()
+    {
+        helper(['form', 'transaction']);
+
+        // ✅ sesión CI
+        $ciSession = session();
+
+        if (!tienePermiso('hacer_corte')) {
+            return $this->response->setJSON(['error' => 'No autorizado'])->setStatusCode(403);
+        }
+
+        $sessionId = $this->request->getPost('session_id');
+
+        $sessionModel  = new CashierSessionsModel();
+        $cashierModel  = new CashierModel();
+        $movementModel = new CashierMovementModel();
+
+        // ✅ sesión de caja
+        $cashierSession = $sessionModel->find($sessionId);
+
+        if (!$cashierSession || $cashierSession->status !== 'open') {
+            return $this->response->setJSON(['error' => 'Estado inválido'])->setStatusCode(400);
+        }
+
+        // ✅ caja real
+        $cashier = $cashierModel->find($cashierSession->cashier_id);
+
+        if (!$cashier) {
+            return $this->response->setJSON(['error' => 'Caja no encontrada'])->setStatusCode(404);
+        }
+
+        $db = Database::connect();
+        $db->transStart();
+
+        /* 🔹 cerrar sesión */
+        $sessionModel->update($cashierSession->id, [
+            'status'         => 'closed',
+            'closing_amount' => $cashier->current_balance,
+            'close_time'     => date('Y-m-d H:i:s'),
+        ]);
+
+        /* 🔹 cerrar caja */
+        $cashierModel->update($cashier->id, [
+            'is_open'         => 0,
+            'current_balance' => 0,
+        ]);
+
+        /* 🔹 movimiento de cierre */
+        $movementModel->insert([
+            'cashier_id'         => $cashier->id,
+            'cashier_session_id' => $cashierSession->id,
+            'user_id'            => $ciSession->get('id'),
+            'branch_id'          => $ciSession->get('branch_id'),
+            'type'               => 'out',
+            'amount'             => $cashier->current_balance,
+            'balance_after'      => 0,
+            'concept'            => 'Cierre de caja',
+            'reference_type'     => 'Reintegración de efectivo',
+            'reference_id'       => $cashierSession->id,
+            'created_at'         => date('Y-m-d H:i:s'),
+        ]);
+
+        // 🔹 Obtener cuenta efectivo (ID = 1)
+        $account = $db->table('accounts')
+            ->where('id', 1)
+            ->get()
+            ->getRowArray();
+
+        // 🔻 Actualizar reserva de efectivo (sale dinero de caja)
+        $db->table('accounts')
+            ->where('id', 1)
+            ->update([
+                'cashier_reserv' => $account['cashier_reserv'] - $cashier->current_balance,
+            ]);
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['error' => 'Error al cerrar la caja'])->setStatusCode(500);
+        }
+
+        /* 🔹 bitácora */
+        registrar_bitacora(
+            'Cierre de caja',
+            'Finanzas',
+            'Se cerró la caja con ID ' . $cashier->id,
+            $ciSession->get('id')
+        );
+        
+        registrarEntrada(
+            1,
+            $cashier->current_balance,
+            "Cierre de caja ID {$cashier->id} con los valores: ". $cashier->current_balance . " - " . $cashierSession->initial_amount . " = " . ($cashier->current_balance - $cashierSession->initial_amount),
+            "Cierre de caja con ID de Sesión {$cashierSession->id}",
+            $cashierSession->id
+        );
+
+        return $this->response->setJSON(['success' => true]);
     }
 }

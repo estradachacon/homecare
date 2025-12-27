@@ -136,7 +136,7 @@
                             <?php endif; ?>
 
                             <?php if (tienePermiso('devolver_paquetes')): ?>
-                                <a class="nav-link" href="packages/return">Devolución de paquetes</a>
+                                <a class="nav-link" href="/packages/return">Devolución de paquetes</a>
                             <?php endif; ?>
                         </nav>
                     </div>

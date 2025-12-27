@@ -131,7 +131,7 @@ class PaymentController extends BaseController
             'amount'             => $totalPay,
             'balance_after'      => $newBalance,
             'concept'            => 'Pago a vendedor #' . $sellerId,
-            'reference_type'     => 'packages',
+            'reference_type'     => 'Remuneraciones',
             'reference_id'       => null,
             'created_at'         => date('Y-m-d H:i:s'),
         ]);

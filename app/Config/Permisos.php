@@ -14,6 +14,7 @@ class Permisos extends BaseConfig
             'crear_caja',
             'editar_caja',
             'eliminar_caja',
+            'hacer_corte',
             'ver_cuentas',
             'crear_cuenta',
             'ver_historicos_de_caja',

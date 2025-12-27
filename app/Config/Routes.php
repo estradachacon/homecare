@@ -42,6 +42,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('cashier/open', 'CashierController::open');
     $routes->get('cashier/available-amount', 'RemunerationController::availableAmount');
     $routes->get('cashier/transactions', 'CashierController::transactions');
+    $routes->get('cashiers/summary/(:num)', 'CashierController::summary/$1');
+    $routes->post('cashiers/close', 'CashierController::close');
 
     // Módulo de mantenimiento de usuarios
     $routes->presenter('users', ['controller' => 'UserController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
@@ -54,7 +56,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Mantenimiento de sistema
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
     $routes->get('logs', 'BitacoraController::index');
-    $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
 
     // Módulo de mantenimiento de vendedores
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
@@ -80,6 +81,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('packages-setDestino', 'PackageController::setDestino');
     $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
     $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
+    $routes->get('packages/return', 'PackageController::showReturnPackages');
+    $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
 
     // Módulo de mantenimiento de tracking
     $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'show', 'create', 'edit', 'update']]);

@@ -548,4 +548,73 @@ class PackageController extends BaseController
 
         return $this->response->setJSON(['status' => 'ok']);
     }
+        public function showReturnPackages()
+    {
+        $chk = requerirPermiso('devolver_paquetes');
+        if ($chk !== true) return $chk;
+
+        // Cantidad de resultados por página (GET o 10 por defecto)
+        $perPage = $this->request->getGet('per_page') ?? 10;
+
+        $filter_vendedor_id = $this->request->getGet('vendedor_id');
+        $filter_status = $this->request->getGet('estatus');
+        $filter_service = $this->request->getGet('tipo_servicio');
+        $filter_date_from = $this->request->getGet('fecha_desde');
+        $filter_date_to = $this->request->getGet('fecha_hasta');
+
+        $builder = $this->packageModel
+            ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name, branches.branch_name AS branch_name')
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('branches', 'branches.id = packages.branch', 'left')
+            ->orderBy('packages.id', 'DESC');
+
+        if (!empty($filter_vendedor_id)) {
+            $builder->where('vendedor', $filter_vendedor_id);
+        }
+        if (!empty($filter_status)) {
+            $builder->where('estatus', $filter_status)
+            ->orWhere('estatus2', $filter_status);
+        }
+        if (!empty($filter_service)) {
+            $builder->where('tipo_servicio', $filter_service);
+        }
+        if (!empty($filter_date_from)) {
+            $builder->where('DATE(fecha_ingreso) >=', $filter_date_from);
+        }
+        if (!empty($filter_date_to)) {
+            $builder->where('DATE(fecha_ingreso) <=', $filter_date_to);
+        }
+
+        $packages = $builder->paginate($perPage);
+        $pager = $builder->pager;
+
+        $sellers = $this->sellerModel->findAll();
+        $puntos_fijos = $this->settledPointModel->findAll();
+
+        $filter_vendedor_id = $this->request->getGet('vendedor_id');
+
+        $seller_selected = null;
+        if (!empty($filter_vendedor_id)) {
+            $seller_selected = $this->sellerModel
+                ->select('id, seller')
+                ->find($filter_vendedor_id);
+        }
+
+        return view('packages/index', [
+            'packages' => $packages,
+            'pager' => $pager,
+            'sellers' => $sellers,
+
+            'filter_vendedor_id' => $filter_vendedor_id,
+            'filter_status' => $filter_status,
+            'filter_service' => $filter_service,
+            'filter_date_from' => $filter_date_from,
+            'filter_date_to' => $filter_date_to,
+            'perPage' => $perPage,
+            'puntos_fijos' => $puntos_fijos,
+            'filter_seller_id' => $filter_vendedor_id,
+            'seller_selected'  => $seller_selected
+        ]);
+    }
 }

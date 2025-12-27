@@ -42,16 +42,23 @@
                                         <?php if ($cashier->is_open): ?>Caja abierta<?php else: ?>Caja cerrada<?php endif; ?>
                                     </p>
                                     <div class="text-center mt-2">
-                                        <a href="<?= base_url('cashiers/show/' . $cashier->id) ?>"
-                                            class="btn btn-sm btn-primary"><i class="fa-solid fa-eye"></i></a>
-                                            
+                                        <?php if ($cashier->is_open == '1' && tienePermiso('hacer_corte')): ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-primary btn-cerrar-caja"
+                                                data-cashier-id="<?= esc($cashier->id) ?>">
+                                                <i class="fa-solid fa-scissors"></i>
+                                            </button>
+                                        <?php endif; ?>
+
                                         <?php if (tienePermiso('editar_caja')): ?>
                                             <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
                                                 class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <?php endif; ?> 
-
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $cashier->id ?>"><i
-                                                class="fa-solid fa-trash"></i></button>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('eliminar_caja')): ?>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $cashier->id ?>"><i
+                                                    class="fa-solid fa-trash"></i></button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -107,8 +114,16 @@
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="<?= base_url('cashiers/show/' . $cashier->id) ?>"
-                                                class="btn btn-sm btn-primary"><i class="fa-solid fa-eye"></i></a>
+                                            <?php if ($cashier->is_open == '1' && tienePermiso('hacer_corte')): ?>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-primary btn-cerrar-caja"
+                                                    data-cashier-id="<?= esc($cashier->id) ?>">
+                                                    <i class="fa-solid fa-scissors"></i>
+                                                </button>
+                                            <?php endif; ?>
+
+
                                             <?php if (tienePermiso('editar_caja')): ?>
                                                 <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
                                                     class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
@@ -193,6 +208,69 @@
                     });
                 });
             });
+
+        });
+    </script>
+    <script>
+        document.querySelectorAll('.btn-cerrar-caja').forEach(btn => {
+
+            btn.addEventListener('click', async function() {
+
+                const cashierId = this.dataset.cashierId;
+
+                try {
+                    const res = await fetch(`<?= base_url('cashiers/summary') ?>/${cashierId}`);
+                    const data = await res.json();
+
+                    if (data.error) {
+                        Swal.fire('Error', data.error, 'error');
+                        return;
+                    }
+
+                    const html = `
+                <p><b>Monto inicial:</b> $${data.initial_amount}</p>
+                <p><b>Salidas:</b> $${data.total_out}</p>
+                <hr>
+                <h4>Total esperado: $${data.expected}</h4>
+            `;
+
+                    Swal.fire({
+                        title: 'Cierre de caja',
+                        html: html,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Cerrar caja',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#198754'
+                    }).then(async (result) => {
+
+                        if (result.isConfirmed) {
+
+                            const closeRes = await fetch(`<?= base_url('cashiers/close') ?>`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: `session_id=${data.session_id}`
+                            });
+
+                            const closeData = await closeRes.json();
+
+                            if (closeData.success) {
+                                Swal.fire('Cerrada', 'La caja fue cerrada correctamente', 'success')
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', closeData.error, 'error');
+                            }
+                        }
+                    });
+
+                } catch (e) {
+                    Swal.fire('Error', 'No se pudo obtener el resumen', 'error');
+                }
+
+            });
+
         });
     </script>
     <?= $this->endSection() ?>
