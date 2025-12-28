@@ -20,8 +20,6 @@ class AddPagoCuentaToPackages extends Migration
 
         $this->forge->addColumn('packages', $fields);
 
-        // (Opcional pero recomendado)
-        // Crear índice para búsquedas por cuenta
         $this->forge->addKey('pago_cuenta');
     }
 
