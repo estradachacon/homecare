@@ -29,12 +29,12 @@ $tiposServicio = [
                 <table class="table table-bordered table-sm">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Tipo</th>
-                            <th>Vendedor</th>
-                            <th>Cliente</th>
-                            <th>Destino / Recolección</th>
-                            <th>Monto</th>
+                            <th>PAQ ID</th>
+                            <th class="col-md-1">Tipo</th>
+                            <th class="col-md-3">Vendedor</th>
+                            <th class="col-md-3">Cliente</th>
+                            <th class="col-md-3">Destino / Recolección</th>
+                            <th class="col-md-1">Monto</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,7 +67,7 @@ $tiposServicio = [
                                 ?>
 
                                 <tr>
-                                    <td><?= esc($d->id) ?></td>
+                                    <td><?= esc($d->package_id) ?></td>
                                     <td><?= esc($tipo) ?></td>
                                     <td><?= esc($d->vendedor) ?></td>
                                     <td><?= esc($d->cliente) ?></td>

@@ -28,7 +28,10 @@
                     </div>
                 <?php endif; ?>
 
-                <form action="<?= base_url('packages/update/' . $package['id']) ?>" method="post">
+                <form action="<?= base_url('packages/update/' . $package['id']) ?>"
+                    method="post"
+                    enctype="multipart/form-data">
+
 
                     <?= csrf_field() ?>
                     <div class="row">
@@ -127,11 +130,17 @@
                         </div>
 
                         <div class="col-md-4 mt-3">
+                            <label>Monto del paquete</label>
+                            <input type="number" step="0.01" name="monto" class="form-control"
+                                value="<?= esc($package['monto']) ?>">
+                        </div>
+
+                        <div class="col-md-4 mt-3">
                             <label>Flete Total</label>
                             <input type="number" step="0.01" name="flete_total" class="form-control"
                                 value="<?= esc($package['flete_total']) ?>">
                         </div>
-
+                        
                         <div class="col-md-4 mt-3">
                             <label>Flete Pagado</label>
                             <input type="number" step="0.01" name="flete_pagado" class="form-control"
@@ -142,12 +151,6 @@
                             <label>Flete Pendiente</label>
                             <input type="number" step="0.01" name="flete_pendiente" class="form-control"
                                 value="<?= esc($package['flete_pendiente']) ?>">
-                        </div>
-
-                        <div class="col-md-4 mt-3">
-                            <label>Monto del paquete</label>
-                            <input type="number" step="0.01" name="monto" class="form-control"
-                                value="<?= esc($package['monto']) ?>">
                         </div>
 
                         <div class="col-md-4 text-center mt-3">
@@ -170,6 +173,29 @@
                                     <?= $package['fragil'] == 1 ? 'checked' : '' ?>>
                                 <label for="fragilSi">Sí</label>
                             </div>
+                        </div>
+
+                        <div class="col-md-6 mt-4">
+                            <label>Foto del paquete</label>
+
+                            <?php if (!empty($package['foto'])): ?>
+                                <div class="mb-2">
+                                    <img src="<?= base_url('upload/paquetes/' . $package['foto']) ?>"
+                                        alt="Foto del paquete"
+                                        class="img-thumbnail"
+                                        style="max-height: 200px;">
+                                </div>
+                            <?php endif; ?>
+
+                            <input type="file"
+                                name="foto"
+                                class="form-control"
+                                accept="image/*">
+
+                            <!-- conservar foto anterior -->
+                            <input type="hidden"
+                                name="foto_actual"
+                                value="<?= esc($package['foto']) ?>">
                         </div>
 
                         <div class="col-md-12 mt-3">

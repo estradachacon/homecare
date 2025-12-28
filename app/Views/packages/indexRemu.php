@@ -8,14 +8,10 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex">
-                <h4 class="header-title">Listado de Paquetes</h4>
-                <?php if (tienePermiso('crear_paquetes')): ?>
-                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('packages/new') ?>"><i
-                            class="fa-solid fa-plus"></i> Registrar nuevo</a>
-                <?php endif; ?>
+                <h4 class="header-title">Paquetes disponibles para devolución</h4>
             </div>
             <div class="card-body">
-                <form id="formPaquete" method="GET" action="<?= base_url('packages') ?>" class="mb-3">
+                <form id="formPaquete" method="GET" action="<?= base_url('packages/return') ?>" class="mb-3">
                     <div class="row">
 
                         <!-- Vendedor -->
@@ -41,20 +37,10 @@
                                 <option value="">Todos</option>
                                 <option value="pendiente" <?= ($filter_status == 'pendiente') ? 'selected' : '' ?>>
                                     Pendiente</option>
-                                <option value="asignado_para_recolecta" <?= ($filter_status == 'asignado_para_recolecta') ? 'selected' : '' ?>>Asignado para recolecta
-                                </option>
-                                <option value="asignado_para_entrega" <?= ($filter_status == 'asignado_para_entrega') ? 'selected' : '' ?>>Asignado para entrega
-                                </option>
                                 <option value="recolectado" <?= ($filter_status == 'recolectado') ? 'selected' : '' ?>>Recolectado
                                 </option>
-                                <option value="entregado" <?= ($filter_status == 'entregado') ? 'selected' : '' ?>>
-                                    Entregado</option>
                                 <option value="en_casillero" <?= ($filter_status == 'en_casillero') ? 'selected' : '' ?>>
                                     En casillero</option>
-                                <option value="finalizado" <?= ($filter_status == 'finalizado') ? 'selected' : '' ?>>
-                                    Finalizado</option>
-                                <option value="remunerado" <?= ($filter_status == 'remunerado') ? 'selected' : '' ?>>
-                                    Remunerado</option>
                                 <option value="no_retirado" <?= ($filter_status == 'no_retirado') ? 'selected' : '' ?>>
                                     No retirado</option>
                                 <option value="devuelto" <?= ($filter_status == 'devuelto') ? 'selected' : '' ?>>
@@ -85,7 +71,7 @@
 
                         <!-- Fecha hasta -->
                         <div class="col-md-2">
-                            <label class="form-label">Fecha (inicio) hasta</label>
+                            <label class="form-label">Fecha hasta</label>
                             <input type="date" name="fecha_hasta" class="form-control"
                                 value="<?= esc($filter_date_to) ?>">
                         </div>
@@ -347,32 +333,6 @@
                                                     <?php endif; ?>
                                                 </li>
 
-                                                <?php if ($pkg['estatus2'] != 'devuelto'): ?>
-
-                                                    <?php if (
-                                                        $pkg['estatus'] == 'pendiente' ||
-                                                        $pkg['estatus'] == 'recolectado' ||
-                                                        $pkg['estatus'] == 'en_casillero' ||
-                                                        $pkg['estatus'] == 'no_retirado'
-                                                    ): ?>
-                                                        <li>
-                                                            <a class="dropdown-item"
-                                                                href="<?= base_url('packages/edit/' . $pkg['id']) ?>">
-                                                                <i class="fa-solid fa-pencil"></i>Editar paquete
-                                                            </a>
-                                                        </li>
-                                                    <?php endif; ?>
-
-                                                <?php endif; ?>
-                                                <!-- AGREGAR DESTINO (solo si es recolecta y no tiene destino final) -->
-                                                <?php if ($pkg['tipo_servicio'] == 3 && empty($pkg['point_name']) && empty($pkg['destino_personalizado'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#setDestinoModal<?= $pkg['id'] ?>">
-                                                            <i class="fa-solid fa-location-dot"></i> Agregar destino
-                                                        </a>
-                                                    </li>
-                                                <?php endif; ?>
-
                                                 <!-- CONFIGURAR REENVÍO -->
                                                 <?php if (
                                                     $pkg['estatus'] === 'no_retirado'
@@ -384,6 +344,7 @@
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
+
                                                 <!-- DEVOLVER PAQUETE -->
                                                 <?php if ($pkg['estatus2'] != 'devuelto'): ?>
                                                     <?php if (
@@ -399,7 +360,6 @@
                                                                 data-foto="<?= esc($pkg['foto'] ?? '') ?>">
                                                                 <i class="fa-solid fa-undo"></i> Devolver paquete
                                                             </a>
-
                                                         </li>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
@@ -408,6 +368,7 @@
                                     </td>
                                     <?php $this->setVar('pkg', $pkg); ?>
                                     <?= $this->include('modals/package_index_photoview') ?>
+                                    <?= $this->include('modals/package_resend') ?>
                                 <?php endforeach; ?>
                                 </tr>
                                 <?php foreach ($packages as $pkg): ?>
@@ -418,8 +379,6 @@
                                             <?php $this->setVar('puntos_fijos', $puntos_fijos); ?>
 
                                             <?= $this->include('modals/package_index_add_destino') ?>
-                                            <?= $this->include('modals/package_resend') ?>
-
                                         <?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>

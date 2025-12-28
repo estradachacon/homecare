@@ -7,10 +7,10 @@ use App\Models\AccountModel;
 function actualizarSaldoCuenta($accountId)
 {
     $accountModel = new AccountModel();
-    $transactionModel = new TransactionModel();
 
-    // SUMA ENTRADAS
-    $entradasData = $transactionModel
+    // 🔹 ENTRADAS
+    $transactionModelEntradas = new TransactionModel();
+    $entradasData = $transactionModelEntradas
         ->where('account_id', $accountId)
         ->where('tipo', 'entrada')
         ->selectSum('monto')
@@ -18,8 +18,9 @@ function actualizarSaldoCuenta($accountId)
 
     $entradas = $entradasData->monto ?? 0;
 
-    // SUMA SALIDAS
-    $salidasData = $transactionModel
+    // 🔹 SALIDAS
+    $transactionModelSalidas = new TransactionModel();
+    $salidasData = $transactionModelSalidas
         ->where('account_id', $accountId)
         ->where('tipo', 'salida')
         ->selectSum('monto')
@@ -27,14 +28,13 @@ function actualizarSaldoCuenta($accountId)
 
     $salidas = $salidasData->monto ?? 0;
 
-    // CÁLCULO
     $nuevoSaldo = floatval($entradas) - floatval($salidas);
 
-    // GUARDAR EN LA COLUMNA CORRECTA
     return $accountModel->update($accountId, [
         'balance' => $nuevoSaldo
     ]);
 }
+
 
 
 function registrarEntrada($accountId, $monto, $origen = null, $referencia = null, $trackingId = null)

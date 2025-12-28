@@ -62,6 +62,7 @@ class TrackingRendicionController extends BaseController
         $trackingId       = $this->request->getPost('tracking_id');
         $regresados       = $this->request->getPost('regresados') ?? [];
         $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
+        $cuentasAsignadas = $this->request->getPost('cuenta_asignada') ?? [];
 
         // Paquetes del tracking
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
@@ -149,7 +150,14 @@ class TrackingRendicionController extends BaseController
             }
 
             // Cuentas: aquí ajusta la cuenta destino según tu sistema
-            $cuentaDeIngreso = 1; // ejemplo: cuenta de la empresa
+            $cuentaDeIngreso = isset($cuentasAsignadas[$p->id])
+            ? (int)$cuentasAsignadas[$p->id]
+            : 1; // fallback a efectivo
+
+            // Guardar la cuenta en el paquete
+            $packageModel->update($p->package_id, [
+                'pago_cuenta' => $cuentaDeIngreso
+            ]);
 
             // ----- Determinar montos -----
             $montoPaquete = floatval($p->monto);
@@ -230,8 +238,6 @@ class TrackingRendicionController extends BaseController
 
     public function pdf($trackingId)
     {
-        // ... (Tu código existente para pdf)
-
         // 1. Cargar datos
         $header = $this->headerModel->getHeaderWithRelations($trackingId);
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);

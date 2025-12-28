@@ -127,7 +127,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
                 <h5 class=" header-title mb-0">Registrar remuneración</h5>
-                <a href="<?= base_url('pending-packages') ?>" class="btn btn-light btn-sm">Volver</a>
+                <a href="<?= base_url('packages/return') ?>" class="btn btn-light btn-sm">Volver</a>
             </div>
             <div class="card-body">
                 <form id="formPaquete" enctype="multipart/form-data">

@@ -114,7 +114,7 @@ class TrackingController extends BaseController
 
         return view('trackings/new', $data);
     }
-    
+
     // NOTA: Revisé esta función. Si buscas paquetes recolectados para ser reasignados a
     // una ruta para entrega, su estatus es 'recolectado' y deben ser incluidos.
     public function getPendientesPorRuta($rutaId)
@@ -133,8 +133,8 @@ class TrackingController extends BaseController
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
             ->where('settled_points.ruta_id', $rutaId)
             ->groupStart() // Agrupación para los estatus
-                ->where('packages.estatus', 'pendiente')
-                ->orWhere('packages.estatus', 'recolectado') // Paquetes recolectados listos para ser reasignados a entrega
+            ->where('packages.estatus', 'pendiente')
+            ->orWhere('packages.estatus', 'recolectado') // Paquetes recolectados listos para ser reasignados a entrega
             ->groupEnd()
             ->findAll();
 
@@ -156,9 +156,9 @@ class TrackingController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
             ->groupStart() // Agrupación para los estatus
-                ->where('packages.estatus', 'pendiente')
-                ->orWhere('packages.estatus', 'recolecta_fallida')
-                ->orWhere('packages.estatus', 'recolectado') // Incluimos recolectados, si no tienen ruta asignada.
+            ->where('packages.estatus', 'pendiente')
+            ->orWhere('packages.estatus', 'recolecta_fallida')
+            ->orWhere('packages.estatus', 'recolectado') // Incluimos recolectados, si no tienen ruta asignada.
             ->groupEnd()
             ->findAll();
 
@@ -168,7 +168,7 @@ class TrackingController extends BaseController
     public function store()
     {
         // Cargar helpers (asumiendo que 'registrar_bitacora' está en 'bitacora')
-        helper(['form', 'bitacora']); 
+        helper(['form', 'bitacora']);
         $session = session();
 
         $headerModel = new TrackingHeaderModel();
@@ -176,7 +176,7 @@ class TrackingController extends BaseController
         $packageModel = new PackageModel();
 
         $motorista_id = $this->request->getPost('motorista_id');
-        $fecha_seguimiento = $this->request->getPost('fecha_tracking'); 
+        $fecha_seguimiento = $this->request->getPost('fecha_tracking');
         $paquetes = $this->request->getPost('paquetes'); // array
 
         if (empty($motorista_id) || empty($paquetes)) {
@@ -190,7 +190,7 @@ class TrackingController extends BaseController
         $idHeader = $headerModel->insert([
             'user_id' => $motorista_id,
             'route_id' => $ruta_id,
-            'date' => $fecha_seguimiento ?: date('Y-m-d'), 
+            'date' => $fecha_seguimiento ?: date('Y-m-d'),
             'status' => 'asignado',
             'created_at' => date('Y-m-d H:i:s')
         ]);
@@ -210,13 +210,16 @@ class TrackingController extends BaseController
 
         // 2. Guardar detalles y actualizar paquetes
         $paquetesActualizados = []; // Para la bitácora
-        
+
         foreach ($paquetes as $pid) {
 
             // Obtener el paquete para ver su estatus y tipo de servicio
             $paquete = $packageModel->find($pid);
-            $paqueteEstatus = $paquete['estatus'] ?? 'pendiente'; 
-            
+            $paqueteEstatus = $paquete['estatus'] ?? 'pendiente';
+
+            $estatus2 = $paquete['estatus2'] ?? null;
+            $reenviosActuales = (int) ($paquete['reenvios'] ?? 0);
+
             $estadoInicial = 'asignado_para_entrega'; // Estado por defecto: entrega
 
             if ($paquete) {
@@ -230,8 +233,8 @@ class TrackingController extends BaseController
                         // Por lo tanto, el siguiente paso es la ENTREGA.
                         $estadoInicial = 'asignado_para_entrega'; // Ya estaba asignado arriba, pero lo ponemos explícito
                     }
-                } 
-                
+                }
+
                 // Si el estatus anterior fue 'recolecta_fallida' y no es tipo 3, puede ir directo a entrega si tiene sentido en tu flujo.
                 // Basado en tu código anterior, si el estatus es 'recolecta_fallida', se intenta de nuevo:
                 if ($paqueteEstatus == 'recolecta_fallida') {
@@ -247,20 +250,26 @@ class TrackingController extends BaseController
                 'status' => 'asignado', // status del detalle
                 'created_at' => date('Y-m-d H:i:s')
             ]);
-
-            // Actualizar paquete: estado inicial según tipo de servicio y estatus
-            $packageModel->update($pid, [
+            // 👉 Lógica mínima de reenvío (SIN romper nada)
+            $updateData = [
                 'estatus' => $estadoInicial,
                 'tracking_id' => $idHeader
-            ]);
-            
+            ];
+
+            if ($estatus2 === 'reenvio') {
+                $updateData['reenvios'] = $reenviosActuales + 1;
+            }
+
+            // Actualizar paquete: estado inicial según tipo de servicio y estatus
+            $packageModel->update($pid, $updateData);
+
             // Recolectar info para la bitácora
             $paquetesActualizados[] = "ID " . esc($pid) . " → " . esc($estadoInicial);
         }
 
         // 3. Registrar bitácora
         $descripcionBitacora = 'Seguimiento **#' . esc($idHeader) . '** creado y asignado al motorista ID ' . esc($motorista_id) . ' (' . count($paquetes) . ' paquetes). Detalles de estado: ' . implode('; ', $paquetesActualizados);
-        
+
         if (function_exists('registrar_bitacora')) {
             registrar_bitacora(
                 'Creación de Tracking',

@@ -122,6 +122,18 @@ function formatDateDMY($fecha)
                             </tbody>
                         </table>
                     </div>
+                    <div class="col-md-12">
+                        <table class="table table-sm table-borderless" style="font-size: 1rem;">
+                            <tbody>
+                                <tr>
+                                    <th>Reenvios realizados</th>
+                                    <td class="text-success">
+                                        <strong><?= number_format($package['reenvios']) ?></strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <hr class="my-4">
@@ -134,7 +146,8 @@ function formatDateDMY($fecha)
                             <td><?= formatDateDMY($package['fecha_ingreso']) ?></td>
                         </tr>
 
-                        <?php if ($package['tipo_servicio'] == 1): // Punto Fijo ?>
+                        <?php if ($package['tipo_servicio'] == 1): // Punto Fijo 
+                        ?>
                             <tr>
                                 <th>Punto Fijo</th>
                                 <td><?= esc($package['point_name'] ?? 'N/A') ?></td>
@@ -144,7 +157,8 @@ function formatDateDMY($fecha)
                                 <td><?= formatDateDMY($package['fecha_entrega_puntofijo'] ?? null) ?></td>
                             </tr>
 
-                        <?php elseif ($package['tipo_servicio'] == 2): // Destino Personalizado ?>
+                        <?php elseif ($package['tipo_servicio'] == 2): // Destino Personalizado 
+                        ?>
                             <tr>
                                 <th>Destino Personalizado</th>
                                 <td><?= esc($package['destino_personalizado'] ?? 'N/A') ?></td>
@@ -154,7 +168,8 @@ function formatDateDMY($fecha)
                                 <td><?= formatDateDMY($package['fecha_entrega_personalizado'] ?? null) ?></td>
                             </tr>
 
-                        <?php elseif ($package['tipo_servicio'] == 3): // Recolección y Entrega Final ?>
+                        <?php elseif ($package['tipo_servicio'] == 3): // Recolección y Entrega Final 
+                        ?>
                             <tr>
                                 <th>Lugar de Recolección</th>
                                 <td><?= esc($package['lugar_recolecta_paquete'] ?? 'N/A') ?></td>
@@ -168,7 +183,8 @@ function formatDateDMY($fecha)
                                 <td><?= esc($package['fecha_entrega_personalizado'] ?? 'Pendiente') ?></td>
                             </tr>
 
-                        <?php elseif ($package['tipo_servicio'] == 4): // Casillero ?>
+                        <?php elseif ($package['tipo_servicio'] == 4): // Casillero 
+                        ?>
                             <tr>
                                 <th>Número de Casillero</th>
                                 <td><?= esc($package['numero_casillero'] ?? 'N/A') ?></td>
@@ -193,8 +209,20 @@ function formatDateDMY($fecha)
                             </td>
                         </tr>
                         <tr>
-                            <th>Cobro Cancelado (Por Estado)</th>
+                            <th>Paquete cancelado previamente:</th>
                             <td><?= !empty($package['nocobrar_pack_cancelado']) ? '<span class="badge badge-warning">SÍ</span>' : '<span class="badge badge-light">NO</span>' ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Cobro de paquete recibido en cuenta:</th>
+                            <td>
+                                <?php if (!empty($package['pago_cuenta_nombre'])): ?>
+                                    <span class="badge badge-info">
+                                        <?= esc($package['pago_cuenta_nombre']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge badge-light">Pendiente</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <tr>
@@ -207,20 +235,12 @@ function formatDateDMY($fecha)
                         </tr>
                     </tbody>
                 </table>
-
-                <div class="text-right mt-4">
-                    <a href="<?= base_url('packages') ?>" class="btn btn-secondary">
-                        <i class="fa fa-arrow-left"></i> Regresar
-                    </a>
-                    <a href="<?= base_url('packages/edit/' . $package['id']) ?>" class="btn btn-warning ml-2">
-                        <i class="fa fa-pencil-alt"></i> Editar Paquete
-                    </a>
-                </div>
-
             </div>
-        </div>
 
+        </div>
     </div>
+
+</div>
 </div>
 <div class="modal fade" id="modalFotoPaquete" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">

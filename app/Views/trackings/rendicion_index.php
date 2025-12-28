@@ -220,56 +220,64 @@
     </div>
 </div>
 <script>
-$(document).ready(function () {
+    $(document).ready(function() {
 
-    // Inicializa Select2
-    $('.select2-account').select2({
-        theme: 'bootstrap4',
-        width: '100%',
-        placeholder: 'Buscar cuenta...',
-        allowClear: true,
-        minimumInputLength: 1,
-        ajax: {
-            url: "<?= base_url('accounts-list') ?>",
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { q: params.term };
+        // Inicializa Select2
+        $('.select2-account').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: 'Buscar cuenta...',
+            allowClear: true,
+            minimumInputLength: 1,
+            language: {
+                inputTooShort: function() {
+                    return 'Ingrese 1 o más caracteres';
+                }
             },
-            processResults: function (data) {
-                return {
-                    results: data.map(item => ({
-                        id: item.id,
-                        text: item.name
-                    }))
-                };
+            ajax: {
+                url: "<?= base_url('accounts-list') ?>",
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.map(item => ({
+                            id: item.id,
+                            text: item.name
+                        }))
+                    };
+                }
             }
-        }
+        });
+
+        // 🟢 Obtener desde el servidor la cuenta con ID 1
+        $.ajax({
+            url: "<?= base_url('accounts-list') ?>",
+            data: {
+                q: "efectivo"
+            }, // cualquier valor, el backend lo ignora si devuelves siempre la lista
+            dataType: "json",
+            success: function(data) {
+
+                // buscar cuenta ID = 1
+                const cuenta = data.find(item => item.id == 1);
+
+                if (!cuenta) return; // si no existe, no ponemos nada
+
+                // Colocar como selección inicial en todos los select2
+                $('.select2-account').each(function() {
+                    let option = new Option(cuenta.name, cuenta.id, true, true);
+                    $(this).append(option).trigger('change');
+                });
+            }
+        });
+
     });
-
-    // 🟢 Obtener desde el servidor la cuenta con ID 1
-    $.ajax({
-        url: "<?= base_url('accounts-list') ?>",
-        data: { q: "efectivo" }, // cualquier valor, el backend lo ignora si devuelves siempre la lista
-        dataType: "json",
-        success: function (data) {
-
-            // buscar cuenta ID = 1
-            const cuenta = data.find(item => item.id == 1);
-
-            if (!cuenta) return; // si no existe, no ponemos nada
-
-            // Colocar como selección inicial en todos los select2
-            $('.select2-account').each(function () {
-                let option = new Option(cuenta.name, cuenta.id, true, true);
-                $(this).append(option).trigger('change');
-            });
-        }
-    });
-
-});
 </script>
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

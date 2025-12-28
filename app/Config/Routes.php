@@ -79,6 +79,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $route['upload-paquete'] = 'PackageController/subirImagen';
     $routes->post('packages/store', 'PackageController::store');
     $routes->post('packages-setDestino', 'PackageController::setDestino');
+    $routes->post('packages-setReenvio', 'PackageController::setReenvio');
     $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
     $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
     $routes->get('packages/return', 'PackageController::showReturnPackages');

@@ -33,6 +33,8 @@ class PackageModel extends Model
         'fecha_pack_entregado',
         'estatus',
         'estatus2',
+        'pago_cuenta',
+        'reenvios',
         'branch',
         'user_id'
     ];

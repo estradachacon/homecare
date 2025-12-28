@@ -7,6 +7,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\PackageModel;
 use App\Models\SellerModel;
 use App\Models\SettledPointModel;
+use App\Models\AccountModel;
 
 class PackageController extends BaseController
 {
@@ -32,6 +33,7 @@ class PackageController extends BaseController
 
         $filter_vendedor_id = $this->request->getGet('vendedor_id');
         $filter_status = $this->request->getGet('estatus');
+        $filter_status2 = $this->request->getGet('estatus2');
         $filter_service = $this->request->getGet('tipo_servicio');
         $filter_date_from = $this->request->getGet('fecha_desde');
         $filter_date_to = $this->request->getGet('fecha_hasta');
@@ -48,7 +50,7 @@ class PackageController extends BaseController
         }
         if (!empty($filter_status)) {
             $builder->where('estatus', $filter_status)
-            ->orWhere('estatus2', $filter_status);
+                ->orWhere('estatus2', $filter_status);
         }
         if (!empty($filter_service)) {
             $builder->where('tipo_servicio', $filter_service);
@@ -83,6 +85,7 @@ class PackageController extends BaseController
 
             'filter_vendedor_id' => $filter_vendedor_id,
             'filter_status' => $filter_status,
+            'filter_status2' => $filter_status2,
             'filter_service' => $filter_service,
             'filter_date_from' => $filter_date_from,
             'filter_date_to' => $filter_date_to,
@@ -97,10 +100,17 @@ class PackageController extends BaseController
     {
         // Traemos el paquete con joins a usuario, punto fijo y vendedor
         $package = $this->packageModel
-            ->select('packages.*, users.user_name as creador_nombre, settled_points.point_name as point_name, sellers.seller as seller_name')
+            ->select(
+                'packages.*,
+         users.user_name as creador_nombre,
+         settled_points.point_name as point_name,
+         sellers.seller as seller_name,
+         accounts.name as pago_cuenta_nombre'
+            )
             ->join('users', 'users.id = packages.user_id', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('accounts', 'accounts.id = packages.pago_cuenta', 'left') // 👈 AQUI
             ->where('packages.id', $id)
             ->first();
 
@@ -310,14 +320,10 @@ class PackageController extends BaseController
         return view('packages/edit', $data);
     }
 
-
-    // =====================================
-    // ACTUALIZAR PAQUETE
-    // =====================================
     public function update($id)
     {
         $session = session();
-        $userId = $session->get('user_id'); // 🛡️ OBTENER EL ID DEL USUARIO DE LA SESIÓN
+        $userId = $session->get('user_id');
 
         // 1. Obtener el paquete antes de la actualización
         $oldPackage = $this->packages->find($id);
@@ -353,6 +359,42 @@ class PackageController extends BaseController
 
         // Datos limpios
         $data = $this->request->getPost();
+
+        // Logica de foto:
+        $foto = $this->request->getFile('foto');
+
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+
+            // Validar tipo
+            if (!in_array($foto->getMimeType(), ['image/jpeg', 'image/png', 'image/webp'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', ['foto' => 'Formato de imagen no permitido']);
+            }
+
+            // Crear carpeta si no existe
+            $ruta = 'upload/paquetes/';
+            if (!is_dir($ruta)) {
+                mkdir($ruta, 0755, true);
+            }
+
+            // Nombre único
+            $nuevoNombre = 'package_' . $id . '_' . time() . '.' . $foto->getExtension();
+
+            // Mover archivo
+            $foto->move($ruta, $nuevoNombre);
+
+            // Borrar foto anterior si existe
+            if (!empty($oldPackage['foto']) && file_exists($oldPackage['foto'])) {
+                unlink($oldPackage['foto']);
+            }
+
+            // Guardar nueva ruta
+            $data['foto'] = $nuevoNombre;
+        } else {
+            // No se subió foto → conservar la actual
+            unset($data['foto']);
+        }
 
         if (isset($data['tipo_servicio']) && $data['tipo_servicio'] == 4) {
             $data['estatus'] = 'en_casillero';
@@ -472,6 +514,93 @@ class PackageController extends BaseController
 
         return redirect()->back()->with('error', 'Tipo de destino no válido o faltante.');
     }
+
+    public function setReenvio()
+    {
+        $session = session();
+        $userId = $session->get('user_id');
+
+        $id = $this->request->getPost('id');
+        $tipo = $this->request->getPost('tipo_destino');
+
+        $package = $this->packageModel->find($id);
+        if (!$package) {
+            return redirect()->back()->with('error', 'Paquete no encontrado');
+        }
+
+        $data = [];
+        $log_message = '';
+        $log_details = '';
+
+        if ($tipo === 'punto') {
+            $puntoFijoId = $this->request->getPost('id_puntofijo');
+            $fechaEntregaPuntoFijo = $this->request->getPost('fecha_entrega_puntofijo');
+
+            $data = [
+                'id_puntofijo' => $puntoFijoId,
+                'fecha_entrega_puntofijo' => $fechaEntregaPuntoFijo,
+                'estatus' => 'pendiente',
+                'estatus2' => 'reenvio',
+                'branch' => null,
+
+                // limpiar campos que no aplican
+                'destino_personalizado' => null,
+                'fecha_entrega_personalizado' => null,
+            ];
+
+            $log_message = 'Destino actualizado a PUNTOS FIJOS (ID: ' . esc($puntoFijoId) . ')';
+            $log_details = 'Fecha de entrega punto fijo: ' . esc($fechaEntregaPuntoFijo);
+        } elseif ($tipo === 'personalizado') {
+            $destinoPersonalizado = $this->request->getPost('destino_personalizado');
+            $fechaEntregaPersonalizado = $this->request->getPost('fecha_entrega_personalizado');
+
+            $data = [
+                'destino_personalizado' => $destinoPersonalizado,
+                'fecha_entrega_personalizado' => $fechaEntregaPersonalizado,
+                'estatus' => 'pendiente',
+                'estatus2' => 'reenvio',
+                'branch' => null,
+                // limpiar campos que no aplican
+                'id_puntofijo' => null,
+                'fecha_entrega_puntofijo' => null,
+            ];
+
+            $log_message = 'Destino actualizado a PERSONALIZADO';
+            $log_details = 'Dirección: ' . esc($destinoPersonalizado) . ', Fecha de entrega: ' . esc($fechaEntregaPersonalizado);
+        } elseif ($tipo === 'casillero') {
+            $branchId = $this->request->getPost('branch');
+            $data = [
+                'destino_personalizado' => 'Casillero',
+                'estatus' => 'en_casillero',
+                'branch' => $branchId,
+
+                // limpiar campos que no aplican
+                'id_puntofijo' => null,
+                'fecha_entrega_puntofijo' => null,
+                'fecha_entrega_personalizado' => null,
+            ];
+
+            $log_message = 'Destino actualizado a CASILLERO';
+            $log_details = 'Estatus cambiado a: en_casillero';
+        }
+
+        // Si hay datos para actualizar, procedemos
+        if (!empty($data)) {
+            $this->packageModel->update($id, $data);
+
+            registrar_bitacora(
+                'Cambio de Destino Paquete ID ' . esc($id),
+                'Paquetería',
+                $log_message . ' para paquete ' . esc($id) . '. Detalles: ' . $log_details,
+                $userId
+            );
+
+            return redirect()->back()->with('success', 'Destino actualizado correctamente');
+        }
+
+        return redirect()->back()->with('error', 'Tipo de destino no válido o faltante.');
+    }
+
     public function getPackageData($id)
     {
         if (!$this->request->isAJAX()) {
@@ -548,7 +677,8 @@ class PackageController extends BaseController
 
         return $this->response->setJSON(['status' => 'ok']);
     }
-        public function showReturnPackages()
+
+    public function showReturnPackages()
     {
         $chk = requerirPermiso('devolver_paquetes');
         if ($chk !== true) return $chk;
@@ -558,24 +688,43 @@ class PackageController extends BaseController
 
         $filter_vendedor_id = $this->request->getGet('vendedor_id');
         $filter_status = $this->request->getGet('estatus');
+        $filter_status2 = $this->request->getGet('estatus2');
         $filter_service = $this->request->getGet('tipo_servicio');
         $filter_date_from = $this->request->getGet('fecha_desde');
         $filter_date_to = $this->request->getGet('fecha_hasta');
+
+        $allowedStatus = [
+            'pendiente',
+            'recolectado',
+            'en_casillero',
+            'no_retirado',
+            'devuelto',
+            'reenvio'
+        ];
 
         $builder = $this->packageModel
             ->select('packages.*, sellers.seller AS seller_name, settled_points.point_name, branches.branch_name AS branch_name')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('branches', 'branches.id = packages.branch', 'left')
+            ->groupStart()
+            ->whereIn('packages.estatus', $allowedStatus)
+            ->orWhereIn('packages.estatus2', $allowedStatus)
+            ->groupEnd()
             ->orderBy('packages.id', 'DESC');
+
 
         if (!empty($filter_vendedor_id)) {
             $builder->where('vendedor', $filter_vendedor_id);
         }
-        if (!empty($filter_status)) {
-            $builder->where('estatus', $filter_status)
-            ->orWhere('estatus2', $filter_status);
+
+        if (!empty($filter_status) && in_array($filter_status, $allowedStatus)) {
+            $builder->groupStart()
+                ->where('estatus', $filter_status)
+                ->orWhere('estatus2', $filter_status)
+                ->groupEnd();
         }
+
         if (!empty($filter_service)) {
             $builder->where('tipo_servicio', $filter_service);
         }
@@ -601,11 +750,10 @@ class PackageController extends BaseController
                 ->find($filter_vendedor_id);
         }
 
-        return view('packages/index', [
+        return view('packages/indexRemu', [
             'packages' => $packages,
             'pager' => $pager,
             'sellers' => $sellers,
-
             'filter_vendedor_id' => $filter_vendedor_id,
             'filter_status' => $filter_status,
             'filter_service' => $filter_service,
