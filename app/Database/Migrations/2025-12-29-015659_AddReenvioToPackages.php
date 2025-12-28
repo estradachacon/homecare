@@ -14,7 +14,6 @@ class AddReenvioToPackages extends Migration
                 'constraint' => 11,
                 'unsigned'   => true,
                 'null'       => true,
-                'after'      => 'pago_cuenta', // ajusta si quieres otra posición
             ],
         ];
 
