@@ -14,7 +14,6 @@ class AddPagoCuentaToPackages extends Migration
                 'constraint' => 11,
                 'unsigned'   => true,
                 'null'       => true,
-                'after'      => 'estatus2', // ajusta si quieres otra posición
             ],
         ];
 

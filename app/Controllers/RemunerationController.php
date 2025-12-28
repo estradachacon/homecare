@@ -45,6 +45,39 @@ class RemunerationController extends BaseController
             'availableAmount' => $availableAmount
         ]);
     }
+
+        public function byAccountCreate()
+    {
+        $chk = requerirPermiso('remunerar_paquetes_por_cuenta');
+        if ($chk !== true) return $chk;
+
+        $db = db_connect();
+
+        // Obtener sesión de caja abierta del usuario
+        $cashierSession = $db->table('cashier_sessions')
+            ->where('status', 'open')
+            ->where('user_id', session()->get('id'))
+            ->get()
+            ->getRowArray();
+
+        $availableAmount = 0;
+
+        if ($cashierSession) {
+            // Obtener caja
+            $cashier = $db->table('cashier')
+                ->where('id', $cashierSession['cashier_id'])
+                ->get()
+                ->getRowArray();
+
+            if ($cashier) {
+                $availableAmount = (float) $cashier['current_balance'];
+            }
+        }
+
+        return view('remuneration/byaccountnew', [
+            'availableAmount' => $availableAmount
+        ]);
+    }
     public function availableAmount()
     {
         $db = db_connect();

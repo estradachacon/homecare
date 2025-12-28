@@ -677,7 +677,34 @@ class PackageController extends BaseController
 
         return $this->response->setJSON(['status' => 'ok']);
     }
+    public function entregar($id)
+    {
+        helper(['form']);
+        $session = session();
 
+        // ID del usuario que realiza la acción
+        $userId = $session->get('user_id');
+
+        // Datos para bitácora
+        $log_message = 'Entrega de paquete';
+        $log_details = 'El paquete fue marcado como entregado por el usuario ' . $userId;
+
+        // Actualizar estatus
+        $this->packages->update($id, [
+            'estatus' => 'entregado',
+        ]);
+
+        // Registrar bitácora
+        registrar_bitacora(
+            'Entrega de paquete ID ' . esc($id),
+            'Paquetería',
+            $log_message . ' para el paquete ' . esc($id) . '. Detalles: ' . $log_details,
+            $userId
+        );
+
+        return $this->response->setJSON(['status' => 'ok']);
+    }
+    
     public function showReturnPackages()
     {
         $chk = requerirPermiso('devolver_paquetes');

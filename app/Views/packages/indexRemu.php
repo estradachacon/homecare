@@ -344,7 +344,24 @@
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
+                                                
+                                                <!-- ENTREGAR PAQUETE DEL CASILLERO -->
+                                                <?php if ($pkg['estatus2'] != 'devuelto'): ?>
+                                                    <?php if (
+                                                        $pkg['estatus'] == 'en_casillero'
+                                                    ): ?>
+                                                        <li>
+                                                            <a class="dropdown-item btn-entregar-casillero"
+                                                                href="#"
+                                                                data-id="<?= $pkg['id'] ?>"
+                                                                data-foto="<?= esc($pkg['foto'] ?? '') ?>">
+                                                                <i class="fa-solid fa-box-open"></i> Entrega de paquete
+                                                            </a>
 
+                                                        </li>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                                
                                                 <!-- DEVOLVER PAQUETE -->
                                                 <?php if ($pkg['estatus2'] != 'devuelto'): ?>
                                                     <?php if (
@@ -545,7 +562,66 @@
         });
     });
 </script>
+<script>
+    document.querySelectorAll('.btn-entregar-casillero').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
 
+            const packageId = this.dataset.id;
+            const foto = this.dataset.foto;
+
+            // Construir URL de la foto
+            let fotoUrl = '';
+            if (foto && foto.trim() !== '') {
+                fotoUrl = "<?= base_url('upload/paquetes') ?>/" + foto;
+            } else {
+                fotoUrl = "<?= base_url('upload/no-image.png') ?>";
+            }
+
+            Swal.fire({
+                title: '¿Entregar paquete?',
+                html: `
+                <p>Este paquete se marcará como entregado a cliente.</p>
+                <img src="${fotoUrl}" 
+                     style="max-width: 200px; border-radius: 10px; margin-top: 10px;" />
+            `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, entregar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#73a92eff',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    fetch('<?= base_url("packages-entregar") ?>/' + packageId, {
+                            method: 'POST'
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+
+                            if (data.status === "ok") {
+                                Swal.fire(
+                                    'Entregado!',
+                                    'El paquete fue marcado como entregado.',
+                                    'success'
+                                ).then(() => location.reload());
+                            } else {
+                                Swal.fire(
+                                    'Error',
+                                    'Hubo un problema al registrar la entrega del paquete.',
+                                    'error'
+                                );
+                            }
+                        });
+                }
+
+            });
+
+        });
+    });
+</script>
 <script src="<?= base_url('backend/assets/js/scripts_destino_index_pkg.js') ?>"></script>
 <script src="<?= base_url('backend/assets/js/scripts_reenvio_index_pkg.js') ?>"></script>
 <?= $this->endSection() ?>

@@ -222,7 +222,7 @@
 <script>
     $(document).ready(function() {
 
-        // Inicializa Select2
+        // Inicializar Select2 para selección de cuentas
         $('.select2-account').select2({
             theme: 'bootstrap4',
             width: '100%',

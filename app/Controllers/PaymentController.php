@@ -194,4 +194,124 @@ class PaymentController extends BaseController
             'new_balance' => $newBalance
         ]);
     }
+    public function paySellerbyAccount()
+    {
+        helper(['form']);
+        $session = session();
+
+        $db = db_connect();
+        $data = $this->request->getJSON(true);
+
+        if (
+            !$data ||
+            empty($data['seller_id']) ||
+            empty($data['packages']) ||
+            empty($data['cuenta_id'])
+        ) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Datos incompletos'
+            ]);
+        }
+
+        $sellerId = (int) $data['seller_id'];
+        $packages = $data['packages'];
+        $accountId = (int) $data['cuenta_id'];
+
+        $db->transStart();
+
+        // 🔹 Calcular total a pagar sumando los paquetes
+        $totalPay = 0;
+
+        foreach ($packages as $pkg) {
+            $package = $db->table('packages')
+                ->where('id', $pkg['id'])
+                ->where('vendedor', $sellerId)
+                ->get()
+                ->getRowArray();
+
+            if (!$package) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Paquete inválido: #' . $pkg['id']
+                ]);
+            }
+
+            $monto = (float) $package['monto'];
+            $pendiente = (float) ($package['flete_pendiente'] ?? 0);
+            $netAmount = $monto - $pendiente;
+
+            if ($netAmount < 0) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Monto inválido en paquete #' . $package['id']
+                ]);
+            }
+
+            $totalPay += $netAmount;
+
+            $db->table('packages')
+                ->where('id', $package['id'])
+                ->update([
+                    'amount_paid'     => $netAmount,
+                    'flete_pendiente' => 0,
+                    'estatus'         => 'finalizado',
+                    'estatus2'        => 'remunerado',
+                ]);
+        }
+
+        // 🔹 Obtener cuenta efectivo (ID = 1)
+        $account = $db->table('accounts')
+            ->where('id', $accountId)
+            ->get()
+            ->getRowArray();
+
+        if (!$account) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Cuenta seleccionada no encontrada'
+            ]);
+        }
+        $db->table('accounts')
+            ->where('id', $accountId)
+            ->set('balance', 'balance - ' . $totalPay, false)
+            ->update();
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error al procesar el pago'
+            ]);
+        }
+
+        registrarSalida(
+        $account['id'],
+        $totalPay,
+        "Remuneración por cuentas",
+        "Paquetes con ID: " . implode(
+            ', ',
+            array_map(function ($pkg) {
+                return $pkg['id'];
+            }, $packages)
+        ),
+        '-',
+        );
+
+        registrar_bitacora(
+            'Pago a vendedor ID ' . esc($sellerId),
+            'Remuneraciones',
+            'Se pagó un total de $' . number_format($totalPay, 2) . ' al vendedor con ID ' . esc($sellerId) . '.' . ' Usando cuenta ID ' . esc($data['cuenta_id']),
+            $session->get('id')
+        );
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'total_paid' => $totalPay
+        ]);
+    }
 }

@@ -35,6 +35,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('payments/pay-seller', 'PaymentController::paySeller');
     $routes->get('payments/packages-by-seller/(:num)', 'PaymentController::packagesBySeller/$1');
 
+    // Remuneraciones de paquetes por cuenta
+    $routes->get('remuaccount/create', 'RemunerationController::byAccountCreate');
+    $routes->post('payments/pay-seller-byaccount', 'PaymentController::paySellerbyAccount');
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
@@ -81,6 +84,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('packages-setDestino', 'PackageController::setDestino');
     $routes->post('packages-setReenvio', 'PackageController::setReenvio');
     $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
+    $routes->post('packages-entregar/(:num)', 'PackageController::entregar/$1');
     $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
     $routes->get('packages/return', 'PackageController::showReturnPackages');
     $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);

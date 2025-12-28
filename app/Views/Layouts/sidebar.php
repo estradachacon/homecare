@@ -121,7 +121,7 @@
                 <?php if (
                     tienePermiso('remunerar_paquetes') ||
                     tienePermiso('devolver_paquetes') ||
-                    tienePermiso('ver_tracking')
+                    tienePermiso('remunerar_paquetes_por_cuenta')
                 ): ?>
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
                         aria-expanded="false" aria-controls="treasury">
@@ -133,6 +133,10 @@
                         <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
                             <?php if (tienePermiso('remunerar_paquetes')): ?>
                                 <a class="nav-link" href="/remu/create">Remunerar paquetes</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('remunerar_paquetes_por_cuenta')): ?>
+                                <a class="nav-link" href="/remuaccount/create">Remunerar paquetes por cuenta</a>
                             <?php endif; ?>
 
                             <?php if (tienePermiso('devolver_paquetes')): ?>

@@ -32,6 +32,7 @@ class Permisos extends BaseConfig
         'Remuneraciones' => [
             'remunerar_paquetes',
             'devolver_paquetes',
+            'remunerar_paquetes_por_cuenta',
         ],
 
         'Vendedores' => [
