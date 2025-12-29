@@ -180,7 +180,6 @@
                 <?php if (
                     tienePermiso('ver_configuracion') ||
                     tienePermiso('ver_sucursales') ||
-                    tienePermiso('ver_almacenamiento') ||
                     tienePermiso('ver_usuarios') ||
                     tienePermiso('ver_roles')
                 ): ?>
@@ -233,12 +232,6 @@
 
                             <?php if (tienePermiso('ver_sucursales')): ?>
                                 <a class="nav-link" href="/branches">Listado de sucursales</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_almacenamiento')): ?>
-                                <a class="nav-link" href="#/admin/administration/general_settings">
-                                    Ver almacenamiento
-                                </a>
                             <?php endif; ?>
                         </nav>
                     </div>

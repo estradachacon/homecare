@@ -14,8 +14,7 @@
                         <tr>
                             <th class="col-1">ID</th>
                             <th class="col-5">Nombre de Sucursal</th>
-                            <th class="col-4">Dirección</th>
-                            <th class="col-1">Estado</th>
+                            <th class="col-5">Dirección</th>
                             <th class="text-center col-1">Acciones</th>
                         </tr>
                     </thead>
@@ -30,29 +29,7 @@
                                     <td class="text-center"><?= esc($branch->id) ?></td>
                                     <td><?= esc($branch->branch_name) ?></td>
                                     <td><?= esc($branch->branch_direction) ?></td>
-                                    <td class="text-center">
-                                        <?php
-                                        $status = esc($branch->status);
-                                        $style = []; // Array para definir las clases
-
-                                        // Definimos el estilo basado en el estado
-                                        switch ($status) {
-                                            case '1':
-                                                $style['class'] = 'bg-dark text-white'; // Oscuro y potente
-                                                break;
-                                            case '0':
-                                                $style['class'] = 'bg-secondary text-white'; // Advertencia/Atención, texto oscuro para contraste
-                                                break;
-                                            default:
-                                                $style['class'] = 'bg-light text-warning border border-secondary'; // Para cualquier cosa que se escape
-                                                break;
-                                        }
-                                        ?>
-                                        <span class="badge <?= $style['class'] ?> rounded-pill px-3 py-2">
-                                            <?php if ($status == 1) : ?><span>Activo</span><?php else : ?><span>Inactivo</span><?php endif; ?>
-                                        </span>
-                                    </td>
-
+                                    
                                     <td class="text-center">
                                         <a href="<?= base_url('branches/edit/' . $branch->id) ?>" class="btn btn-sm btn-info"
                                             title="Editar"><i class="fa-solid fa-edit"></i></a>

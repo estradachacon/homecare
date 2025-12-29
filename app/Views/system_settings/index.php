@@ -25,12 +25,6 @@
                 Sucursales y Operación
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" id="security-tab" data-toggle="tab" href="#security" role="tab" aria-controls="security"
-                aria-selected="false">
-                Seguridad y Logs
-            </a>
-        </li>
     </ul>
 
     <div class="tab-content mt-4" id="settingsTabContent">
@@ -41,17 +35,28 @@
 
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Nombre y Título</h5>
-                    <p class="card-text text-muted">Define el nombre de la aplicación y el prefijo de los títulos.</p>
-                    <form>...</form>
+                    <h5 class="card-title">Datos de la Empresa</h5>
+                        <div class="mb-2">
+                            <h5 class="fw-bold text-primary">FC Encomiendas</h5>
+                        </div>
+
+                        <div class="mb-2">
+                            <h5 class="fw-bold text-primary">Casa Matriz, Metrogalerias Local 1-2C</h5>
+                        </div>
                 </div>
             </div>
 
+
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Zona Horaria</h5>
-                    <p class="card-text text-muted">Asegúrate de que la hora del servidor sea correcta.</p>
-                    <form>...</form>
+                    <h5 class="card-title">Almacenamiento en uso</h5>
+                    <p class="card-text text-muted">
+                        Espacio utilizado actualmente
+                    </p>
+
+                    <h4 class="fw-bold text-primary">
+                        <?= $storageUsed ?> MB
+                    </h4>
                 </div>
             </div>
 
@@ -69,40 +74,8 @@
                     <a href="<?= base_url('branches') ?>" class="btn btn-primary">Ir a Listado de Sucursales</a>
                 </div>
             </div>
-
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Inventario y Stock</h5>
-                    <p class="card-text text-muted">Define umbrales de alerta de stock.</p>
-                    <form>...</form>
-                </div>
-            </div>
         </div>
-
-        <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
-
-            <h4 class="mb-3">Registro y Mantenimiento</h4>
-
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Registro de Actividad (Logs)</h5>
-                    <p class="card-text text-muted">Consulta el historial de acciones y accesos.</p>
-                    <a href="<?= base_url('logs') ?>" class="btn btn-warning">Ver Logs del Sistema</a>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Mantenimiento de Datos</h5>
-                    <p class="card-text text-muted">Opciones para limpiar cachés o realizar copias de seguridad.</p>
-                    <button class="btn btn-danger">Limpiar Caché de Vistas</button>
-                </div>
-            </div>
-
-        </div>
-
     </div>
-
 </div>
 
 <?= $this->endSection() ?>

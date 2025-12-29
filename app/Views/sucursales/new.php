@@ -32,14 +32,6 @@
                             value="<?= old('branch_direction') ?>" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Estado</label>
-                        <select name="status" id="status" class="form-select">
-                            <option value="active" <?= old('status') == 'active' ? 'selected' : '' ?>>Activo</option>
-                            <option value="inactive" <?= old('status') == 'inactive' ? 'selected' : '' ?>>Inactivo</option>
-                        </select>
-                    </div>
-
                     <button type="submit" class="btn btn-primary">Guardar</button>
                     <a href="<?= site_url('branches') ?>" class="btn btn-secondary">Cancelar</a>
                 </form>

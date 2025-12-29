@@ -94,23 +94,61 @@ class BranchController extends Controller
             ]
         ]);
     }
-public function list()
+    public function list()
+    {
+        $branchModel = new BranchModel();
+
+        // Obtener término buscado en Select2
+        $q = $this->request->getGet('q');
+
+        $builder = $branchModel
+            ->select('id, branch_name')
+            ->where('status', 1);
+
+        // Si hay búsqueda, filtrar
+        if (!empty($q)) {
+            $builder->like('branch_name', $q);
+        }
+
+        return $this->response->setJSON($builder->findAll());
+    }
+public function edit($id)
 {
-    $branchModel = new BranchModel();
+    $branch = $this->branchModel->find($id);
 
-    // Obtener término buscado en Select2
-    $q = $this->request->getGet('q');
-
-    $builder = $branchModel
-        ->select('id, branch_name')
-        ->where('status', 1);
-
-    // Si hay búsqueda, filtrar
-    if (!empty($q)) {
-        $builder->like('branch_name', $q);
+    if (!$branch) {
+        return redirect()->to('branches')
+            ->with('error', 'Sucursal no encontrada');
     }
 
-    return $this->response->setJSON($builder->findAll());
+    return view('sucursales/edit', [
+        'branch' => $branch
+    ]);
+}
+
+public function update($id)
+{
+    helper(['form']);
+    $session = session();
+
+    $data = [
+        'branch_name'      => $this->request->getPost('branch_name'),
+        'branch_direction' => $this->request->getPost('branch_direction'),
+        'status'           => $this->request->getPost('status'),
+    ];
+
+    $this->branchModel->update($id, $data);
+
+    // 3️⃣ Bitácora
+    registrar_bitacora(
+        'Actualización de sucursal',
+        'Sucursales',
+        'Se actualizó la sucursal: ' . $data['branch_name'] . '.',
+        $session->get('user_id'),
+    );
+
+    return redirect()->to('branches')
+        ->with('success', 'Sucursal actualizada correctamente');
 }
 
 }
