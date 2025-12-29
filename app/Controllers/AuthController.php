@@ -59,8 +59,6 @@ class AuthController extends BaseController
                 'message' => 'Usuario inactivo.'
             ]);
         }
-
-        // ✅ Ahora sí, aquí ya estamos seguros que $user existe
         $user_complete = $userModel->getUserWithRoleAndBranch($user['email']);
         $permisos = $permisoModel->getPermisosPorRol($user['role_id']);
 
@@ -68,6 +66,7 @@ class AuthController extends BaseController
             'id' => $user_complete['id'],
             'user_name' => $user_complete['user_name'],
             'email' => $user_complete['email'],
+            'foto' => $user_complete['foto'] ?? null,
             'role_id' => $user_complete['role_id'],
             'branch_id' => $user_complete['branch_id'],
             'branch_name' => $user_complete['branch_name'],

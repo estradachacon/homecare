@@ -60,6 +60,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
     $routes->get('logs', 'BitacoraController::index');
 
+    // Rutas para perfiles
+    $routes->get('perfil', 'ProfileController::index');
+    $routes->post('perfil/update', 'ProfileController::update');
+
     // Módulo de mantenimiento de vendedores
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->get('sellers-search', 'SellerController::search');

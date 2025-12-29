@@ -171,20 +171,35 @@
                 </span>
 
                 <div class="dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
-                        href="#" id="userDropdown"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img src="<?= base_url('upload/profile/user.jpg') ?>"
-                            alt="user-image" height="40"
-                            class="rounded-circle shadow-sm">
-                    </a>
+                    <?php
+                        $foto = session('foto');
 
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <a class="dropdown-item" href="#/profile"><i class="fa-regular fa-user"></i> Mi perfil</a>
-                        <a class="dropdown-item" href="#/profile/edit"><i class="fa-solid fa-gear"></i> Configuración</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
-                    </div>
+                        if ($foto && file_exists(FCPATH . 'upload/perfiles/' . $foto)) {
+                            $fotoPath = base_url('upload/perfiles/' . $foto);
+                        } else {
+                            $fotoPath = base_url('upload/profile/user.jpg'); // imagen por defecto
+                        }
+                        ?>
+
+                        <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
+                        href="#"
+                        id="userDropdown"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+                        <img src="<?= esc($fotoPath) ?>"
+                            alt="user-image"
+                            height="40"
+                            class="rounded-circle shadow-sm">
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                            <a class="dropdown-item" href="<?= base_url('perfil') ?>">
+                                <i class="fa-regular fa-user"></i> Mi perfil
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
+                        </div>
                 </div>
             </div>
         </div>
