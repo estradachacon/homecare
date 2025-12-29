@@ -384,7 +384,7 @@
                                                         </a>
                                                     </li>
                                                 <?php endif; ?>
-                                                
+
                                                 <!-- ENTREGAR PAQUETE DEL CASILLERO -->
                                                 <?php if ($pkg['estatus2'] != 'devuelto'): ?>
                                                     <?php if (
@@ -394,14 +394,16 @@
                                                             <a class="dropdown-item btn-entregar-casillero"
                                                                 href="#"
                                                                 data-id="<?= $pkg['id'] ?>"
-                                                                data-foto="<?= esc($pkg['foto'] ?? '') ?>">
+                                                                data-foto="<?= esc($pkg['foto'] ?? '') ?>"
+                                                                data-valor="<?= number_format($pkg['monto'], 2, '.', '') ?>">
+
                                                                 <i class="fa-solid fa-box-open"></i> Entrega de paquete
                                                             </a>
 
                                                         </li>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
-                                                
+
                                                 <!-- DEVOLVER PAQUETE -->
                                                 <?php if ($pkg['estatus2'] != 'devuelto'): ?>
                                                     <?php if (
@@ -611,48 +613,124 @@
 
             const packageId = this.dataset.id;
             const foto = this.dataset.foto;
+            const valor = parseFloat(this.dataset.valor || 0).toFixed(2);
 
-            // Construir URL de la foto
-            let fotoUrl = '';
-            if (foto && foto.trim() !== '') {
-                fotoUrl = "<?= base_url('upload/paquetes') ?>/" + foto;
-            } else {
-                fotoUrl = "<?= base_url('upload/no-image.png') ?>";
-            }
+            let fotoUrl = foto && foto.trim() !== '' ?
+                "<?= base_url('upload/paquetes') ?>/" + foto :
+                "<?= base_url('upload/no-image.png') ?>";
 
             Swal.fire({
-                title: '¿Entregar paquete?',
+                title: '¿Entregar paquete de casillero?',
                 html: `
-                <p>Este paquete se marcará como entregado a cliente.</p>
-                <img src="${fotoUrl}" 
-                     style="max-width: 200px; border-radius: 10px; margin-top: 10px;" />
+                <p>Este paquete se marcará como entregado.</p>
+                <img src="${fotoUrl}" style="max-width: 200px; border-radius: 10px; margin-bottom: 15px;" />
+
+                <div class="alert alert-success text-center fw-bold">
+                    Valor del paquete: $${valor}
+                </div>
+
+                <div style="text-align:left">
+                    <label class="fw-bold mb-1">Cuenta donde se recibió el pago</label>
+                    <select id="cuenta_asignada" class="form-control select2-account" style="width:100%">
+                        <option></option>
+                    </select>
+                </div>
             `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, entregar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#73a92eff',
-                cancelButtonColor: '#d33'
-            }).then((result) => {
+                cancelButtonColor: '#d33',
+
+                didOpen: () => {
+                    // 🔹 Inicializar Select2 dentro del SweetAlert
+                    $('#cuenta_asignada').select2({
+                        dropdownParent: $('.swal2-popup'),
+                        theme: 'bootstrap4',
+                        width: '100%',
+                        placeholder: 'Buscar cuenta...',
+                        allowClear: true,
+                        minimumInputLength: 1,
+                        language: {
+                            inputTooShort: () => 'Ingrese 1 o más caracteres'
+                        },
+                        ajax: {
+                            url: "<?= base_url('accounts-list') ?>",
+                            dataType: 'json',
+                            delay: 250,
+                            data: params => ({
+                                q: params.term
+                            }),
+                            processResults: data => ({
+                                results: data.map(item => ({
+                                    id: item.id,
+                                    text: item.name
+                                }))
+                            })
+                        }
+                    });
+
+                    // 🔹 Seleccionar por defecto cuenta ID = 1
+                    $.ajax({
+                        url: "<?= base_url('accounts-list') ?>",
+                        data: {
+                            q: 'efectivo'
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            const cuenta = data.find(item => item.id == 1);
+                            if (!cuenta) return;
+
+                            let option = new Option(cuenta.name, cuenta.id, true, true);
+                            $('#cuenta_asignada').append(option).trigger('change');
+                        }
+                    });
+                },
+
+                preConfirm: () => {
+                    const cuentaId = $('#cuenta_asignada').val();
+
+                    if (!cuentaId) {
+                        Swal.showValidationMessage('Debe seleccionar una cuenta');
+                        return false;
+                    }
+
+                    return {
+                        cuenta_id: cuentaId,
+                        valor: valor
+                    };
+                }
+
+
+            }).then(result => {
 
                 if (result.isConfirmed) {
 
                     fetch('<?= base_url("packages-entregar") ?>/' + packageId, {
-                            method: 'POST'
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                cuenta_id: result.value.cuenta_id,
+                                valor: result.value.valor
+                            })
+
                         })
                         .then(res => res.json())
                         .then(data => {
 
                             if (data.status === "ok") {
                                 Swal.fire(
-                                    'Entregado!',
+                                    'Entregado',
                                     'El paquete fue marcado como entregado.',
                                     'success'
                                 ).then(() => location.reload());
                             } else {
                                 Swal.fire(
                                     'Error',
-                                    'Hubo un problema al registrar la entrega del paquete.',
+                                    'No se pudo registrar la entrega.',
                                     'error'
                                 );
                             }
@@ -664,6 +742,7 @@
         });
     });
 </script>
+
 <script src="<?= base_url('backend/assets/js/scripts_destino_index_pkg.js') ?>"></script>
 <script src="<?= base_url('backend/assets/js/scripts_reenvio_index_pkg.js') ?>"></script>
 <?= $this->endSection() ?>

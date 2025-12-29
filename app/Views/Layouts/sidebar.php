@@ -250,9 +250,11 @@
                         Reportería
                     </a>
                 <?php endif; ?>
+                <?php if (tienePermiso('ver_bitacora')): ?>
                 <a class="nav-link" href="/logs">
                     <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
                 </a>
+                <?php endif; ?>
             </div>
         </div>
     </nav>

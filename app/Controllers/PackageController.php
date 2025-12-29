@@ -402,7 +402,6 @@ class PackageController extends BaseController
         // 2. Ejecutar la actualización
         $this->packages->update($id, $data);
 
-        // 3. 📜 BITÁCORA: Registro de actualización
         // Generamos un detalle básico del cambio para la bitácora
         $log_details = '';
         $changes = [];
@@ -679,32 +678,75 @@ class PackageController extends BaseController
     }
     public function entregar($id)
     {
-        helper(['form']);
+        helper(['form', 'transaction']);
         $session = session();
-
-        // ID del usuario que realiza la acción
         $userId = $session->get('user_id');
 
-        // Datos para bitácora
-        $log_message = 'Entrega de paquete';
-        $log_details = 'El paquete fue marcado como entregado por el usuario ' . $userId;
+        // 🔹 Leer JSON enviado desde SweetAlert
+        $data = $this->request->getJSON(true);
 
-        // Actualizar estatus
-        $this->packages->update($id, [
-            'estatus' => 'entregado',
-        ]);
+        if (
+            !$data ||
+            empty($data['cuenta_id']) ||
+            !isset($data['valor']) ||
+            $data['valor'] <= 0
+        ) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'msg' => 'Datos incompletos para registrar la entrega'
+            ]);
+        }
 
-        // Registrar bitácora
-        registrar_bitacora(
-            'Entrega de paquete ID ' . esc($id),
-            'Paquetería',
-            $log_message . ' para el paquete ' . esc($id) . '. Detalles: ' . $log_details,
-            $userId
-        );
+        $cuentaId = (int)$data['cuenta_id'];
+        $valor    = (float)$data['valor'];
 
-        return $this->response->setJSON(['status' => 'ok']);
+        $db = db_connect();
+        $db->transStart();
+
+        try {
+
+            // 1️⃣ Actualizar estatus del paquete
+            $this->packages->update($id, [
+                'estatus' => 'entregado',
+            ]);
+
+            // 2️⃣ Registrar entrada contable (MISMO MÉTODO QUE store())
+            registrarEntrada(
+                $cuentaId,
+                $valor,
+                'Pago por entrega de paquete',
+                'Paquete ID ' . $id,
+                $id
+            );
+
+            // 3️⃣ Bitácora
+            registrar_bitacora(
+                'Entrega de paquete ID ' . esc($id),
+                'Paquetería',
+                'Entrega registrada con pago de $' . number_format($valor, 2) .
+                    ' en cuenta ID ' . $cuentaId .
+                    ' por el usuario ' . $userId,
+                $userId
+            );
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Error en transacción');
+            }
+
+            return $this->response->setJSON(['status' => 'ok']);
+        } catch (\Throwable $e) {
+
+            $db->transRollback();
+
+            return $this->response->setJSON([
+                'status' => 'error',
+                'msg' => 'No se pudo completar la entrega'
+            ]);
+        }
     }
-    
+
     public function showReturnPackages()
     {
         $chk = requerirPermiso('devolver_paquetes');

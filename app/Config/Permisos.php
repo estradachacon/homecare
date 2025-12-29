@@ -66,6 +66,7 @@ class Permisos extends BaseConfig
             'ver_configuracion',
             'ver_sucursales',
             'ver_almacenamiento',
+            'ver_bitacora',
         ],
 
         'Gestión de usuarios' => [
