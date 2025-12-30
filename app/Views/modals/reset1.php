@@ -31,6 +31,7 @@ const modalBody = document.getElementById('resetModalBody');
 const modalFooter = document.getElementById('resetModalFooter');
 const btnSendCode = document.getElementById('btnSendCode');
 const resetAlert = document.getElementById('resetAlert');
+let resetEmailValue = '';
 
 function showAlert(element, msg, type) {
     element.textContent = msg;
@@ -41,6 +42,7 @@ function showAlert(element, msg, type) {
 // Paso 1: enviar código
 btnSendCode.addEventListener('click', () => {
     const email = document.getElementById('resetEmail').value.trim();
+    resetEmailValue = email;
     resetAlert.classList.add('d-none');
 
     if(!email){
@@ -89,7 +91,7 @@ btnSendCode.addEventListener('click', () => {
 
 // Función para paso 2: verificar código y cambiar contraseña
 function resetPassword() {
-    const email = document.getElementById('resetEmail').value.trim();
+    const email = resetEmailValue;
     const code  = document.getElementById('resetCode').value.trim();
     const pass  = document.getElementById('resetNewPass').value.trim();
     const codeAlert = document.getElementById('codeAlert');
@@ -114,8 +116,10 @@ function resetPassword() {
         method: 'POST',
         body: formData
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.text())
+    .then(text => {
+        console.log('RESPUESTA RAW:', text);
+        const data = JSON.parse(text);
         if(!data.success){
             showAlert(codeAlert, data.message || 'Código inválido o expirado', 'danger');
             return;

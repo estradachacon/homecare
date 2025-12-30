@@ -192,10 +192,6 @@ class AuthController extends BaseController
      */
     public function verifyResetCode()
     {
-        if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403);
-        }
-
         $email = $this->request->getPost('email');
         $code  = $this->request->getPost('code');
 
@@ -226,10 +222,6 @@ class AuthController extends BaseController
      */
     public function resetPassword()
     {
-        if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403);
-        }
-
         $email    = $this->request->getPost('email');
         $password = $this->request->getPost('user_password');
 
