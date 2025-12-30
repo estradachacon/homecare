@@ -10,6 +10,13 @@ $routes->get('/', 'Home::index');
 $routes->post('/login', 'AuthController::login');
 $routes->get('/logout', 'AuthController::logout');
 
+// 🔐 Recuperación de contraseña (SIN AUTH)
+$routes->group('auth', function ($routes) {
+    $routes->post('send-reset-code', 'AuthController::sendResetCode');
+    $routes->post('verify-reset-code', 'AuthController::verifyResetCode');
+    $routes->post('reset-password', 'AuthController::resetPassword');
+});
+
 $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Dashboard (requiere autenticación)
     $routes->get('/dashboard', 'DashboardController::index'); // Página principal del dashboard
 

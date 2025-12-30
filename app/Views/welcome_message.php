@@ -389,6 +389,7 @@
 
     <!-- Include del Modal de Login -->
     <?= $this->include('modals/login') ?>
+    <?= $this->include('modals/reset1') ?>
 
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -86,7 +86,11 @@ class Filters extends BaseFilters
         'after' => [
             // 'honeypot',
             // 'secureheaders',
-            'toolbar',
+            'toolbar' => ['except' => [
+                'auth/send-reset-code',
+                'auth/verify-reset-code',
+                'auth/reset-password',
+            ]]
         ],
     ];
 

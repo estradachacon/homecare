@@ -48,10 +48,9 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
                         </button>
-                        <a href="#" class="text-sm text-primary" data-bs-toggle="modal" data-bs-target="#resetModal">
+                        <a href="<?= base_url('auth/forgot-password') ?>" class="btn btn-link">
                             ¿Olvidaste tu contraseña?
                         </a>
-
                     </div>
                 </form>
             </div>
@@ -61,71 +60,71 @@
 
 <!-- Script para el manejo del formulario -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- Toggle de contraseña ---
-        const togglePassword = document.querySelector('#togglePassword');
-        const password = document.querySelector('#password');
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Toggle de contraseña ---
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
 
-        togglePassword.addEventListener('click', function() {
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
+    togglePassword.addEventListener('click', function () {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('fa-eye');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
 
-        // --- Manejo del formulario ---
-        const loginForm = document.querySelector('#loginForm');
+    // --- Manejo del formulario ---
+    const loginForm = document.querySelector('#loginForm');
 
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+    loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-            const formData = new FormData(this);
+        const formData = new FormData(this);
 
-            fetch(this.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // --- Actualizar token CSRF dinámicamente ---
-                    if (data.csrf) {
-                        // Buscar input existente
-                        let csrfInput = loginForm.querySelector('input[name="' + data.csrf.tokenName + '"]');
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // --- Actualizar token CSRF dinámicamente ---
+            if (data.csrf) {
+                // Buscar input existente
+                let csrfInput = loginForm.querySelector('input[name="' + data.csrf.tokenName + '"]');
 
-                        // Si no existe, eliminar los viejos y crear uno nuevo
-                        if (!csrfInput) {
-                            loginForm.querySelectorAll('input[name^="<?= csrf_token() ?>"]').forEach(el => el.remove());
-                            csrfInput = document.createElement('input');
-                            csrfInput.type = 'hidden';
-                            csrfInput.name = data.csrf.tokenName;
-                            loginForm.appendChild(csrfInput);
-                        }
+                // Si no existe, eliminar los viejos y crear uno nuevo
+                if (!csrfInput) {
+                    loginForm.querySelectorAll('input[name^="<?= csrf_token() ?>"]').forEach(el => el.remove());
+                    csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = data.csrf.tokenName;
+                    loginForm.appendChild(csrfInput);
+                }
 
-                        // Actualizar el valor del token
-                        csrfInput.value = data.csrf.hash;
-                    }
+                // Actualizar el valor del token
+                csrfInput.value = data.csrf.hash;
+            }
 
-                    // --- Procesar la respuesta ---
-                    const errorDiv = document.querySelector('#loginError');
-                    if (data.success) {
-                        errorDiv.classList.add('d-none');
-                        window.location.href = data.redirect || '<?= base_url() ?>';
-                    } else {
-                        errorDiv.textContent = data.message || 'Error al iniciar sesión';
-                        errorDiv.classList.remove('d-none');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    const errorDiv = document.querySelector('#loginError');
-                    errorDiv.textContent = 'Error de conexión';
-                    errorDiv.classList.remove('d-none');
-                });
+            // --- Procesar la respuesta ---
+            const errorDiv = document.querySelector('#loginError');
+            if (data.success) {
+                errorDiv.classList.add('d-none');
+                window.location.href = data.redirect || '<?= base_url() ?>';
+            } else {
+                errorDiv.textContent = data.message || 'Error al iniciar sesión';
+                errorDiv.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errorDiv = document.querySelector('#loginError');
+            errorDiv.textContent = 'Error de conexión';
+            errorDiv.classList.remove('d-none');
         });
     });
+});
 </script>
 
 
