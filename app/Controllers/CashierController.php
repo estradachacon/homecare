@@ -500,9 +500,10 @@ class CashierController extends Controller
         // 🔻 Actualizar reserva de efectivo (sale dinero de caja)
         $db->table('accounts')
             ->where('id', 1)
-            ->update([
-                'cashier_reserv' => $account['cashier_reserv'] - $cashier->current_balance,
-            ]);
+            ->set('balance', 'balance + ' . $cashier->current_balance, false)
+            ->set('cashier_reserv', 'cashier_reserv - ' . $cashier->current_balance, false)
+            ->update();
+
 
         $db->transComplete();
 

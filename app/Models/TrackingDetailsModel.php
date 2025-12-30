@@ -39,6 +39,7 @@ class TrackingDetailsModel extends Model
         packages.lugar_recolecta_paquete,
         packages.id_puntofijo,
         packages.estatus AS package_status,
+        packages.flete_rendido AS flete_rendido,
         settled_points.point_name AS puntofijo_nombre,
         sellers.seller AS vendedor
     ')

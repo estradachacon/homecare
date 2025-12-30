@@ -144,7 +144,9 @@
                                     data-monto="<?= $p->monto ?>"
                                     data-toggle="<?= $p->toggle_pago_parcial ?>"
                                     data-flete-total="<?= $p->flete_total ?>"
-                                    data-flete-pagado="<?= $p->flete_pagado ?>">
+                                    data-flete-pagado="<?= $p->flete_pagado ?>"
+                                    data-flete-rendido="<?= (int) $p->flete_rendido ?>">
+                                    
                                     <td class="text-center aporte-monto">
                                         <input type="checkbox" class="regresado-checkbox" name="regresados[]"
                                             value="<?= $p->id ?>" data-monto="<?= $p->monto ?? 0 ?>"
@@ -189,12 +191,23 @@
                                     </td>
                                     <td class="aporte-rendicion">
                                         <?php if ($p->tipo_servicio == 3): ?>
-                                            <?= $p->toggle_pago_parcial == 1
-                                                ? '$' . number_format($p->flete_pagado, 2)
-                                                : '$' . number_format($p->flete_total, 2)
-                                            ?>
-                                        <?php else: ?>
-                                            <!-- No mostrar nada -->
+
+                                            <?php if ($p->flete_rendido): ?>
+                                                <span class="muteado">
+                                                    <?= '$' . number_format(
+                                                        $p->toggle_pago_parcial == 1 ? $p->flete_pagado : $p->flete_total,
+                                                        2
+                                                    ) ?>
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">Flete ya fue recolectado</small>
+                                            <?php else: ?>
+                                                <?= '$' . number_format(
+                                                    $p->toggle_pago_parcial == 1 ? $p->flete_pagado : $p->flete_total,
+                                                    2
+                                                ) ?>
+                                            <?php endif; ?>
+
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -291,6 +304,8 @@
                 const cbRegresado = row.querySelector('.regresado-checkbox');
                 const cbRecolectadoSolo = row.querySelector('.recolectado-solo-checkbox');
                 const strongMonto = row.querySelector('.paquete-monto-total');
+                const fleteRendido = parseInt(row.dataset.fleteRendido) === 1;
+
 
                 const tipo = parseInt(row.dataset.tipo);
                 const destinos = parseInt(row.dataset.destinos);
@@ -342,7 +357,10 @@
                         // 🚀 Aplicar Muteado 🚀
                         if (strongMonto) strongMonto.classList.add('muteado');
 
-                        total += montoVendedor; // solo flete
+                        if (!fleteRendido) {
+                            total += montoVendedor;
+                        }
+
                         row.classList.add('bg-info-light'); // pendiente de entrega
 
                     } else {
@@ -352,7 +370,10 @@
 
                         // Caso: recolectado + entregado
                         total += montoPaquete;
-                        total += montoVendedor;
+
+                        if (!fleteRendido) {
+                            total += montoVendedor;
+                        }
 
                         row.classList.add('bg-success-light');
                     }

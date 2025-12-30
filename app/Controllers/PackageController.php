@@ -179,7 +179,7 @@ class PackageController extends BaseController
 
         $session = session();
         $userId = $session->get('user_id'); // 🛡️ OBTENER DE LA SESIÓN
-
+        $db = \Config\Database::connect();
         $foto = $this->request->getFile('foto');
         $fotoName = null;
 
@@ -230,7 +230,6 @@ class PackageController extends BaseController
         $pagoParcial = $this->request->getPost('pago_parcial'); // toggle
         $fleteTotal = floatval($this->request->getPost('flete_total'));
         $fletePagado = floatval($this->request->getPost('flete_pagado'));
-
         $accountId = 1; // <-- AJUSTA si manejas diferentes cuentas
 
         // 🚫 NO REGISTRAR TRANSACCIÓN SI tipo_servicio == 3 (recolecta)
@@ -239,6 +238,10 @@ class PackageController extends BaseController
             if ($pagoParcial) {
                 // 🟦 PAGO PARCIAL
                 if ($fletePagado > 0) {
+                    $db->table('accounts')
+                        ->where('id', $accountId)
+                        ->set('balance', 'balance + ' . $fleteTotal, false)
+                        ->update();
                     registrarEntrada(
                         $accountId,
                         $fletePagado,
@@ -250,6 +253,10 @@ class PackageController extends BaseController
             } else {
                 // 🟩 PAGO COMPLETO
                 if ($fleteTotal > 0) {
+                    $db->table('accounts')
+                        ->where('id', $accountId)
+                        ->set('balance', 'balance + ' . $fleteTotal, false)
+                        ->update();
                     registrarEntrada(
                         $accountId,
                         $fleteTotal,

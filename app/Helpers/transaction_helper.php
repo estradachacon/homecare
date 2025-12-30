@@ -56,7 +56,6 @@ function registrarEntrada($accountId, $monto, $origen = null, $referencia = null
         'origen' => $origen,
         'referencia' => $referencia,
     ]);
-    actualizarSaldoCuenta($accountId);
 }
 
 function registrarSalida($accountId, $monto, $origen = null, $referencia = null, $trackingId = null)
@@ -78,5 +77,4 @@ function registrarSalida($accountId, $monto, $origen = null, $referencia = null,
         'origen' => $origen,
         'referencia' => $referencia,
     ]);
-    actualizarSaldoCuenta($accountId);
 }

@@ -34,6 +34,7 @@ class PackageModel extends Model
         'estatus',
         'estatus2',
         'pago_cuenta',
+        'flete_rendido',
         'reenvios',
         'branch',
         'user_id'

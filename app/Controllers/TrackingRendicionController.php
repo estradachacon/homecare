@@ -55,151 +55,179 @@ class TrackingRendicionController extends BaseController
         ]);
     }
 
-    public function save()
-    {
-        helper(['form', 'bitacora', 'transaction']);
+public function save()
+{
+    helper(['form', 'bitacora', 'transaction']);
+    $db = \Config\Database::connect();
 
-        $trackingId       = $this->request->getPost('tracking_id');
-        $regresados       = $this->request->getPost('regresados') ?? [];
-        $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
-        $cuentasAsignadas = $this->request->getPost('cuenta_asignada') ?? [];
+    // 🔧 Helper interno para sumar saldo
+    $sumarSaldo = function ($accountId, $monto) use ($db) {
+        if ($monto <= 0) return;
 
-        // Paquetes del tracking
-        $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
-        $packageModel = new \App\Models\PackageModel();
+        $db->table('accounts')
+            ->where('id', $accountId)
+            ->set('balance', 'balance + ' . $monto, false)
+            ->update();
+    };
 
-        // Info del motorista
-        $header = $this->headerModel->find($trackingId);
-        $motoristaNombre = '';
-        if ($header) {
-            $userModel = new \App\Models\UserModel();
-            $motorista = $userModel->find($header->user_id);
-            $motoristaNombre = $motorista ? $motorista['user_name'] : '';
+    // ============================================================
+    // 1) DATOS DEL POST
+    // ============================================================
+    $trackingId       = $this->request->getPost('tracking_id');
+    $regresados       = $this->request->getPost('regresados') ?? [];
+    $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
+    $cuentasAsignadas = $this->request->getPost('cuenta_asignada') ?? [];
+
+    // ============================================================
+    // 2) DATA BASE
+    // ============================================================
+    $paquetes     = $this->detailModel->getDetailsWithPackages($trackingId);
+    $packageModel = new \App\Models\PackageModel();
+
+    $header = $this->headerModel->find($trackingId);
+    $motoristaNombre = '';
+    if ($header) {
+        $userModel = new \App\Models\UserModel();
+        $motorista = $userModel->find($header->user_id);
+        $motoristaNombre = $motorista ? $motorista['user_name'] : '';
+    }
+
+    $session = session();
+    $userId  = $session->get('user_id');
+    $today   = date('Y-m-d');
+
+    $paquetesModificados = [];
+
+    // ============================================================
+    // 3) LOOP PRINCIPAL
+    // ============================================================
+    foreach ($paquetes as $p) {
+
+        // --------------------------------------------------------
+        // A) CONTAR DESTINOS (solo servicio 3)
+        // --------------------------------------------------------
+        $destinoCount = 1;
+        if ($p->tipo_servicio == 3) {
+            if (!empty($p->destino_personalizado)) $destinoCount++;
+            if (!empty($p->puntofijo_nombre)) $destinoCount++;
         }
 
-        $session = session();
-        $userId  = $session->get('user_id');
-        $today   = date('Y-m-d');
+        // --------------------------------------------------------
+        // B) DETERMINAR ESTATUS
+        // --------------------------------------------------------
+        if (in_array($p->id, $regresados)) {
 
-        $paquetesModificados = [];
-
-        foreach ($paquetes as $p) {
-
-            // ============================================================
-            // 1) CONTAR DESTINOS (solo tipo 3)
-            // ============================================================
-            $destinoCount = 1;
             if ($p->tipo_servicio == 3) {
-                if (!empty($p->destino_personalizado)) $destinoCount++;
-                if (!empty($p->puntofijo_nombre)) $destinoCount++;
-            }
-
-            // ============================================================
-            // 2) DETERMINAR EL NUEVO ESTATUS
-            // ============================================================
-            if (in_array($p->id, $regresados)) {
-
-                if ($p->tipo_servicio == 3) {
-                    $newStatus = ($destinoCount == 1)
-                        ? 'recolecta_fallida'
-                        : 'no_retirado';
-                } else {
-                    $newStatus = 'no_retirado';
-                }
+                $newStatus = ($destinoCount == 1)
+                    ? 'recolecta_fallida'
+                    : 'no_retirado';
             } else {
-
-                // EXITOSO
-                if ($p->tipo_servicio == 3) {
-
-                    if ($destinoCount == 1) {
-                        $newStatus = 'recolectado';
-                    } elseif ($destinoCount >= 2) {
-
-                        if (in_array($p->id, $recolectadosSolo)) {
-                            $newStatus = 'recolectado';
-                        } else {
-                            $newStatus = 'entregado';
-                        }
-                    }
-                } else {
-                    $newStatus = 'entregado';
-                }
+                $newStatus = 'no_retirado';
             }
 
-            // ============================================================
-            // 3) PREPARAR UPDATE EN DB
-            // ============================================================
-            $updateData = ['estatus' => $newStatus];
+        } else {
 
-            if ($newStatus === 'entregado' || $newStatus === 'recolectado') {
-                $updateData['fecha_pack_entregado'] = $today;
-            }
-
-            $packageModel->update($p->package_id, $updateData);
-
-            // Guardar cambios para bitácora
-            $paquetesModificados[] = "ID {$p->package_id} → {$newStatus}";
-
-            // ============================================================
-            // 4) TRANSACCIONES PARA RENDICIÓN
-            // ============================================================
-
-            // ❌ NO SE REGISTRA NADA PARA PAQUETES REGRESADOS
-            if (in_array($p->id, $regresados)) {
-                continue;
-            }
-
-            // Cuentas: aquí ajusta la cuenta destino según tu sistema
-            $cuentaDeIngreso = isset($cuentasAsignadas[$p->id])
-            ? (int)$cuentasAsignadas[$p->id]
-            : 1; // fallback a efectivo
-
-            // Guardar la cuenta en el paquete
-            $packageModel->update($p->package_id, [
-                'pago_cuenta' => $cuentaDeIngreso
-            ]);
-
-            // ----- Determinar montos -----
-            $montoPaquete = floatval($p->monto);
-
-            // Flete dependiendo del toggle parcial
-            $montoVendedor = ($p->toggle_pago_parcial == 0)
-                ? floatval($p->flete_total)
-                : floatval($p->flete_pagado);
-            $togglePago = intval($p->toggle_pago_parcial);
-            
-            // ----- Registrar según caso -----
             if ($p->tipo_servicio == 3) {
 
-                // 🟡 SOLO RECOLECTA (no hubo entrega final)
-                if (in_array($p->id, $recolectadosSolo)) {
-
-                    // 1️⃣ Flete (solo se cobra el flete porque no hubo entrega final)
-                    registrarEntrada(
-                        $cuentaDeIngreso,
-                        $montoVendedor,
-                        ($togglePago === 0 ? "Flete completo (solo recolección)" : "Flete parcial (solo recolección)"),
-                        "Paquete {$p->package_id} | Tracking {$trackingId}",
-                        $trackingId
-                    );
-
-                    // En este modo NO sumas remuneración porque aún no hay entrega
-
+                if ($destinoCount == 1) {
+                    $newStatus = 'recolectado';
                 } else {
+                    $newStatus = in_array($p->id, $recolectadosSolo)
+                        ? 'recolectado'
+                        : 'entregado';
+                }
 
-                    // 🟢 RECOLECTA + ENTREGA FINAL
-                    // Se debe separar remuneración y flete en dos transacciones
+            } else {
+                $newStatus = 'entregado';
+            }
+        }
 
-                    // 1️⃣ Remuneración del paquete
-                    registrarEntrada(
-                        $cuentaDeIngreso,
-                        $montoPaquete,
-                        "Remuneración del paquete (recolección + entrega)",
-                        "Paquete {$p->package_id} | Tracking {$trackingId}",
-                        $trackingId
-                    );
+        // --------------------------------------------------------
+        // C) UPDATE DEL PAQUETE
+        // --------------------------------------------------------
+        $updateData = ['estatus' => $newStatus];
 
-                    // 2️⃣ Flete (total o parcial)
+        if (in_array($newStatus, ['entregado', 'recolectado'])) {
+            $updateData['fecha_pack_entregado'] = $today;
+        }
+
+        // 👉 Bandera financiera SOLO se setea, no se decide dinero aquí
+        if ($p->tipo_servicio == 3 && in_array($newStatus, ['recolectado', 'entregado'])) {
+            $updateData['flete_rendido'] = 1;
+        }
+
+        $packageModel->update($p->package_id, $updateData);
+        $paquetesModificados[] = "ID {$p->package_id} → {$newStatus}";
+
+        // --------------------------------------------------------
+        // D) NO COBRAR SI REGRESADO
+        // --------------------------------------------------------
+        if (in_array($p->id, $regresados)) {
+            continue;
+        }
+
+        // --------------------------------------------------------
+        // E) CUENTA DE INGRESO
+        // --------------------------------------------------------
+        $cuentaDeIngreso = isset($cuentasAsignadas[$p->id])
+            ? (int)$cuentasAsignadas[$p->id]
+            : 1;
+
+        $packageModel->update($p->package_id, [
+            'pago_cuenta' => $cuentaDeIngreso
+        ]);
+
+        // --------------------------------------------------------
+        // F) MONTOS
+        // --------------------------------------------------------
+        $montoPaquete = floatval($p->monto);
+        $montoVendedor = ($p->toggle_pago_parcial == 0)
+            ? floatval($p->flete_total)
+            : floatval($p->flete_pagado);
+
+        $togglePago      = (int)$p->toggle_pago_parcial;
+        $fleteYaRendido  = !empty($p->flete_rendido);
+
+        // ========================================================
+        // G) LÓGICA FINANCIERA REAL
+        // ========================================================
+        if ($p->tipo_servicio == 3) {
+
+            // 🟡 SOLO RECOLECTA (primer evento)
+            if ($newStatus === 'recolectado' && !$fleteYaRendido) {
+
+                $sumarSaldo($cuentaDeIngreso, $montoVendedor);
+
+                registrarEntrada(
+                    $cuentaDeIngreso,
+                    $montoVendedor,
+                    ($togglePago === 0
+                        ? "Flete completo (solo recolección)"
+                        : "Flete parcial (solo recolección)"),
+                    "Paquete {$p->package_id} | Tracking {$trackingId}",
+                    $trackingId
+                );
+            }
+
+            // 🟢 ENTREGA FINAL
+            if ($newStatus === 'entregado') {
+
+                // ✔ Siempre paquete
+                $sumarSaldo($cuentaDeIngreso, $montoPaquete);
+
+                registrarEntrada(
+                    $cuentaDeIngreso,
+                    $montoPaquete,
+                    "Remuneración del paquete (entrega final)",
+                    "Paquete {$p->package_id} | Tracking {$trackingId}",
+                    $trackingId
+                );
+
+                // ✔ Flete SOLO si no fue rendido antes
+                if (!$fleteYaRendido) {
+
+                    $sumarSaldo($cuentaDeIngreso, $montoVendedor);
+
                     registrarEntrada(
                         $cuentaDeIngreso,
                         $montoVendedor,
@@ -208,32 +236,40 @@ class TrackingRendicionController extends BaseController
                         $trackingId
                     );
                 }
-            } else {
-                registrarEntrada(
-                    $cuentaDeIngreso,
-                    $montoPaquete,
-                    "Recolecta de remuneración (entrega directa)",
-                    "Paquete {$p->package_id} | Tracking {$trackingId}",
-                    $trackingId
-                );
             }
+
+        } else {
+
+            // 🔵 SERVICIO NORMAL
+            $sumarSaldo($cuentaDeIngreso, $montoPaquete);
+
+            registrarEntrada(
+                $cuentaDeIngreso,
+                $montoPaquete,
+                "Recolecta de remuneración (entrega directa)",
+                "Paquete {$p->package_id} | Tracking {$trackingId}",
+                $trackingId
+            );
         }
-
-        // 5) MARCAR EL TRACKING COMO FINALIZADO
-        $this->headerModel->update($trackingId, ['status' => 'finalizado']);
-
-        // 6) BITÁCORA
-        registrar_bitacora(
-            'Rendición de Tracking Finalizada',
-            'Tracking',
-            "Se procesó la rendición del Tracking ID $trackingId (Motorista: $motoristaNombre). Estados: "
-                . implode(', ', $paquetesModificados),
-            $userId
-        );
-
-        return redirect()->to('tracking/' . $trackingId)
-            ->with('success', 'Rendición procesada con éxito.');
     }
+
+    // ============================================================
+    // 4) FINALIZAR TRACKING
+    // ============================================================
+    $this->headerModel->update($trackingId, ['status' => 'finalizado']);
+
+    registrar_bitacora(
+        'Rendición de Tracking Finalizada',
+        'Tracking',
+        "Se procesó la rendición del Tracking ID $trackingId (Motorista: $motoristaNombre). Estados: "
+            . implode(', ', $paquetesModificados),
+        $userId
+    );
+
+    return redirect()->to('tracking/' . $trackingId)
+        ->with('success', 'Rendición procesada con éxito.');
+}
+
 
 
     public function pdf($trackingId)

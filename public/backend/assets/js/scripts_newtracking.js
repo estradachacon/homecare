@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <td>${p.vendedor}</td>
             <td>${p.cliente}</td>
             <td>${p.punto_fijo_nombre}</td>
-            <td>$${parseFloat(p.monto).toFixed(2)}</td>
+            <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
         `;
             tablaPaquetesRuta.appendChild(tr);
         });
@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await resp.json();
 
             listaEspeciales = data.filter(p =>
-                p.tipo_servicio == 2
+                p.tipo_servicio == 2 ||   (p.tipo_servicio == 3 && p.estatus === 'recolectado')
             );
 
             listaEspeciales.forEach(p => paquetesCache[p.id] = p);
@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Filtrar paquetes tipo 3 Y los de "recolecta_fallida"
             listaPendientes3 = data.filter(p =>
-                p.tipo_servicio == 3 || p.estatus == 'recolecta_fallida'
+                (p.tipo_servicio == 3 && p.estatus !== 'recolectado' && p.estatus !== 'finalizado') || p.estatus == 'recolecta_fallida'
             );
 
             listaPendientes3.forEach(p => paquetesCache[p.id] = p);
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${p.vendedor}</td>
                 <td>${p.cliente}</td>
                 <td>${p.descripcion || p.destino_personalizado || p.punto_fijo_nombre || "Sin información"}</td>
-                <td>$${parseFloat(p.monto).toFixed(2)}</td>
+                <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
             `;
             tablaPendientes3.appendChild(tr);
         });

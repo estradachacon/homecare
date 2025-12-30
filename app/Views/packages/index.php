@@ -428,6 +428,7 @@
                                     </td>
                                     <?php $this->setVar('pkg', $pkg); ?>
                                     <?= $this->include('modals/package_index_photoview') ?>
+                                    <?= $this->include('modals/package_resend') ?>
                                 <?php endforeach; ?>
                                 </tr>
                                 <?php foreach ($packages as $pkg): ?>
