@@ -163,6 +163,12 @@ class AuthController extends BaseController
         ]);
 
         $emailService = \Config\Services::email();
+
+        $emailService->setFrom(
+            config('Email')->fromEmail,
+            config('Email')->fromName
+        );
+
         $emailService->setTo($user['email']);
         $emailService->setSubject('Recuperación de contraseña');
         $emailService->setMessage("
@@ -170,10 +176,7 @@ class AuthController extends BaseController
         <h2>{$code}</h2>
         <p>Expira en 10 minutos.</p>
     ");
-        $emailService->setFrom(
-            'gerente@fcencomiendas.net',
-            'FC Encomiendas'
-        );
+    
         if (!$emailService->send()) {
 
             log_message('error', print_r($emailService->printDebugger(['headers']), true));
