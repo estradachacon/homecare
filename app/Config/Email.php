@@ -16,14 +16,14 @@ class Email extends BaseConfig
     public string $SMTPUser   = 'fcencomiendasnet@gmail.com';
     public $SMTPPass  = 'bsni sxrb diyw rosf';
     public $SMTPPort  = 587;
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 30;
     public bool $SMTPKeepAlive = false;
     public $SMTPCrypto = 'tls';
     public $wordWrap   = true;
     public int $wrapChars = 76;
     public $mailType  = 'html';
     public string $charset = 'UTF-8';
-    public bool $validate = true;
+    public bool $validate = false;
     public int $priority = 3;
     public string $CRLF = "\r\n";
     public string $newline = "\r\n";
