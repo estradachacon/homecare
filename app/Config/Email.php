@@ -14,7 +14,7 @@ class Email extends BaseConfig
     public string $mailPath = '/usr/sbin/sendmail';
     public string $SMTPHost   = 'smtp.gmail.com';
     public string $SMTPUser   = 'fcencomiendasnet@gmail.com';
-    public $SMTPPass  = 'Aleluya:_3';
+    public $SMTPPass  = 'bsni sxrb diyw rosf';
     public $SMTPPort  = 587;
     public int $SMTPTimeout = 5;
     public bool $SMTPKeepAlive = false;
