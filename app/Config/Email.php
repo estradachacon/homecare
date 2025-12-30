@@ -19,7 +19,7 @@ class Email extends BaseConfig
     public int $SMTPTimeout = 5;
     public bool $SMTPKeepAlive = false;
     public $SMTPCrypto = 'tls';
-    public int $wordWrap   = 80;
+    public $wordWrap   = true;
     public int $wrapChars = 76;
     public $mailType  = 'html';
     public string $charset = 'UTF-8';

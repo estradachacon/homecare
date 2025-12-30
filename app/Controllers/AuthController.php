@@ -176,14 +176,13 @@ class AuthController extends BaseController
         <h2>{$code}</h2>
         <p>Expira en 10 minutos.</p>
     ");
-    
-        if (!$emailService->send()) {
 
-            log_message('error', print_r($emailService->printDebugger(['headers']), true));
+        if (!$emailService->send(false)) { // <- false evita debug interno
+            log_message('error', $emailService->printDebugger(['headers']));
 
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error al enviar correo, revisa logs'
+                'message' => 'No se pudo enviar el correo, revisa configuración SMTP'
             ]);
         }
     }
