@@ -32,7 +32,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     // Módulo de Reportes
     $routes->group('reports', function ($routes) {
-        $routes->get('sales', 'ReportController::sales');
+        $routes->get('packages', 'ReportController::packages');
+        $routes->post('packages', 'ReportController::packages');
+        $routes->get('packages/excel', 'ReportController::packagesExcel');
+        $routes->get('packages/pdf', 'ReportController::packagesPDF');
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
