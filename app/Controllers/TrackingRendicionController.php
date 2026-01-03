@@ -33,6 +33,12 @@ class TrackingRendicionController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Tracking ID $trackingId no encontrado");
         }
 
+        if ((int)$header->rendicion_procesada === 1) {
+            return redirect()
+                ->to(base_url('tracking/' . $trackingId))
+                ->with('warning', 'Este tracking ya fue rendido y no puede procesarse nuevamente.');
+        }
+
         // $paquetes incluirá ahora el vendedor
         $paquetes = $this->detailModel->getDetailsWithPackages($trackingId);
 

@@ -357,6 +357,7 @@ public function processTransfer()
             // El campo monto se usó de forma negativa en la inserción original. Mantenemos el ajuste.
             'monto'      => -$monto, // Aseguramos que sea negativo para egreso
             'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ' (' . $destAccount->name . '): ' . $descripcion,
+            'referencia' => 'Transferencia entre cuentas',
         ]);
 
         $transactionModel->insert([
@@ -364,6 +365,7 @@ public function processTransfer()
             'tipo'       => 'entrada',
             'monto'      => $monto, // Positivo para ingreso
             'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ' (' . $originAccount->name . '): ' . $descripcion,
+            'referencia' => 'Transferencia entre cuentas',
         ]);
 
         // Actualizar balances

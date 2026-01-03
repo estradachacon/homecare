@@ -295,4 +295,130 @@ class ReportController extends BaseController
             'perPage'  => $perPage
         ]);
     }
+
+    private function getTransForReport(array $filters)
+    {
+        $builder = $this->transactionModel
+            ->select('
+            transactions.id,
+            transactions.tipo,
+            transactions.monto,
+            transactions.origen,
+            transactions.referencia,
+            transactions.created_at,
+            accounts.name AS cuenta
+        ')
+            ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->orderBy('transactions.id', 'DESC');
+
+        if (!empty($filters['tipo'])) {
+            $builder->where('transactions.tipo', $filters['tipo']);
+        }
+
+        if (!empty($filters['fecha_desde'])) {
+            $builder->where('transactions.created_at >=', $filters['fecha_desde'] . ' 00:00:00');
+        }
+
+        if (!empty($filters['fecha_hasta'])) {
+            $builder->where('transactions.created_at <=', $filters['fecha_hasta'] . ' 23:59:59');
+        }
+
+        return $builder->get()->getResult();
+    }
+
+    public function transExcel()
+    {
+        $filters = $this->request->getGet();
+        $trans = $this->getTransForReport($filters);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // ENCABEZADOS
+        $headers = [
+            'ID',
+            'Tipo',
+            'Cuenta',
+            'Monto',
+            'Origen',
+            'Referencia',
+            'Fecha'
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $col++;
+        }
+
+        $row = 2;
+        $totalEntradas = 0;
+        $totalSalidas  = 0;
+
+        foreach ($trans as $t) {
+            $sheet->setCellValue("A{$row}", $t->id);
+            $sheet->setCellValue("B{$row}", ucfirst($t->tipo));
+            $sheet->setCellValue("C{$row}", $t->cuenta);
+            $sheet->setCellValue("D{$row}", $t->monto);
+            $sheet->setCellValue("E{$row}", $t->origen);
+            $sheet->setCellValue("F{$row}", $t->referencia);
+            $sheet->setCellValue("G{$row}", $t->created_at);
+
+            if ($t->tipo === 'entrada') {
+                $totalEntradas += $t->monto;
+            } else {
+                $totalSalidas += $t->monto;
+            }
+
+            $row++;
+        }
+
+        // TOTALES
+        $sheet->setCellValue("C{$row}", 'TOTAL ENTRADAS');
+        $sheet->setCellValue("D{$row}", $totalEntradas);
+
+        $sheet->setCellValue("C" . ($row + 1), 'TOTAL SALIDAS');
+        $sheet->setCellValue("D" . ($row + 1), $totalSalidas);
+
+        $sheet->getStyle("C{$row}:D" . ($row + 1))->getFont()->setBold(true);
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'reporte_transacciones_' . date('Ymd_His') . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment; filename=\"{$filename}\"");
+        header('Cache-Control: max-age=0');
+
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
+    }
+
+
+    public function transPDF()
+    {
+        $filters = $this->request->getGet();
+        $trans = $this->getTransForReport($filters);
+
+        $html = view('reports/trans_pdf', [
+            'trans'   => $trans,
+            'filters' => $filters
+        ]);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $dompdf->stream(
+            'reporte_transacciones_' . date('Ymd_His') . '.pdf',
+            ['Attachment' => true]
+        );
+    }
 }

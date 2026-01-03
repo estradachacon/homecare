@@ -56,6 +56,7 @@ class TransactionsController extends BaseController
             'tipo'        => 'salida',
             'monto'       => $monto,
             'origen'      => $origen,
+            'referencia'   => 'Gasto/Salida',
         ]);
 
         registrar_bitacora(
