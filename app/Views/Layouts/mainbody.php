@@ -1,7 +1,6 @@
 <?php $session = session(); ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <!-- Core Js  -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -11,11 +10,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="csrf-token" content="<?= csrf_hash() ?>">
     <meta name="csrf-header" content="<?= csrf_header() ?>">
-
-
     <!-- App favicon -->
-    <link rel="shortcut icon" href="<?= base_url('favicon.ico') ?>">
+    <?php
+    $favicon = setting('favicon');
+    if ($favicon && file_exists(FCPATH . 'upload/settings/' . $favicon)) {
+        $faviconUrl = base_url('upload/settings/' . $favicon);
+    } else {
+        $faviconUrl = base_url('favicon.ico'); 
+    }
+    ?>
 
+    <link rel="shortcut icon" href="<?= esc($faviconUrl) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/2.3.4/css/dataTables.dataTables.min.css" rel="stylesheet" type="text/css" />
@@ -95,13 +100,10 @@
         var $lang_no_data_available = "Datos no disponibles";
         var $lang_select_tax = "Seleccione IMPUESTO";
     </script>
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
         integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-
     <style>
-        /* Preloader Styles */
         #preloader {
             position: fixed;
             top: 0;
@@ -114,8 +116,6 @@
             justify-content: center;
             align-items: center;
         }
-
-        /* Spinner de carga */
         .loader {
             width: 50px;
             height: 50px;
@@ -124,7 +124,6 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -134,8 +133,6 @@
                 transform: rotate(360deg);
             }
         }
-
-        /* Opcional: Texto de carga */
         .loading-text {
             margin-top: 20px;
             font-family: Arial, sans-serif;
@@ -147,13 +144,12 @@
 
 <body class="sb-nav-fixed">
     <!--Header Nav-->
-    <nav class="navbar navbar-expand navbar-dark" style="background-color: #1d2744;">
+    <nav class="navbar navbar-expand navbar-dark"
+        style="background-color: <?= setting('primary_color') ?? '#1d2744' ?>;">
         <div class="container-fluid d-flex justify-content-between">
-
-            <!-- 🔹 IZQUIERDA: Logo + botón sidebar -->
             <div class="d-flex align-items-center">
                 <a class="navbar-brand mb-0 h5 mr-3" href="/dashboard">
-                    <strong>FC Encomiendas</strong>
+                    <?= esc(setting('company_name') ?? 'Sistema') ?>
                 </a>
                 <button class="btn btn-link btn-sm text-white" id="sidebarToggle">
                     <div class="lines">
@@ -163,25 +159,20 @@
                     </div>
                 </button>
             </div>
-
-            <!-- 🔹 DERECHA: Nombre de usuario + menú -->
             <div class="d-flex align-items-center">
                 <span class="badge badge-primary mr-3 p-2">
                     <?= esc($session->get('user_name') ?? 'N/A') ?>
                 </span>
-
                 <div class="dropdown">
                     <?php
-                        $foto = session('foto');
-
-                        if ($foto && file_exists(FCPATH . 'upload/perfiles/' . $foto)) {
-                            $fotoPath = base_url('upload/perfiles/' . $foto);
-                        } else {
-                            $fotoPath = base_url('upload/profile/user.jpg'); // imagen por defecto
-                        }
-                        ?>
-
-                        <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
+                    $foto = session('foto');
+                    if ($foto && file_exists(FCPATH . 'upload/perfiles/' . $foto)) {
+                        $fotoPath = base_url('upload/perfiles/' . $foto);
+                    } else {
+                        $fotoPath = base_url('upload/profile/user.jpg'); // imagen por defecto
+                    }
+                    ?>
+                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
                         href="#"
                         id="userDropdown"
                         data-toggle="dropdown"
@@ -191,21 +182,19 @@
                             alt="user-image"
                             height="40"
                             class="rounded-circle shadow-sm">
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="<?= base_url('perfil') ?>">
+                            <i class="fa-regular fa-user"></i> Mi perfil
                         </a>
-
-                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                            <a class="dropdown-item" href="<?= base_url('perfil') ?>">
-                                <i class="fa-regular fa-user"></i> Mi perfil
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
-                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/logout"><i class="fa-solid fa-power-off"></i> Cerrar sesión</a>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
     <!--End Header Nav-->
-
 
     <!--Start layoutSidenav_nav-->
     <div id="layoutSidenav" class="container-fluid d-flex align-items-stretch">
@@ -220,14 +209,10 @@
                     </button>
                     <span class="msg"></span>
                 </div>
-
-
                 <div class="content-wrapper">
                     <?= $this->renderSection('content') ?>
                 </div>
-                <!-- Permiso Error Toast -->
                 <?php if (session()->getFlashdata('permiso_error')): ?>
-
                     <div aria-live="polite" aria-atomic="true" style="position: relative; z-index: 2000;">
                         <div class="toast" style="position: absolute; top: 20px; right: 20px;" data-delay="4500">
                             <div class="toast-header bg-danger text-white">
@@ -239,18 +224,13 @@
                             </div>
                         </div>
                     </div>
-
                     <script>
                         $(document).ready(function() {
                             $('.toast').toast('show');
                         });
                     </script>
-
                 <?php endif; ?>
-
-
             </main>
-
         </div>
         <!--End layoutSidenav_content-->
     </div>
@@ -258,7 +238,6 @@
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <?= $this->include('Layouts/toast') ?>
-
     <!-- Datatable js -->
     <script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
     <!-- Dropify -->
@@ -269,29 +248,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr@1.9.1/dist/pickr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js/i18n/es.js"></script>
-
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/parsley.js/2.9.2/parsley.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-
     <!-- App js -->
     <script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script>
-
     <script src="<?= base_url('backend/assets/js/scripts.js') ?>"></script>
     <script type="text/javascript">
         (function($) {
-
             "use strict";
 
             const color = "#1d2744";
             const text_color = "#ffffff";
             document.documentElement.style.setProperty('--tab-active-bg', color);
             document.documentElement.style.setProperty('--tab-active-color', text_color);
-
         })(jQuery);
     </script>
 </body>
-
 </html>

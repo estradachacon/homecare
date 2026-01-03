@@ -2,18 +2,44 @@
     <span class="close-mobile-nav"><i class="fa-solid fa-close"></i></span>
     <nav class="sb-sidenav accordion sb-sidenav-light" id="sidenavAccordion">
 
-        <div class="sidebar-user">
+        <div class="sidebar-user position-relative">
 
+            <!-- Fondo superior con color del sistema -->
             <div
-                style=" position: absolute; top: 0; background-color: #1d2744; width: 100%; left: 0; height: 69px; z-index: -1; border-radius: 6px 6px 0 0px;">
+                style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 69px;
+            background-color: <?= setting('primary_color') ?? '#1d2744' ?>;
+            z-index: -1;
+            border-radius: 6px 6px 0 0;
+        ">
             </div>
-            <a href="javascript: void(0);">
 
-                <img class="logo" src="<?= base_url('img/logo.jpg') ?>" alt="logo-company" height="60"
-                    class="shadow-sm">
-                <a class="nav-link text-dark"><?= esc($session->get('branch_name') ?? 'N/A') ?></a>
+            <a href="<?= base_url('dashboard') ?>" class="text-center d-block pt-3">
+
+                <!-- LOGO EMPRESA -->
+                <?php if (setting('logo')): ?>
+                    <img class="logo shadow-sm"
+                        src="<?= base_url('upload/settings/' . setting('logo')) ?>"
+                        alt="logo-company"
+                        height="60">
+                <?php else: ?>
+                    <h5 class="text-white font-weight-bold">
+                        <?= esc(setting('company_name') ?? 'Empresa') ?>
+                    </h5>
+                <?php endif; ?>
+
+                <!-- SUCURSAL -->
+                <div class="nav-link text-dark mt-2 p-0">
+                    <?= esc($session->get('branch_name') ?? 'N/A') ?>
+                </div>
+
             </a>
         </div>
+
 
         <div class="sb-sidenav-menu">
             <div class="nav">
@@ -226,12 +252,12 @@
 
                             <?php endif; ?>
 
-                            <?php if (tienePermiso('ver_configuracion')): ?>
-                                <a class="nav-link" href="/settings">Información de Sistema</a>
-                            <?php endif; ?>
-
                             <?php if (tienePermiso('ver_sucursales')): ?>
                                 <a class="nav-link" href="/branches">Listado de sucursales</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_configuracion')): ?>
+                                <a class="nav-link" href="/settings">Información de Sistema</a>
                             <?php endif; ?>
                         </nav>
                     </div>
@@ -244,9 +270,9 @@
                     </a>
                 <?php endif; ?>
                 <?php if (tienePermiso('ver_bitacora')): ?>
-                <a class="nav-link" href="/logs">
-                    <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
-                </a>
+                    <a class="nav-link" href="/logs">
+                        <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
+                    </a>
                 <?php endif; ?>
             </div>
         </div>

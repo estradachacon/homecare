@@ -76,6 +76,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     // Mantenimiento de sistema
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
+    $routes->get('settings/edit', 'SettingsController::edit');
+    $routes->post('settings/update', 'SettingsController::update');
     $routes->get('logs', 'BitacoraController::index');
 
     // Rutas para perfiles

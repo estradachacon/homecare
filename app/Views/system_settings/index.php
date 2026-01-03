@@ -35,14 +35,21 @@
 
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Datos de la Empresa</h5>
-                        <div class="mb-2">
-                            <h5 class="fw-bold text-primary">FC Encomiendas</h5>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="fw-bold text-primary">
+                                <?= esc($settings->company_name) ?>
+                            </h5>
+
+                            <p class="mb-0">
+                                <?= esc($settings->company_address) ?>
+                            </p>
                         </div>
 
-                        <div class="mb-2">
-                            <h5 class="fw-bold text-primary">Casa Matriz, Metrogalerias Local 1-2C</h5>
-                        </div>
+                        <a href="<?= base_url('settings/edit') ?>" class="btn btn-sm btn-outline-primary">
+                            <i class="fa fa-edit"></i> Editar
+                        </a>
+                    </div>
                 </div>
             </div>
 
