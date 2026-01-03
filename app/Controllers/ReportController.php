@@ -7,6 +7,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\PackageModel;
 use App\Models\SellerModel;
 use App\Models\SettledPointModel;
+use App\Models\TransactionModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Dompdf\Dompdf;
@@ -18,13 +19,16 @@ class ReportController extends BaseController
     protected $sellerModel;
     protected $settledPointModel;
     protected $packages;
+    protected $transactionModel;
     public function __construct()
     {
         $this->packageModel = new PackageModel();
         $this->settledPointModel = new SettledPointModel();
         $this->sellerModel = new SellerModel();
+        $this->transactionModel = new TransactionModel();
         $this->packages = new PackageModel();
     }
+
     public function index()
     {
         $chk = requerirPermiso('ver_reportes');
@@ -33,37 +37,36 @@ class ReportController extends BaseController
         return view('reports/index');
     }
 
-public function packages()
-{
-    $chk = requerirPermiso('ver_reportes');
-    if ($chk !== true) return $chk;
+    public function packages()
+    {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
 
-    // =========================
-    // Filtros (GET)
-    // =========================
-    $filters = [
-        'vendedor_id' => $this->request->getGet('vendedor_id'),
-        'estatus'     => $this->request->getGet('estatus'),
-        'fecha_desde' => $this->request->getGet('fecha_desde'),
-        'fecha_hasta' => $this->request->getGet('fecha_hasta'),
-    ];
+        // =========================
+        // Filtros (GET)
+        // =========================
+        $filters = [
+            'vendedor_id' => $this->request->getGet('vendedor_id'),
+            'fecha_desde' => $this->request->getGet('fecha_desde'),
+            'fecha_hasta' => $this->request->getGet('fecha_hasta'),
+        ];
 
-    // =========================
-    // PerPage dinámico (solo vista)
-    // =========================
-    $perPage = (int) ($this->request->getGet('perPage') ?? 25);
-    $allowed = [10, 25, 50, 100];
+        // =========================
+        // PerPage dinámico (solo vista)
+        // =========================
+        $perPage = (int) ($this->request->getGet('perPage') ?? 25);
+        $allowed = [10, 25, 50, 100];
 
-    if (!in_array($perPage, $allowed)) {
-        $perPage = 25;
-    }
+        if (!in_array($perPage, $allowed)) {
+            $perPage = 25;
+        }
 
-    // =========================
-    // Modelo
-    // =========================
-    $model = $this->packageModel;
+        // =========================
+        // Modelo
+        // =========================
+        $model = $this->packageModel;
 
-    $model->select("
+        $model->select("
         packages.id,
         packages.cliente,
         packages.tipo_servicio,
@@ -80,52 +83,50 @@ public function packages()
         settled_points.point_name AS punto_fijo,
         branches.branch_name AS sucursal
     ")
-    ->join('sellers', 'sellers.id = packages.vendedor', 'left')
-    ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
-    ->join('branches', 'branches.id = packages.branch', 'left')
-    ->orderBy('packages.id', 'DESC');
+            ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+            ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
+            ->join('branches', 'branches.id = packages.branch', 'left')
+            ->orderBy('packages.id', 'DESC');
 
-    // =========================
-    // Aplicar filtros
-    // =========================
-    if (!empty($filters['vendedor_id'])) {
-        $model->where('packages.vendedor', $filters['vendedor_id']);
+        // =========================
+        // Aplicar filtros
+        // =========================
+        if (!empty($filters['vendedor_id'])) {
+            $model->where('packages.vendedor', $filters['vendedor_id']);
+        }
+
+        if (!empty($filters['estatus'])) {
+            $model->groupStart()
+                ->where('packages.estatus', $filters['estatus'])
+                ->orWhere('packages.estatus2', $filters['estatus'])
+                ->groupEnd();
+        }
+
+        if (!empty($filters['fecha_desde'])) {
+            $model->where('packages.fecha_ingreso >=', $filters['fecha_desde']);
+        }
+
+        if (!empty($filters['fecha_hasta'])) {
+            $model->where('packages.fecha_ingreso <=', $filters['fecha_hasta']);
+        }
+
+        // =========================
+        // Paginación (SOLO vista)
+        // =========================
+        $packages = $model->paginate($perPage, 'packages');
+        $pager    = $model->pager;
+
+        // =========================
+        // Vista
+        // =========================
+        return view('reports/packages', [
+            'packages' => $packages,
+            'pager'    => $pager,
+            'sellers'  => $this->sellerModel->findAll(),
+            'filters'  => $filters,
+            'perPage'  => $perPage
+        ]);
     }
-
-    if (!empty($filters['estatus'])) {
-        $model->groupStart()
-            ->where('packages.estatus', $filters['estatus'])
-            ->orWhere('packages.estatus2', $filters['estatus'])
-            ->groupEnd();
-    }
-
-    if (!empty($filters['fecha_desde'])) {
-        $model->where('packages.fecha_ingreso >=', $filters['fecha_desde']);
-    }
-
-    if (!empty($filters['fecha_hasta'])) {
-        $model->where('packages.fecha_ingreso <=', $filters['fecha_hasta']);
-    }
-
-    // =========================
-    // Paginación (SOLO vista)
-    // =========================
-    $packages = $model->paginate($perPage, 'packages');
-    $pager    = $model->pager;
-
-    // =========================
-    // Vista
-    // =========================
-    return view('reports/packages', [
-        'packages' => $packages,
-        'pager'    => $pager,
-        'sellers'  => $this->sellerModel->findAll(),
-        'filters'  => $filters,
-        'perPage'  => $perPage
-    ]);
-}
-
-
 
     private function getPackagesForReport(array $filters)
     {
@@ -241,5 +242,57 @@ public function packages()
             'reporte_paquetes_' . date('Ymd_His') . '.pdf',
             ['Attachment' => true]
         );
+    }
+
+    public function trans()
+    {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
+
+        // =========================
+        // Filtros (GET)
+        // =========================
+        $filters = [
+            'tipo' => $this->request->getGet('tipo'),
+            'fecha_desde' => $this->request->getGet('fecha_desde'),
+            'fecha_hasta' => $this->request->getGet('fecha_hasta'),
+        ];
+
+        // =========================
+        // PerPage dinámico (solo vista)
+        // =========================
+        $perPage = (int) ($this->request->getGet('perPage') ?? 25);
+        $allowed = [10, 25, 50, 100];
+
+        if (!in_array($perPage, $allowed)) {
+            $perPage = 25;
+        }
+
+        $model = $this->transactionModel;
+        $model->orderBy('id', 'DESC');
+
+        if (!empty($filters['tipo'])) {
+            $model->where('transactions.tipo', $filters['tipo']);
+        }
+
+        if (!empty($filters['fecha_desde'])) {
+            $model->where('transactions.created_at >=', $filters['fecha_desde'] . ' 00:00:00');
+        }
+
+        if (!empty($filters['fecha_hasta'])) {
+            $model->where('transactions.created_at <=', $filters['fecha_hasta'] . ' 23:59:59');
+        }
+        $packages = $model->paginate($perPage, 'transactions');
+        $pager    = $model->pager;
+
+        // =========================
+        // Vista
+        // =========================
+        return view('reports/trans', [
+            'pager'    => $pager,
+            'trans' => $packages,
+            'filters'  => $filters,
+            'perPage'  => $perPage
+        ]);
     }
 }

@@ -17,6 +17,7 @@ class TrackingHeaderModel extends Model
         'user_id',
         'route_id',
         'date',
+        'rendicion_procesada',
         'status'
     ];
 

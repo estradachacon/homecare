@@ -36,6 +36,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->post('packages', 'ReportController::packages');
         $routes->get('packages/excel', 'ReportController::packagesExcel');
         $routes->get('packages/pdf', 'ReportController::packagesPDF');
+        $routes->get('trans', 'ReportController::trans');
+        $routes->post('trans', 'ReportController::trans');
+        $routes->get('trans/excel', 'ReportController::transExcel');
+        $routes->get('trans/pdf', 'ReportController::transPDF');
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });

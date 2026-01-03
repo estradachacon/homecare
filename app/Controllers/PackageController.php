@@ -721,7 +721,7 @@ class PackageController extends BaseController
             registrarEntrada(
                 $cuentaId,
                 $valor,
-                'Pago por entrega de paquete',
+                'Pago recibido por entrega de paquete a cliente',
                 'Paquete ID ' . $id,
                 $id
             );

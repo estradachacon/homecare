@@ -51,8 +51,11 @@
                 <h4>Rendición del motorista: <?= esc($motoristaNombre) ?></h4>
             </div>
             <div class="card-body">
-                <form method="post" action="<?= site_url('tracking-rendicion/save') ?>">
-                    <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
+                <form method="post"
+                    action="<?= base_url('tracking-rendicion/save') ?>"
+                    onsubmit="return bloquearEnvio();">
+
+
                     <input type="hidden" name="tracking_id" value="<?= $tracking->id ?>">
 
                     <h5>Seleccionar estado de los paquetes</h5>
@@ -146,7 +149,7 @@
                                     data-flete-total="<?= $p->flete_total ?>"
                                     data-flete-pagado="<?= $p->flete_pagado ?>"
                                     data-flete-rendido="<?= (int) $p->flete_rendido ?>">
-                                    
+
                                     <td class="text-center aporte-monto">
                                         <input type="checkbox" class="regresado-checkbox" name="regresados[]"
                                             value="<?= $p->id ?>" data-monto="<?= $p->monto ?? 0 ?>"
@@ -226,12 +229,41 @@
                             entregados/regresados)</small>
                     </div>
 
-                    <button class="btn btn-primary">Guardar Rendición</button>
+                    <button type="submit" id="btnRendir" class="btn btn-success">
+                        Guardar rendición
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<script>
+    function bloquearEnvio() {
+
+        const btn = document.getElementById('btnRendir');
+
+        // 🛑 Si ya fue bloqueado, cancelamos submit
+        if (btn.disabled) {
+            return false;
+        }
+
+        // 🔒 Bloqueo inmediato
+        btn.disabled = true;
+
+        Swal.fire({
+            title: 'Procesando rendición',
+            text: 'Por favor espera…',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        return true; // ✔ permite enviar el form
+    }
+</script>
+
 <script>
     $(document).ready(function() {
 
