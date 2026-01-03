@@ -217,6 +217,16 @@
                 background-color: rgba(247, 248, 249, 1);
             }
 
+            .logo-badge {
+                padding: 4px 10px;
+                border-radius: 12px;
+            }
+
+            .logo-badge img.logo {
+                height: 40px;
+            }
+
+
             header .menu-header {
                 position: fixed;
                 top: 0;
@@ -300,71 +310,261 @@
                 display: none;
             }
         }
+
+        .social-cards {
+            text-align: center;
+            padding: 30px 15px;
+        }
+
+        .social-cards h1 {
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .social-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .social-card {
+            width: 160px;
+            height: 120px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .social-card i {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .social-card span {
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        /* 🎯 Hover */
+        .social-card:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+            color: #fff;
+        }
+
+        /* 🎨 Colores por red */
+        .social-card.facebook:hover {
+            background: #4267B2;
+        }
+
+        .social-card.instagram:hover {
+            background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af);
+        }
+
+        .social-card.tiktok:hover {
+            background: linear-gradient(45deg, #000, #25F4EE);
+        }
+
+        /* ✨ Mejora visual SIN cambiar layout */
+        /* 🎯 Texto visible y centrado SIEMPRE */
+        header li.menu-item a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            color: rgba(29, 39, 68, 0.85);
+            /* visible sin hover */
+
+            background-color: rgba(42, 136, 212, 0.08);
+            border: 1px solid rgba(42, 136, 212, 0.18);
+
+            transition: all 0.25s ease;
+        }
+
+        /* ✨ Hover elegante */
+        header li.menu-item a:hover,
+        header li.menu-item a:focus {
+            color: #ffffff;
+            background: linear-gradient(135deg,
+                    rgba(42, 136, 212, 0.85),
+                    rgba(29, 39, 68, 0.9));
+
+            transform: translateY(-3px);
+            box-shadow: 0 8px 22px rgba(29, 39, 68, 0.35);
+        }
+
+        /* Línea animada inferior */
+        header li.menu-item a::after {
+            content: "";
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ffffff, #cfe2ff);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        header li.menu-item a:hover::after {
+            width: 55%;
+        }
+
+        .fancy-menu .menu-item a {
+            display: block;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            text-decoration: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ✨ Hover bonito */
+        .fancy-menu .menu-item a:hover {
+            background: linear-gradient(135deg, #4267B2, #1d2744);
+            transform: translateX(6px) scale(1.03);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            color: #fff;
+        }
+
+        /* 🟡 Item especial (login) */
+        .fancy-menu .menu-item:last-child a {
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid rgba(255, 193, 7, 0.35);
+        }
+
+        .fancy-menu .menu-item:last-child a:hover {
+            background: #ffc107;
+            color: #1d2744;
+        }
+
+        /* 🏷️ Logo tipo badge */
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #ffffff;
+            padding: 6px 12px;
+            border-radius: 14px;
+
+            border: 1px solid rgba(42, 136, 212, 0.25);
+            box-shadow:
+                0 6px 16px rgba(0, 0, 0, 0.12),
+                0 0 0 0 rgba(42, 136, 212, 0.0);
+
+            transition: all 0.35s ease;
+        }
+
+        /* Imagen del logo */
+        .logo-badge img.logo {
+            height: 44px;
+            width: auto;
+            display: block;
+            transition: transform 0.35s ease;
+        }
+
+        /* ✨ Hover elegante */
+        .logo-badge:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 10px 28px rgba(0, 0, 0, 0.18),
+                0 0 0 6px rgba(42, 136, 212, 0.15);
+        }
+
+        /* Zoom muy leve del logo */
+        .logo-badge:hover img.logo {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 
 <body>
-
     <!-- HEADER: MENU + HEROE SECTION -->
     <header>
-
         <div class="menu">
             <div class="menu-header">
-                <div class="logo">
+                <div class="logo logo-badge">
+
                     <a href="<?= base_url() ?>">
-                        <img src="<?= base_url('img/logo.jpg') ?>" alt="Logo de Encomiendas"
-                            style="height: 44px; width: auto;">
+                        <!-- LOGO EMPRESA -->
+                        <?php if (setting('logo')): ?>
+                            <img class="logo shadow-sm"
+                                src="<?= base_url('upload/settings/' . setting('logo')) ?>"
+                                alt="logo-company"
+                                height="44">
                     </a>
+                <?php else: ?>
+                    <a href="<?= base_url() ?>" class="text-decoration-none">
+                        <h2 class="m-0 p-0">FC Encomiendas</h2>
+                    </a>
+                <?php endif; ?>
                 </div>
                 <div class="menu-toggle">
                     <button id="menuToggle" aria-expanded="false" aria-label="Menú principal">&#9776;</button>
                 </div>
             </div>
-            <ul class="menu-list hidden">
+            <ul class="menu-list hidden fancy-menu">
                 <li class="menu-item"><a href="#">Nuestras rutas</a></li>
                 <li class="menu-item"><a href="#" target="_blank">Ubicación</a></li>
                 <li class="menu-item"><a href="#" target="_blank">Quienes somos</a></li>
-                <li class="menu-item"><a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">Iniciar sesión</a>
+                <li class="menu-item">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        Iniciar sesión
+                    </a>
                 </li>
             </ul>
+
         </div>
         <div class="heroe bienvenida-encomiendas">
             <h1>¡Bienvenido a tu aliado logístico! 🚀</h1>
             <h2>Servicios de Encomienda Rápidos y Seguros</h2>
             <p>Estamos comprometidos a conectar tus envíos con sus destinos de manera eficiente y confiable.</p>
         </div>
-
     </header>
-
     <!-- CONTENT -->
-
     <section>
-
         <div>
-
         </div>
-
     </section>
-
     <div class="further">
-
-        <section>
-            <?php echo 'Hora actual del servidor: ' . date('Y-m-d H:i:s');?>
-
+        <section class="social-cards">
             <h1>Nuestras redes sociales</h1>
 
-            <h2>
-                <i class="fab fa-facebook-square" style="color: #4267B2;"></i>
-                <i class="fab fa-twitter-square" style="color: #1DA1F2;"></i>
-                <i class="fab fa-instagram-square" style="color: #E1306C;"></i>
-                Síguenos
-            </h2>
+            <div class="social-grid">
+                <a href="https://www.facebook.com/fc.encomiendas.2025"
+                    target="_blank" class="social-card facebook">
+                    <i class="fab fa-facebook-f"></i>
+                    <span>Facebook</span>
+                </a>
+
+                <a href="https://www.instagram.com/fc_encomiendas/"
+                    target="_blank" class="social-card instagram">
+                    <i class="fab fa-instagram"></i>
+                    <span>Instagram</span>
+                </a>
+
+                <a href="https://www.tiktok.com/@fcencomiendas"
+                    target="_blank" class="social-card tiktok">
+                    <i class="fab fa-tiktok"></i>
+                    <span>TikTok</span>
+                </a>
+            </div>
         </section>
 
     </div>
-
     <!-- FOOTER: DEBUG INFO + COPYRIGHTS -->
-
     <footer>
         <div class="environment">
             <h2>Nuestra Visión</h2>
@@ -375,25 +575,16 @@
                 eficiencia,
                 compromiso y confianza, superando siempre las expectativas de nuestros clientes.
             </p>
-            <p>Ambiente: <?= ENVIRONMENT ?></p>
-
         </div>
-
         <div class="copyrights">
-
             <p>&reg; <?= date('Y') ?> FC Encomiendas.</p>
-
         </div>
-
     </footer>
-
     <!-- Include del Modal de Login -->
     <?= $this->include('modals/login') ?>
     <?= $this->include('modals/reset1') ?>
-
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
     <script {csp-script-nonce}>
         // Script para el menú
         document.getElementById("menuToggle").addEventListener('click', toggleMenu);
@@ -401,26 +592,21 @@
         function toggleMenu() {
             var menuList = document.querySelector('.menu-list');
             menuList.classList.toggle("hidden");
-
             // Accesibilidad: Actualizar el estado del botón
             var menuButton = document.getElementById("menuToggle");
             var isExpanded = menuList.classList.contains("hidden") ? "false" : "true";
             menuButton.setAttribute("aria-expanded", isExpanded);
         }
-
         // Cerrar el menú al hacer clic fuera
-        document.addEventListener('click', function (event) {
+        document.addEventListener('click', function(event) {
             var menu = document.querySelector('.menu');
             var menuButton = document.getElementById("menuToggle");
-
             if (!menu.contains(event.target)) {
                 var menuList = document.querySelector('.menu-list');
                 menuList.classList.add("hidden");
                 menuButton.setAttribute("aria-expanded", "false");
             }
         });
-
-
     </script>
     <script>
         // Mostrar alertas de flashdata
@@ -438,7 +624,6 @@
             });
         <?php endif; ?>
     </script>
-
 </body>
 
 </html>

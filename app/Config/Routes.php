@@ -78,6 +78,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->presenter('settings', ['controller' => 'SettingsController', 'only' => ['index', 'update']]);
     $routes->get('settings/edit', 'SettingsController::edit');
     $routes->post('settings/update', 'SettingsController::update');
+    $routes->get('tools/clear-browser', 'SystemTools::clearClientData', ['filter' => 'auth']);
+    $routes->get('system/logout-all', 'SystemTools::logoutAll', ['filter' => 'auth']);
     $routes->get('logs', 'BitacoraController::index');
 
     // Rutas para perfiles

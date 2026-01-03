@@ -81,6 +81,55 @@
                     <a href="<?= base_url('branches') ?>" class="btn btn-primary">Ir a Listado de Sucursales</a>
                 </div>
             </div>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Limpiar Cookies de navegador</h5>
+                    <button class="btn btn-outline-danger btn-sm" onclick="confirmClearBrowser()">
+                        <i class="fa-solid fa-broom"></i> Limpiar datos del navegador
+                    </button>
+
+                    <?php if (session()->get('role_id') == 1): ?>
+                        <button class="btn btn-danger btn-sm" onclick="confirmLogoutAll()">
+                            <i class="fa-solid fa-users-slash"></i> Cerrar sesión a todos
+                        </button>
+                    <?php endif; ?>
+
+                    <script>
+                        function confirmLogoutAll() {
+                            Swal.fire({
+                                title: '¿Cerrar sesión a todos?',
+                                text: 'Todos los usuarios activos serán desconectados',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Sí, cerrar',
+                                cancelButtonText: 'Cancelar'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    window.location.href = "<?= base_url('system/logout-all') ?>";
+                                }
+                            });
+                        }
+                    </script>
+                    <script>
+                        function confirmClearBrowser() {
+                            Swal.fire({
+                                title: '¿Limpiar datos del navegador?',
+                                text: 'Esto limpiará cookies y caché del sistema en este navegador.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#d33',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Sí, limpiar',
+                                cancelButtonText: 'Cancelar'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    window.location.href = "<?= base_url('tools/clear-browser') ?>";
+                                }
+                            });
+                        }
+                    </script>
+                </div>
+            </div>
         </div>
     </div>
 </div>
