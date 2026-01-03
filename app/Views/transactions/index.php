@@ -149,7 +149,6 @@
 </script>
 <script>
     $(document).ready(function() {
-        // Inicialización de DataTable (se mantiene tu código)
         $('#transactionsTable').DataTable({
             order: [
                 [0, 'desc']

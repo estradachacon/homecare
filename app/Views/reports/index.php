@@ -21,7 +21,7 @@
                             <div class="card-footer bg-transparent border-info card-footer-options">Reporte de Movimientos financieros</div>
                         </div>
                     </a>
-                    <a href="#" class="col-md-3 card-options">
+                    <a href="<?= base_url('reports/cashiersmovements') ?>" class="col-md-3 card-options">
                         <div class="card border-success mb-3 card-option-container">
                             <div class="card-body text-info icon-card-options"><i class="fa-solid fa-cash-register"></i></div>
                             <div class="card-footer bg-transparent border-info card-footer-options">Reporte de Movimientos de caja</div>

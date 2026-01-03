@@ -301,124 +301,117 @@ class AccountController extends BaseController
         return $this->response->setJSON($builder->findAll());
     }
 
-public function processTransfer()
-{
-    // SOLO aceptar AJAX
-    if (! $this->request->isAJAX()) {
-        return $this->response->setJSON([
-            'status' => 'error',
-            'message' => 'Solicitud inválida.'
-        ]);
-    }
-
-    $request = $this->request;
-    $session = session(); // 👈 Obtenemos la sesión para el user_id
-
-    // Forzar tipos
-    $origenId = (int) $request->getPost('account_source');
-    $destinoId = (int) $request->getPost('account_destination');
-    $monto     = (float) $request->getPost('monto');
-    $descripcion = $request->getPost('descripcion') ?? '';
-
-    // Validaciones básicas
-    if ($origenId <= 0 || $destinoId <= 0) {
-        return $this->response->setJSON(['status' => 'error', 'message' => 'Cuenta origen o destino inválida.']);
-    }
-    if ($origenId === $destinoId) {
-        return $this->response->setJSON(['status' => 'error', 'message' => 'La cuenta origen y destino no pueden ser la misma.']);
-    }
-    if ($monto <= 0) {
-        return $this->response->setJSON(['status' => 'error', 'message' => 'El monto debe ser positivo.']);
-    }
-
-    $db = \Config\Database::connect();
-    $db->transBegin();
-
-    try {
-        $transactionModel = new TransactionModel();
-        $accountModel = new AccountModel();
-
-        $originAccount = $accountModel->find($origenId);
-        $destAccount = $accountModel->find($destinoId);
-
-        if (!$originAccount || !$destAccount) {
-            throw new \Exception('Cuenta origen o destino no encontrada.');
+    public function processTransfer()
+    {
+        // SOLO aceptar AJAX
+        if (! $this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Solicitud inválida.'
+            ]);
         }
 
-        // Saldo suficiente (si la tabla tiene balance)
-        if (isset($originAccount->balance) && $originAccount->balance < $monto) {
-            throw new \Exception('Saldo insuficiente en la cuenta origen.');
+        $request = $this->request;
+        $session = session(); // 👈 Obtenemos la sesión para el user_id
+
+        // Forzar tipos
+        $origenId = (int) $request->getPost('account_source');
+        $destinoId = (int) $request->getPost('account_destination');
+        $monto     = (float) $request->getPost('monto');
+        $descripcion = $request->getPost('descripcion') ?? '';
+
+        // Validaciones básicas
+        if ($origenId <= 0 || $destinoId <= 0) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Cuenta origen o destino inválida.']);
+        }
+        if ($origenId === $destinoId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'La cuenta origen y destino no pueden ser la misma.']);
+        }
+        if ($monto <= 0) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'El monto debe ser positivo.']);
         }
 
-        // Insertar transacciones
-        $transactionModel->insert([
-            'account_id' => $origenId,
-            'tipo'       => 'salida',
-            // El campo monto se usó de forma negativa en la inserción original. Mantenemos el ajuste.
-            'monto'      => -$monto, // Aseguramos que sea negativo para egreso
-            'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ' (' . $destAccount->name . '): ' . $descripcion,
-            'referencia' => 'Transferencia entre cuentas',
-        ]);
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        $transactionModel->insert([
-            'account_id'    => $destinoId,
-            'tipo'       => 'entrada',
-            'monto'      => $monto, // Positivo para ingreso
-            'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ' (' . $originAccount->name . '): ' . $descripcion,
-            'referencia' => 'Transferencia entre cuentas',
-        ]);
+        try {
+            $transactionModel = new TransactionModel();
+            $accountModel = new AccountModel();
 
-        // Actualizar balances
-        $db->table('accounts')
-            ->set('balance', "balance - {$monto}", false)
-            ->where('id', $origenId)
-            ->update();
+            $originAccount = $accountModel->find($origenId);
+            $destAccount = $accountModel->find($destinoId);
 
-        $db->table('accounts')
-            ->set('balance', "balance + {$monto}", false)
-            ->where('id', $destinoId)
-            ->update();
+            if (!$originAccount || !$destAccount) {
+                throw new \Exception('Cuenta origen o destino no encontrada.');
+            }
 
-        if ($db->transStatus() === false) {
-            throw new \Exception('Error al ejecutar la transferencia.');
+            // Saldo suficiente (si la tabla tiene balance)
+            if (isset($originAccount->balance) && $originAccount->balance < $monto) {
+                throw new \Exception('Saldo insuficiente en la cuenta origen.');
+            }
+
+            // Insertar transacciones
+            $transactionModel->insert([
+                'account_id' => $origenId,
+                'tipo'       => 'salida',
+                'monto'      => $monto, // Aseguramos que sea negativo para egreso
+                'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ' (' . $destAccount->name . '): ' . $descripcion,
+                'referencia' => 'Transferencia entre cuentas',
+            ]);
+
+            $transactionModel->insert([
+                'account_id'    => $destinoId,
+                'tipo'       => 'entrada',
+                'monto'      => $monto, // Positivo para ingreso
+                'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ' (' . $originAccount->name . '): ' . $descripcion,
+                'referencia' => 'Transferencia entre cuentas',
+            ]);
+
+            // Actualizar balances
+            $db->table('accounts')
+                ->set('balance', "balance - {$monto}", false)
+                ->where('id', $origenId)
+                ->update();
+
+            $db->table('accounts')
+                ->set('balance', "balance + {$monto}", false)
+                ->where('id', $destinoId)
+                ->update();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Error al ejecutar la transferencia.');
+            }
+
+            $db->transCommit();
+
+            $logDetails = "Se transfirieron **{$monto}** de la cuenta **{$originAccount->name}** (ID: {$origenId}) a la cuenta **{$destAccount->name}** (ID: {$destinoId}). Descripción: " . ($descripcion ?: 'Sin descripción.');
+
+            registrar_bitacora(
+                'Transferencia exitosa',
+                'Finanzas/Transferencias',
+                $logDetails,
+                $session->get('user_id') // Asume que tienes el user_id en la sesión
+            );
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => '¡Transferencia realizada con éxito!'
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+
+            // 🚨 REGISTRO EN LA BITÁCORA - ERROR 🚨
+            $errorDetails = "Transferencia fallida entre ID {$origenId} y ID {$destinoId}. Error: " . $e->getMessage();
+            registrar_bitacora(
+                'Error de Transferencia',
+                'Finanzas/Transferencias',
+                $errorDetails,
+                $session->get('user_id')
+            );
+
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
         }
-
-        $db->transCommit();
-        
-        // 🚀 REGISTRO EN LA BITÁCORA - ÉXITO 🚀
-        $logDetails = "Se transfirieron **{$monto}** de la cuenta **{$originAccount->name}** (ID: {$origenId}) a la cuenta **{$destAccount->name}** (ID: {$destinoId}). Descripción: " . ($descripcion ?: 'Sin descripción.');
-
-        registrar_bitacora(
-            'Transferencia exitosa',
-            'Finanzas/Transferencias',
-            $logDetails,
-            $session->get('user_id') // Asume que tienes el user_id en la sesión
-        );
-        // ------------------------------------
-
-        // 🟢 AQUÍ RESPONDEMOS JSON
-        return $this->response->setJSON([
-            'status' => 'success',
-            'message' => '¡Transferencia realizada con éxito!'
-        ]);
-
-    } catch (\Exception $e) {
-        $db->transRollback();
-        
-        // 🚨 REGISTRO EN LA BITÁCORA - ERROR 🚨
-        $errorDetails = "Transferencia fallida entre ID {$origenId} y ID {$destinoId}. Error: " . $e->getMessage();
-        registrar_bitacora(
-            'Error de Transferencia',
-            'Finanzas/Transferencias',
-            $errorDetails,
-            $session->get('user_id')
-        );
-        // ------------------------------------
-
-        return $this->response->setJSON([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]);
     }
-    }   
 }

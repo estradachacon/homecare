@@ -130,7 +130,8 @@
                                     <th>Origen</th>
                                     <th>Referencia</th>
                                     <th>Fecha</th>
-                                    <th class="text-right">Monto</th>
+                                    <th class="text-right">Entradas</th>
+                                    <th class="text-right">Salidas</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -140,26 +141,68 @@
                                         <td><?= $t->account_id ?></td>
                                         <td>
                                             <span class="badge badge-<?= $t->tipo === 'entrada' ? 'success' : 'danger' ?>">
-                                                <?= esc($t->tipo) ?>
+                                                <?= ucfirst($t->tipo) ?>
                                             </span>
                                         </td>
                                         <td><?= esc($t->origen ?? '-') ?></td>
                                         <td><?= esc($t->referencia ?? '-') ?></td>
                                         <td><?= date('d/m/Y H:i', strtotime($t->created_at)) ?></td>
+
+                                        <!-- ENTRADAS -->
                                         <td class="text-right">
-                                            $<?= number_format($t->monto, 2) ?>
+                                            <?= $t->tipo === 'entrada'
+                                                ? '$' . number_format($t->monto, 2)
+                                                : '-' ?>
+                                        </td>
+
+                                        <!-- SALIDAS -->
+                                        <td class="text-right">
+                                            <?= $t->tipo === 'salida'
+                                                ? '$' . number_format($t->monto, 2)
+                                                : '-' ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                             <tfoot>
+                                <?php
+                                $totalEntradas = 0;
+                                $totalSalidas  = 0;
+
+                                foreach ($trans as $t) {
+                                    if ($t->tipo === 'entrada') {
+                                        $totalEntradas += $t->monto;
+                                    } elseif ($t->tipo === 'salida') {
+                                        $totalSalidas += $t->monto;
+                                    }
+                                }
+
+                                $balance = $totalEntradas - $totalSalidas;
+                                ?>
                                 <tr class="font-weight-bold">
-                                    <td colspan="6" class="text-right">TOTAL</td>
-                                    <td class="text-right">
-                                        $<?= number_format(array_sum(array_map(fn($x) => $x->monto, $trans)), 2) ?>
+                                    <td colspan="6" class="text-right">TOTALES</td>
+
+                                    <!-- TOTAL ENTRADAS -->
+                                    <td class="text-right text-success">
+                                        $<?= number_format($totalEntradas, 2) ?>
+                                    </td>
+
+                                    <!-- TOTAL SALIDAS -->
+                                    <td class="text-right text-danger">
+                                        $<?= number_format($totalSalidas, 2) ?>
+                                    </td>
+                                </tr>
+
+                                <tr class="font-weight-bold">
+                                    <td colspan="6" class="text-right">BALANCE</td>
+                                    <td colspan="2" class="text-right">
+                                        <span class="<?= $balance >= 0 ? 'text-success' : 'text-danger' ?>">
+                                            $<?= number_format($balance, 2) ?>
+                                        </span>
                                     </td>
                                 </tr>
                             </tfoot>
+
                         </table>
 
                         <div class="d-flex justify-content-center mt-3">

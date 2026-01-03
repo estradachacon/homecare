@@ -40,6 +40,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->post('trans', 'ReportController::trans');
         $routes->get('trans/excel', 'ReportController::transExcel');
         $routes->get('trans/pdf', 'ReportController::transPDF');
+        $routes->get('cashiersmovements', 'ReportController::cashiersmovements');
+        $routes->post('cashiersmovements', 'ReportController::cashiersmovements');
+        $routes->get('cashiersmovements/excel', 'ReportController::cashiersmovementsExcel');
+        $routes->get('cashiersmovements/pdf', 'ReportController::cashiersmovementsPDF');
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
