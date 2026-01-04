@@ -63,7 +63,7 @@ class ContentController extends BaseController
         }
 
         $newName = $file->getRandomName();
-        $file->move(ROOTPATH . 'public/upload/content/', $newName);
+        $file->move('upload/content', $newName);
 
         $imageModel = new ContentImagesModel();
         $imageModel->insert([
