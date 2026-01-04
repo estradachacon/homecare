@@ -512,8 +512,8 @@
             </div>
             <ul class="menu-list hidden fancy-menu">
                 <li class="menu-item"><a href="<?= base_url('/rutas') ?>">Nuestras rutas</a></li>
-                <li class="menu-item"><a href="#" target="_blank">Ubicación</a></li>
-                <li class="menu-item"><a href="#" target="_blank">Quienes somos</a></li>
+                <li class="menu-item"><a href="<?= base_url('/sucursales') ?>">Ubicación</a></li>
+                <li class="menu-item"><a href="<?= base_url('/quienes-somos') ?>">Quienes somos</a></li>
                 <li class="menu-item">
                     <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
                         Iniciar sesión

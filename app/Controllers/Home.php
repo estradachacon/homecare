@@ -4,15 +4,18 @@ namespace App\Controllers;
 
 use App\Models\ContentGroupModel;
 use App\Models\ContentImagesModel;
+use App\Models\BranchModel;
 
 class Home extends BaseController
 {
     protected $groupModel;
     protected $imageModel;
+    protected $branchModel = null;
     public function __construct()
     {
         $this->groupModel = new ContentGroupModel();
         $this->imageModel = new ContentImagesModel();
+        $this->branchModel = new BranchModel();
     }
     public function index()
     {
@@ -67,5 +70,14 @@ class Home extends BaseController
         ];
 
         return view('welcome_rutas', $data);
+    }
+    public function sucursales()
+    {
+        $branches = $this->branchModel->where('status', 1)->findAll();
+        return view('welcome_sucursales', ['branches' => $branches]);
+    }
+    public function quienes_somos()
+    {
+        return view('welcome_quienes_somos');
     }
 }

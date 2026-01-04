@@ -35,7 +35,6 @@ class BranchController extends Controller
         $rules = [
             'branch_name'       => 'required|min_length[3]',
             'branch_direction'  => 'required|min_length[5]',
-            'status'            => 'required|in_list[active,inactive]'
         ];
         if (! $this->validate($rules)) {
             // Si falla validación, vuelve al formulario con errores
@@ -46,11 +45,11 @@ class BranchController extends Controller
         $this->branchModel->insert([
             'branch_name'      => $this->request->getPost('branch_name'),
             'branch_direction' => $this->request->getPost('branch_direction'),
-            'status'           => $this->request->getPost('status'),
+            'status'           => 1,
             'latitude'         => $this->request->getPost('latitude'),
             'longitude'        => $this->request->getPost('longitude'),
         ]);
-        
+
         registrar_bitacora(
             'Creación de sucursal',
             'Sucursales',
@@ -128,7 +127,6 @@ class BranchController extends Controller
         $data = [
             'branch_name'      => $this->request->getPost('branch_name'),
             'branch_direction' => $this->request->getPost('branch_direction'),
-            'status'           => $this->request->getPost('status'),
             'latitude'         => $this->request->getPost('latitude'),
             'longitude'        => $this->request->getPost('longitude'),
         ];

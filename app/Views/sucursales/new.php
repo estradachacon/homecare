@@ -17,19 +17,17 @@
                     </div>
                 <?php endif; ?>
 
-                <form action="<?= site_url('branches') ?>" method="post">
-                    <?= csrf_field() ?>
+                <form action="<?= site_url('branches') ?>" method="post" id="branchForm">
 
                     <div class="mb-3">
                         <label for="branch_name" class="form-label">Nombre de la Sucursal</label>
                         <input type="text" name="branch_name" id="branch_name" class="form-control"
                             value="<?= old('branch_name') ?>" required>
                     </div>
-
                     <div class="mb-3">
                         <label for="branch_direction" class="form-label">Dirección</label>
                         <input type="text" name="branch_direction" id="branch_direction" class="form-control"
-                            value="<?= old('branch_direction') ?>" required>
+                            value="<?= old('branch_direction') ?>" required placeholder="Escribe la dirección">
                     </div>
 
                     <div class="mb-3">
@@ -48,55 +46,69 @@
         </div>
     </div>
 </div>
-<!-- Google Maps -->
-<script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY&libraries=places"></script>
 
+<!-- Leaflet JS y CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-    let map, marker;
+    // 1. Referencia al formulario corregida
+    const form = document.getElementById('branchForm');
 
-    function initMap() {
-        const lat = parseFloat(document.getElementById('latitude').value) || 13.6929; // default El Salvador
-        const lng = parseFloat(document.getElementById('longitude').value) || -89.2182;
-        const position = {
-            lat,
-            lng
-        };
+    // 2. Coordenadas iniciales (Prioridad: valor del input > San Salvador)
+    let initialLat = parseFloat(document.getElementById('latitude').value) || 13.6929;
+    let initialLng = parseFloat(document.getElementById('longitude').value) || -89.2182;
 
-        map = new google.maps.Map(document.getElementById('map'), {
-            center: position,
-            zoom: 15
-        });
+    // 3. Inicializar mapa y marcador
+    let map = L.map('map').setView([initialLat, initialLng], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-        marker = new google.maps.Marker({
-            position: position,
-            map: map,
-            draggable: true
-        });
+    let marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
-        // Actualizar lat/lng al mover marcador
-        marker.addListener('dragend', function() {
-            const pos = marker.getPosition();
-            document.getElementById('latitude').value = pos.lat();
-            document.getElementById('longitude').value = pos.lng();
-        });
-
-        // Autocompletado para la dirección
-        const input = document.getElementById('branch_direction');
-        const autocomplete = new google.maps.places.Autocomplete(input);
-        autocomplete.bindTo('bounds', map);
-
-        autocomplete.addListener('place_changed', function() {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) return;
-
-            map.setCenter(place.geometry.location);
-            map.setZoom(17);
-            marker.setPosition(place.geometry.location);
-            document.getElementById('latitude').value = place.geometry.location.lat();
-            document.getElementById('longitude').value = place.geometry.location.lng();
-        });
+    // Función para actualizar los inputs ocultos
+    function updateCoords(lat, lng) {
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
     }
 
-    window.onload = initMap;
+    // Evento al arrastrar el marcador
+    marker.on('dragend', function(e) {
+        const pos = e.target.getLatLng();
+        updateCoords(pos.lat, pos.lng);
+    });
+
+    // Evento al hacer click en el mapa (opcional, ayuda al usuario)
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+        updateCoords(e.latlng.lat, e.latlng.lng);
+    });
+
+    // 4. Geocoding (Buscar por dirección)
+    const inputDir = document.getElementById('branch_direction');
+    inputDir.addEventListener('change', function() {
+        const address = this.value;
+        if (!address) return;
+
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`)
+            .then(resp => resp.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const { lat, lon } = data[0];
+                    const newPos = [parseFloat(lat), parseFloat(lon)];
+                    map.setView(newPos, 17);
+                    marker.setLatLng(newPos);
+                    updateCoords(lat, lon);
+                }
+            });
+    });
+
+    // 5. Asegurar datos antes de enviar
+    form.addEventListener('submit', function(e) {
+        const pos = marker.getLatLng();
+        updateCoords(pos.lat, pos.lng);
+    });
 </script>
+
 <?= $this->endSection() ?>
