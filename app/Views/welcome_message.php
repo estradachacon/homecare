@@ -69,16 +69,6 @@
 </div>
 <!-- FOOTER: DEBUG INFO + COPYRIGHTS -->
 <footer class="main-footer">
-    <div class="environment">
-        <h2>Nuestra Visión</h2>
-        <p>
-            En <strong>FC Encomiendas</strong> aspiramos a ser la empresa líder en servicios de encomiendas en El
-            Salvador,
-            brindando entregas rápidas, seguras y confiables. Buscamos conectar a personas y negocios con
-            eficiencia,
-            compromiso y confianza, superando siempre las expectativas de nuestros clientes.
-        </p>
-    </div>
     <div class="copyrights">
         <p>&reg; <?= date('Y') ?> FC Encomiendas.</p>
     </div>
