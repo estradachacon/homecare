@@ -37,7 +37,6 @@ class BranchController extends Controller
             'branch_direction'  => 'required|min_length[5]',
             'status'            => 'required|in_list[active,inactive]'
         ];
-
         if (! $this->validate($rules)) {
             // Si falla validación, vuelve al formulario con errores
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -47,8 +46,11 @@ class BranchController extends Controller
         $this->branchModel->insert([
             'branch_name'      => $this->request->getPost('branch_name'),
             'branch_direction' => $this->request->getPost('branch_direction'),
-            'status'           => $this->request->getPost('status')
+            'status'           => $this->request->getPost('status'),
+            'latitude'         => $this->request->getPost('latitude'),
+            'longitude'        => $this->request->getPost('longitude'),
         ]);
+        
         registrar_bitacora(
             'Creación de sucursal',
             'Sucursales',
@@ -63,7 +65,6 @@ class BranchController extends Controller
         $session = session();
         $id = $this->request->getPost('id');
         $branchModel = new branchModel();
-
         if (!$id) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'ID inválido.']);
         }
@@ -97,58 +98,52 @@ class BranchController extends Controller
     public function list()
     {
         $branchModel = new BranchModel();
-
-        // Obtener término buscado en Select2
         $q = $this->request->getGet('q');
 
         $builder = $branchModel
             ->select('id, branch_name')
             ->where('status', 1);
-
-        // Si hay búsqueda, filtrar
         if (!empty($q)) {
             $builder->like('branch_name', $q);
         }
 
         return $this->response->setJSON($builder->findAll());
     }
-public function edit($id)
-{
-    $branch = $this->branchModel->find($id);
-
-    if (!$branch) {
-        return redirect()->to('branches')
-            ->with('error', 'Sucursal no encontrada');
+    public function edit($id)
+    {
+        $branch = $this->branchModel->find($id);
+        if (!$branch) {
+            return redirect()->to('branches')
+                ->with('error', 'Sucursal no encontrada');
+        }
+        return view('sucursales/edit', [
+            'branch' => $branch
+        ]);
     }
 
-    return view('sucursales/edit', [
-        'branch' => $branch
-    ]);
-}
+    public function update($id)
+    {
+        helper(['form']);
+        $session = session();
+        $data = [
+            'branch_name'      => $this->request->getPost('branch_name'),
+            'branch_direction' => $this->request->getPost('branch_direction'),
+            'status'           => $this->request->getPost('status'),
+            'latitude'         => $this->request->getPost('latitude'),
+            'longitude'        => $this->request->getPost('longitude'),
+        ];
 
-public function update($id)
-{
-    helper(['form']);
-    $session = session();
+        $this->branchModel->update($id, $data);
 
-    $data = [
-        'branch_name'      => $this->request->getPost('branch_name'),
-        'branch_direction' => $this->request->getPost('branch_direction'),
-        'status'           => $this->request->getPost('status'),
-    ];
+        // 3️⃣ Bitácora
+        registrar_bitacora(
+            'Actualización de sucursal',
+            'Sucursales',
+            'Se actualizó la sucursal: ' . $data['branch_name'] . '.',
+            $session->get('user_id'),
+        );
 
-    $this->branchModel->update($id, $data);
-
-    // 3️⃣ Bitácora
-    registrar_bitacora(
-        'Actualización de sucursal',
-        'Sucursales',
-        'Se actualizó la sucursal: ' . $data['branch_name'] . '.',
-        $session->get('user_id'),
-    );
-
-    return redirect()->to('branches')
-        ->with('success', 'Sucursal actualizada correctamente');
-}
-
+        return redirect()->to('branches')
+            ->with('success', 'Sucursal actualizada correctamente');
+    }
 }

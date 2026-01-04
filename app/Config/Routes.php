@@ -6,6 +6,7 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->get('/', 'Home::index');
+$routes->get('/rutas', 'Home::rutas');
 
 $routes->post('/login', 'AuthController::login');
 $routes->get('/logout', 'AuthController::logout');
@@ -47,6 +48,17 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
+
+    //Mantenimiento de multimedia
+    $routes->get('content', 'ContentController::index');
+    $routes->post('content/create', 'ContentController::saveGroup');
+    $routes->post('content/save', 'ContentController::update');
+    $routes->get('content/edit/(:num)', 'ContentController::edit/$1');
+    $routes->post('content/group/delete', 'ContentController::deleteGroup');
+    $routes->get('content/manage/(:num)', 'ContentController::manageImages/$1');
+    $routes->post('content/upload-image', 'ContentController::uploadImage');
+    $routes->post('content/image/delete', 'ContentController::deleteImage');
+    $routes->post('content/image/update', 'ContentController::updateImage');
 
     // Remuneraciones de paquetes
     $routes->get('remu/create', 'RemunerationController::create');

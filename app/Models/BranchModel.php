@@ -10,7 +10,7 @@ class BranchModel extends Model
     protected $primaryKey       = 'id';
     protected $returnType       = 'object';
     protected $protectFields    = true;
-    protected $allowedFields    = ['branch_name', 'branch_direction', 'status'];
+    protected $allowedFields    = ['branch_name', 'branch_direction', 'status', 'latitude', 'longitude'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';

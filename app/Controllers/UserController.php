@@ -116,10 +116,6 @@ class UserController extends BaseController
         return view('users/edit', $data);
     }
 
-    /**
-     * Procesa y actualiza los datos de la caja.
-     * @param int $id El ID de la caja a actualizar (viene del segmento de la URL).
-     */
     public function update($id)
     {
         helper(['form']);

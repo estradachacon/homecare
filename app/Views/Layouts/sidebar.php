@@ -255,7 +255,9 @@
                             <?php if (tienePermiso('ver_sucursales')): ?>
                                 <a class="nav-link" href="/branches">Listado de sucursales</a>
                             <?php endif; ?>
-
+                            <?php if (tienePermiso('ajustes_multimedia')): ?>
+                                <a class="nav-link" href="/content">Multimedia</a>
+                            <?php endif; ?>
                             <?php if (tienePermiso('ver_configuracion')): ?>
                                 <a class="nav-link" href="/settings">Información de Sistema</a>
                             <?php endif; ?>
