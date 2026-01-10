@@ -1,6 +1,7 @@
 <?php $session = session(); ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <!-- Core Js  -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -16,7 +17,7 @@
     if ($favicon && file_exists(FCPATH . 'upload/settings/' . $favicon)) {
         $faviconUrl = base_url('upload/settings/' . $favicon);
     } else {
-        $faviconUrl = base_url('favicon.ico'); 
+        $faviconUrl = base_url('favicon.ico');
     }
     ?>
 
@@ -116,6 +117,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .loader {
             width: 50px;
             height: 50px;
@@ -124,6 +126,7 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -133,11 +136,16 @@
                 transform: rotate(360deg);
             }
         }
+
         .loading-text {
             margin-top: 20px;
             font-family: Arial, sans-serif;
             color: #333;
             font-size: 16px;
+        }
+
+        .badge-text-lg {
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -160,7 +168,7 @@
                 </button>
             </div>
             <div class="d-flex align-items-center">
-                <span class="badge badge-primary mr-3 p-2">
+                <span class="badge badge-primary mr-3 p-3 badge-text-lg">
                     <?= esc($session->get('user_name') ?? 'N/A') ?>
                 </span>
                 <div class="dropdown">
@@ -267,4 +275,5 @@
         })(jQuery);
     </script>
 </body>
+
 </html>

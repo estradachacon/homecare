@@ -4,18 +4,17 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h4><i class="fa-solid fa-money-check-alt"></i> Movimientos de efectivo</h4>
+            <div class="card-header d-flex justify-content-between">
+                <h4 class="header-title mb-0">
+                    <i class="fa-solid fa-money-check-alt"></i> Movimientos de efectivo
+                </h4>
+                <?php if (tienePermiso('registrar_gasto')): ?>
+                    <button type="button" class="btn btn-success" id="btn-nuevo-gasto">
+                        <i class="fa-solid fa-plus-circle"></i> Registrar Nuevo Gasto
+                    </button>
+                <?php endif; ?>
             </div>
             <div class="card-body">
-                <div class="mb-3 d-flex justify-content-end">
-                    <?php if (tienePermiso('registrar_gasto')): ?>
-                        <button type="button" class="btn btn-success" id="btn-nuevo-gasto">
-                            <i class="fa-solid fa-plus-circle"></i> Registrar Nuevo Gasto
-                        </button>
-                    <?php endif; ?>
-                </div>
-
                 <div class="table-responsive">
                     <table class="table table-striped table-hover" id="transactionsTable">
                         <thead class="thead-primary bg-primary text-white">
@@ -30,7 +29,6 @@
                                 <th>Fecha</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             <?php foreach ($transactions as $t): ?>
                                 <tr>
@@ -61,7 +59,6 @@
         </div>
     </div>
 </div>
-
 <div class="modal fade" id="modalRegistroGasto" tabindex="-1" aria-labelledby="modalRegistroGastoLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -77,8 +74,6 @@
                         <label for="gastoFecha" class="form-label">Fecha del Movimiento</label>
                         <input type="date" class="form-control" id="gastoFecha" name="gastoFecha" required value="<?= date('Y-m-d') ?>">
                     </div>
-
-                    <!-- Buscador de cuenta -->
                     <div class="mt-3 divAccount" id="gastoCuenta<?= esc($q['id'] ?? '') ?>">
                         <label class="form-label">Cuenta</label>
                         <select name="account"
@@ -88,21 +83,17 @@
                             data-initial-text="">
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label for="gastoMonto" class="form-label">Monto del Gasto ($)</label>
                         <input type="number" step="0.01" class="form-control" id="gastoMonto" name="gastoMonto" placeholder="Ej: 15.50" required>
                     </div>
-
                     <div class="mb-3">
                         <label for="gastoDescripcion" class="form-label">Concepto / Descripción</label>
                         <textarea class="form-control" id="gastoDescripcion" name="gastoDescripcion" rows="2" required></textarea>
                     </div>
-
                     <div class="alert alert-info mt-3" role="alert">
                         Al presionar "Guardar Gasto", se registrará una transacción de **SALIDA** de la cuenta seleccionada.
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -116,10 +107,8 @@
 </div>
 <script>
     const accountSearchUrl = "<?= base_url('accounts-list') ?>";
-
     $(document).ready(function() {
         $.fn.modal.Constructor.prototype._enforceFocus = function() {};
-        // Interceptar SOLO los forms de agregar destino
         $('#account').select2({
             theme: 'bootstrap4',
             width: '100%',
@@ -144,7 +133,7 @@
                     };
                 }
             }
-        }).trigger('change'); // <-- Esta línea hace que Select2 lea el option inicial
+        }).trigger('change'); 
     });
 </script>
 <script>
@@ -155,34 +144,42 @@
             ],
             pageLength: 10,
             language: {
-                "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ registros",
+                processing: "Procesando...",
+                lengthMenu: "Mostrar _MENU_ registros",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en esta tabla",
+                info: "Mostrando registros del _START_ al _END_ de un total de _TOTAL_",
+                infoEmpty: "Mostrando registros del 0 al 0 de un total de 0",
+                infoFiltered: "(filtrado de un total de _MAX_ registros)",
+                search: "Buscar:",
+                loadingRecords: "Cargando...",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                aria: {
+                    sortAscending: ": Activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": Activar para ordenar la columna de manera descendente"
+                }
             }
         });
-
-        // 1. Lógica para Abrir el Modal
         $('#btn-nuevo-gasto').on('click', function() {
-            // Asumiendo que estás usando Bootstrap 5, usa el método modal('show')
             var myModal = new bootstrap.Modal(document.getElementById('modalRegistroGasto'));
             myModal.show();
         });
-
-        // 2. Lógica para Enviar el Formulario (AJAX/Fetch)
         $("#form-registro-gasto").on("submit", function(e) {
             e.preventDefault();
-
             let btn = $("#btn-guardar-gasto");
             btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
-
             $.ajax({
                 url: "/transactions/addSalida",
                 type: "POST",
                 data: $(this).serialize(),
                 dataType: "json",
-
                 success: function(response) {
                     if (response.success) {
-
                         Swal.fire({
                             icon: "success",
                             title: "¡Guardado!",
@@ -190,11 +187,9 @@
                             timer: 1500,
                             showConfirmButton: false
                         });
-
                         setTimeout(() => {
                             location.reload();
                         }, 1600);
-
                     } else {
                         Swal.fire({
                             icon: "error",
@@ -203,7 +198,6 @@
                         });
                     }
                 },
-
                 error: function() {
                     Swal.fire({
                         icon: "error",
@@ -211,13 +205,11 @@
                         text: "No se pudo registrar el gasto."
                     });
                 },
-
                 complete: function() {
                     btn.prop("disabled", false).html('<i class="fa-solid fa-save"></i> Guardar Gasto');
                 }
             });
         });
-
     });
 </script>
 

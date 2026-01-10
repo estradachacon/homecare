@@ -241,20 +241,6 @@
         </div>
     </div>
 </div>
-<!-- Contenedor de toast -->
-<div class="toast-container" aria-live="polite" aria-atomic="true">
-    <div id="successToast" class="toast text-white bg-success" data-delay="2800">
-        <div class="toast-header bg-success text-white">
-            <strong class="mr-auto">Éxito</strong>
-            <small>Ahora</small>
-            <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast">&times;</button>
-        </div>
-        <div class="toast-body">
-            Paquete creado correctamente
-        </div>
-    </div>
-</div>
-
 
 <div class="modal fade" id="modalCreateSeller" tabindex="-1" role="dialog" aria-labelledby="modalCreateSellerLabel"
     aria-hidden="true">
@@ -580,13 +566,26 @@ document.querySelectorAll('input[type=number]').forEach(input => {
             xhr.send(formData);
         });
     });
-    $(document).ready(function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('created') === '1') {
-            $('#successToast').toast('show');
-        }
-    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
 
+    if (params.get('created') === '1') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Paquete creado correctamente',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true
+        });
+
+        // Limpia el parámetro para que no se repita
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
 </script>
 
 <?php if (session()->getFlashdata('success')): ?>
