@@ -3,7 +3,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex">
                 <h4 class="header-title">Lista de usuarios</h4>
                 <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('users/new') ?>"><i
                         class="fa-solid fa-plus"></i> Crear usuario</a>
