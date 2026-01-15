@@ -15,8 +15,11 @@ class TransactionsController extends BaseController
         if ($chk !== true) return $chk;
 
         $model = new TransactionModel();
-        $data['transactions'] = $model->getTransactionsWithAccountName();
-
+        $data = [
+            'transactions' => $model->getTransactionsWithAccountName(),
+            'transactions2' => $model->getTransactionsWithAccountNamePaginated(10),
+            'pager'        => $model->pager
+        ];
         return view('transactions/index', $data);
     }
 

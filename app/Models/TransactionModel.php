@@ -20,10 +20,6 @@ class TransactionModel extends Model
         'origen',
         'referencia',
     ];
-
-    /**
-     * Registra una entrada
-     */
     public function addEntrada($accountId, $monto, $origen = null, $referencia = null, $trackingId = null)
     {
         return $this->insert([
@@ -36,9 +32,6 @@ class TransactionModel extends Model
         ]);
     }
 
-    /**
-     * Registra una salida
-     */
     public function addSalida($accountId, $monto, $origen = null, $referencia = null, $trackingId = null)
     {
         return $this->insert([
@@ -51,9 +44,6 @@ class TransactionModel extends Model
         ]);
     }
 
-    /**
-     * Obtener todas las transacciones de una cuenta
-     */
     public function getByAccount($accountId)
     {
         return $this->where('account_id', $accountId)
@@ -66,5 +56,12 @@ class TransactionModel extends Model
             ->join('accounts', 'accounts.id = transactions.account_id', 'left')
             ->orderBy('transactions.created_at', 'DESC')
             ->findAll();
+    }
+        public function getTransactionsWithAccountNamePaginated($perPage = 10)
+    {
+        return $this->select('transactions.*, accounts.name as account_name')
+            ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->orderBy('transactions.created_at', 'DESC')
+            ->paginate($perPage);
     }
 }

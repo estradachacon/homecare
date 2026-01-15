@@ -15,7 +15,68 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+                <!-- Modo movil -->
+                <div class="d-block d-md-none" id="mobileView">
+                    <?php if (empty($transactions)): ?>
+                        <div class="alert alert-light text-center border">
+                            <p class="mb-0 text-muted">No hay movimientos registrados</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="list-group list-group-flush shadow-sm rounded border">
+                            <?php foreach ($transactions2 as $t): ?>
+                                <?php
+                                $isEntrada = $t->tipo == 'entrada';
+                                $color = $isEntrada ? 'text-success' : 'text-danger';
+                                $icon  = $isEntrada ? 'fa-arrow-down' : 'fa-arrow-up';
+                                $bg    = $isEntrada ? 'border-success' : 'border-danger';
+                                ?>
+                                <div class="list-group-item py-3 border-start border-4 <?= $bg ?>">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                <i class="fa-solid <?= $icon ?> <?= $color ?>"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold small text-dark"><?= esc($t->account_name) ?></h6>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <?= date('d/m/Y · H:i', strtotime($t->created_at)) ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold <?= $color ?>">
+                                                <?= $isEntrada ? '+' : '-' ?> $<?= number_format($t->monto, 2) ?>
+                                            </div>
+                                            <span class="badge rounded-pill <?= $isEntrada ? 'bg-success' : 'bg-danger' ?> px-2" style="font-size: 0.6rem;">
+                                                <?= strtoupper($t->tipo) ?>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2 pt-2 border-top">
+                                        <div class="small text-secondary">
+                                            <strong>Concepto:</strong> <?= esc($t->origen ?? 'Sin descripción') ?>
+                                        </div>
+                                        <?php if (!empty($t->referencia) || !empty($t->tracking_id)): ?>
+                                            <div class="d-flex justify-content-between mt-1" style="font-size: 0.7rem;">
+                                                <span class="text-muted">Ref: <?= esc($t->referencia ?: '—') ?></span>
+                                                <span class="text-muted">Track: <?= esc($t->tracking_id ?: '—') ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- PAGINACIÓN -->
+                    <div class="mt-3">
+                        <?= $pager->links('default', 'bitacora_pagination') ?>
+                    </div>
+
+                </div>
+                <!-- Modo Escritorio -->
+                <div class="table-responsive" id="desktopView">
                     <table class="table table-striped table-hover" id="transactionsTable">
                         <thead class="thead-primary bg-primary text-white">
                             <tr>
@@ -133,7 +194,7 @@
                     };
                 }
             }
-        }).trigger('change'); 
+        }).trigger('change');
     });
 </script>
 <script>
@@ -210,6 +271,24 @@
                 }
             });
         });
+    });
+</script>
+<script>
+    function toggleTransactionsView() {
+        const isMobile = window.innerWidth < 768;
+
+        if (isMobile) {
+            $('#mobileView').show();
+            $('#desktopView').hide();
+        } else {
+            $('#mobileView').hide();
+            $('#desktopView').show();
+        }
+    }
+
+    $(document).ready(function () {
+        toggleTransactionsView();
+        $(window).on('resize', toggleTransactionsView);
     });
 </script>
 

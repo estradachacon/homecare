@@ -17,9 +17,8 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
-
+                <!-- Modo Escritorio -->
                 <div class="row mb-3 align-items-end">
-
                     <div class="col-md-10">
                         <label for="searchInput">Buscar cuenta</label>
                         <div class="input-group">
@@ -48,8 +47,14 @@
                         </div>
                     </div>
                 </div>
-                <div id="table-container">
+                <!-- Modo Escritorio -->
+                <div class="d-none d-md-block" id="desktop-container">
                     <?= $this->include('accounts/_account_table') ?>
+                </div>
+
+                <!-- Modo Movil -->
+                <div class="d-block d-md-none" id="mobile-container">
+                    <?= $this->include('accounts/_account_cards') ?>
                 </div>
             </div>
         </div>
