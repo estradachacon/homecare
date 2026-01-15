@@ -10,44 +10,36 @@ use Config\Database;
 
 class CashierController extends Controller
 {
-    // Carga los modelos necesarios para asegurar que se usen correctamente
     protected $cashierModel;
     protected $branchModel;
     protected $userModel;
 
     public function __construct()
     {
-        // Inicializa los modelos para su uso en las funciones
         $this->cashierModel = new CashierModel();
         $this->branchModel = new \App\Models\BranchModel();
         $this->userModel = new \App\Models\UserModel();
     }
-
-    /**
-     * Muestra el listado de todas las cajas con información de sucursal y usuario.
-     */
     public function index()
     {
         $chk = requerirPermiso('ver_cajas');
         if ($chk !== true) return $chk;
+        $perPage = service('request')->getUserAgent()->isMobile() ? 6 : 10;
 
         $cashiers = $this->cashierModel
             ->select('cashier.*, users.user_name, branches.branch_name')
             ->join('users', 'users.id = cashier.user_id', 'left')
             ->join('branches', 'branches.id = cashier.branch_id')
-            ->findAll();
+            ->paginate($perPage);
 
         $data = [
-            'title' => 'Listado de Cajas',
-            'cashiers' => $cashiers
+            'title'    => 'Listado de Cajas',
+            'cashiers' => $cashiers,
+            'pager'    => $this->cashierModel->pager
         ];
 
         return view('cashier/index', $data);
     }
-
-    /**
-     * Muestra el formulario para crear una nueva caja.
-     */
     public function new()
     {
         $chk = requerirPermiso('crear_caja');
@@ -64,9 +56,6 @@ class CashierController extends Controller
         return view('cashier/new', $data);
     }
 
-    /**
-     * Guarda la información de la nueva caja en la base de datos.
-     */
     public function create()
     {
         helper(['form']);
@@ -88,25 +77,15 @@ class CashierController extends Controller
         return redirect()->to('/cashiers')->with('success', 'Caja creada exitosamente.');
     }
 
-    // --- FUNCIONES DE EDICIÓN Y ELIMINACIÓN SOLICITADAS ---
-
-    /**
-     * Muestra el formulario de edición con los datos de una caja específica.
-     * @param int $id El ID de la caja a editar.
-     */
     public function edit($id)
     {
         $chk = requerirPermiso('editar_caja');
         if ($chk !== true) return $chk;
-
-        // 1. Obtener la caja a editar
         $cashier = $this->cashierModel->find($id);
 
         if (!$cashier) {
             return redirect()->to('/cashiers')->with('error', 'Caja no encontrada.');
         }
-
-        // 2. Obtener la lista de ramas y usuarios (para los dropdowns)
         $branches = $this->branchModel->findAll();
         $users = $this->userModel->findAll();
 
@@ -115,33 +94,22 @@ class CashierController extends Controller
             'branches' => $branches,
             'users' => $users,
         ];
-
-        // Se asume que tienes una vista en 'cashier/edit'
         return view('cashier/edit', $data);
     }
-
-    /**
-     * Procesa y actualiza los datos de la caja.
-     * @param int $id El ID de la caja a actualizar (viene del segmento de la URL).
-     */
     public function update($id)
     {
         helper(['form']);
         $session = session();
-        // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
         if (!$this->validate([
             'name' => 'required|min_length[3]|max_length[100]',
             'initial_balance' => 'required|numeric',
             'branch_id' => 'required|integer',
             'user_id' => 'required|integer',
         ])) {
-            // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
             return redirect()->back()
-                ->withInput() // Mantiene los datos que el usuario ingresó
-                ->with('errors', $this->validator->getErrors()); // Envía los errores a la vista
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
         }
-
-        // 3. Si la validación es exitosa, se procede a la actualización
         $data = [
             'name' => $this->request->getPost('name'),
             'initial_balance' => $this->request->getPost('initial_balance'),
@@ -159,10 +127,6 @@ class CashierController extends Controller
         return redirect()->to('/cashiers')->with('success', 'Caja actualizada exitosamente.');
     }
 
-    /**
-     * Elimina una caja de la base de datos.
-     * @param int $id El ID de la caja a eliminar.
-     */
     public function delete()
     {
         helper(['form']);
@@ -190,8 +154,6 @@ class CashierController extends Controller
     {
         $userId = session()->get('id');
         $db = db_connect();
-
-        // 🔹 Buscar sesión abierta
         $session = $db->table('cashier_sessions cs')
             ->select('cs.*, c.name, c.current_balance')
             ->join('cashier c', 'c.id = cs.cashier_id')
@@ -216,7 +178,6 @@ class CashierController extends Controller
             ]);
         }
 
-        // 🔹 NO hay sesión → buscar caja asignada
         $cashier = $db->table('cashier')
             ->where('user_id', $userId)
             ->where('is_open', 0)
@@ -240,7 +201,6 @@ class CashierController extends Controller
         $db = db_connect();
         $db->transStart();
 
-        // 1️⃣ Buscar caja asignada al usuario
         $cashier = $db->table('cashier')
             ->where('user_id', $userId)
             ->where('is_open', 0)
@@ -267,10 +227,8 @@ class CashierController extends Controller
             ]);
         }
 
-        // 💰 Monto de apertura
         $openingAmount = (float) $cashier['initial_balance'];
 
-        // 🔹 Obtener cuenta efectivo (ID = 1)
         $account = $db->table('accounts')
             ->where('id', 1)
             ->get()
@@ -284,7 +242,6 @@ class CashierController extends Controller
             ]);
         }
 
-        // ❌ Saldo insuficiente
         if ((float)$account['balance'] < $openingAmount) {
             $db->transRollback();
             return $this->response->setJSON([
@@ -293,7 +250,6 @@ class CashierController extends Controller
             ]);
         }
 
-        // 🔻 Actualizar cuenta efectivo
         $db->table('accounts')
             ->where('id', 1)
             ->update([
@@ -301,7 +257,6 @@ class CashierController extends Controller
                 'cashier_reserv' => $account['cashier_reserv'] + $openingAmount,
             ]);
 
-        // 2️⃣ Abrir caja
         $db->table('cashier')
             ->where('id', $cashier['id'])
             ->update([
@@ -309,7 +264,6 @@ class CashierController extends Controller
                 'current_balance' => $cashier['initial_balance'],
             ]);
 
-        // 3️⃣ Crear sesión
         $db->table('cashier_sessions')->insert([
             'cashier_id'     => $cashier['id'],
             'user_id'        => $userId,
@@ -321,10 +275,9 @@ class CashierController extends Controller
 
         $cashierSessionId = $db->insertID();
 
-        // 4️⃣ Crear registro de movimiento de apertura
         $db->table('cashier_movements')->insert([
             'cashier_id'         => $cashier['id'],
-            'cashier_session_id' => $cashierSessionId, // ✅ ya existe
+            'cashier_session_id' => $cashierSessionId,
             'user_id'            => $userId,
             'branch_id'          => $cashier['branch_id'],
             'type'               => 'in',
@@ -344,7 +297,6 @@ class CashierController extends Controller
                 'message' => 'Error al abrir la caja'
             ]);
         }
-        // Registrar bitácora
         registrar_bitacora(
             'Apertura de caja',
             'Remuneraciones',
@@ -369,24 +321,33 @@ class CashierController extends Controller
     {
         $chk = requerirPermiso('ver_historicos_de_caja');
         if ($chk !== true) return $chk;
-        $session = session();
 
-        $db = db_connect();
+        $search = $this->request->getGet('q');
 
-        $transactions = $db->table('cashier_movements cm')
-            ->select('cm.*, u.user_name')
-            ->join('users u', 'u.id = cm.user_id', 'left')
-            ->orderBy('cm.created_at', 'DESC')
-            ->get()
-            ->getResultObject();
+        $model = new CashierMovementModel();
 
-        $data = [
-            'title' => 'Movimientos de Caja',
-            'transactions' => $transactions
-        ];
+        $model->select('cashier_movements.*, users.user_name')
+            ->join('users', 'users.id = cashier_movements.user_id', 'left')
+            ->orderBy('cashier_movements.created_at', 'DESC');
 
-        return view('cashier/movements', $data);
+        if ($search) {
+            $model->groupStart()
+                ->like('concept', $search)
+                ->orLike('reference_type', $search)
+                ->orLike('users.user_name', $search)
+                ->groupEnd();
+        }
+
+        $transactions = $model->paginate(15);
+
+        return view('cashier/movements', [
+            'title'        => 'Movimientos de Caja',
+            'transactions' => $transactions,
+            'pager'        => $model->pager,
+            'search'       => $search
+        ]);
     }
+
     public function summary(int $cashierId)
     {
         if (!tienePermiso('hacer_corte')) {
@@ -432,8 +393,6 @@ class CashierController extends Controller
     public function close()
     {
         helper(['form', 'transaction']);
-
-        // ✅ sesión CI
         $ciSession = session();
 
         if (!tienePermiso('hacer_corte')) {
@@ -446,14 +405,11 @@ class CashierController extends Controller
         $cashierModel  = new CashierModel();
         $movementModel = new CashierMovementModel();
 
-        // ✅ sesión de caja
         $cashierSession = $sessionModel->find($sessionId);
 
         if (!$cashierSession || $cashierSession->status !== 'open') {
             return $this->response->setJSON(['error' => 'Estado inválido'])->setStatusCode(400);
         }
-
-        // ✅ caja real
         $cashier = $cashierModel->find($cashierSession->cashier_id);
 
         if (!$cashier) {
@@ -463,20 +419,16 @@ class CashierController extends Controller
         $db = Database::connect();
         $db->transStart();
 
-        /* 🔹 cerrar sesión */
         $sessionModel->update($cashierSession->id, [
             'status'         => 'closed',
             'closing_amount' => $cashier->current_balance,
             'close_time'     => date('Y-m-d H:i:s'),
         ]);
 
-        /* 🔹 cerrar caja */
         $cashierModel->update($cashier->id, [
             'is_open'         => 0,
             'current_balance' => 0,
         ]);
-
-        /* 🔹 movimiento de cierre */
         $movementModel->insert([
             'cashier_id'         => $cashier->id,
             'cashier_session_id' => $cashierSession->id,
@@ -491,13 +443,11 @@ class CashierController extends Controller
             'created_at'         => date('Y-m-d H:i:s'),
         ]);
 
-        // 🔹 Obtener cuenta efectivo (ID = 1)
         $account = $db->table('accounts')
             ->where('id', 1)
             ->get()
             ->getRowArray();
 
-        // 🔻 Actualizar reserva de efectivo (sale dinero de caja)
         $db->table('accounts')
             ->where('id', 1)
             ->set('balance', 'balance + ' . $cashier->current_balance, false)
@@ -510,19 +460,17 @@ class CashierController extends Controller
         if ($db->transStatus() === false) {
             return $this->response->setJSON(['error' => 'Error al cerrar la caja'])->setStatusCode(500);
         }
-
-        /* 🔹 bitácora */
         registrar_bitacora(
             'Cierre de caja',
             'Finanzas',
             'Se cerró la caja con ID ' . $cashier->id,
             $ciSession->get('id')
         );
-        
+
         registrarEntrada(
             1,
             $cashier->current_balance,
-            "Cierre de caja ID {$cashier->id} con los valores: ". $cashier->current_balance . " - " . $cashierSession->initial_amount . " = " . ($cashier->current_balance - $cashierSession->initial_amount),
+            "Cierre de caja ID {$cashier->id} con los valores: " . $cashier->current_balance . " - " . $cashierSession->initial_amount . " = " . ($cashier->current_balance - $cashierSession->initial_amount),
             "Cierre de caja con ID de Sesión {$cashierSession->id}",
             $cashierSession->id
         );

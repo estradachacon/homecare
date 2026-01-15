@@ -13,9 +13,6 @@ function formatDateDMY($fecha)
     $d = new DateTime($fecha);
     return $d->format('d/m/Y');
 }
-
-// Asegúrate de que las funciones serviceLabel() y statusBadge() 
-// estén definidas en tus Helpers o estén disponibles globalmente.
 ?>
 
 <div class="row">

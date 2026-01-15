@@ -267,6 +267,7 @@
                 padding: 20px;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                 transition: all 0.3s ease-in-out;
+                z-index: 1100;
             }
 
             header .menu-list.hidden {
@@ -510,7 +511,7 @@
                     <button id="menuToggle" aria-expanded="false" aria-label="Menú principal">&#9776;</button>
                 </div>
             </div>
-            <ul class="menu-list hidden fancy-menu">
+            <ul class="menu-list hidden fancy-menu" id="mainMenu">
                 <li class="menu-item"><a href="<?= base_url('/rutas') ?>">Nuestras rutas</a></li>
                 <li class="menu-item"><a href="<?= base_url('/sucursales') ?>">Ubicación</a></li>
                 <li class="menu-item"><a href="<?= base_url('/quienes-somos') ?>">Quienes somos</a></li>
@@ -570,6 +571,24 @@
                 });
             <?php endif; ?>
         </script>
+        <script>
+    const menuToggle = document.getElementById('menuToggle');
+    const menu = document.getElementById('mainMenu');
+
+    // Función para cerrar el menú
+    function closeMenu() {
+        menu.classList.add('hidden');
+        menuToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    // Cerrar menú al hacer clic en cualquier item
+    menu.querySelectorAll('.menu-item a').forEach(link => {
+        link.addEventListener('click', () => {
+            closeMenu();
+        });
+    });
+</script>
+
 </body>
 
 </html>

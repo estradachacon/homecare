@@ -43,9 +43,19 @@
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-body p-0">
+
+            <div class="modal-body p-0 position-relative">
+
+                <button type="button"
+                    class="btn-close position-absolute top-0 end-0 m-3"
+                    data-bs-dismiss="modal"
+                    aria-label="Cerrar"
+                    style="z-index: 10;">
+                </button>
+
                 <img src="" id="modalImage" class="w-100" style="object-fit: contain;">
                 <p class="text-center p-2" id="modalCaption"></p>
+
             </div>
         </div>
     </div>

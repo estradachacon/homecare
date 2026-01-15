@@ -14,51 +14,76 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
-
-                <!-- Modo móvil -->
+                <!-- Modo movil -->
                 <div class="d-block d-md-none">
                     <?php if (empty($cashiers)): ?>
-                        <div class="text-center">No hay cajas registradas.</div>
+                        <div class="alert alert-light text-center shadow-sm">
+                            <i class="fa-solid fa-inbox mb-2 fa-2x text-muted"></i>
+                            <p class="mb-0">No hay cajas registradas actualmente.</p>
+                        </div>
                     <?php else: ?>
                         <?php foreach ($cashiers as $cashier): ?>
-                            <div class="card p-2">
-                                <div class="card-body d-flex justify-content-between text-center align-items-center">
-                                    <span><strong>Nombre / Usuario:</strong> <?= esc($cashier->name) ?> || <?= esc($cashier->user_name) ?></span>
-                                </div>
-                                <div>
-                                    <span><strong>Monto Asignado:</strong> <?= esc($cashier->initial_balance) ?></span>
-                                </div>
-                                <div>
-                                    <p><strong>Sucursal:</strong> <?= esc($cashier->branch_name) ?></p>
-                                </div>
-                                <div class="text-right">
-                                    <button class="btn btn-sm btn-primary toggle-details">Ver</button>
-                                </div>
-                                <div class="details mt-2 d-none">
-                                    <p><strong>ID:</strong> <?= esc($cashier->id) ?></p>
+                            <?php
+                            $status = esc($cashier->is_open);
+                            $badgeClass = $status == '1' ? 'bg-info' : 'bg-warning'; // Colores más semánticos
+                            ?>
+                            <div class="card mb-3 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                                <div style="height: 4px;" class="<?= $badgeClass ?>"></div>
 
-                                    <p><strong>Monto actual:</strong> <?= esc($cashier->current_balance) ?></p>
-                                    <p><strong>Estado:</strong>
-                                        <?php if ($cashier->is_open): ?>Caja abierta<?php else: ?>Caja cerrada<?php endif; ?>
-                                    </p>
-                                    <div class="text-center mt-2">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h5 class="fw-bold mb-0 text-primary">
+                                                <i class="fa-solid fa-cash-register me-2"></i><?= esc($cashier->name) ?>
+                                            </h5>
+                                            <small class="text-muted">ID: #<?= esc($cashier->id) ?></small>
+                                        </div>
+                                        <span class="badge <?= $badgeClass ?> rounded-pill">
+                                            <?= $status == 1 ? 'Abierta' : 'Cerrada' ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">Usuario</label>
+                                            <span class="fw-medium"><i class="fa-solid fa-user-tie me-1 text-secondary"></i> <?= esc($cashier->user_name) ?></span>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="text-muted small d-block">Sucursal</label>
+                                            <span class="fw-medium"><i class="fa-solid fa-building me-1 text-secondary"></i> <?= esc($cashier->branch_name) ?></span>
+                                        </div>
+                                        <div class="col-6 mt-2">
+                                            <label class="text-muted small d-block">Monto Inicial</label>
+                                            <span class="text-dark">$<?= number_format($cashier->initial_balance, 2) ?></span>
+                                        </div>
+                                        <div class="col-6 mt-2">
+                                            <label class="text-muted small d-block">Monto Actual</label>
+                                            <span class="fw-bold text-success">$<?= number_format($cashier->current_balance, 2) ?></span>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-3 opacity-25">
+
+                                    <div class="d-flex justify-content-between gap-2">
                                         <?php if ($cashier->is_open == '1' && tienePermiso('hacer_corte')): ?>
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-primary btn-cerrar-caja"
-                                                data-cashier-id="<?= esc($cashier->id) ?>">
-                                                <i class="fa-solid fa-scissors"></i>
+                                            <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1 py-2 btn-cerrar-caja" data-cashier-id="<?= esc($cashier->id) ?>">
+                                                <i class="fa-solid fa-scissors me-1"></i> Cerrar Caja
                                             </button>
                                         <?php endif; ?>
 
-                                        <?php if (tienePermiso('editar_caja')): ?>
-                                            <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>"
-                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
-                                        <?php endif; ?>
-                                        <?php if (tienePermiso('eliminar_caja')): ?>
-                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $cashier->id ?>"><i
-                                                    class="fa-solid fa-trash"></i></button>
-                                        <?php endif; ?>
+                                        <div class="d-flex gap-2">
+                                            <?php if (tienePermiso('editar_caja')): ?>
+                                                <a href="<?= base_url('cashiers/edit/' . $cashier->id) ?>" class="btn btn-light btn-sm px-3 py-2 border">
+                                                    <i class="fa-solid fa-edit text-info"></i>
+                                                </a>
+                                            <?php endif; ?>
+
+                                            <?php if (tienePermiso('eliminar_caja')): ?>
+                                                <button class="btn btn-light btn-sm px-3 py-2 border delete-btn" data-id="<?= $cashier->id ?>">
+                                                    <i class="fa-solid fa-trash text-danger"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -139,7 +164,10 @@
                         </tbody>
                     </table>
                 </div>
-
+                <!-- 🔽 PAGER COMPARTIDO -->
+                <div class="d-flex justify-content-center mt-3">
+                    <?= $pager->links('default', 'bitacora_pagination') ?>
+                </div>
             </div>
         </div>
     </div>
