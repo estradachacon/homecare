@@ -1,6 +1,26 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
+<style>
+    /* Animación dropdown */
+.dropdown-menu.show .dropdown-item {
+    animation: fadeItem 0.4s ease forwards;
+}
+
+@keyframes fadeItem {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+
+</style>
 <script>
     const base_url = "<?= base_url() ?>";
 </script>
