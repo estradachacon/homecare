@@ -47,14 +47,17 @@
                         </div>
                     </div>
                 </div>
-                <!-- Modo Escritorio -->
-                <div class="d-none d-md-block" id="desktop-container">
-                    <?= $this->include('accounts/_account_table') ?>
-                </div>
+                <div id="table-container">
+                    <!-- Modo Escritorio -->
+                    <div class="d-none d-md-block" id="desktop-container">
+                        <?= $this->include('accounts/_account_table') ?>
+                    </div>
 
-                <!-- Modo Movil -->
-                <div class="d-block d-md-none" id="mobile-container">
-                    <?= $this->include('accounts/_account_cards') ?>
+                    <!-- Modo Movil -->
+                    <div class="d-block d-md-none" id="mobile-container">
+                        <?= $this->include('accounts/_account_cards') ?>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -137,7 +140,6 @@
                         text: response.message
                     });
                 }
-
             },
             error: function() {
                 Swal.fire({
@@ -169,7 +171,6 @@
                     };
                 },
 
-
                 processResults: function(data) {
                     return {
                         results: data.map(item => ({
@@ -190,19 +191,23 @@
         const tableContainer = document.getElementById('table-container');
         const loadingSpinner = document.getElementById('loading-spinner');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const perPageSelect = document.getElementById('perPageSelect');
         const baseUrl = '<?= base_url('accounts/searchAjax') ?>';
+
         let searchTimeout;
 
-        // Función para cargar los resultados (tabla)
-        function loadResults(query, page = 1) {
-            const perPage = document.getElementById('perPageSelect').value;
-
+        function loadResults(query = '', page = 1) {
+            const perPage = perPageSelect.value;
             const url = `${baseUrl}?q=${encodeURIComponent(query)}&page=${page}&perPage=${perPage}`;
 
-            loadingSpinner.style.display = 'block';
+            loadingSpinner.style.display = 'inline-block';
 
-            fetch(url)
-                .then(response => response.text())
+            fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.text())
                 .then(html => {
                     tableContainer.innerHTML = html;
                     loadingSpinner.style.display = 'none';
@@ -211,55 +216,58 @@
                 })
                 .catch(() => {
                     loadingSpinner.style.display = 'none';
-                    tableContainer.innerHTML = '<div class="alert alert-danger">Error al cargar los datos.</div>';
+                    tableContainer.innerHTML =
+                        '<div class="alert alert-danger">Error al cargar los datos.</div>';
                 });
         }
-
-        // 🔥 Cuando cambias los resultados por página
-        document.getElementById('perPageSelect').addEventListener('change', function() {
-            const query = searchInput.value.trim();
-            loadResults(query, 1);
+        perPageSelect.addEventListener('change', () => {
+            loadResults(searchInput.value.trim(), 1);
         });
 
-        // Re-adjuntar eventos (paginación y delete)
-        function rebindEvents() {
-            document.querySelectorAll('#pagination-links a').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const url = new URL(this.href);
-                    const page = url.searchParams.get('page');
-                    const currentQuery = searchInput.value.trim();
-                    loadResults(currentQuery, page);
-                });
-            });
-
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            deleteButtons.forEach(button => {
-                button.removeEventListener('click', handleDelete);
-                button.addEventListener('click', handleDelete);
-            });
-        }
-
-        // Búsqueda en vivo
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             const query = this.value.trim();
+
             searchTimeout = setTimeout(() => {
-                loadResults(query);
+                loadResults(query, 1);
             }, 300);
         });
 
         clearSearchBtn.addEventListener('click', function() {
             searchInput.value = '';
-            loadResults('');
+            loadResults('', 1);
             updateClearButton('');
         });
 
         function updateClearButton(query) {
-            clearSearchBtn.style.display = query.length > 0 ? 'block' : 'none';
+            clearSearchBtn.style.display = query.length ? 'inline-block' : 'none';
         }
 
-        // Eliminar – SweetAlert
+        function rebindEvents() {
+
+            document.querySelectorAll('#pagination-links a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = new URL(this.href);
+                    const page = url.searchParams.get('page') || 1;
+                    loadResults(searchInput.value.trim(), page);
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = handleDelete;
+            });
+            document.querySelectorAll('.toggle-details').forEach(btn => {
+                btn.onclick = function() {
+                    const details = this.closest('.card').querySelector('.details');
+                    details.classList.toggle('d-none');
+                    this.textContent = details.classList.contains('d-none') ?
+                        'Ver' :
+                        'Ocultar';
+                };
+            });
+        }
+
         function handleDelete() {
             const id = this.dataset.id;
 
@@ -273,49 +281,35 @@
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar'
             }).then(result => {
-                if (result.isConfirmed) {
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                    const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
+                if (!result.isConfirmed) return;
 
-                    fetch("<?= base_url('accounts/delete') ?>", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: new URLSearchParams({
-                                id
-                            })
+                fetch("<?= base_url('accounts/delete') ?>", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams({
+                            id
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            Swal.fire({
-                                title: data.status === 'success' ? 'Éxito' : 'Error',
-                                text: data.message,
-                                icon: data.status,
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-
-                            if (data.status === 'success') {
-                                const query = searchInput.value.trim();
-                                loadResults(query);
-                            }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: data.status,
+                            title: data.status === 'success' ? 'Éxito' : 'Error',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false
                         });
-                }
+
+                        if (data.status === 'success') {
+                            loadResults(searchInput.value.trim());
+                        }
+                    });
             });
         }
 
-        // Toggle detalles
-        document.querySelectorAll('.toggle-details').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const details = this.closest('.card').querySelector('.details');
-                details.classList.toggle('d-none');
-                this.textContent = details.classList.contains('d-none') ? 'Ver' : 'Ocultar';
-            });
-        });
-
-        // Inicializar
         rebindEvents();
         updateClearButton(searchInput.value.trim());
     });

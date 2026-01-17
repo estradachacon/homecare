@@ -29,7 +29,6 @@ class AccountController extends BaseController
 
         $builder = $this->accountModel;
 
-        // BÚSQUEDA GENERAL
         if ($q !== '') {
             $builder = $builder
                 ->groupStart()
@@ -38,7 +37,6 @@ class AccountController extends BaseController
                 ->groupEnd();
         }
 
-        // FILTRO ALFABÉTICO
         if ($alpha !== '') {
             $builder = $builder->like('name', $alpha, 'after');
         }
@@ -101,14 +99,8 @@ class AccountController extends BaseController
             'accounts' => $account,
         ];
 
-        // Se asume que tienes una vista en 'accounts/edit'
         return view('accounts/edit', $data);
     }
-
-    /**
-     * Procesa y actualiza los datos de la caja.
-     * @param int $id El ID de la caja a actualizar (viene del segmento de la URL).
-     */
     public function update($id)
     {
         helper(['form']);
@@ -122,32 +114,21 @@ class AccountController extends BaseController
             'type'        => $this->request->getPost('type'),
         ];
 
-        // 2. Obtener la cuenta antigua para referencia de nombre y comparación
         $oldAccount = $accountModel->find($id);
 
         if (!$oldAccount) {
             return redirect()->to('/accounts')->with('error', 'Cuenta no encontrada.');
         }
 
-        // 3. Usar el método update de CodeIgniter. 
-        // Por defecto, solo actualiza si hay cambios, y el modelo solo permite campos 'allowedFields'.
         $accountModel->update($id, $newData);
 
-        // El método update de CI4 devuelve true si se actualizó al menos 1 fila, o false si no hubo cambios.
-        // Aunque el modelo de CI4 no siempre indica *si* hubo cambios, podemos asumir que si llegamos aquí, 
-        // la intención fue actualizar, o revisar si el modelo lo permite. 
-        // Para simplificar, nos centraremos en los campos clave.
-
-        // 4. Crear un resumen de los cambios (más conciso)
         $changesSummary = [];
         foreach ($newData as $key => $value) {
-            // Asumiendo que $oldAccount es un objeto
             if (isset($oldAccount->$key) && $oldAccount->$key != $value) {
                 $changesSummary[] = ucfirst($key) . " de '{$oldAccount->$key}' a '{$value}'";
             }
         }
 
-        // Título descriptivo para la bitácora
         $logTitle = 'Cuenta Actualizada: ' . $oldAccount->name;
 
         if (empty($changesSummary)) {
@@ -156,7 +137,6 @@ class AccountController extends BaseController
             $logDetails = "Se editaron los siguientes campos en la cuenta '{$oldAccount->name}' (ID: {$id}): " . implode(', ', $changesSummary) . ".";
         }
 
-        // 5. Registrar en la Bitácora
         registrar_bitacora(
             $logTitle,
             'Finanzas/Cuentas',
@@ -197,15 +177,12 @@ class AccountController extends BaseController
         $model = new AccountModel();
         $accounts = $model->searchAccounts($term);
 
-        // Formato que Select2 necesita
         $results = array_map(function ($s) {
             return [
-                'id'   => $s->id,      // 👈 Ahora se enviará el ID real
-                'text' => $s->name   // 👈 Lo que verá el usuario
-
+                'id'   => $s->id,     
+                'text' => $s->name   
             ];
         }, $accounts);
-
         return $this->response->setJSON($results);
     }
 
@@ -253,47 +230,41 @@ class AccountController extends BaseController
     }
     public function searchAjax()
     {
-        // Obtenemos el término de búsqueda y la página actual
         $q = trim($this->request->getGet('q') ?? '');
-        $perPage = intval($this->request->getGet('perPage') ?? 10); // Mantener el límite de paginación
+        $perPage = (int)($this->request->getGet('perPage') ?? 10);
 
         $builder = $this->accountModel;
 
-        // BÚSQUEDA GENERAL
         if ($q !== '') {
-            $builder = $builder
-                ->groupStart()
+            $builder->groupStart()
                 ->like('name', $q)
                 ->orLike('id', $q)
                 ->groupEnd();
         }
 
-        // Si necesitas ordenar, hazlo aquí antes de paginar:
-        $builder = $builder->orderBy('id', 'DESC');
+        $builder->orderBy('id', 'DESC');
+
+        $accounts = $builder->paginate($perPage);
 
         $data = [
-            'q' => $q,
-            'accounts' => $builder->paginate($perPage),
-            'pager' => $builder->pager,
-            // No pasamos 'perPage' ni 'alpha' ya que esta función solo refresca la tabla.
+            'q'        => $q,
+            'accounts' => $accounts,
+            'pager'    => $builder->pager,
         ];
 
-        // Importante: Devolvemos una vista parcial que solo contiene la tabla.
-        // Tienes que crear esta nueva vista.
-        return view('accounts/_account_table', $data);
+        return view('accounts/_account_results', $data);
     }
+
     public function list()
     {
         $accountModel = new AccountModel();
 
-        // Obtener término buscado en Select2
         $q = $this->request->getGet('q');
 
         $builder = $accountModel
             ->select('id, name, balance')
             ->where('is_active', 1);
 
-        // Si hay búsqueda, filtrar
         if (!empty($q)) {
             $builder->like('name', $q);
         }
@@ -303,7 +274,6 @@ class AccountController extends BaseController
 
     public function processTransfer()
     {
-        // SOLO aceptar AJAX
         if (! $this->request->isAJAX()) {
             return $this->response->setJSON([
                 'status' => 'error',
@@ -312,15 +282,13 @@ class AccountController extends BaseController
         }
 
         $request = $this->request;
-        $session = session(); // 👈 Obtenemos la sesión para el user_id
+        $session = session(); 
 
-        // Forzar tipos
         $origenId = (int) $request->getPost('account_source');
         $destinoId = (int) $request->getPost('account_destination');
         $monto     = (float) $request->getPost('monto');
         $descripcion = $request->getPost('descripcion') ?? '';
 
-        // Validaciones básicas
         if ($origenId <= 0 || $destinoId <= 0) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Cuenta origen o destino inválida.']);
         }
@@ -345,16 +313,14 @@ class AccountController extends BaseController
                 throw new \Exception('Cuenta origen o destino no encontrada.');
             }
 
-            // Saldo suficiente (si la tabla tiene balance)
             if (isset($originAccount->balance) && $originAccount->balance < $monto) {
                 throw new \Exception('Saldo insuficiente en la cuenta origen.');
             }
 
-            // Insertar transacciones
             $transactionModel->insert([
                 'account_id' => $origenId,
                 'tipo'       => 'salida',
-                'monto'      => $monto, // Aseguramos que sea negativo para egreso
+                'monto'      => $monto, 
                 'origen' => 'Transferencia enviada a cuenta ' . $destinoId . ' (' . $destAccount->name . '): ' . $descripcion,
                 'referencia' => 'Transferencia entre cuentas',
             ]);
@@ -362,12 +328,11 @@ class AccountController extends BaseController
             $transactionModel->insert([
                 'account_id'    => $destinoId,
                 'tipo'       => 'entrada',
-                'monto'      => $monto, // Positivo para ingreso
+                'monto'      => $monto, 
                 'origen' => 'Transferencia recibida desde cuenta ' . $origenId . ' (' . $originAccount->name . '): ' . $descripcion,
                 'referencia' => 'Transferencia entre cuentas',
             ]);
 
-            // Actualizar balances
             $db->table('accounts')
                 ->set('balance', "balance - {$monto}", false)
                 ->where('id', $origenId)
@@ -390,7 +355,7 @@ class AccountController extends BaseController
                 'Transferencia exitosa',
                 'Finanzas/Transferencias',
                 $logDetails,
-                $session->get('user_id') // Asume que tienes el user_id en la sesión
+                $session->get('user_id') 
             );
             return $this->response->setJSON([
                 'status' => 'success',
@@ -399,7 +364,6 @@ class AccountController extends BaseController
         } catch (\Exception $e) {
             $db->transRollback();
 
-            // 🚨 REGISTRO EN LA BITÁCORA - ERROR 🚨
             $errorDetails = "Transferencia fallida entre ID {$origenId} y ID {$destinoId}. Error: " . $e->getMessage();
             registrar_bitacora(
                 'Error de Transferencia',
