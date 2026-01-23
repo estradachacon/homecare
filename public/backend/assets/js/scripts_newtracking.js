@@ -163,8 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
             tr.innerHTML = `
             <td><input type="checkbox" class="chkEspecial" data-id="${p.id}"></td>
             <td>${p.id}</td>
-            <td>${p.cliente}</td>
             <td>${p.vendedor}</td>
+            <td>${p.cliente}</td>
             <td>${p.tipo_servicio == 2 ? p.destino_personalizado : p.lugar_recolecta_paquete}</td>
             <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
         `;
