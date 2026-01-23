@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Contenedores de Punto Fijo
     const puntoFijoSelectContainer = document.getElementById('punto_fijo_container');
     const fechaPuntoFijoContainer = document.getElementById('fecha_punto_fijo_container');
+    // Contenedor de Sucursal (Casillero)
+    const sucursalContainer = document.getElementById('sucursal_container');
     // Campos de Input/Select
     const retiroInput = document.getElementById('retiro_paquete');
     const destinoInput = document.getElementById('destino_input');
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(tipoEntregaContainer);
                 ocultarCampo(retiroContainer);
                 ocultarCampo(fechaEntregaContainer);
+                ocultarCampo(sucursalContainer);
                 puntoFijoSelect.required = true;
                 fechaPuntoFijoInput.required = true;
                 break;
@@ -88,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(retiroContainer);
                 ocultarCampo(tipoEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
+                ocultarCampo(sucursalContainer);
                 destinoInput.required = true;
                 fechaEntregaOriginal.required = true;
                 break;
@@ -100,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(destinoContainer);
                 ocultarCampo(fechaEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
+                ocultarCampo(sucursalContainer);
                 break;
 
             case '4': // Casillero
@@ -110,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(retiroContainer);
                 ocultarCampo(fechaEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
+                mostrarCampo(sucursalContainer);
                 break;
 
             default:

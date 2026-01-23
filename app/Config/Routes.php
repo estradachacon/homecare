@@ -117,6 +117,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Módulo de mantenimiento de rutas
     $routes->presenter('routes', ['controller' => 'RouteController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('routes/delete', 'RouteController::delete');
+    
+    // Select2 Colonias
+    $routes->get('ajax/colonias/search', 'UbicacionesController::searchColonias');
+
 
     // Módulo de mantenimiento de paquetes
     $route['upload-paquete'] = 'PackageController/subirImagen';

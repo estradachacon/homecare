@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const puntoFijoSelect = document.getElementById('puntofijo_select');
     const fechaPuntoFijoInput = document.getElementById('fecha_entrega_puntofijo');
     const fechaEntregaOriginal = document.querySelector('[name="fecha_entrega"]'); // Campo de Fecha de Entrega general
+    const coloniaContainer = document.getElementById('colonia_container');
+    const coloniaSelect = document.getElementById('colonia_id');
+
 
     function mostrarCampo(el) {
         if (!el) return;
@@ -61,6 +64,10 @@ document.addEventListener('DOMContentLoaded', function () {
         ocultarCampo(retiroContainer);
         ocultarCampo(tipoEntregaContainer);
         ocultarCampo(destinoContainer);
+
+        ocultarCampo(municipioContainer);
+        ocultarCampo(coloniaContainer);
+
         ocultarCampo(fechaEntregaContainer);
         fechaEntregaOriginal.required = false;
     }
@@ -80,18 +87,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(retiroContainer);
                 ocultarCampo(fechaEntregaContainer);
                 ocultarCampo(sucursalContainer);
+                ocultarCampo(coloniaContainer);
                 puntoFijoSelect.required = true;
                 fechaPuntoFijoInput.required = true;
                 break;
 
             case '2': // Personalizado (A domicilio)
                 mostrarCampo(destinoContainer);
+
+                mostrarCampo(coloniaContainer);
+
                 mostrarCampo(fechaEntregaContainer);
                 ocultarCampo(puntoFijoSelectContainer);
                 ocultarCampo(retiroContainer);
                 ocultarCampo(tipoEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
                 ocultarCampo(sucursalContainer);
+                
+                coloniaSelect.required = true;
+                
                 destinoInput.required = true;
                 fechaEntregaOriginal.required = true;
                 break;
@@ -105,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(fechaEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
                 ocultarCampo(sucursalContainer);
+                ocultarCampo(coloniaContainer);
                 break;
 
             case '4': // Casillero
@@ -116,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ocultarCampo(fechaEntregaContainer);
                 ocultarCampo(fechaPuntoFijoContainer);
                 mostrarCampo(sucursalContainer);
+                ocultarCampo(coloniaContainer);
                 break;
 
             default:
@@ -136,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
             case '5':  // Punto fijo
                 mostrarCampo(puntoFijoSelectContainer);
                 mostrarCampo(fechaPuntoFijoContainer);
+                ocultarCampo(coloniaContainer);
                 puntoFijoSelect.required = true;
                 fechaPuntoFijoInput.required = true;
                 break;
@@ -143,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'personalizada': // Entrega personalizada
                 mostrarCampo(destinoContainer);
                 mostrarCampo(fechaEntregaContainer);
+                mostrarCampo(coloniaContainer);
                 destinoInput.required = true;
                 fechaEntregaOriginal.required = true;
                 break;
@@ -346,5 +364,5 @@ document.addEventListener('DOMContentLoaded', function () {
             configurarDatepicker();
         }
     });
-    
+
 });

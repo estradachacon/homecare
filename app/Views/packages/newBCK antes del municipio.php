@@ -1,24 +1,23 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <style>
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        min-height: 50px;
-        z-index: 1050;
-        pointer-events: none;
-    }
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-height: 50px; 
+    z-index: 1050; 
+    pointer-events: none; 
+}
+.toast {
+    pointer-events: auto; 
+    min-width: 250px;
+}
+.toast.show {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
 
-    .toast {
-        pointer-events: auto;
-        min-width: 250px;
-    }
-
-    .toast.show {
-        opacity: 1;
-        transition: opacity 0.5s ease-in-out;
-    }
 </style>
 <link rel="stylesheet" href="<?= base_url('backend/assets/css/newpackage.css') ?>">
 
@@ -92,15 +91,6 @@
                             <input type="text" name="destino" class="form-control" id="destino_input"
                                 placeholder="Colonia o dirección de destino" required>
                         </div>
-
-                        <!-- Colonia -->
-                        <div class="col-md-6 destino-container" id="colonia_container" style="display:none;">
-                            <label class="form-label">Colonia</label>
-                            <select id="colonia_id" name="colonia_id" class="form-select" style="width:100%;">
-                                <option value=""></option>
-                            </select>
-                        </div>
-
 
                         <!-- Sucursal para casillero -->
                         <div class="col-md-6 sucursal-container" id="sucursal_container" style="display: none;">
@@ -278,13 +268,13 @@
 </div>
 <script src="/backend/assets/js/scripts_packaging.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Evitar que scroll cambie los números
-        document.querySelectorAll('input[type=number]').forEach(input => {
-            input.addEventListener('wheel', function(e) {
-                e.preventDefault();
-            });
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+// Evitar que scroll cambie los números
+document.querySelectorAll('input[type=number]').forEach(input => {
+    input.addEventListener('wheel', function(e){
+        e.preventDefault();
+    });
+});
         /* -----------------------------------------------------------
          * SELECT2 – Vendedores
          * ----------------------------------------------------------- */
@@ -295,14 +285,14 @@
             minimumInputLength: 2,
             width: '100%',
             language: {
-                inputTooShort: function(args) {
+                inputTooShort: function (args) {
                     let remaining = args.minimum - args.input.length;
                     return `Por favor ingrese ${remaining} caracter${remaining === 1 ? '' : 'es'} o más`;
                 },
-                searching: function() {
+                searching: function () {
                     return "Buscando...";
                 },
-                noResults: function() {
+                noResults: function () {
                     return "No se encontraron resultados";
                 }
             },
@@ -310,26 +300,19 @@
                 url: '<?= base_url('sellers-search') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
-                processResults: function(data, params) {
+                data: params => ({ q: params.term }),
+                processResults: function (data, params) {
                     let results = data || [];
                     if (results.length === 0 && params.term?.trim() !== '') {
-                        results.push({
-                            id: 'create_new',
-                            text: '➕ Crear nuevo vendedor'
-                        });
+                        results.push({ id: 'create_new', text: '➕ Crear nuevo vendedor' });
                     }
-                    return {
-                        results
-                    };
+                    return { results };
                 },
                 cache: true
             }
         });
 
-        $('#seller_id').on('select2:select', function(e) {
+        $('#seller_id').on('select2:select', function (e) {
             const selected = e.params.data;
             if (selected.id === 'create_new') {
                 $('#seller_id').val(null).trigger('change');
@@ -337,14 +320,14 @@
             }
         });
 
-        $('#formCreateSeller').on('submit', function(e) {
+        $('#formCreateSeller').on('submit', function (e) {
             e.preventDefault();
             $.ajax({
                 url: '<?= base_url('sellers/create-ajax') ?>',
                 type: 'POST',
                 data: $(this).serialize(),
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         $('#modalCreateSeller').modal('hide');
                         const option = new Option(response.data.text, response.data.id, true, true);
@@ -370,14 +353,9 @@
                 url: '<?= base_url('settledPoints/getList') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
+                data: params => ({ q: params.term }),
                 processResults: data => ({
-                    results: data.map(item => ({
-                        id: item.id,
-                        text: item.point_name
-                    }))
+                    results: data.map(item => ({ id: item.id, text: item.point_name }))
                 })
             }
         });
@@ -394,14 +372,9 @@
                 url: '<?= base_url('branches-list') ?>',
                 dataType: 'json',
                 delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
+                data: params => ({ q: params.term }),
                 processResults: data => ({
-                    results: data.map(item => ({
-                        id: item.id,
-                        text: item.branch_name
-                    }))
+                    results: data.map(item => ({ id: item.id, text: item.branch_name }))
                 })
             }
         });
@@ -410,7 +383,7 @@
         /* -----------------------------------------------------------
          * DATERANGEPICKER – Punto fijo
          * ----------------------------------------------------------- */
-        $('#puntofijo_select').on('change', function() {
+        $('#puntofijo_select').on('change', function () {
             const puntoId = $(this).val();
             const dateInput = $('#fecha_entrega_puntofijo');
 
@@ -420,7 +393,7 @@
                 url: `<?= base_url('settledPoints/getDays') ?>/${puntoId}`,
                 method: 'GET',
                 dataType: 'json',
-                success: function(days) {
+                success: function (days) {
 
                     const allowedDays = [];
                     if (days.sun) allowedDays.push(0);
@@ -446,10 +419,7 @@
                         startDate: nextValid,
                         autoUpdateInput: true,
                         isInvalidDate: date => !allowedDays.includes(date.day()),
-                        locale: {
-                            format: 'YYYY-MM-DD',
-                            firstDay: 1
-                        }
+                        locale: { format: 'YYYY-MM-DD', firstDay: 1 }
                     });
 
                     dateInput.val(nextValid.format('YYYY-MM-DD'));
@@ -505,7 +475,7 @@
         const fleteTotal = document.getElementById('flete_total');
         const fletePendiente = document.getElementById('flete_pendiente');
 
-        btnSetZero.addEventListener('click', function() {
+        btnSetZero.addEventListener('click', function () {
             if (!fletePagado.disabled) {
                 fletePagado.value = "0.00";
                 fletePagado.disabled = true;
@@ -532,7 +502,7 @@
 
         const form = document.getElementById("formPaquete");
 
-        form.addEventListener("submit", function(e) {
+        form.addEventListener("submit", function (e) {
             e.preventDefault();
 
             let formData = new FormData(form);
@@ -553,7 +523,7 @@
             let xhr = new XMLHttpRequest();
 
             // Progreso de subida
-            xhr.upload.addEventListener("progress", function(e) {
+            xhr.upload.addEventListener("progress", function (e) {
                 if (e.lengthComputable) {
                     let percent = Math.round((e.loaded / e.total) * 100);
 
@@ -564,7 +534,7 @@
             });
 
             // Respuesta del servidor
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
 
                     Swal.close();
@@ -593,44 +563,24 @@
     });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const params = new URLSearchParams(window.location.search);
+document.addEventListener('DOMContentLoaded', function () {
+    const params = new URLSearchParams(window.location.search);
 
-        if (params.get('created') === '1') {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Paquete creado correctamente',
-                showConfirmButton: false,
-                timer: 2500,
-                timerProgressBar: true
-            });
-
-            // Limpia el parámetro para que no se repita
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-        $('#colonia_id').select2({
-            theme: 'bootstrap4',
-            placeholder: '🔍 Buscar colonia...',
-            allowClear: true,
-            minimumInputLength: 2,
-            width: '100%',
-            ajax: {
-                url: '<?= base_url('ajax/colonias/search') ?>',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({
-                    q: params.term,
-                    page: params.page || 1
-                }),
-                processResults: data => ({
-                    results: data.results,
-                    pagination: data.pagination
-                })
-            }
+    if (params.get('created') === '1') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Paquete creado correctamente',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true
         });
-    });
+
+        // Limpia el parámetro para que no se repita
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
 </script>
 
 <?php if (session()->getFlashdata('success')): ?>
