@@ -11,9 +11,6 @@ class ColoniaModel extends Model
     protected $allowedFields = ['municipio_id', 'nombre'];
     protected $returnType    = 'array';
 
-    /**
-     * Búsqueda para Select2
-     */
     public function searchForSelect2(string $term, int $limit = 20): array
     {
         return $this->db->table('colonias c')

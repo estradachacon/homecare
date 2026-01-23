@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 3. Lógica Principal: Tipo de Servicio (tipo_servicio)
     function actualizarCampos(inicial = false) {
         const tipo = tipoServicio.value;
-        // Si no es la carga inicial, o si se detecta un cambio, limpiamos todo.
         if (!inicial) {
             limpiarTodo();
         }
