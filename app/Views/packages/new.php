@@ -130,7 +130,6 @@
                                 fijo</label>
                             <input type="text" name="fecha_entrega_puntofijo" id="fecha_entrega_puntofijo"
                                 class="form-control datepicker" autocomplete="off" />
-
                         </div>
 
                         <div class="form-divider line-center"></div>

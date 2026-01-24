@@ -77,6 +77,12 @@ class PackageController extends BaseController
                 ->find($filter_vendedor_id);
         }
 
+        $tipoServicio = [
+            1 => 'Punto fijo: ',
+            2 => 'Personalizado: ',
+            3 => 'Recolecta de paquete: ',
+            4 => 'Casillero: '
+        ];
 
         return view('packages/index', [
             'packages' => $packages,
@@ -92,7 +98,8 @@ class PackageController extends BaseController
             'perPage' => $perPage,
             'puntos_fijos' => $puntos_fijos,
             'filter_seller_id' => $filter_vendedor_id,
-            'seller_selected'  => $seller_selected
+            'seller_selected'  => $seller_selected,
+            'tipoServicio' => $tipoServicio
         ]);
     }
 
@@ -110,7 +117,12 @@ class PackageController extends BaseController
             ->join('users', 'users.id = packages.user_id', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
-            ->join('accounts', 'accounts.id = packages.pago_cuenta', 'left') // 👈 AQUI
+            ->join('accounts', 'accounts.id = packages.pago_cuenta', 'left')
+
+            ->join('colonias', 'colonias.id = packages.colonia_id', 'left')
+            ->join('municipios', 'municipios.id = colonias.municipio_id', 'left')
+            ->join('departamentos', 'departamentos.id = municipios.departamento_id', 'left')
+
             ->where('packages.id', $id)
             ->first();
 
@@ -124,7 +136,7 @@ class PackageController extends BaseController
         // DEBUG: Verificar que el campo 'foto' existe (puedes eliminar esto después)
         if (!array_key_exists('foto', $package)) {
             log_message('error', "Campo 'foto' no encontrado en package ID: " . $id);
-            $package['foto'] = null; // Asegurar que existe la clave
+            $package['foto'] = null;
         }
 
         // Calculamos un campo destinos para mostrar en un solo lugar si quieres
@@ -136,6 +148,19 @@ class PackageController extends BaseController
                 break;
             case 2: // Personalizado
                 $destinos[] = $package['destino_personalizado'] ?? 'N/A';
+                $ubicacion = [];
+
+                if (!empty($package['departamento_nombre'])) {
+                    $ubicacion[] = $package['departamento_nombre'];
+                }
+                if (!empty($package['municipio_nombre'])) {
+                    $ubicacion[] = $package['municipio_nombre'];
+                }
+                if (!empty($package['colonia_nombre'])) {
+                    $ubicacion[] = $package['colonia_nombre'];
+                }
+
+                $package['ubicacion_completa'] = implode(' → ', $ubicacion);
                 $package['fecha_entrega_mostrar'] = $package['fecha_entrega_personalizado'] ?? 'Pendiente';
                 break;
             case 3: // Recolección y entrega final
@@ -178,7 +203,7 @@ class PackageController extends BaseController
         helper('transaction');
 
         $session = session();
-        $userId = $session->get('user_id'); // 🛡️ OBTENER DE LA SESIÓN
+        $userId = $session->get('user_id');
         $db = \Config\Database::connect();
         $foto = $this->request->getFile('foto');
         $fotoName = null;
@@ -187,13 +212,11 @@ class PackageController extends BaseController
             $fotoName = $foto->getRandomName();
             $foto->move('upload/paquetes', $fotoName);
         }
-        // Determinar el estatus inicial
-        $estatusInicial = 'pendiente'; // Estatus por defecto
+        $estatusInicial = 'pendiente';
 
         $tipoServicio = $this->request->getPost('tipo_servicio');
-        // ✨ LÓGICA CASILLERO (#4)
         if ($tipoServicio == 4) {
-            $estatusInicial = 'en_casillero'; // Si es Casillero, el estatus inicial es 'casillero'
+            $estatusInicial = 'en_casillero';
         }
 
         $dataToSave = [
@@ -212,6 +235,7 @@ class PackageController extends BaseController
             'toggle_pago_parcial' => $this->request->getPost('pago_parcial'),
             'flete_pagado' => $this->request->getPost('flete_pagado'),
             'flete_pendiente' => $this->request->getPost('flete_pendiente'),
+            'colonia_id' => $this->request->getPost('colonia_id'),
 
             'nocobrar_pack_cancelado' => $this->request->getPost('toggleCobro'),
             'monto' => $this->request->getPost('monto'),
@@ -226,13 +250,13 @@ class PackageController extends BaseController
         $this->packageModel->save($dataToSave);
         $newPackageId = $this->packageModel->insertID();
 
-        // 🟨 REGISTRO DE TRANSACCIÓN
+        // REGISTRO DE TRANSACCIÓN
         $pagoParcial = $this->request->getPost('pago_parcial'); // toggle
         $fleteTotal = floatval($this->request->getPost('flete_total'));
         $fletePagado = floatval($this->request->getPost('flete_pagado'));
         $accountId = 1; // <-- AJUSTA si manejas diferentes cuentas
 
-        // 🚫 NO REGISTRAR TRANSACCIÓN SI tipo_servicio == 3 (recolecta)
+        // NO REGISTRAR TRANSACCIÓN SI tipo_servicio == 3 (recolecta)
         if ($tipoServicio != 3) {
 
             if ($pagoParcial) {
@@ -251,7 +275,7 @@ class PackageController extends BaseController
                     );
                 }
             } else {
-                // 🟩 PAGO COMPLETO
+                // PAGO COMPLETO
                 if ($fleteTotal > 0) {
                     $db->table('accounts')
                         ->where('id', $accountId)
@@ -267,7 +291,6 @@ class PackageController extends BaseController
                 }
             }
         } else {
-            // 👇 OPCIONAL: puedes dejar una bitácora para control interno
             registrar_bitacora(
                 'Servicio de recolecta',
                 'Paquetería',
@@ -276,7 +299,7 @@ class PackageController extends BaseController
             );
         }
 
-        // 📜 BITÁCORA: Registro de creación
+        // BITÁCORA: Registro de creación
         registrar_bitacora(
             'Registro de paquete',
             'Paquetería',

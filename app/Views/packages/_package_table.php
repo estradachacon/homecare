@@ -14,6 +14,7 @@
                     <tbody style="line-height: 18px;">
                         <?php if (!empty($packages)): ?>
                             <?php foreach ($packages as $pkg): ?>
+                                
                                 <tr>
                                     <td><?= esc($pkg['id']) ?></td>
                                     <td><?= esc($pkg['seller_name']) ?></td>

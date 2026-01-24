@@ -167,6 +167,13 @@ function formatDateDMY($fecha)
                                 <th>Fecha Estimada de Entrega (Personalizado)</th>
                                 <td><?= formatDateDMY($package['fecha_entrega_personalizado'] ?? null) ?></td>
                             </tr>
+                            <tr>
+                                <th>Ubicación</th>
+                                <td class="text-muted">
+                                    <?= esc($package['ubicacion_completa'] ?? 'Ubicación no definida') ?>
+                                </td>
+                            </tr>
+
 
                         <?php elseif ($package['tipo_servicio'] == 3): // Recolección y Entrega Final 
                         ?>
@@ -182,7 +189,6 @@ function formatDateDMY($fecha)
                                 <th>Fecha de Entrega (Personalizado)</th>
                                 <td><?= esc($package['fecha_entrega_personalizado'] ?? 'Pendiente') ?></td>
                             </tr>
-
                         <?php elseif ($package['tipo_servicio'] == 4): // Casillero 
                         ?>
                             <tr>

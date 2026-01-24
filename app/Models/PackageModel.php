@@ -37,6 +37,7 @@ class PackageModel extends Model
         'flete_rendido',
         'reenvios',
         'branch',
+        'colonia_id',
         'user_id'
     ];
     protected $updatedField = 'updated_at';

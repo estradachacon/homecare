@@ -18,8 +18,6 @@
     }
 }
 
-
-
 </style>
 <script>
     const base_url = "<?= base_url() ?>";
@@ -136,15 +134,6 @@
 
                     </div>
                 </form>
-
-                <?php
-                $tipoServicio = [
-                    1 => 'Punto fijo: ',
-                    2 => 'Personalizado: ',
-                    3 => 'Recolecta de paquete: ',
-                    4 => 'Casillero: '
-                ];
-                ?>
                 <?php
                 function formatFechaConDia($fecha)
                 {
