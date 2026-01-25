@@ -112,7 +112,12 @@ class PackageController extends BaseController
          users.user_name as creador_nombre,
          settled_points.point_name as point_name,
          sellers.seller as seller_name,
-         accounts.name as pago_cuenta_nombre'
+         accounts.name as pago_cuenta_nombre,
+         colonias.nombre AS colonia_nombre,
+         municipios.nombre AS municipio_nombre,
+         departamentos.nombre AS departamento_nombre'
+
+
             )
             ->join('users', 'users.id = packages.user_id', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
