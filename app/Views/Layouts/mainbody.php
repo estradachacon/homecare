@@ -245,7 +245,7 @@
     <!--End layoutSidenav-->
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <?= $this->include('Layouts/toast') ?>
+    
     <!-- Datatable js -->
     <script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
     <!-- Dropify -->
@@ -274,6 +274,7 @@
             document.documentElement.style.setProperty('--tab-active-color', text_color);
         })(jQuery);
     </script>
+    <?= $this->include('Layouts/toast') ?>
 </body>
 
 </html>

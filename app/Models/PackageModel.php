@@ -70,4 +70,17 @@ class PackageModel extends Model
             ->orderBy('fecha_ingreso', 'ASC')
             ->findAll();
     }
+    public function getMunicipiosConPaquetesPersonalizados()
+{
+    return $this->db->table('packages p')
+        ->select('m.id, m.nombre')
+        ->join('colonias c', 'p.colonia_id = c.id')
+        ->join('municipios m', 'c.municipio_id = m.id')
+        ->where('p.destino_personalizado IS NOT NULL')
+        ->groupBy('m.id, m.nombre')
+        ->orderBy('m.nombre', 'ASC')
+        ->get()
+        ->getResultArray();
+}
+
 }

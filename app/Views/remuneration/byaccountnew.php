@@ -131,7 +131,7 @@
             </div>
             <div class="card-body">
                 <form id="formPaquete" enctype="multipart/form-data">
-                    <div class="row g-3">
+                    <div class="row g-3 mt-1 mb-1">
                         <div class="col-md-6">
                             <label for="seller_id" class="form-label">Vendedor</label>
                             <select id="seller_id" name="seller_id" class="form-select" style="width: 100%;" required>
@@ -141,16 +141,24 @@
                         </div>
 
                         <div class="col-md-6 d-flex align-items-center">
-                            <div class="p-3 w-50 rounded shadow-sm text-center" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
-                                <small class="text-muted d-block fw-bold"><strong>Seleccione una cuenta</strong></small>
-                                <strong id="available-amount" class="fs-4 text-success"> <select name="cuenta_asignada[1]"
+                            <div class="p-2 w-50 rounded shadow-sm text-center"
+                                style="background-color: #f8f9fa; border: 1px solid #dee2e6; height: 80px;">
+                                <small class="text-muted d-block fw-bold">
+                                    <strong>Seleccione una cuenta</strong>
+                                </small>
+
+                                <div id="account-selector">
+                                    <select name="cuenta_asignada"
                                         class="form-control select2-account">
-                                    </select></strong>
+                                    </select>
+                                </div>
                             </div>
+
                         </div>
 
                         <div class="col-md-12">
                             <input type="hidden" name="user_id" value="<?= session('id') ?>">
+                            <input type="hidden" id="payment-type" value="account">
                         </div>
                     </div>
 
@@ -473,18 +481,6 @@
         });
     }
 
-    function updateAvailableAmount() {
-        fetch('<?= site_url("cashier/available-amount") ?>')
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('available-amount').innerText =
-                        `$${parseFloat(data.available).toFixed(2)}`;
-                }
-            });
-    }
-
-
     function recalcCart() {
         cart.total = cart.items.reduce((sum, i) => sum + parseFloat(i.amount), 0);
 
@@ -585,7 +581,6 @@
                                     .then(res => res.json())
                                     .then(packages => {
                                         renderPackages(packages);
-                                        updateAvailableAmount();
                                     });
                             } else {
                                 Swal.fire('Error', data.message, 'error');

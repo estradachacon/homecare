@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let listaRuta = [];               // paquetes filtrados por ruta
     let listaEspeciales = [];         // paquetes tipo 2 y 3
     let listaPendientes3 = [];
+    let municipioSeleccionado = "";
 
     // ELEMENTOS DEL DOM
     const tablaTracking = document.getElementById("tracking-body");
@@ -28,62 +29,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalPendientes3 = $("#modalPendientes3");
     const tablaPendientes3 = document.getElementById("tablaPendientes3");
     const btnAgregarPendientes3 = document.getElementById("agregarPendientes3");
+    const selectMunicipio = document.getElementById("municipioEspecial");
 
     // CSRF si existe
     const csrfInput = document.querySelector("input[name='csrf_test_name']");
 
     function coincideConFecha(pkg, fecha) {
 
-        if (!fecha) return false;
-
-        switch (pkg.tipo_servicio) {
-
+        switch (parseInt(pkg.tipo_servicio)) {
             // Punto fijo
-            case "1":
             case 1:
-                return pkg.fecha_entrega_puntofijo === fecha;
-
+                return fecha && pkg.fecha_entrega_puntofijo === fecha;
             // Personalizado
-            case "2":
             case 2:
-                return pkg.fecha_entrega_personalizado === fecha;
-
-            // Recolección → siempre disponible
-            case "3":
+                return fecha && pkg.fecha_entrega_personalizado === fecha;
+            // Recolección → SIEMPRE disponible
             case 3:
                 return true;
-
             default:
                 return false;
         }
     }
 
-
-    // =========================================================
     // FLATPICKR – Fecha del tracking
-    // =========================================================
     flatpickr("#fecha_tracking", {
         dateFormat: "Y-m-d",
         locale: "es",
         disableMobile: true,
-        allowInput: false, // evita que borren manualmente
+        allowInput: false,
     });
 
-
-
-    // =========================================================
     // CARGA DE PAQUETES POR RUTA
-    // =========================================================
     async function loadPaquetesPorRuta(rutaId) {
         tablaPaquetesRuta.innerHTML = `<tr><td colspan="4">Cargando...</td></tr>`;
-
         try {
             const resp = await fetch(`/tracking-pendientes/ruta/${rutaId}`);
             const data = await resp.json();
-
             listaRuta = data;
             listaRuta.forEach(p => paquetesCache[p.id] = p);
-
             renderPaquetesRuta();
         } catch (e) {
             tablaPaquetesRuta.innerHTML = `<tr><td colspan="4">Error al cargar</td></tr>`;
@@ -91,11 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderPaquetesRuta() {
-
         tablaPaquetesRuta.innerHTML = "";
-
         const fechaGlobal = fechaTracking.value;
-
         let lista = listaRuta.filter(p => coincideConFecha(p, fechaGlobal));
 
         if (!lista.length) {
@@ -111,45 +91,42 @@ document.addEventListener("DOMContentLoaded", () => {
             <td>${p.vendedor}</td>
             <td>${p.cliente}</td>
             <td>${p.punto_fijo_nombre}</td>
-            <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
+            <td>${isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2)}</td>
         `;
             tablaPaquetesRuta.appendChild(tr);
         });
     }
 
-
-
-    // =========================================================
     // CARGA PAQUETES ESPECIALES (tipo 2 y 3)
-    // =========================================================
     async function loadEspeciales() {
-        tablaEspecialesBody.innerHTML = `<tr><td colspan="4">Cargando...</td></tr>`;
-
+        tablaEspecialesBody.innerHTML = `<tr><td colspan="5">Cargando...</td></tr>`;
         try {
             const resp = await fetch("/tracking-pendientes/todos");
             const data = await resp.json();
-
             listaEspeciales = data.filter(p =>
-                p.tipo_servicio == 2 ||   (p.tipo_servicio == 3 && p.estatus === 'recolectado')
+                p.tipo_servicio == 2 || (p.tipo_servicio == 3 && p.estatus === 'recolectado')
             );
-
             listaEspeciales.forEach(p => paquetesCache[p.id] = p);
-
             renderEspeciales();
+            cargarMunicipiosDesdeEspeciales(fechaTracking.value);
         } catch (err) {
             tablaEspecialesBody.innerHTML = `<tr><td colspan="6">Error</td></tr>`;
         }
     }
 
     function renderEspeciales() {
-
         tablaEspecialesBody.innerHTML = "";
 
         const fechaGlobal = fechaTracking.value;
         const filtro = selectFiltroTipo.value;
+        const municipioId =
+            municipioSeleccionado === VALOR_TODOS || !municipioSeleccionado
+                ? null
+                : municipioSeleccionado;
 
         let lista = listaEspeciales.filter(p => {
             if (filtro && p.tipo_servicio != filtro) return false;
+            if (municipioId && p.municipio_id != municipioId) return false;
             return coincideConFecha(p, fechaGlobal);
         });
 
@@ -159,22 +136,43 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         lista.forEach(p => {
+            let ubicacion = [];
+            if (p.departamento_nombre) ubicacion.push(p.departamento_nombre);
+            if (p.municipio_nombre) ubicacion.push(p.municipio_nombre);
+            if (p.colonia_nombre) ubicacion.push(p.colonia_nombre);
+
+            const ubicacionTexto = ubicacion.length
+                ? `<div class="text-muted small">${ubicacion.join(" → ")}</div>`
+                : "";
+
+            const destinoPrincipal =
+                p.tipo_servicio == 2
+                    ? p.destino_personalizado
+                    : p.lugar_recolecta_paquete;
+
             const tr = document.createElement("tr");
             tr.innerHTML = `
-            <td><input type="checkbox" class="chkEspecial" data-id="${p.id}"></td>
-            <td>${p.id}</td>
-            <td>${p.vendedor}</td>
-            <td>${p.cliente}</td>
-            <td>${p.tipo_servicio == 2 ? p.destino_personalizado : p.lugar_recolecta_paquete}</td>
-            <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
-        `;
+        <td>
+            <input type="checkbox"
+                class="chkEspecial"
+                data-id="${p.id}"
+                ${paquetesSeleccionados[p.id] ? 'checked' : ''}>
+        </td>
+        <td>${p.id}</td>
+        <td>${p.vendedor}</td>
+        <td>${p.cliente}</td>
+        <td>
+            <div>${destinoPrincipal}</div>
+            ${ubicacionTexto}
+        </td>
+        <td>${isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2)}</td>
+    `;
             tablaEspecialesBody.appendChild(tr);
         });
     }
 
     async function loadPendientes3() {
         tablaPendientes3.innerHTML = `<tr><td colspan="4">Cargando...</td></tr>`;
-
         try {
             const resp = await fetch("/tracking-pendientes/todos");
             const data = await resp.json();
@@ -183,15 +181,54 @@ document.addEventListener("DOMContentLoaded", () => {
             listaPendientes3 = data.filter(p =>
                 (p.tipo_servicio == 3 && p.estatus !== 'recolectado' && p.estatus !== 'finalizado') || p.estatus == 'recolecta_fallida'
             );
-
             listaPendientes3.forEach(p => paquetesCache[p.id] = p);
-
             renderPendientes3();
-
         } catch (e) {
             tablaPendientes3.innerHTML = `<tr><td colspan="6">Error</td></tr>`;
         }
     }
+
+    const VALOR_TODOS = "__ALL__";
+
+    function cargarMunicipiosDesdeEspeciales(fecha) {
+        const select = document.getElementById("municipioEspecial");
+
+        // Guardar selección actual
+        const valorPrevio = municipioSeleccionado || VALOR_TODOS;
+
+        // Reset select
+        select.innerHTML = "";
+
+        // Opción Todos
+        const optTodos = document.createElement("option");
+        optTodos.value = VALOR_TODOS;
+        optTodos.textContent = "Todos los municipios";
+        select.appendChild(optTodos);
+
+        if (fecha) {
+            const municipiosMap = {};
+
+            listaEspeciales.forEach(p => {
+                if (!coincideConFecha(p, fecha)) return;
+                if (!p.municipio_id || !p.municipio_nombre) return;
+
+                municipiosMap[p.municipio_id] = p.municipio_nombre;
+            });
+
+            Object.entries(municipiosMap).forEach(([id, nombre]) => {
+                const opt = document.createElement("option");
+                opt.value = id;
+                opt.textContent = nombre;
+                select.appendChild(opt);
+            });
+        }
+
+        // Restaurar selección
+        $('#municipioEspecial')
+            .val(valorPrevio)
+            .trigger('change.select2');
+    }
+
 
     function renderPendientes3() {
         tablaPendientes3.innerHTML = "";
@@ -209,59 +246,98 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${p.vendedor}</td>
                 <td>${p.cliente}</td>
                 <td>${p.descripcion || p.destino_personalizado || p.punto_fijo_nombre || "Sin información"}</td>
-                <td>${ isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2) }</td>
+                <td>${isNaN(parseFloat(p.monto)) ? 'Cancelado' : '$' + parseFloat(p.monto).toFixed(2)}</td>
             `;
             tablaPendientes3.appendChild(tr);
         });
     }
-    // =========================================================
     // SELECT / DESELECT ALL – RECOLECTAS
-    // =========================================================
-
     document.getElementById("selectAllPendientes3").addEventListener("click", () => {
         const checks = document.querySelectorAll(".chkPend3");
         const allChecked = [...checks].every(c => c.checked);
         checks.forEach(c => c.checked = !allChecked);
     });
 
-    // =========================================================
     // SELECT / DESELECT ALL – RUTAS
-    // =========================================================
     document.getElementById("selectAllRuta").addEventListener("click", () => {
         const checks = document.querySelectorAll("#tablaPaquetesRuta .chkRuta");
         const allChecked = [...checks].every(c => c.checked);
-
-        // Si todos están checked → desmarcarlos
-        // Si no → marcarlos todos
+        // Si todos están checked → desmarcarlos - Si no → marcarlos todos
         checks.forEach(c => c.checked = !allChecked);
     });
 
-    // =========================================================
+    // Disparadores de Modales
+    document.getElementById("btnRutas").addEventListener("click", () => {
+        if (!fechaTracking.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Debe seleccionar la fecha del tracking antes de usar rutas."
+            });
+            return;
+        }
+        modalRutas.modal("show");
+    });
+
+    document.getElementById("btnEspeciales").addEventListener("click", () => {
+        if (!fechaTracking.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Seleccione la fecha del tracking antes de agregar personalizados."
+            });
+            return;
+        }
+        modalEspeciales.modal("show");
+    });
+
+    document.getElementById("btnPendientes3").addEventListener("click", () => {
+        if (!fechaTracking.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Seleccione la fecha del tracking antes de agregar pendientes."
+            });
+            return;
+        }
+        modalPendientes3.modal("show");
+    });
+
     // SELECT / DESELECT ALL – ESPECIALES
-    // =========================================================
     document.getElementById("selectAllEspeciales").addEventListener("click", () => {
         const checks = document.querySelectorAll("#tablaEspeciales .chkEspecial");
         const allChecked = [...checks].every(c => c.checked);
-
         checks.forEach(c => c.checked = !allChecked);
     });
 
     selectFiltroTipo.addEventListener("change", renderEspeciales);
     fechaTracking.addEventListener("change", () => {
-        // Si ya cargaste listas antes, re-renderízalas
         if (modalRutas.hasClass("show")) renderPaquetesRuta();
-        if (modalEspeciales.hasClass("show")) renderEspeciales();
+
+        if (modalEspeciales.hasClass("show")) {
+            cargarMunicipiosDesdeEspeciales(fechaTracking.value);
+
+            // 🔁 restaurar selección si existe
+            if (municipioSeleccionado) {
+                $("#municipioEspecial")
+                    .val(municipioSeleccionado)
+                    .trigger("change.select2");
+            }
+
+            renderEspeciales();
+        }
     });
 
-    // =========================================================
+
     // AGREGAR DESDE MODAL RUTA
-    // =========================================================
     btnAgregarRuta.addEventListener("click", () => {
-
         const fechaGlobal = fechaTracking.value;
-
         if (!fechaGlobal) {
-            alert("Debe seleccionar la fecha del tracking antes de agregar paquetes.");
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Debe seleccionar la fecha del tracking antes de agregar paquetes por ruta."
+            });
             return;
         }
 
@@ -271,7 +347,6 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Seleccione al menos un paquete.");
             return;
         }
-
         checks.forEach(chk => {
             const id = chk.dataset.id;
             let pkg = paquetesCache[id];
@@ -279,16 +354,12 @@ document.addEventListener("DOMContentLoaded", () => {
             pkg.assigned_date = fechaGlobal; // usamos la fecha principal
             paquetesSeleccionados[id] = pkg;
         });
-
         renderTracking();
         actualizarTotal();
         modalRutas.modal("hide");
     });
 
-
-    // =========================================================
     // AGREGAR DESDE MODAL ESPECIALES
-    // =========================================================
     btnAgregarEspeciales.addEventListener("click", () => {
         const checks = document.querySelectorAll(".chkEspecial:checked");
 
@@ -315,14 +386,10 @@ document.addEventListener("DOMContentLoaded", () => {
         modalEspeciales.modal("hide");
     });
 
-    // =========================================================
     // AGREGAR DESDE MODAL ESPECIALES
-    // =========================================================
 
     btnAgregarPendientes3.addEventListener("click", () => {
-
         const checks = document.querySelectorAll(".chkPend3:checked");
-
         if (!checks.length) {
             alert("Seleccione al menos un paquete.");
             return;
@@ -331,7 +398,6 @@ document.addEventListener("DOMContentLoaded", () => {
         checks.forEach(chk => {
             const id = chk.dataset.id;
             const pkg = paquetesCache[id];
-
             pkg.assigned_date = null; // no tienen fecha
             paquetesSeleccionados[id] = pkg;
         });
@@ -341,26 +407,61 @@ document.addEventListener("DOMContentLoaded", () => {
         modalPendientes3.modal("hide");
     });
 
+    function construirDestinoConUbicacion(pkg) {
+        let ubicacion = [];
+
+        if (pkg.departamento_nombre) ubicacion.push(pkg.departamento_nombre);
+        if (pkg.municipio_nombre) ubicacion.push(pkg.municipio_nombre);
+        if (pkg.colonia_nombre) ubicacion.push(pkg.colonia_nombre);
+
+        const ubicacionTexto = ubicacion.length
+            ? `<div class="text-muted small">${ubicacion.join(" → ")}</div>`
+            : "";
+
+        let destinoPrincipal = "";
+
+        switch (parseInt(pkg.tipo_servicio)) {
+            case 1:
+                destinoPrincipal = `Punto fijo → ${pkg.punto_fijo_nombre}`;
+                break;
+
+            case 2:
+                destinoPrincipal = `Personalizado → ${pkg.destino_personalizado}`;
+                break;
+
+            case 3:
+                destinoPrincipal = `Recolección → ${pkg.lugar_recolecta_paquete}`;
+                if (pkg.destino_personalizado) {
+                    destinoPrincipal += ` → Entregar en: ${pkg.destino_personalizado}`;
+                }
+                if (pkg.punto_fijo_nombre) {
+                    destinoPrincipal += ` → Punto fijo: ${pkg.punto_fijo_nombre}`;
+                }
+                break;
+
+            default:
+                destinoPrincipal = "No definido";
+        }
+
+        return `
+        <div>${destinoPrincipal}</div>
+        ${ubicacionTexto}
+    `;
+    }
+
     function actualizarTotal() {
         let total = 0;
-
         Object.values(paquetesSeleccionados).forEach(pkg => {
             total += parseFloat(pkg.monto) || 0;
         });
-
         document.getElementById("totalTracking").textContent =
             "$" + total.toFixed(2);
     }
 
-    // =========================================================
     // RENDER TABLA PRINCIPAL
-    // =========================================================
     function renderTracking() {
-
         tablaTracking.innerHTML = "";
-
         Object.values(paquetesSeleccionados).forEach(pkg => {
-
             let destino = "";
 
             switch (parseInt(pkg.tipo_servicio)) {
@@ -381,11 +482,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         destino += ` → Punto fijo: ${pkg.punto_fijo_nombre}`;
                     }
                     break;
-
                 default:
                     destino = "No definido";
             }
-
 
             const tipoTexto =
                 pkg.tipo_servicio == 1 ? "Punto fijo" :
@@ -395,16 +494,14 @@ document.addEventListener("DOMContentLoaded", () => {
                                 "Desconocido";
 
             const tr = document.createElement("tr");
-
             tr.innerHTML = `
                 <td>${tipoTexto}</td>
                 <td>${pkg.id}</td>
                 <td>${pkg.cliente}</td>
-                <td>${destino}</td>
-                <td>${ isNaN(parseFloat(pkg.monto)) ? 'Cancelado' : '$' + parseFloat(pkg.monto).toFixed(2) }</td>
+                <td>${construirDestinoConUbicacion(pkg)}</td>
+                <td>${isNaN(parseFloat(pkg.monto)) ? 'Cancelado' : '$' + parseFloat(pkg.monto).toFixed(2)}</td>
                 <td><button class="btn btn-danger btn-sm btnQuit" data-id="${pkg.id}">X</button></td>
             `;
-
             tablaTracking.appendChild(tr);
         });
 
@@ -418,6 +515,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    if (selectMunicipio) {
+        selectMunicipio.addEventListener("change", function () {
+            municipioSeleccionado = this.value || "";
+            renderEspeciales();
+        });
+    }
+
     // CARGA AUTOMÁTICA DE LISTAS AL ABRIR MODALES
     selectRuta.addEventListener("change", () => {
         if (!selectRuta.value) return;
@@ -425,18 +529,39 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     modalEspeciales.on("shown.bs.modal", () => {
+        if (!fechaTracking.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Seleccione la fecha del tracking antes de agregar paquetes especiales."
+            });
+            modalEspeciales.modal("hide");
+            return;
+        }
         loadEspeciales();
+        // Restaurar selección
+        if (municipioSeleccionado) {
+            $("#municipioEspecial")
+                .val(municipioSeleccionado)
+                .trigger("change");
+        }
     });
 
     modalPendientes3.on("shown.bs.modal", () => {
+        if (!fechaTracking.value) {
+            Swal.fire({
+                icon: "warning",
+                title: "Fecha faltante",
+                text: "Seleccione la fecha del tracking antes de agregar paquetes pendientes."
+            });
+            modalPendientes3.modal("hide");
+            return;
+        }
         if (!listaPendientes3.length) loadPendientes3();
     });
 
-    // =========================================================
     // GUARDAR TRACKING FINAL
-    // =========================================================
     btnGuardar.addEventListener("click", () => {
-
         if (!Object.keys(paquetesSeleccionados).length) {
             Swal.fire({
                 icon: "warning",
@@ -469,9 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const fechaSeleccionada = fechaTracking.value ? fechaTracking.value.trim() : '';
 
         if (!fechaSeleccionada) {
-
             // Para depurar, puedes agregar un 'console.log("Fecha vacía detectada: " + fechaTracking.value);' aquí
-
             Swal.fire({
                 icon: "warning",
                 title: "Fecha faltante",
@@ -479,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             return; // corta la ejecución, SweetAlert de confirmación NO se levanta
         }
-
 
         Swal.fire({
             title: "¿Guardar Tracking?",
@@ -493,7 +615,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }).then(result => {
 
             if (result.isConfirmed) {
-
                 // Loader
                 Swal.fire({
                     title: "Procesando...",
@@ -501,12 +622,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     allowOutsideClick: false,
                     didOpen: () => Swal.showLoading()
                 });
-
                 // ====== Construcción del formulario ======
                 const form = document.createElement("form");
                 form.method = "POST";
                 form.action = "/tracking/store";
-
                 if (csrfInput) {
                     let c = document.createElement("input");
                     c.type = "hidden";
@@ -514,7 +633,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     c.value = csrfInput.value;
                     form.appendChild(c);
                 }
-
                 let m = document.createElement("input");
                 m.type = "hidden";
                 m.name = "motorista_id";
@@ -545,29 +663,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.body.appendChild(form);
                 form.submit();
             }
-
         });
-
     });
-
+    $(document).ready(function () {
+        $('#motorista').select2({
+            placeholder: 'Seleccione un motorista',
+            allowClear: true,
+            width: '100%'
+        });
+    });
     // Cuando cambio la ruta manualmente
     $("#ruta_select").on("change", function () {
         if (!this.value) return;
         loadPaquetesPorRuta(this.value);
     });
+    $('#municipioEspecial')
+        .select2({
+            placeholder: 'Todos los municipios',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#modalEspeciales')
+        })
+        .on('change', function () {
+            municipioSeleccionado = $(this).val() || "";
+            renderEspeciales();
+        });
 
-    // Cuando abro el modal de rutas → cargar según la ruta seleccionada
-    $('#modalRutas').on('shown.bs.modal', function () {
-        if (!$('#ruta_select').hasClass('select2-hidden-accessible')) {
-            $('#ruta_select').select2({
-                theme: 'bootstrap4',
-                width: '100%',
-                placeholder: "Seleccione una ruta",
-                allowClear: true,
-                dropdownParent: $('#modalRutas') // ← CLAVE!
-            });
-        } else {
-            $('#ruta_select').select2('open'); // opcional: abre el buscador
-        }
-    });
 });

@@ -32,7 +32,7 @@ class TrackingController extends BaseController
         $perPage = 10;
         $routeModel = new RouteModel();
         $filter_motorista_id = $this->request->getGet('motorista_id');
-        $filter_status = $this->request->getGet('status'); 
+        $filter_status = $this->request->getGet('status');
         $filter_ruta_id = $this->request->getGet('ruta_id');
         $filter_date_from = $this->request->getGet('date_from');
         $filter_date_to = $this->request->getGet('date_to');
@@ -87,6 +87,7 @@ class TrackingController extends BaseController
 
         $userModel = new \App\Models\UserModel();
         $rutaModel = new RouteModel();
+        $paqueteModel = new PackageModel();
 
         $motoristas = $userModel
             ->where('role_id', 4)
@@ -98,9 +99,11 @@ class TrackingController extends BaseController
             ->orderBy('route_name', 'ASC')
             ->findAll();
 
+        $data['municipios'] =  $paqueteModel->getMunicipiosConPaquetesPersonalizados();
         $data = [
             'motoristas' => $motoristas,
             'rutas' => $rutas,
+            'municipios' => $data['municipios']
         ];
 
         return view('trackings/new', $data);
@@ -121,9 +124,9 @@ class TrackingController extends BaseController
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
             ->where('settled_points.ruta_id', $rutaId)
-            ->groupStart() 
+            ->groupStart()
             ->where('packages.estatus', 'pendiente')
-            ->orWhere('packages.estatus', 'recolectado') 
+            ->orWhere('packages.estatus', 'recolectado')
             ->groupEnd()
             ->findAll();
 
@@ -136,18 +139,29 @@ class TrackingController extends BaseController
 
         $paquetes = $paqueteModel
             ->select('
-                packages.*, 
-                sellers.seller AS vendedor, 
-                routes.route_name AS ruta_nombre, 
-                settled_points.point_name AS punto_fijo_nombre
-            ')
+            packages.*,
+            sellers.seller AS vendedor,
+            routes.route_name AS ruta_nombre,
+            settled_points.point_name AS punto_fijo_nombre,
+
+            colonias.nombre AS colonia_nombre,
+            municipios.id AS municipio_id,
+            municipios.nombre AS municipio_nombre,
+            departamentos.nombre AS departamento_nombre
+        ')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('routes', 'routes.id = settled_points.ruta_id', 'left')
-            ->groupStart() 
+
+            // 🔽 JOINS DE UBICACIÓN
+            ->join('colonias', 'colonias.id = packages.colonia_id', 'left')
+            ->join('municipios', 'municipios.id = colonias.municipio_id', 'left')
+            ->join('departamentos', 'departamentos.id = municipios.departamento_id', 'left')
+
+            ->groupStart()
             ->where('packages.estatus', 'pendiente')
             ->orWhere('packages.estatus', 'recolecta_fallida')
-            ->orWhere('packages.estatus', 'recolectado') 
+            ->orWhere('packages.estatus', 'recolectado')
             ->groupEnd()
             ->findAll();
 
@@ -210,7 +224,7 @@ class TrackingController extends BaseController
                     if ($paqueteEstatus == 'pendiente' || $paqueteEstatus == 'recolecta_fallida') {
                         $estadoInicial = 'asignado_para_recolecta';
                     } else {
-                        $estadoInicial = 'asignado_para_entrega'; 
+                        $estadoInicial = 'asignado_para_entrega';
                     }
                 }
 
@@ -222,7 +236,7 @@ class TrackingController extends BaseController
             $detailModel->insert([
                 'tracking_header_id' => $idHeader,
                 'package_id' => $pid,
-                'status' => 'asignado', 
+                'status' => 'asignado',
                 'created_at' => date('Y-m-d H:i:s')
             ]);
             $updateData = [
@@ -270,7 +284,7 @@ class TrackingController extends BaseController
     }
     public function paquetesPorRuta($rutaId)
     {
-        $fecha = $this->request->getVar('fecha'); 
+        $fecha = $this->request->getVar('fecha');
         $paquetes = $this->paqueteModel->where('ruta_id', $rutaId)->findAll();
         return $this->response->setJSON($paquetes);
     }
@@ -295,13 +309,13 @@ class TrackingController extends BaseController
             ->groupStart()
             ->where('p.tipo_servicio', 1)
             ->where('p.estado', 'pendiente')
-            ->groupEnd() 
+            ->groupEnd()
             ->orGroupStart()
             ->where('p.tipo_servicio', 3)
             ->where('p.estado', 'recolectado')
             ->where('p.id_puntofijo IS NOT NULL')
-            ->groupEnd() 
-            ->groupEnd(); 
+            ->groupEnd()
+            ->groupEnd();
 
         $search = $this->request->getVar('search');
         if (!empty($search)) {

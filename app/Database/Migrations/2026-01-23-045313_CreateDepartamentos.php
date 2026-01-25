@@ -12,7 +12,6 @@ public function up()
             'id' => [
                 'type'           => 'INT',
                 'unsigned'       => true,
-                'auto_increment' => true,
             ],
             'nombre' => [
                 'type'       => 'VARCHAR',

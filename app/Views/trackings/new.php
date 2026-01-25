@@ -1,26 +1,49 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    /* ===== SELECT2 + BOOTSTRAP FIX ===== */
+.select2-container .select2-selection--single {
+    height: calc(2.25rem + 5px);
+    padding: .375rem .75rem;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.5;
+    padding-left: 0;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(2.25rem + 2px);
+}
+
+.select2-container {
+    width: 100% !important;
+}
+
+</style>
 <script src="/backend/assets/js/scripts_newtracking.js"></script>
 <div class="row">
     <div class="col-md-12">
 
         <!-- ENCABEZADO DEL TRACKING -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-dark text-white">
                 <h5 class="mb-0">Nuevo Tracking</h5>
             </div>
             <div class="card-body">
 
                 <div class="form-row">
-                    <input type="hidden" name="<?= csrf_token() ?>" value="<?= csrf_hash() ?>">
-
                     <!-- MOTORISTA -->
                     <div class="form-group col-md-4">
                         <label>Asignar Motorista</label>
-                        <select id="motorista" name="motorista" class="form-control" required>
+                        <select id="motorista" name="motorista" class="form-control select2" required>
                             <option value="">Seleccione</option>
                             <?php foreach ($motoristas as $m): ?>
-                                <option value="<?= $m['id'] ?>"><?= $m['user_name'] ?></option>
+                                <option value="<?= $m['id'] ?>">
+                                    <?= esc($m['user_name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -33,18 +56,18 @@
                 </div>
 
                 <hr>
-
-                <button class="btn btn-primary" data-toggle="modal" data-target="#modalRutas">
+                <button id="btnRutas" class="btn btn-primary">
                     <i class="fa fa-route"></i> Agregar paquetes por ruta
                 </button>
 
-                <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalEspeciales">
+                <button id="btnEspeciales" class="btn btn-secondary ml-2">
                     <i class="fa fa-box"></i> Agregar personalizados
                 </button>
 
-                <button class="btn btn-secondary ml-2" data-toggle="modal" data-target="#modalPendientes3">
+                <button id="btnPendientes3" class="btn btn-secondary ml-2">
                     <i class="fa fa-clock"></i> Agregar pendientes de recolecta
                 </button>
+
             </div>
         </div>
 
@@ -52,8 +75,8 @@
             TABLA DE PACKETES SELECCIONADOS
             ================================ -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-dark text-white">
-                <h6 class="mb-0">Paquetes Seleccionados</h6>
+            <div class="card-header">
+                <h5 class="mb-0">Paquetes Seleccionados</h5>
             </div>
             <div class="card-body table-responsive">
 
@@ -78,9 +101,7 @@
             </div>
         </div>
 
-        <!-- ===============================
-                BOTÓN FINAL
-     ================================ -->
+        <!-- BOTÓN FINAL -->
         <div class="text-right mb-5">
             <button id="btnGuardar" class="btn btn-success btn-lg">
                 <i class="fa fa-save"></i> Guardar Tracking
@@ -144,28 +165,9 @@
                 <button class="btn btn-primary" id="agregarPorRuta">Agregar Seleccionados</button>
                 <button class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
             </div>
-
         </div>
     </div>
 </div>
-
-<!-- Inicialización de Select2 -->
-<script>
-    $(document).ready(function() {
-        $('#modalRutas').on('shown.bs.modal', function() {
-            if (!$('#ruta_select').hasClass('select2-hidden-accessible')) {
-                $('#ruta_select').select2({
-                    theme: 'bootstrap4',
-                    width: '100%',
-                    placeholder: "Seleccione una ruta",
-                    allowClear: true
-                });
-            }
-        });
-    });
-</script>
-
-
 
 <!-- ============================================================
                  MODAL 2 – PERSONALIZADOS / RECOLECTAS
@@ -180,6 +182,14 @@
             </div>
 
             <div class="modal-body">
+
+                <!-- Municipios involucrados -->
+                <div class="form-group">
+                    <label class="font-weight-bold">Municipio</label>
+                    <select id="municipioEspecial" class="form-control">
+                        <option value="">Todos los municipios</option>
+                    </select>
+                </div>
 
                 <!-- Filtro -->
                 <div class="form-group" hidden>
