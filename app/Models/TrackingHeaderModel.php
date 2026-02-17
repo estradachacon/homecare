@@ -18,7 +18,9 @@ class TrackingHeaderModel extends Model
         'route_id',
         'date',
         'rendicion_procesada',
-        'status'
+        'status',
+        'efectivo',
+        'otras_cuentas'
     ];
 
     /**
@@ -26,9 +28,15 @@ class TrackingHeaderModel extends Model
      */
     public function getHeaderWithRelations($id = null)
     {
-        $builder = $this->select('tracking_header.*, users.user_name AS motorista_name, routes.route_name AS route_name')
-                        ->join('users', 'users.id = tracking_header.user_id', 'left')
-                        ->join('routes', 'routes.id = tracking_header.route_id', 'left');
+        $builder = $this->select('
+            tracking_header.*,
+            tracking_header.efectivo,
+            tracking_header.otras_cuentas,
+            users.user_name AS motorista_name,
+            routes.route_name AS route_name
+        ')
+            ->join('users', 'users.id = tracking_header.user_id', 'left')
+            ->join('routes', 'routes.id = tracking_header.route_id', 'left');
 
         if ($id) {
             return $builder->where('tracking_header.id', $id)->first();

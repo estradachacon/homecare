@@ -76,17 +76,15 @@ class TrackingRendicionController extends BaseController
                 ->update();
         };
 
-        // ============================================================
         // 1) DATOS DEL POST
-        // ============================================================
         $trackingId       = $this->request->getPost('tracking_id');
         $regresados       = $this->request->getPost('regresados') ?? [];
         $recolectadosSolo = $this->request->getPost('recolectados_solo') ?? [];
         $cuentasAsignadas = $this->request->getPost('cuenta_asignada') ?? [];
+        $total_efectivo = $this->request->getPost('total_efectivo') ?? 0;
+        $total_otras_cuentas = $this->request->getPost('total_otras_cuentas') ?? 0;
 
-        // ============================================================
         // 2) DATA BASE
-        // ============================================================
         $paquetes     = $this->detailModel->getDetailsWithPackages($trackingId);
         $packageModel = new \App\Models\PackageModel();
 
@@ -104,23 +102,17 @@ class TrackingRendicionController extends BaseController
 
         $paquetesModificados = [];
 
-        // ============================================================
         // 3) LOOP PRINCIPAL
-        // ============================================================
         foreach ($paquetes as $p) {
 
-            // --------------------------------------------------------
             // A) CONTAR DESTINOS (solo servicio 3)
-            // --------------------------------------------------------
             $destinoCount = 1;
             if ($p->tipo_servicio == 3) {
                 if (!empty($p->destino_personalizado)) $destinoCount++;
                 if (!empty($p->puntofijo_nombre)) $destinoCount++;
             }
 
-            // --------------------------------------------------------
             // B) DETERMINAR ESTATUS
-            // --------------------------------------------------------
             if (in_array($p->id, $regresados)) {
 
                 if ($p->tipo_servicio == 3) {
@@ -146,9 +138,7 @@ class TrackingRendicionController extends BaseController
                 }
             }
 
-            // --------------------------------------------------------
             // C) UPDATE DEL PAQUETE
-            // --------------------------------------------------------
             $updateData = ['estatus' => $newStatus];
 
             if (in_array($newStatus, ['entregado', 'recolectado'])) {
@@ -163,16 +153,12 @@ class TrackingRendicionController extends BaseController
             $packageModel->update($p->package_id, $updateData);
             $paquetesModificados[] = "ID {$p->package_id} → {$newStatus}";
 
-            // --------------------------------------------------------
             // D) NO COBRAR SI REGRESADO
-            // --------------------------------------------------------
             if (in_array($p->id, $regresados)) {
                 continue;
             }
 
-            // --------------------------------------------------------
             // E) CUENTA DE INGRESO
-            // --------------------------------------------------------
             $cuentaDeIngreso = isset($cuentasAsignadas[$p->id])
                 ? (int)$cuentasAsignadas[$p->id]
                 : 1;
@@ -181,9 +167,7 @@ class TrackingRendicionController extends BaseController
                 'pago_cuenta' => $cuentaDeIngreso
             ]);
 
-            // --------------------------------------------------------
             // F) MONTOS
-            // --------------------------------------------------------
             $montoPaquete = floatval($p->monto);
             $montoVendedor = ($p->toggle_pago_parcial == 0)
                 ? floatval($p->flete_total)
@@ -192,9 +176,7 @@ class TrackingRendicionController extends BaseController
             $togglePago      = (int)$p->toggle_pago_parcial;
             $fleteYaRendido  = !empty($p->flete_rendido);
 
-            // ========================================================
             // G) LÓGICA FINANCIERA REAL
-            // ========================================================
             if ($p->tipo_servicio == 3) {
 
                 // 🟡 SOLO RECOLECTA (primer evento)
@@ -213,7 +195,7 @@ class TrackingRendicionController extends BaseController
                     );
                 }
 
-                // 🟢 ENTREGA FINAL
+                // ENTREGA FINAL
                 if ($newStatus === 'entregado') {
 
                     // ✔ Siempre paquete
@@ -227,7 +209,7 @@ class TrackingRendicionController extends BaseController
                         $trackingId
                     );
 
-                    // ✔ Flete SOLO si no fue rendido antes
+                    // Flete SOLO si no fue rendido antes
                     if (!$fleteYaRendido) {
 
                         $sumarSaldo($cuentaDeIngreso, $montoVendedor);
@@ -243,7 +225,7 @@ class TrackingRendicionController extends BaseController
                 }
             } else {
 
-                // 🔵 SERVICIO NORMAL
+                // SERVICIO NORMAL
                 $sumarSaldo($cuentaDeIngreso, $montoPaquete);
 
                 registrarEntrada(
@@ -256,11 +238,13 @@ class TrackingRendicionController extends BaseController
             }
         }
 
-        // ============================================================
         // 4) FINALIZAR TRACKING
-        // ============================================================
-        $this->headerModel->update($trackingId, ['status' => 'finalizado',
-        'rendicion_procesada' => 1]);
+        $this->headerModel->update($trackingId, [
+            'status' => 'finalizado',
+            'efectivo' => $total_efectivo,
+            'otras_cuentas' => $total_otras_cuentas,
+            'rendicion_procesada' => 1
+        ]);
 
         registrar_bitacora(
             'Rendición de Tracking Finalizada',
@@ -274,8 +258,6 @@ class TrackingRendicionController extends BaseController
             ->to(base_url('tracking/' . $trackingId))
             ->with('success', 'Rendición guardada correctamente');
     }
-
-
 
     public function pdf($trackingId)
     {

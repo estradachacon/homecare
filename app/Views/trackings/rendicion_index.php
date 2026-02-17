@@ -3,14 +3,10 @@
 <style>
     .muteado {
         background-color: #e9ecef !important;
-        /* gris claro */
         color: #6c757d !important;
-        /* gris oscuro */
         text-decoration: line-through;
-        /* rayitas */
     }
 
-    /* Estilos existentes */
     .bg-danger-light {
         background-color: #ffe5e5 !important;
     }
@@ -33,12 +29,10 @@
         margin-left: 0.5rem;
     }
 
-    /* Nuevo estilo para Recolectado + Entregado Exitoso */
     .bg-success-light {
         background-color: #d4edda !important;
     }
 
-    /* Nuevo estilo para Recolectado (Pendiente de Entrega Final) */
     .bg-info-light {
         background-color: #cce5ff !important;
     }
@@ -53,10 +47,12 @@
             <div class="card-body">
                 <form method="post"
                     action="<?= base_url('tracking-rendicion/save') ?>"
-                    onsubmit="return bloquearEnvio();">
-
+                    onsubmit="return confirmarRendicion(event);">
 
                     <input type="hidden" name="tracking_id" value="<?= $tracking->id ?>">
+                    <input type="hidden" name="total_efectivo" id="input-total-efectivo">
+                    <input type="hidden" name="total_otras_cuentas" id="input-total-otras">
+
 
                     <h5>Seleccionar estado de los paquetes</h5>
 
@@ -228,6 +224,10 @@
                         <small class="text-muted">Solo se suman los paquetes exitosos (no marcados como no
                             entregados/regresados)</small>
                     </div>
+                    <div class="card bg-light p-3 mb-3 shadow-sm">
+                        <h5 class="mb-0">Total otras cuentas: <strong id="total-otras">$0.00</strong></h5>
+                        <small class="text-muted">Solo paquetes exitosos que NO estén en cuenta efectivo</small>
+                    </div>
 
                     <button type="submit" id="btnRendir" class="btn btn-success">
                         Guardar rendición
@@ -238,31 +238,63 @@
     </div>
 </div>
 <script>
-    function bloquearEnvio() {
+    function confirmarRendicion(e) {
 
-        const btn = document.getElementById('btnRendir');
+        e.preventDefault(); // 🚫 detenemos envío automático
 
-        // 🛑 Si ya fue bloqueado, cancelamos submit
-        if (btn.disabled) {
-            return false;
-        }
-
-        // 🔒 Bloqueo inmediato
-        btn.disabled = true;
+        // 🔎 Tomar los totales actuales
+        const totalEfectivo = document.getElementById('total-entregar').innerText;
+        const totalOtras = document.getElementById('total-otras').innerText;
 
         Swal.fire({
-            title: 'Procesando rendición',
-            text: 'Por favor espera…',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
+            title: 'Confirmar rendición',
+            html: `
+            <div style="text-align:left; font-size:15px;">
+                <p><strong>Total en efectivo:</strong> ${totalEfectivo}</p>
+                <p><strong>Total otras cuentas:</strong> ${totalOtras}</p>
+                <hr>
+                <p>¿Deseas continuar con la rendición?</p>
+            </div>
+        `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#dc3545',
+            confirmButtonText: 'Sí, confirmar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                const btn = document.getElementById('btnRendir');
+                btn.disabled = true;
+
+                Swal.fire({
+                    title: 'Procesando rendición',
+                    text: 'Por favor espera…',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const limpioEfectivo = totalEfectivo.replace('$', '');
+                const limpioOtras = totalOtras.replace('$', '');
+
+                // Asignar a los hidden
+                document.getElementById('input-total-efectivo').value = limpioEfectivo;
+                document.getElementById('input-total-otras').value = limpioOtras;
+
+                e.target.submit(); 
             }
         });
 
-        return true; // ✔ permite enviar el form
+        return false;
     }
 </script>
+
 
 <script>
     $(document).ready(function() {
@@ -327,18 +359,21 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
 
-        // Función para sincronizar los checkboxes y actualizar el total
         function actualizarEstadoYTotal() {
-            let total = 0;
+
+            let totalEfectivo = 0;
+            let totalOtras = 0;
 
             document.querySelectorAll('.paquete-row').forEach(row => {
 
                 const cbRegresado = row.querySelector('.regresado-checkbox');
                 const cbRecolectadoSolo = row.querySelector('.recolectado-solo-checkbox');
                 const strongMonto = row.querySelector('.paquete-monto-total');
+                const selectCuenta = row.querySelector('.select2-account');
+
+                const cuentaSeleccionada = parseInt(selectCuenta?.value) || 0;
+
                 const fleteRendido = parseInt(row.dataset.fleteRendido) === 1;
-
-
                 const tipo = parseInt(row.dataset.tipo);
                 const destinos = parseInt(row.dataset.destinos);
 
@@ -347,15 +382,13 @@
                 const fleteTotal = Number(row.dataset.fleteTotal) || 0;
                 const fletePagado = Number(row.dataset.fletePagado) || 0;
 
-                // Determinar cuál flete usar
-                const montoVendedor = (togglePago === 0) ?
-                    fleteTotal // Pago completo
-                    :
-                    fletePagado; // Pago parcial
+                const montoVendedor = (togglePago === 0) ? fleteTotal : fletePagado;
 
-                // =======================================================
-                // A. SINCRONIZACIÓN (Regresado vs Solo Recolectado)
-                // =======================================================
+                let subtotal = 0;
+
+                // =========================
+                // SINCRONIZACIÓN
+                // =========================
                 if (cbRegresado && cbRecolectadoSolo) {
                     if (cbRegresado.checked) {
                         cbRecolectadoSolo.disabled = true;
@@ -365,46 +398,43 @@
                     }
                 }
 
-                // Limpieza de clases
                 row.classList.remove('bg-warning', 'bg-danger-light', 'bg-success-light', 'bg-info-light');
 
-                // B. REGLA 1: Si está regresado → NO SUMA NADA
+                // ❌ REGRESADO → NO SUMA
                 if (cbRegresado.checked) {
 
                     if (tipo === 3 && destinos === 1) {
-                        row.classList.add('bg-danger-light'); // Falló la recolección única
+                        row.classList.add('bg-danger-light');
                     } else {
-                        row.classList.add('bg-warning'); // No retirado general
+                        row.classList.add('bg-warning');
                     }
 
                     return;
                 }
 
-                // 🟢 SERVICIO DE RECOLECCIÓN
+                // =========================
+                // SERVICIO RECOLECCIÓN
+                // =========================
                 if (tipo === 3) {
 
-                    // Caso: Solo recolectado (sin entrega final)
                     if (cbRecolectadoSolo && cbRecolectadoSolo.checked) {
 
-                        // 🚀 Aplicar Muteado 🚀
                         if (strongMonto) strongMonto.classList.add('muteado');
 
                         if (!fleteRendido) {
-                            total += montoVendedor;
+                            subtotal += montoVendedor;
                         }
 
-                        row.classList.add('bg-info-light'); // pendiente de entrega
+                        row.classList.add('bg-info-light');
 
                     } else {
 
-                        // 🛑 Quitar Muteado (Se asume Recolectado + Entregado Exitoso) 🛑
                         if (strongMonto) strongMonto.classList.remove('muteado');
 
-                        // Caso: recolectado + entregado
-                        total += montoPaquete;
+                        subtotal += montoPaquete;
 
                         if (!fleteRendido) {
-                            total += montoVendedor;
+                            subtotal += montoVendedor;
                         }
 
                         row.classList.add('bg-success-light');
@@ -412,20 +442,33 @@
 
                 } else {
 
-                    // 🟦 SERVICIO NORMAL (1 y 2)
-
-                    // 🛑 Quitar Muteado (No aplica para servicios normales) 🛑
                     if (strongMonto) strongMonto.classList.remove('muteado');
 
-                    total += montoPaquete;
+                    subtotal += montoPaquete;
                     row.classList.add('bg-success-light');
                 }
+
+                // =========================
+                // 🔥 AQUÍ HACEMOS LA SEPARACIÓN POR CUENTA
+                // =========================
+                if (cuentaSeleccionada === 1) {
+                    totalEfectivo += subtotal;
+                } else if (cuentaSeleccionada > 1) {
+                    totalOtras += subtotal;
+                }
+
             });
 
-            document.getElementById('total-entregar').innerText = '$' + total.toFixed(2);
+            document.getElementById('total-entregar').innerText = '$' + totalEfectivo.toFixed(2);
+            document.getElementById('total-otras').innerText = '$' + totalOtras.toFixed(2);
         }
 
         actualizarEstadoYTotal();
+
+        // 🔥 Recalcular cuando cambie la cuenta (Select2)
+        $(document).on('change', '.select2-account', function() {
+            actualizarEstadoYTotal();
+        });
 
         document.querySelectorAll('.regresado-checkbox').forEach(cb => {
             cb.addEventListener('change', actualizarEstadoYTotal);

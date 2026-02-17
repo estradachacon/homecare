@@ -38,18 +38,22 @@ class TrackingDetailsModel extends Model
         packages.flete_pagado,
         packages.lugar_recolecta_paquete,
         packages.id_puntofijo,
+        packages.pago_cuenta,
         packages.estatus AS package_status,
         packages.flete_rendido AS flete_rendido,
         settled_points.point_name AS puntofijo_nombre,
-        sellers.seller AS vendedor
+        sellers.seller AS vendedor,
+        accounts.name AS cuenta_nombre
     ')
-
             ->join('packages', 'packages.id = tracking_details.package_id', 'left')
             ->join('settled_points', 'settled_points.id = packages.id_puntofijo', 'left')
             ->join('sellers', 'sellers.id = packages.vendedor', 'left')
+
+            // 🔥 ESTE ES EL JOIN NUEVO
+            ->join('accounts', 'accounts.id = packages.pago_cuenta', 'left')
+
             ->where('tracking_details.tracking_header_id', $trackingHeaderId)
             ->orderBy('tracking_details.id', 'ASC')
             ->findAll();
     }
-
 }

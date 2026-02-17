@@ -14,14 +14,40 @@ $tiposServicio = [
             <div class="card-header d-flex align-items-center bg-primary text-white">
                 <h5 class="mb-0">Detalle de Tracking #<?= $tracking->id ?></h5>
                 <a href="<?= base_url('tracking-pdf/' . $tracking->id) ?>" target="_blank"
-                   class="btn btn-light btn-sm ml-auto">
-                   <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+                    class="btn btn-light btn-sm ml-auto">
+                    <i class="fa-solid fa-file-pdf"></i> Exportar PDF
                 </a>
             </div>
             <div class="card-body">
                 <p><strong>Motorista:</strong> <?= $tracking->motorista_name ?? 'N/A' ?></p>
                 <p><strong>Creación:</strong> <?= date('d/m/Y H:i', strtotime($tracking->created_at)) ?></p>
                 <p><strong>Fecha de entrega:</strong> <?= date('d/m/Y', strtotime($tracking->date)) ?></p>
+
+                <?php
+                $totalEfectivo = $tracking->efectivo ?? null;
+                $totalOtras    = $tracking->otras_cuentas ?? null;
+
+                function formatearMonto($valor)
+                {
+                    if ($valor === null) {
+                        return '<span class="text-muted">No registrado</span>';
+                    }
+                    return '$' . number_format($valor, 2);
+                }
+                ?>
+
+                <div class="mt-2 mb-3 p-2 bg-light border rounded small">
+                    <strong>Totales en Rendición: </strong>
+                    Efectivo:
+                    <span class="text-dark">
+                        <?= formatearMonto($totalEfectivo) ?>
+                    </span>
+                    &nbsp; | &nbsp;
+                    Otras cuentas:
+                    <span class="text-dark">
+                        <?= formatearMonto($totalOtras) ?>
+                    </span>
+                </div>
 
                 <hr>
 
@@ -35,6 +61,8 @@ $tiposServicio = [
                             <th class="col-md-3">Cliente</th>
                             <th class="col-md-3">Destino / Recolección</th>
                             <th class="col-md-1">Monto</th>
+                            <th class="col-md-1">Cuenta</th>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -82,6 +110,9 @@ $tiposServicio = [
                                     </td>
 
                                     <td><?= number_format($d->monto, 2) ?></td>
+                                    <td class="text-muted small">
+                                        <?= $d->cuenta_nombre ?? '-' ?>
+                                    </td>
                                 </tr>
 
                             <?php endforeach; ?>
