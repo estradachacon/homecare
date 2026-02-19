@@ -37,11 +37,6 @@
 
                     <?= statusBadge($account->is_active ? 'Activo' : 'Inactivo') ?>
                 </div>
-
-                <div class="text-end">
-                    <div class="small text-muted">En cajas</div>
-                    <strong>$<?= number_format($account->cashier_reserv, 2) ?></strong>
-                </div>
             </div>
 
             <!-- ACTIONS -->

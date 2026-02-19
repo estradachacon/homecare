@@ -5,7 +5,6 @@
             <th class="col-3">Nombre de cuenta</th>
             <th class="col-3">Descripción</th>
             <th class="col-1">Saldo</th>
-            <th class="col-1">Valor en cajas</th>
             <th class="col-1">Tipo</th>
             <th class="col-1">Estado</th>
             <th class="col-1.5">Acciones</th>
@@ -19,7 +18,6 @@
                     <td><strong><?= esc($account->name) ?></strong></td>
                     <td><strong><?= esc($account->description) ?></strong></td>
                     <td class="text-center"><strong>$<?= number_format($account->balance, 2) ?></strong></td>
-                    <td class="text-center"><strong>$<?= number_format($account->cashier_reserv, 2) ?></strong></td>
                     <td class="text-center"><strong><?= statusBadge($account->type) ?></strong></td>
                     <td class="text-center">
                         <?= statusBadge($account->is_active ? 'Activo' : 'Inactivo') ?>
