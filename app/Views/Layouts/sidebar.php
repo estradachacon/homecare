@@ -203,12 +203,6 @@
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_configuracion') ||
-                    tienePermiso('ver_sucursales') ||
-                    tienePermiso('ver_usuarios') ||
-                    tienePermiso('ver_roles')
-                ): ?>
                     <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
 
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
@@ -264,7 +258,6 @@
                         </nav>
                     </div>
 
-                <?php endif; ?>
                 <?php if (tienePermiso('ver_reportes')): ?>
                     <a class="nav-link" href="/reports">
                         <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
