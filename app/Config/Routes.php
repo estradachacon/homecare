@@ -6,9 +6,6 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 $routes->get('/', 'Home::index');
-$routes->get('/rutas', 'Home::rutas');
-$routes->get('/sucursales', 'Home::sucursales');
-$routes->get('/quienes-somos', 'Home::quienes_somos');
 
 $routes->post('/login', 'AuthController::login');
 $routes->get('/logout', 'AuthController::logout');
@@ -51,25 +48,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->post('generate', 'ReportController::generate');
     });
 
-    //Mantenimiento de multimedia
-    $routes->get('content', 'ContentController::index');
-    $routes->post('content/create', 'ContentController::saveGroup');
-    $routes->post('content/save', 'ContentController::update');
-    $routes->get('content/edit/(:num)', 'ContentController::edit/$1');
-    $routes->post('content/group/delete', 'ContentController::deleteGroup');
-    $routes->get('content/manage/(:num)', 'ContentController::manageImages/$1');
-    $routes->post('content/upload-image', 'ContentController::uploadImage');
-    $routes->post('content/image/delete', 'ContentController::deleteImage');
-    $routes->post('content/image/update', 'ContentController::updateImage');
-
-    // Remuneraciones de paquetes
-    $routes->get('remu/create', 'RemunerationController::create');
-    $routes->post('payments/pay-seller', 'PaymentController::paySeller');
-    $routes->get('payments/packages-by-seller/(:num)', 'PaymentController::packagesBySeller/$1');
-
-    // Remuneraciones de paquetes por cuenta
-    $routes->get('remuaccount/create', 'RemunerationController::byAccountCreate');
-    $routes->post('payments/pay-seller-byaccount', 'PaymentController::paySellerbyAccount');
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
@@ -99,49 +77,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para perfiles
     $routes->get('perfil', 'ProfileController::index');
     $routes->post('perfil/update', 'ProfileController::update');
-
-    // Módulo de mantenimiento de vendedores
-    $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
-    $routes->get('sellers-search', 'SellerController::search');
-    $routes->post('sellers/delete', 'SellerController::delete');
-    $routes->post('sellers/create-ajax', 'SellerController::createAjax');
-    $routes->get('sellers/searchAjax', 'SellerController::searchAjax');
-    $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
-
-    // Módulo de mantenimiento de puntos fijos
-    $routes->presenter('settledpoint', ['controller' => 'SettledPointController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
-    $routes->post('settledpoint/delete', 'SettledPointController::delete');
-    $routes->get('settledPoints/getList', 'SettledPointController::getList');
-    $routes->get('settledPoints/getDays/(:num)', 'SettledPointController::getAvailableDays/$1');
-
-    // Módulo de mantenimiento de rutas
-    $routes->presenter('routes', ['controller' => 'RouteController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
-    $routes->post('routes/delete', 'RouteController::delete');
     
     // Select2 Colonias
     $routes->get('ajax/colonias/search', 'UbicacionesController::searchColonias');
-
-
-    // Módulo de mantenimiento de paquetes
-    $route['upload-paquete'] = 'PackageController/subirImagen';
-    $routes->post('packages/store', 'PackageController::store');
-    $routes->post('packages-setDestino', 'PackageController::setDestino');
-    $routes->post('packages-setReenvio', 'PackageController::setReenvio');
-    $routes->post('packages-devolver/(:num)', 'PackageController::devolver/$1');
-    $routes->post('packages-entregar/(:num)', 'PackageController::entregar/$1');
-    $routes->get('packages-getDestinoInfo/(:num)', 'PackageController::getDestinoInfo/$1');
-    $routes->get('packages/return', 'PackageController::showReturnPackages');
-    $routes->presenter('packages', ['controller' => 'PackageController', 'only' => ['index', 'new', 'create', 'edit', 'update', 'delete', 'show']]);
-
-    // Módulo de mantenimiento de tracking
-    $routes->presenter('tracking', ['controller' => 'TrackingController', 'only' => ['index', 'new', 'show', 'create', 'edit', 'update']]);
-    $routes->get('tracking-pendientes/ruta/(:num)', 'TrackingController::getPendientesPorRuta/$1');
-    $routes->get('tracking-pendientes/todos', 'TrackingController::getTodosPendientes');
-    $routes->get('tracking-pendientes/rutas-con-paquetes/(:any)', 'TrackingController::rutasConPaquetes/$1');
-    $routes->post('tracking/store', 'TrackingController::store');
-    $routes->get('tracking-rendicion/(:num)', 'TrackingRendicionController::index/$1');
-    $routes->post('tracking-rendicion/save', 'TrackingRendicionController::save');
-    $routes->get('tracking-pdf/(:num)', 'TrackingRendicionController::pdf/$1');
 
     // Módulo de mantenimiento de cuentas
     $routes->presenter('accounts', ['controller' => 'AccountController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
@@ -149,6 +87,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('accounts/searchAjax', 'AccountController::searchAjax');
     $routes->get('accounts-list', 'AccountController::list');
     $routes->post('accounts-transfer', 'AccountController::processTransfer');
+    
     // Rutas para el módulo de transacciones
     $routes->get('transactions', 'TransactionsController::index');
     $routes->post('transactions/addSalida', 'TransactionsController::addSalida');

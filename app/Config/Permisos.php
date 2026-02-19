@@ -8,6 +8,10 @@ class Permisos extends BaseConfig
 {
     public array $modulos = [
 
+        'Ventas' => [
+            'cargar_facturas',
+        ],
+        
         'Finanzas' => [
             'ver_transacciones',
             'ver_cuentas',

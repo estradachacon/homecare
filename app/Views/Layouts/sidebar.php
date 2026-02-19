@@ -51,6 +51,27 @@
                 </a>
 
                 <?php if (
+                    tienePermiso('cargar_facturas')
+                ): ?>
+
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#ventas" aria-expanded="false"
+                        aria-controls="ventas">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                        Ventas
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+
+                    <div class="collapse" id="ventas" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('cargar_facturas')): ?>
+                                <a class="nav-link" href="/invoice_load">Cargar Facturas</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+
+                <?php endif; ?>
+
+                <?php if (
                     tienePermiso('ver_transacciones') ||
                     tienePermiso('ver_cajas') ||
                     tienePermiso('crear_caja') ||
