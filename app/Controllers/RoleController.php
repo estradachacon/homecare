@@ -20,6 +20,8 @@ class RoleController extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_roles');
+        if ($chk !== true) return $chk;
 
         return view('roles/index', [
             'roles' => $this->roleModel->findAll()
