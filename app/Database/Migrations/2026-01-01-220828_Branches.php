@@ -42,9 +42,7 @@ class Branchs extends Migration
         $this->forge->addKey('id', true);
         $this->forge->createTable('branches');
         $this->db->table('branches')->insertBatch([
-            ['branch_name' => 'Metrogalerias', 'branch_direction' => 'Frente a metrocentro', 'status' => 1],
-            ['branch_name' => 'Centro Histórico', 'branch_direction' => 'Centro Comercial Las Cascadas', 'status' => 1],
-            ['branch_name' => 'La Gran Vía', 'branch_direction' => 'Centro Comercial La Gran Vía', 'status' => 0],
+            ['branch_name' => 'Casa Matriz', 'branch_direction' => 'Carretera a los Planes de Renderos, San Salvador', 'status' => 1],
         ]);
     }
 

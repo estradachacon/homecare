@@ -1,9 +1,6 @@
 <?php
 
 namespace App\Controllers;
-
-use App\Models\ContentGroupModel;
-use App\Models\ContentImagesModel;
 use App\Models\BranchModel;
 
 class Home extends BaseController
@@ -13,37 +10,17 @@ class Home extends BaseController
     protected $branchModel = null;
     public function __construct()
     {
-        $this->groupModel = new ContentGroupModel();
-        $this->imageModel = new ContentImagesModel();
         $this->branchModel = new BranchModel();
     }
     public function index()
     {
         $session = session();
 
-        // ✅ Si ya inició sesión, enviarlo directo al dashboard
         if ($session->get('logged_in')) {
             return redirect()->to('/dashboard');
         }
 
-        $groupModel = new ContentGroupModel();
-        $imageModel = new ContentImagesModel();
-
-        // Traer el grupo 'welcome'
-        $welcomeGroup = $groupModel->where('id', 1)->first();
-
-        $images = [];
-        if ($welcomeGroup) {
-            $images = $imageModel
-                ->where('group_id', $welcomeGroup->id)
-                ->where('is_active', 1)
-                ->orderBy('position', 'ASC')
-                ->findAll();
-        }
-
         return view('welcome_message', [
-            'group' => $welcomeGroup,
-            'images' => $images
         ]);
     }
     public function rutas()

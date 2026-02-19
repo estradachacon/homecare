@@ -60,9 +60,9 @@ class CreateSettingsTable extends Migration
 
         // 🔹 Insertar configuración inicial
         $this->db->table('settings')->insert([
-            'company_name'    => 'FC Encomiendas',
-            'company_address' => 'Casa Matriz, Metrogalerías Local 1-2C',
-            'primary_color'   => '#0d6efd',
+            'company_name'    => 'HomeCare',
+            'company_address' => 'Casa Matriz, Carretera a los Planes de Renderos, San Salvador',
+            'primary_color'   => '#468aef',
             'created_at'      => date('Y-m-d H:i:s'),
             'updated_at'      => date('Y-m-d H:i:s'),
         ]);
