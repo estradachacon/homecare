@@ -10,52 +10,10 @@ class Permisos extends BaseConfig
 
         'Finanzas' => [
             'ver_transacciones',
-            'ver_cajas',
-            'crear_caja',
-            'editar_caja',
-            'eliminar_caja',
-            'hacer_corte',
             'ver_cuentas',
             'crear_cuenta',
-            'ver_historicos_de_caja',
             'registrar_gasto',
             'registrar_transferencia',
-        ],
-
-        'Paquetería' => [
-            'crear_paquetes',
-            'ver_paquetes',
-            'ver_tracking',
-            'crear_tracking',
-        ],
-
-        'Remuneraciones' => [
-            'remunerar_paquetes',
-            'devolver_paquetes',
-            'remunerar_paquetes_por_cuenta',
-        ],
-
-        'Vendedores' => [
-            'ver_vendedores',
-            'crear_vendedor',
-            'editar_vendedor',
-            'eliminar_vendedor',
-        ],
-
-        'Puntos fijos y rutas' => [
-            'ver_puntosfijos',
-            'crear_puntofijo',
-            'editar_puntofijo',
-            'eliminar_puntofijo',
-            'ver_rutas',
-            'crear_ruta',
-            'editar_ruta',
-            'eliminar_ruta',
-        ],
-
-        'Solicitudes' => [
-            'invalidar_pago',
-            'invalidar_flete',
         ],
 
         'Reportes' => [
@@ -67,7 +25,6 @@ class Permisos extends BaseConfig
             'ver_sucursales',
             'ver_almacenamiento',
             'ver_bitacora',
-            'ajustes_multimedia',
         ],
 
         'Gestión de usuarios' => [
