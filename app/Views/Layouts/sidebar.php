@@ -40,7 +40,6 @@
             </a>
         </div>
 
-
         <div class="sb-sidenav-menu">
             <div class="nav">
                 <div class="sb-sidenav-menu-heading">NAVEGACION</div>
@@ -51,12 +50,13 @@
                 </a>
 
                 <?php if (
-                    tienePermiso('cargar_facturas')
+                    tienePermiso('cargar_facturas') ||
+                    tienePermiso('ver_facturas')
                 ): ?>
 
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#ventas" aria-expanded="false"
                         aria-controls="ventas">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                         Ventas
                         <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
@@ -64,7 +64,11 @@
                     <div class="collapse" id="ventas" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('cargar_facturas')): ?>
-                                <a class="nav-link" href="/invoice_load">Cargar Facturas</a>
+                                <a class="nav-link" href="/facturas/carga">Cargar Facturas</a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_facturas')): ?>
+                                <a class="nav-link" href="/facturas">Ver Facturas</a>
                             <?php endif; ?>
                         </nav>
                     </div>

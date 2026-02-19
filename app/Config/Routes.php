@@ -25,9 +25,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->resource('orders', [
             'controller' => 'OrderController'
         ]);
-        // Rutas adicionales
-        $routes->get('(:num)/invoice', 'OrderController::invoice/$1');
-        $routes->post('(:num)/cancel', 'OrderController::cancel/$1');
     });
 
     // Módulo de Reportes
@@ -100,4 +97,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     //Rutas para reportería
     $routes->get('reports', 'ReportController::index');
+
+    // Rutas para el módulo de facturación
+    $routes->get('facturas', 'Facturas::index');
+    $routes->get('facturas/carga', 'Facturas::carga');
+    $routes->post('facturas/cargar', 'Facturas::procesarCarga');
 });

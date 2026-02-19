@@ -10,6 +10,7 @@ class Permisos extends BaseConfig
 
         'Ventas' => [
             'cargar_facturas',
+            'ver_facturas',
         ],
         
         'Finanzas' => [

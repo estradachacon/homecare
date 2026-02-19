@@ -22,7 +22,6 @@ class BranchController extends Controller
         return view('sucursales/index', $data);
     }
 
-    // 🟩 2. NEW: muestra el formulario de creación
     public function new()
     {
         return view('sucursales/new');
