@@ -72,6 +72,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 50px;">#</th>
+                                <th style="width: 90px;" class="text-center">Correlativo</th>
                                 <th>Documento</th>
                                 <th style="width: 140px;">Fecha</th>
                                 <th style="width: 140px;" class="text-end">Total</th>
@@ -93,6 +94,11 @@
         </div>
     </div>
 </div>
+<script>
+    const DTE_TIPOS = <?= json_encode(dte_tipos()) ?>;
+    const DTE_SIGLAS = <?= json_encode(dte_siglas()) ?>;
+    const DTE_DESCRIPCIONES = <?= json_encode(dte_descripciones()) ?>;
+</script>
 
 <script>
     const overlay = document.getElementById('globalDropOverlay');
@@ -151,6 +157,10 @@
                     const json = JSON.parse(e.target.result);
 
                     const codigo = json.identificacion?.codigoGeneracion ?? null;
+                    const numeroControlCompleto = json.identificacion?.numeroControl ?? null;
+                    const correlativoInterno = numeroControlCompleto ?
+                        numeroControlCompleto.slice(-6) :
+                        null;
 
                     if (!codigo) return;
 
@@ -177,7 +187,8 @@
                     const factura = {
                         file: file,
                         codigoGeneracion: codigo,
-                        numeroControl: json.identificacion?.numeroControl ?? null,
+                        numeroControl: numeroControlCompleto,
+                        correlativo: correlativoInterno,
                         tipoDoc: json.identificacion?.tipoDte ?? 'N/D',
                         fecha: json.identificacion?.fecEmi ?? 'N/D',
                         cliente: json.receptor?.nombre ?? 'N/D',
@@ -280,29 +291,53 @@
 
             const detailId = "detail_" + index;
 
-            const productosHtml = factura.productos.map(p => `
-            <div class="d-flex justify-content-between small border-bottom py-1">
-                <div>${p.descripcion}</div>
+            const productosHtml = factura.productos.length ?
+                `
+    <ul class="list-group list-group-flush">
+        ${factura.productos.map(p => `
+            <li class="list-group-item d-flex justify-content-between align-items-start">
                 <div>
-                    ${p.cantidad} x ${parseFloat(p.precioUni || 0).toFixed(2)}
+                    <strong>${(p.descripcion || '').replace(/\n/g, '<br>')}</strong>
+                    <br>
+                    <small class="text-muted">
+                        Cantidad: ${p.cantidad} | 
+                        Precio: $${parseFloat(p.precioUni || 0).toFixed(2)}
+                    </small>
                 </div>
-            </div>
-        `).join('');
+                <span class="badge-xl bg-white rounded-pill">
+                    $${(parseFloat(p.cantidad || 0) * parseFloat(p.precioUni || 0)).toFixed(2)}
+                </span>
+            </li>
+        `).join('')}
+    </ul>
+    ` :
+                '<small class="text-muted">Sin productos</small>';
+
+            const nombre = DTE_TIPOS[factura.tipoDoc] ?? 'Desconocido';
+            const sigla = DTE_SIGLAS[factura.tipoDoc] ?? '';
+            const descripcion = DTE_DESCRIPCIONES[sigla] ?? '';
 
             const row = `
-            <tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
-                <td>${index + 1}</td>
-                <td>
-                    <strong>${factura.tipoDoc}</strong> - ${factura.cliente}
-                    <br>
-                    <small class="text-muted">${factura.file.name}</small>
-                </td>
-                <td>${factura.fecha}</td>
-                <td>$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
-            </tr>
+<tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
+    <td>${index + 1}</td>
+    <td class="text-center">
+        <span class="badge-xl bg-white">
+            ${factura.correlativo ?? '------'}
+        </span>
+    </td>
+    <td>
+        <strong>${factura.tipoDoc} - ${nombre}</strong>
+        <br>
+        <small class="text-primary">${sigla} - ${descripcion}</small>
+        <br>
+        <small class="text-muted">${factura.file.name}</small>
+    </td>
+    <td>${factura.fecha}</td>
+    <td class="text-end">$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
+</tr>
 
             <tr id="${detailId}" class="detail-row" style="display:none;">
-                <td colspan="4">
+                <td colspan="5">
                     <div class="p-2 bg-light rounded">
                         ${productosHtml || '<small class="text-muted">Sin productos</small>'}
                     </div>
