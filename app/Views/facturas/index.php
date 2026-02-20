@@ -16,64 +16,86 @@
                         <tr>
                             <th>Correlativo</th>
                             <th class="col-2">Tipo DOC</th>
-                            <th class="col-2">Cliente</th>
-                            <th class="col-3">Fecha | Hora</th>
-                            <th class="col-2">Plazo</th>
-                            <th class="col-2">Total</th>
-                            <th class="col-2">Saldo</th>
-                            <th class="col-2">Estado</th>
-                            <th class="col-2">Acciones</th>
+                            <th class="col-3">Cliente</th>
+                            <th>Fecha/Hora</th>
+                            <th class="col-1">Plazo</th>
+                            <th class="col-1">Total</th>
+                            <th class="col-1">Saldo</th>
+                            <th class="col-1">Estado</th>
+                            <th class="col-1">Menú</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($settledPoints)): ?>
-                            <?php foreach ($settledPoints as $settledPoint): ?>
+                        <?php if (!empty($facturas)): ?>
+                            <?php foreach ($facturas as $factura): ?>
                                 <tr>
-                                    <td class="text-center"><?= esc($settledPoint->id) ?></td>
-                                    <td><?= esc($settledPoint->point_name) ?></td>
-                                    <td class="text-center"><?= esc($settledPoint->route_name) ?></td>
                                     <td class="text-center">
-                                        <?php
-                                        $dias = [
-                                            'mon' => 'Lunes',
-                                            'tus' => 'Martes',
-                                            'wen' => 'Miércoles',
-                                            'thu' => 'Jueves',
-                                            'fri' => 'Viernes',
-                                            'sat' => 'Sábado',
-                                            'sun' => 'Domingo'
-                                        ];
-
-                                        $dias_visita = [];
-
-                                        foreach ($dias as $col => $nombre) {
-                                            if (!empty($settledPoint->$col) && $settledPoint->$col == 1) {
-                                                $dias_visita[] = $nombre;
-                                            }
-                                        }
-
-                                        echo !empty($dias_visita)
-                                            ? implode(', ', $dias_visita)
-                                            : '<span class="text-muted">Sin días asignados</span>';
-                                        ?>
+                                        <?= esc(substr($factura->numero_control, -6)) ?>
                                     </td>
-                                    <td class="text-center"><?= esc($settledPoint->hora_inicio . ' - ' . $settledPoint->hora_fin) ?></td>
+
                                     <td>
-                                        <?php if (tienePermiso('editar_puntofijo')): ?>
-                                            <a href="<?= base_url('settledpoint/edit/' . $settledPoint->id) ?>"
-                                                class="btn btn-sm btn-info"><i class="fa-solid fa-edit"></i></a>
+                                        <?php
+                                        $siglas = dte_siglas();
+                                        $descripciones = dte_descripciones();
+
+                                        $codigo = $factura->tipo_dte;
+                                        $sigla = $siglas[$codigo] ?? null;
+                                        $descripcion = $sigla ? ($descripciones[$sigla] ?? null) : null;
+                                        ?>
+
+                                        <?php if ($sigla && $descripcion): ?>
+                                            <span class="badge bg-info text-white">
+                                                <?= esc($sigla) ?>
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                <?= esc($descripcion) ?>
+                                            </small>
+                                        <?php else: ?>
+                                            <span class="text-muted">Desconocido</span>
                                         <?php endif; ?>
-                                        <?php if (tienePermiso('eliminar_puntofijo')): ?>
-                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?= $settledPoint->id ?>">
-                                                <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <!-- Si luego haces join con cliente real puedes cambiar esto -->
+                                        <?= esc($factura->cliente_nombre ?? 'Sin cliente') ?>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <?= esc($factura->fecha_emision) ?>
+                                        <br>
+                                        <small class="text-muted"><?= esc($factura->hora_emision) ?></small>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <?= esc($factura->condicion_operacion ?? 'Contado') ?>
+                                    </td>
+
+                                    <td class="text-end">
+                                        $ <?= number_format($factura->total_pagar, 2) ?>
+                                    </td>
+
+                                    <td class="text-end">
+                                        $ <?= number_format($factura->total_pagar, 2) ?>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <span class="badge bg-success">Activa</span>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <a href="<?= base_url('facturas/ver/' . $factura->id) ?>"
+                                            class="btn btn-sm btn-info">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="9" class="text-center">No hay facturas registradas</td>
+                                <td colspan="9" class="text-center">
+                                    No hay facturas registradas
+                                </td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

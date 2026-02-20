@@ -154,15 +154,15 @@
 
             reader.onload = function(e) {
                 try {
+
                     const json = JSON.parse(e.target.result);
 
                     const codigo = json.identificacion?.codigoGeneracion ?? null;
                     const numeroControlCompleto = json.identificacion?.numeroControl ?? null;
-                    const correlativoInterno = numeroControlCompleto ?
-                        numeroControlCompleto.slice(-6) :
-                        null;
 
-                    if (!codigo) return;
+                    if (!codigo || !numeroControlCompleto) return;
+
+                    const correlativoInterno = numeroControlCompleto.slice(-6);
 
                     // 1️⃣ Duplicado dentro del mismo lote
                     if (codigosEnLote.has(codigo)) {
@@ -171,7 +171,7 @@
                         return;
                     }
 
-                    // 2️⃣ Duplicado contra los ya agregados
+                    // 2️⃣ Duplicado contra los ya agregados en vista
                     const yaExiste = archivosSeleccionados.some(f =>
                         f.codigoGeneracion === codigo
                     );
@@ -181,8 +181,6 @@
                         mostrarDuplicados(duplicados);
                         return;
                     }
-
-                    codigosEnLote.add(codigo);
 
                     const factura = {
                         file: file,
@@ -196,8 +194,42 @@
                         productos: json.cuerpoDocumento ?? []
                     };
 
-                    archivosSeleccionados.push(factura);
-                    renderTable();
+                    // 🔎 VALIDAR EN BASE DE DATOS
+                    fetch("<?= base_url('facturas/validar-numero-control') ?>", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded"
+                            },
+                            body: "numero_control=" + encodeURIComponent(numeroControlCompleto)
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+
+                            if (data.existe) {
+
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Factura ya existe en el sistema',
+                                    html: `
+                        <div style="text-align:left;">
+                            <small><strong>Número de control:</strong></small><br>
+                            <small>${numeroControlCompleto}</small>
+                        </div>
+                    `,
+                                    showConfirmButton: false,
+                                    timer: 4000
+                                });
+
+                                return; // 🚫 No se agrega
+                            }
+
+                            // ✅ Si pasa todo, ahora sí agregamos
+                            codigosEnLote.add(codigo);
+                            archivosSeleccionados.push(factura);
+                            renderTable();
+                        });
 
                 } catch (error) {
                     console.error("Error leyendo JSON:", error);
@@ -295,20 +327,58 @@
             }
         });
 
-        // Simulación temporal (reemplazar con fetch/AJAX real)
-        setTimeout(() => {
+        // Solo enviamos los JSON ya leídos
+        const jsons = archivosSeleccionados.map(f => ({
+            codigoGeneracion: f.codigoGeneracion,
+            json: f.file
+        }));
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Carga completada',
-                text: `${archivosSeleccionados.length} factura(s) procesadas correctamente.`
+        const formData = new FormData();
+
+        archivosSeleccionados.forEach((factura, index) => {
+            formData.append('archivos[]', factura.file);
+        });
+
+        fetch("<?= base_url('facturas/cargar') ?>", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                Swal.close();
+
+                if (data.success) {
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Carga completada',
+                        text: data.message
+                    });
+
+                    archivosSeleccionados = [];
+                    renderTable();
+
+                } else {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+
+                }
+
+            })
+            .catch(error => {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error inesperado',
+                    text: 'Ocurrió un problema en el servidor.'
+                });
+                console.error(error);
             });
-
-            // Opcional: limpiar tabla
-            archivosSeleccionados = [];
-            renderTable();
-
-        }, 1500);
     }
 
     function renderTable() {
