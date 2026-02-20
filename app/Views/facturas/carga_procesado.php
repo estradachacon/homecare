@@ -284,6 +284,34 @@
         reader.readAsText(file);
     }
 
+    function procesarFacturas() {
+
+        Swal.fire({
+            title: 'Procesando...',
+            text: 'Por favor espera mientras se cargan las facturas.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Simulación temporal (reemplazar con fetch/AJAX real)
+        setTimeout(() => {
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Carga completada',
+                text: `${archivosSeleccionados.length} factura(s) procesadas correctamente.`
+            });
+
+            // Opcional: limpiar tabla
+            archivosSeleccionados = [];
+            renderTable();
+
+        }, 1500);
+    }
+
     function renderTable() {
         tableBody.innerHTML = '';
 
@@ -293,24 +321,24 @@
 
             const productosHtml = factura.productos.length ?
                 `
-    <ul class="list-group list-group-flush">
-        ${factura.productos.map(p => `
-            <li class="list-group-item d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>${(p.descripcion || '').replace(/\n/g, '<br>')}</strong>
-                    <br>
-                    <small class="text-muted">
-                        Cantidad: ${p.cantidad} | 
-                        Precio: $${parseFloat(p.precioUni || 0).toFixed(2)}
-                    </small>
-                </div>
-                <span class="badge-xl bg-white rounded-pill">
-                    $${(parseFloat(p.cantidad || 0) * parseFloat(p.precioUni || 0)).toFixed(2)}
-                </span>
-            </li>
-        `).join('')}
-    </ul>
-    ` :
+                <ul class="list-group list-group-flush">
+                    ${factura.productos.map(p => `
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${(p.descripcion || '').replace(/\n/g, '<br>')}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Cantidad: ${p.cantidad} | 
+                                    Precio: $${parseFloat(p.precioUni || 0).toFixed(2)}
+                                </small>
+                            </div>
+                            <span class="badge-xl bg-white rounded-pill">
+                                $${(parseFloat(p.cantidad || 0) * parseFloat(p.precioUni || 0)).toFixed(2)}
+                            </span>
+                        </li>
+                    `).join('')}
+                </ul>
+                ` :
                 '<small class="text-muted">Sin productos</small>';
 
             const nombre = DTE_TIPOS[factura.tipoDoc] ?? 'Desconocido';
@@ -318,23 +346,23 @@
             const descripcion = DTE_DESCRIPCIONES[sigla] ?? '';
 
             const row = `
-<tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
-    <td>${index + 1}</td>
-    <td class="text-center">
-        <span class="badge-xl bg-white">
-            ${factura.correlativo ?? '------'}
-        </span>
-    </td>
-    <td>
-        <strong>${factura.tipoDoc} - ${nombre}</strong>
-        <br>
-        <small class="text-primary">${sigla} - ${descripcion}</small>
-        <br>
-        <small class="text-muted">${factura.file.name}</small>
-    </td>
-    <td>${factura.fecha}</td>
-    <td class="text-end">$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
-</tr>
+            <tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
+                <td>${index + 1}</td>
+                <td class="text-center">
+                    <span class="badge-xl bg-white">
+                        ${factura.correlativo ?? '------'}
+                    </span>
+                </td>
+                <td>
+                    <strong>${factura.tipoDoc} - ${nombre}</strong>
+                    <br>
+                    <small class="text-primary">${sigla} - ${descripcion}</small>
+                    <br>
+                    <small class="text-muted">${factura.file.name}</small>
+                </td>
+                <td>${factura.fecha}</td>
+                <td class="text-end">$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
+            </tr>
 
             <tr id="${detailId}" class="detail-row" style="display:none;">
                 <td colspan="5">
@@ -361,6 +389,44 @@
             });
         });
 
+        btnProcesar.addEventListener('click', function() {
+
+            if (archivosSeleccionados.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No hay facturas para procesar',
+                    text: 'Debes cargar al menos un archivo JSON.'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: '¿Confirmar carga masiva?',
+                html: `
+            <div style="text-align:left;">
+                Se procesarán <strong>${archivosSeleccionados.length}</strong> factura(s).<br><br>
+                Esta acción enviará la información al sistema.
+            </div>
+        `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, procesar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+
+                if (result.isConfirmed) {
+
+                    // Aquí va tu lógica real de envío al backend
+                    procesarFacturas();
+
+                }
+
+            });
+
+        });
         btnProcesar.disabled = archivosSeleccionados.length === 0;
     }
 </script>
