@@ -12,6 +12,13 @@ class Permisos extends BaseConfig
             'cargar_facturas',
             'ver_facturas',
         ],
+
+        'Vendedores' => [
+            'ver_vendedores',
+            'crear_vendedor',
+            'editar_vendedor',
+            'eliminar_vendedor',
+        ],
         
         'Finanzas' => [
             'ver_transacciones',

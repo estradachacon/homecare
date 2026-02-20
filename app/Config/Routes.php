@@ -102,4 +102,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('facturas', 'Facturas::index');
     $routes->get('facturas/carga', 'Facturas::carga');
     $routes->post('facturas/cargar', 'Facturas::procesarCarga');
+
+    //Modulo de vendedores
+    $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->get('sellers-search', 'SellerController::search');
+    $routes->post('sellers/delete', 'SellerController::delete');
+    $routes->post('sellers/create-ajax', 'SellerController::createAjax');
+    $routes->get('sellers/searchAjax', 'SellerController::searchAjax');
+    $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
 });
