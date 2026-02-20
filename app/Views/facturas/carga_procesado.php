@@ -280,7 +280,6 @@
                 console.error("Error leyendo JSON:", error);
             }
         };
-
         reader.readAsText(file);
     }
 
@@ -341,7 +340,7 @@
                 ` :
                 '<small class="text-muted">Sin productos</small>';
 
-            const nombre = DTE_TIPOS[factura.tipoDoc] ?? 'Desconocido';
+            const nombre = DTE_TIPOS[factura.nombre] ?? 'Desconocido';
             const sigla = DTE_SIGLAS[factura.tipoDoc] ?? '';
             const descripcion = DTE_DESCRIPCIONES[sigla] ?? '';
 
@@ -354,7 +353,7 @@
                     </span>
                 </td>
                 <td>
-                    <strong>${factura.tipoDoc} - ${nombre}</strong>
+                    <strong>${factura.cliente}</strong>
                     <br>
                     <small class="text-primary">${sigla} - ${descripcion}</small>
                     <br>
