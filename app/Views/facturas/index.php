@@ -100,6 +100,9 @@
                         <?php endif; ?>
                     </tbody>
                 </table>
+                <div class="d-flex justify-content-center mt-3">
+                    <?= $pager->links('default', 'bootstrap_full') ?>
+                </div>
             </div>
         </div>
     </div>

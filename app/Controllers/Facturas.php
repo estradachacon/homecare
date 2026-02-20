@@ -21,10 +21,11 @@ public function index()
         ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
         ->orderBy('fecha_emision', 'DESC')
         ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false)
-        ->findAll();
+        ->paginate(10); // 👈 cantidad por página
 
     return view('facturas/index', [
-        'facturas' => $facturas
+        'facturas' => $facturas,
+        'pager'    => $facturaHeadModel->pager
     ]);
 }
 
