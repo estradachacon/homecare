@@ -99,15 +99,6 @@ class FacturasBody extends Migration
         // Índice para búsquedas rápidas
         $this->forge->addKey('factura_id');
 
-        // Foreign key
-        $this->forge->addForeignKey(
-            'factura_id',
-            'facturas',
-            'id',
-            'CASCADE',
-            'CASCADE'
-        );
-
         $this->forge->createTable('factura_detalles');
     }
 
