@@ -172,21 +172,27 @@ class SellerController extends BaseController
     }
     public function search()
     {
-        $term = $this->request->getGet('q');
+        $q = $this->request->getGet('q');
+        $perPage = $this->request->getGet('perPage') ?? 10;
 
-        $model = new SellerModel();
-        $sellers = $model->searchSellers($term);
+        $builder = $this->sellerModel;
 
-        // Formato que Select2 necesita
-        $results = array_map(function ($s) {
-            return [
-                'id'   => $s->id,
-                'text' => $s->seller
+        if ($q) {
+            $builder->groupStart()
+                ->like('seller', $q)
+                ->orLike('tel_seller', $q)
+                ->orLike('id', $q)
+                ->groupEnd();
+        }
 
-            ];
-        }, $sellers);
+        $data = [
+            'sellers' => $builder->paginate($perPage),
+            'pager' => $builder->pager,
+            'q' => $q,
+            'perPage' => $perPage
+        ];
 
-        return $this->response->setJSON($results);
+        return view('sellers/_seller_table', $data);
     }
 
     public function createAjax()

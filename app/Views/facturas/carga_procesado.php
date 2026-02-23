@@ -407,6 +407,16 @@
             });
     }
 
+    function formatFecha(fecha) {
+        if (!fecha) return '';
+
+        const partes = fecha.split('-'); // yyyy-mm-dd
+
+        if (partes.length !== 3) return fecha;
+
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+
     function initSellerSelects() {
 
         $('.seller-select').each(function() {
@@ -503,7 +513,7 @@
                     <br>
                     <small class="text-muted">${factura.file.name}</small>
                 </td>
-                <td>${factura.fecha}</td>
+                <td>${formatFecha(factura.fecha)}</td>
                 <td class="text-end">$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
             </tr>
 
