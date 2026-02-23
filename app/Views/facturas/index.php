@@ -37,7 +37,7 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
-                <form method="get" class="mb-3">
+                <form onsubmit="return false" class="mb-3">
                     <div class="row g-2">
 
                         <div class="col-md-3">
@@ -281,6 +281,11 @@
         $('form').on('submit', function(e) {
             e.preventDefault();
         });
+        $('input').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
 
         function cargarFacturas() {
 
@@ -302,8 +307,6 @@
                 tipo_dte: tipo_dte || '',
                 fecha: fecha || ''
             });
-
-            history.replaceState(null, '', '<?= base_url('facturas') ?>?' + params.toString());
 
             fetch('<?= base_url('facturas') ?>?' + params.toString(), {
                     headers: {
