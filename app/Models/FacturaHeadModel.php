@@ -38,6 +38,10 @@ class FacturaHeadModel extends Model
 
         // Firma
         'firma_electronica',
+
+        // Estado
+        'saldo',
+        'anulada',
     ];
 
     protected $useTimestamps = true;

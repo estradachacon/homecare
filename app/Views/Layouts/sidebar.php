@@ -51,7 +51,8 @@
 
                 <?php if (
                     tienePermiso('cargar_facturas') ||
-                    tienePermiso('ver_facturas')
+                    tienePermiso('ver_facturas') ||
+                    tienePermiso('ver_clientes')
                 ): ?>
 
                     <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#ventas" aria-expanded="false"
@@ -70,11 +71,45 @@
                             <?php if (tienePermiso('ver_facturas')): ?>
                                 <a class="nav-link" href="/facturas">Ver Facturas</a>
                             <?php endif; ?>
+                            <?php if (tienePermiso('ver_clientes')): ?>
+                                <a class="nav-link" href="/clientes">Ver Clientes</a>
+                            <?php endif; ?>
                         </nav>
                     </div>
 
                 <?php endif; ?>
+                
+                <?php if (
+                    tienePermiso('ingresar_pagos')
+                ): ?>
+                <a class="nav-link collapsed" href="#"
+                    data-toggle="collapse"
+                    data-target="#cuentasCobrar"
+                    aria-expanded="false"
+                    aria-controls="cuentasCobrar">
 
+                    <div class="sb-nav-link-icon">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+
+                    Cuentas por cobrar
+
+                    <div class="sb-sidenav-collapse-arrow">
+                        <i class="fa-solid fa-angle-down"></i>
+                    </div>
+                </a>
+
+                <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
+                    <nav class="sb-sidenav-menu-nested nav">
+
+                        <a class="nav-link" href="/payments">
+                            Ingresar pagos
+                        </a>
+
+                    </nav>
+                </div>
+                <?php endif; ?>
+                
                 <?php if (
                     tienePermiso('ver_transacciones') ||
                     tienePermiso('ver_cajas') ||

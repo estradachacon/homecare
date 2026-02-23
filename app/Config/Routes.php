@@ -104,6 +104,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('facturas/cargar', 'Facturas::procesarCarga');
     $routes->post('facturas/validar-numero-control', 'Facturas::validarNumeroControl');
     $routes->get('facturas/(:num)', 'Facturas::detalle/$1');
+    $routes->post('facturas/anular/(:num)', 'Facturas::anular/$1');
 
     //Modulo de vendedores
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
@@ -112,4 +113,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('sellers/create-ajax', 'SellerController::createAjax');
     $routes->get('sellers/searchAjax', 'SellerController::searchAjax');
     $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
+
+    // Rutas para el módulo de clientes
+    $routes->get('clientes', 'ClienteController::index');
+    $routes->get('clientes/(:num)', 'ClienteController::show/$1');
 });

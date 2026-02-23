@@ -18,7 +18,7 @@
                             <th class="col-2">Tipo DOC</th>
                             <th class="col-3">Cliente</th>
                             <th>Fecha/Hora</th>
-                            <th class="col-1">Plazo</th>
+                            <th class="col-1">Condición</th>
                             <th class="col-1">Total</th>
                             <th class="col-1">Saldo</th>
                             <th class="col-1">Estado</th>
@@ -68,7 +68,17 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <?= esc($factura->condicion_operacion ?? 'Contado') ?>
+                                        <?php
+                                        $condicion = $factura->condicion_operacion ?? 1;
+
+                                        if ($condicion == 1) {
+                                            echo '<span class="badge bg-success text-white">Contado</span>';
+                                        } elseif ($condicion == 2) {
+                                            echo '<span class="badge bg-warning text-white">Crédito</span>';
+                                        } else {
+                                            echo '<span class="badge bg-secondary text-white">N/D</span>';
+                                        }
+                                        ?>
                                     </td>
 
                                     <td class="text-end">
@@ -76,11 +86,25 @@
                                     </td>
 
                                     <td class="text-end">
-                                        $ <?= number_format($factura->total_pagar, 2) ?>
+                                        $ <?= number_format($factura->saldo, 2) ?>
                                     </td>
 
                                     <td class="text-center">
-                                        <span class="badge bg-success">Activa</span>
+
+                                        <?php if (($factura->anulada ?? 0) == 1): ?>
+
+                                            <span class="badge bg-danger text-white">
+                                                Anulado
+                                            </span>
+
+                                        <?php else: ?>
+
+                                            <span class="badge bg-success text-white">
+                                                Activa
+                                            </span>
+
+                                        <?php endif; ?>
+
                                     </td>
 
                                     <td class="text-center">

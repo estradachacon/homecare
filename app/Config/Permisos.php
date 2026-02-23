@@ -11,6 +11,11 @@ class Permisos extends BaseConfig
         'Ventas' => [
             'cargar_facturas',
             'ver_facturas',
+            'ver_clientes',
+            'crear_clientes',
+            'editar_clientes',
+            'eliminar_clientes',
+            'anular_factura',
         ],
 
         'Vendedores' => [
@@ -18,6 +23,10 @@ class Permisos extends BaseConfig
             'crear_vendedor',
             'editar_vendedor',
             'eliminar_vendedor',
+        ],
+        
+        'Cuentas por cobrar' => [
+            'ingresar_pagos',
         ],
         
         'Finanzas' => [

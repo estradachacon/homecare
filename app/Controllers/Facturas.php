@@ -60,6 +60,10 @@ class Facturas extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
+        $facturasInsertadas = 0;
+        $controles = [];
+        $totalOperacion = 0;
+
         foreach ($files['archivos'] as $index => $file) {
 
             if (!$file->isValid()) {
@@ -154,6 +158,7 @@ class Facturas extends BaseController
                 'tipo_moneda'       => $json['identificacion']['tipoMoneda'] ?? null,
                 'receptor_id'       => $clienteId,
                 'vendedor_id'       => $vendedorId,
+                'saldo'              => $json['resumen']['totalPagar'] ?? 0,
 
                 'total_gravada'         => $json['resumen']['totalGravada'] ?? 0,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
@@ -183,6 +188,10 @@ class Facturas extends BaseController
             }
 
             $facturaId = $facturaHeadModel->getInsertID();
+
+            $facturasInsertadas++;
+            $controles[] = substr($dataHead['numero_control'], -6);
+            $totalOperacion += $dataHead['total_pagar'];
 
             if (!$facturaId) {
                 continue;
@@ -225,11 +234,17 @@ class Facturas extends BaseController
                 'message' => 'Error al procesar las facturas'
             ]);
         }
+
         // Registrar bitácora
         registrar_bitacora(
-            'Procesar facturas',
+            'Carga masiva de facturas',
             'Facturas',
-            'Procesó facturas desde archivo JSON.',
+            sprintf(
+                'Cargó %d factura(s) desde archivos JSON. Total procesado: $%s. Controles: %s',
+                $facturasInsertadas,
+                number_format($totalOperacion, 2),
+                implode(', ', $controles)
+            ),
             $user_id
         );
 
@@ -283,6 +298,55 @@ class Facturas extends BaseController
 
         return $this->response->setJSON([
             'existe' => $existe ? true : false
+        ]);
+    }
+    public function anular($id)
+    {
+        if (!tienePermiso('anular_factura')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No tienes permisos para anular facturas.'
+            ]);
+        }
+
+        $user_id = session()->get('user_id');
+
+        $facturaModel = new \App\Models\FacturaHeadModel();
+
+        $factura = $facturaModel->find($id);
+
+        if (!$factura) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Factura no encontrada.'
+            ]);
+        }
+
+        if ($factura->anulada == 1) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'La factura ya está anulada.'
+            ]);
+        }
+
+        // Marcar como anulada
+        $facturaModel->update($id, [
+            'anulada' => 1,
+            'saldo'   => 0
+        ]);
+
+        // Bitácora
+        registrar_bitacora(
+            'Anulación de factura',
+            'Facturas',
+            'Anuló factura Nº ' . substr($factura->numero_control, -6) .
+                ' por monto $' . number_format($factura->total_pagar, 2),
+            $user_id
+        );
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Factura anulada correctamente.'
         ]);
     }
 }
