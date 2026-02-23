@@ -117,4 +117,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para el módulo de clientes
     $routes->get('clientes', 'ClienteController::index');
     $routes->get('clientes/(:num)', 'ClienteController::show/$1');
+    $routes->get('clientes/buscar', 'ClienteController::buscar');
 });

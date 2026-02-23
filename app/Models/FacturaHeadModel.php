@@ -42,6 +42,7 @@ class FacturaHeadModel extends Model
         // Estado
         'saldo',
         'anulada',
+        'tipo_venta',
     ];
 
     protected $useTimestamps = true;

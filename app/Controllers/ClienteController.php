@@ -53,4 +53,26 @@ class ClienteController extends BaseController
             'facturas' => $facturas
         ]);
     }
+    public function buscar()
+    {
+        $q = $this->request->getGet('q');
+
+        $clientes = (new ClienteModel())
+            ->like('nombre', $q ?? '')
+            ->orLike('numero_documento', $q ?? '')
+            ->orLike('nrc', $q ?? '')
+            ->limit(10)
+            ->findAll();
+
+        $data = [];
+
+        foreach ($clientes as $c) {
+            $data[] = [
+                'id'   => $c->id,
+                'text' => $c->nombre
+            ];
+        }
+
+        return $this->response->setJSON($data);
+    }
 }

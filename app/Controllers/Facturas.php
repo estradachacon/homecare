@@ -14,19 +14,62 @@ class Facturas extends BaseController
         $chk = requerirPermiso('ver_facturas');
         if ($chk !== true) return $chk;
 
-        $facturaHeadModel = new \App\Models\FacturaHeadModel();
+        $model = new \App\Models\FacturaHeadModel();
 
-        $facturas = $facturaHeadModel
-            ->select('facturas_head.*, clientes.nombre AS cliente_nombre')
+        $model->select('facturas_head.*, clientes.nombre AS cliente_nombre, sellers.seller AS vendedor')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-            ->orderBy('fecha_emision', 'DESC')
-            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false)
-            ->paginate(10); // 👈 cantidad por página
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left');
 
-        return view('facturas/index', [
-            'facturas' => $facturas,
-            'pager'    => $facturaHeadModel->pager
-        ]);
+        // ================= FILTROS =================
+
+        $clienteId = $this->request->getGet('cliente_id');
+        $sellerId  = $this->request->getGet('seller_id');
+        $estado = $this->request->getGet('estado');
+        $tipoDte = $this->request->getGet('tipo_dte');
+        $fecha = $this->request->getGet('fecha');
+
+        if (is_numeric($clienteId)) {
+            $model->where('facturas_head.receptor_id', $clienteId);
+        }
+
+        if (is_numeric($sellerId)) {
+            $model->where('facturas_head.vendedor_id', $sellerId);
+        }
+
+        if ($estado === 'activa') {
+            $model->where('facturas_head.anulada', 0);
+        }
+
+        if ($estado === 'anulada') {
+            $model->where('facturas_head.anulada', 1);
+        }
+
+        if ($estado === 'pagada') {
+            $model->where('facturas_head.anulada', 0)
+                ->where('facturas_head.saldo', 0);
+        }
+
+        if (is_numeric($tipoDte)) {
+            $model->where('facturas_head.tipo_dte', $tipoDte);
+        }
+
+        if (!empty($fecha)) {
+            $model->where('facturas_head.fecha_emision', $fecha);
+        }
+
+        // ==========================================
+
+        $model->orderBy('fecha_emision', 'DESC')
+            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
+
+        $facturas = $model->paginate(10);
+        $pager = $model->pager;
+
+        if ($this->request->isAJAX()) {
+            return view('facturas/tbody_row', compact('facturas'));
+        }
+
+        return view('facturas/index', compact('facturas', 'pager'));
     }
 
     public function carga()
@@ -52,7 +95,7 @@ class Facturas extends BaseController
         }
 
         $facturaHeadModel = new \App\Models\FacturaHeadModel();
-
+        $facturaHeadModel->resetQuery();
 
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
         $facturaJsonModel    = new FacturaJsonModel();
