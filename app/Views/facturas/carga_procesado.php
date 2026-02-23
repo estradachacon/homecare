@@ -24,6 +24,30 @@
         color: #0d6efd;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
+
+    .seller-inline {
+        width: 180px;
+    }
+
+    /* Select2 inline compacto */
+    .seller-inline+.select2 {
+        width: 180px !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 26px !important;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 6px !important;
+    }
+
+    .select2-selection__arrow {
+        height: 24px !important;
+    }
 </style>
 
 <!-- Overlay global tipo WhatsApp -->
@@ -191,7 +215,8 @@
                         fecha: json.identificacion?.fecEmi ?? 'N/D',
                         cliente: json.receptor?.nombre ?? 'N/D',
                         total: json.resumen?.montoTotalOperacion ?? 0,
-                        productos: json.cuerpoDocumento ?? []
+                        productos: json.cuerpoDocumento ?? [],
+                        seller_id: null
                     };
 
                     // 🔎 VALIDAR EN BASE DE DATOS
@@ -337,6 +362,7 @@
 
         archivosSeleccionados.forEach((factura, index) => {
             formData.append('archivos[]', factura.file);
+            formData.append('seller_ids[]', factura.seller_id);
         });
 
         fetch("<?= base_url('facturas/cargar') ?>", {
@@ -381,6 +407,45 @@
             });
     }
 
+    function initSellerSelects() {
+
+        $('.seller-select').each(function() {
+
+            if ($(this).hasClass("select2-hidden-accessible")) return;
+
+            const index = $(this).data('index');
+
+            $(this).select2({
+                placeholder: 'Buscar vendedor...',
+                minimumInputLength: 2,
+                ajax: {
+                    url: "<?= base_url('sellers/searchAjax') ?>",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term,
+                            select2: 1
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                }
+            });
+
+            $(this).on('click select2:opening select2:select', function(e) {
+                e.stopPropagation();
+            });
+
+            // guardar selección
+            $(this).on('select2:select', function(e) {
+                archivosSeleccionados[index].seller_id = e.params.data.id;
+            });
+
+        });
+    }
+
     function renderTable() {
         tableBody.innerHTML = '';
 
@@ -423,7 +488,16 @@
                     </span>
                 </td>
                 <td>
+                <div class="d-flex justify-content-between">
+
                     <strong>${factura.cliente}</strong>
+
+                    <select
+                        class="seller-select seller-inline"
+                        data-index="${index}">
+                    </select>
+
+                </div>
                     <br>
                     <small class="text-primary">${sigla} - ${descripcion}</small>
                     <br>
@@ -447,7 +521,13 @@
 
         // Toggle manual
         document.querySelectorAll('.main-row').forEach(row => {
-            row.addEventListener('click', function() {
+            row.addEventListener('click', function(e) {
+
+                // 🔴 SI EL CLICK VIENE DE SELECT2 → NO TOGGLE
+                if (e.target.closest('.seller-select') || e.target.closest('.select2')) {
+                    return;
+                }
+
                 const target = document.getElementById(this.dataset.target);
 
                 if (target.style.display === "none") {
@@ -460,6 +540,16 @@
 
         btnProcesar.addEventListener('click', function() {
 
+            const sinVendedor = archivosSeleccionados.some(f => !f.seller_id);
+
+            if (sinVendedor) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Faltan vendedores',
+                    text: 'Todas las facturas deben tener vendedor asignado.'
+                });
+                return;
+            }
             if (archivosSeleccionados.length === 0) {
                 Swal.fire({
                     icon: 'info',
@@ -497,6 +587,7 @@
 
         });
         btnProcesar.disabled = archivosSeleccionados.length === 0;
+        initSellerSelects();
     }
 </script>
 

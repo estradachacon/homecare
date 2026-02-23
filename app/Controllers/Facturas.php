@@ -9,25 +9,25 @@ use App\Models\ClienteModel;
 
 class Facturas extends BaseController
 {
-public function index()
-{
-    $chk = requerirPermiso('ver_facturas');
-    if ($chk !== true) return $chk;
+    public function index()
+    {
+        $chk = requerirPermiso('ver_facturas');
+        if ($chk !== true) return $chk;
 
-    $facturaHeadModel = new \App\Models\FacturaHeadModel();
+        $facturaHeadModel = new \App\Models\FacturaHeadModel();
 
-    $facturas = $facturaHeadModel
-        ->select('facturas_head.*, clientes.nombre AS cliente_nombre')
-        ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-        ->orderBy('fecha_emision', 'DESC')
-        ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false)
-        ->paginate(10); // 👈 cantidad por página
+        $facturas = $facturaHeadModel
+            ->select('facturas_head.*, clientes.nombre AS cliente_nombre')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->orderBy('fecha_emision', 'DESC')
+            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false)
+            ->paginate(10); // 👈 cantidad por página
 
-    return view('facturas/index', [
-        'facturas' => $facturas,
-        'pager'    => $facturaHeadModel->pager
-    ]);
-}
+        return view('facturas/index', [
+            'facturas' => $facturas,
+            'pager'    => $facturaHeadModel->pager
+        ]);
+    }
 
     public function carga()
     {
@@ -38,7 +38,11 @@ public function index()
     }
     public function procesarCarga()
     {
+        helper(['form']);
+        $user_id = session()->get('user_id');
+
         $files = $this->request->getFiles();
+        $sellerIds = $this->request->getPost('seller_ids');
 
         if (!isset($files['archivos'])) {
             return $this->response->setJSON([
@@ -56,7 +60,7 @@ public function index()
         $db = \Config\Database::connect();
         $db->transStart();
 
-        foreach ($files['archivos'] as $file) {
+        foreach ($files['archivos'] as $index => $file) {
 
             if (!$file->isValid()) {
                 continue;
@@ -65,6 +69,7 @@ public function index()
             $contenido = file_get_contents($file->getTempName());
             $json = json_decode($contenido, true);
             $clienteModel = new ClienteModel();
+            $vendedorId = $sellerIds[$index] ?? null;
 
             if (!$json) {
                 continue;
@@ -148,6 +153,7 @@ public function index()
                 'hora_emision'      => $json['identificacion']['horEmi'] ?? null,
                 'tipo_moneda'       => $json['identificacion']['tipoMoneda'] ?? null,
                 'receptor_id'       => $clienteId,
+                'vendedor_id'       => $vendedorId,
 
                 'total_gravada'         => $json['resumen']['totalGravada'] ?? 0,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
@@ -219,12 +225,46 @@ public function index()
                 'message' => 'Error al procesar las facturas'
             ]);
         }
+        // Registrar bitácora
+        registrar_bitacora(
+            'Procesar facturas',
+            'Facturas',
+            'Procesó facturas desde archivo JSON.',
+            $user_id
+        );
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Facturas procesadas correctamente'
         ]);
     }
+    public function detalle($id)
+    {
+        $facturaHeadModel    = new \App\Models\FacturaHeadModel();
+        $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
 
+        // Cabecera
+        $factura = $facturaHeadModel
+            ->select('facturas_head.*, clientes.nombre AS cliente, sellers.seller AS vendedor')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->where('facturas_head.id', $id)
+            ->first();
+
+        if (!$factura) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // Detalles
+        $detalles = $facturaDetalleModel
+            ->where('factura_id', $id)
+            ->findAll();
+
+        return view('facturas/detalle', [
+            'factura'  => $factura,
+            'detalles' => $detalles
+        ]);
+    }
     public function validarNumeroControl()
     {
         $numeroControl = $this->request->getPost('numero_control');

@@ -103,6 +103,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('facturas/carga', 'Facturas::carga');
     $routes->post('facturas/cargar', 'Facturas::procesarCarga');
     $routes->post('facturas/validar-numero-control', 'Facturas::validarNumeroControl');
+    $routes->get('facturas/(:num)', 'Facturas::detalle/$1');
 
     //Modulo de vendedores
     $routes->presenter('sellers', ['controller' => 'SellerController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);

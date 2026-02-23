@@ -180,8 +180,8 @@ class SellerController extends BaseController
         // Formato que Select2 necesita
         $results = array_map(function ($s) {
             return [
-                'id'   => $s->id,      // 👈 Ahora se enviará el ID real
-                'text' => $s->seller   // 👈 Lo que verá el usuario
+                'id'   => $s->id,
+                'text' => $s->seller
 
             ];
         }, $sellers);
@@ -234,34 +234,28 @@ class SellerController extends BaseController
     }
     public function searchAjax()
     {
-        // Obtenemos el término de búsqueda y la página actual
-        $q = trim($this->request->getGet('q') ?? '');
-        $perPage = intval($this->request->getGet('perPage') ?? 10); // Mantener el límite de paginación
+        $term = $this->request->getGet('q');
 
-        $builder = $this->sellerModel;
+        // SOLO SELECT2
+        if ($this->request->getGet('select2')) {
 
-        // BÚSQUEDA GENERAL
-        if ($q !== '') {
-            $builder = $builder
-                ->groupStart()
-                ->like('seller', $q)
-                ->orLike('tel_seller', $q)
-                ->orLike('id', $q)
-                ->groupEnd();
+            $sellers = $this->sellerModel->searchSellers($term);
+
+            $results = [];
+
+            foreach ($sellers as $s) {
+                $results[] = [
+                    'id'   => $s->id,
+                    'text' => $s->seller
+                ];
+            }
+
+            return $this->response->setJSON([
+                'results' => $results
+            ]);
         }
 
-        // Si necesitas ordenar, hazlo aquí antes de paginar:
-        $builder = $builder->orderBy('id', 'DESC');
-
-        $data = [
-            'q' => $q,
-            'sellers' => $builder->paginate($perPage),
-            'pager' => $builder->pager,
-            // No pasamos 'perPage' ni 'alpha' ya que esta función solo refresca la tabla.
-        ];
-
-        // Importante: Devolvemos una vista parcial que solo contiene la tabla.
-        // Tienes que crear esta nueva vista.
-        return view('sellers/_seller_table', $data);
+        // si entra aquí es porque llamaste sin select2
+        return $this->response->setJSON(['results' => []]);
     }
 }

@@ -84,7 +84,7 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <a href="<?= base_url('facturas/ver/' . $factura->id) ?>"
+                                        <a href="<?= base_url('facturas/' . $factura->id) ?>"
                                             class="btn btn-sm btn-info">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
