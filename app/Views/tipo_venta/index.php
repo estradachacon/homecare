@@ -56,7 +56,7 @@
         const tableContainer = document.getElementById('table-container');
         const loadingSpinner = document.getElementById('loading-spinner');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
-        const baseUrl = '<?= base_url('sellers-search') ?>';
+        const baseUrl = '<?= base_url('tipo_venta-search') ?>';
         let searchTimeout;
 
         // Función para cargar los resultados (tabla)
@@ -143,12 +143,11 @@
                     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                     const csrfHeader = document.querySelector('meta[name="csrf-header"]').getAttribute('content');
 
-                    fetch("<?= base_url('sellers/delete') ?>", {
+                    fetch("<?= base_url('/tipo_venta/delete') ?>", {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            [csrfHeader]: csrfToken
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: new URLSearchParams({ id })
                     })

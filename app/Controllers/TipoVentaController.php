@@ -51,14 +51,12 @@ class TipoVentaController extends BaseController
         return view('tipo_venta/index', $data);
     }
 
-
-
     public function new()
     {
-        $chk = requerirPermiso('crear_vendedor');
+        $chk = requerirPermiso('crear_tipo_venta');
         if ($chk !== true) return $chk;
 
-        return view('sellers/create');
+        return view('tipo_venta/create');
     }
 
     public function create()
@@ -66,47 +64,47 @@ class TipoVentaController extends BaseController
         helper(['form']);
         $session = session();
         $rules = [
-            'seller' => 'required|min_length[3]',
-            'tel_seller' => 'permit_empty|min_length[8]'
+            'nombre_tipo_venta' => 'required|min_length[3]',
+            'descripcion' => 'permit_empty|min_length[8]'
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->sellerModel->save([
-            'seller' => $this->request->getPost('seller'),
-            'tel_seller' => $this->request->getPost('tel_seller')
+        $this->tipoVentaModel->save([
+            'nombre_tipo_venta' => $this->request->getPost('nombre_tipo_venta'),
+            'descripcion' => $this->request->getPost('descripcion')
         ]);
 
         registrar_bitacora(
-            'Crear vendedor',
-            'Vendedores',
-            'Se creó un nuevo vendedor con ID ' . esc($this->sellerModel->insertID()) . '.',
+            'Crear tipo de venta',
+            'Tipos de venta',
+            'Se creó un nuevo tipo de venta con ID ' . esc($this->tipoVentaModel->insertID()) . '.',
             $session->get('user_id')
         );
 
-        return redirect()->to('/sellers')->with('success', 'Vendedor creado correctamente.');
+        return redirect()->to('/tipo_venta')->with('success', 'Tipo de venta creado correctamente.');
     }
 
     public function edit($id)
     {
-        $chk = requerirPermiso('editar_vendedor');
+        $chk = requerirPermiso('editar_tipo_venta');
         if ($chk !== true) return $chk;
 
         // 1. Obtener la caja a editar
-        $seller = $this->sellerModel->find($id);
+        $tipoVenta = $this->tipoVentaModel->find($id);
 
-        if (!$seller) {
-            return redirect()->to('/sellers')->with('error', 'Vendedor no encontrado.');
+        if (!$tipoVenta) {
+            return redirect()->to('/tipo_venta')->with('error', 'Tipo de venta no encontrado.');
         }
 
         $data = [
-            'sellers' => $seller,
+            'tipo_venta' => $tipoVenta,
         ];
 
-        // Se asume que tienes una vista en 'seller/edit'
-        return view('sellers/edit', $data);
+        // Se asume que tienes una vista en 'tipo_venta/edit'
+        return view('tipo_venta/edit', $data);
     }
 
     /**
@@ -120,8 +118,8 @@ class TipoVentaController extends BaseController
         // 1. Definir las reglas de validación (deben coincidir con tu modelo, o definirlas aquí)
         if (
             !$this->validate([
-                'seller' => 'required|min_length[3]|max_length[100]',
-                'tel_seller' => 'required|numeric',
+                'nombre_tipo_venta' => 'required|min_length[3]|max_length[100]',
+                'descripcion' => 'permit_empty|min_length[8]'
             ])
         ) {
             // 2. Si la validación falla, redirigir de vuelta al formulario con los errores
@@ -132,18 +130,18 @@ class TipoVentaController extends BaseController
 
         // 3. Si la validación es exitosa, se procede a la actualización
         $data = [
-            'seller' => $this->request->getPost('seller'),
-            'tel_seller' => $this->request->getPost('tel_seller'),
+            'nombre_tipo_venta' => $this->request->getPost('nombre_tipo_venta'),
+            'descripcion' => $this->request->getPost('descripcion'),
         ];
 
-        $this->sellerModel->update($id, $data);
+        $this->tipoVentaModel->update($id, $data);
         registrar_bitacora(
-            'Se editó vendedor',
-            'Vendedores',
-            'Se editó el vendedor con ID ' . esc($id) . '.',
+            'Se editó tipo de venta',
+            'Tipos de venta',
+            'Se editó el tipo de venta con ID ' . esc($id) . '.',
             $session->get('user_id')
         );
-        return redirect()->to('/sellers')->with('success', 'Vendedor actualizado exitosamente.');
+        return redirect()->to('/tipo_venta')->with('success', 'Tipo de venta actualizado exitosamente.');
     }
 
     public function delete()
@@ -151,75 +149,75 @@ class TipoVentaController extends BaseController
         helper(['form']);
         $session = session();
         $id = $this->request->getPost('id');
-        $cashierModel = new SellerModel();
+        $tipoVentaModel = new TipoVentaModel();
 
         if (!$id) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'ID inválido.']);
         }
 
-        if ($cashierModel->delete($id)) {
+        if ($tipoVentaModel->delete($id)) {
             registrar_bitacora(
-                'Eliminó vendedor',
-                'Vendedores',
-                'Se eliminó el vendedor con ID ' . esc($id) . '.',
+                'Eliminó tipo de venta',
+                'Tipos de venta',
+                'Se eliminó el tipo de venta con ID ' . esc($id) . '.',
                 $session->get('user_id')
             );
-            return $this->response->setJSON(['status' => 'success', 'message' => 'Registro de vendedor eliminado correctamente.']);
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Registro de tipo de venta eliminado correctamente.']);
         }
 
-        return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el vendedor.']);
+        return $this->response->setJSON(['status' => 'error', 'message' => 'No se pudo eliminar el tipo de venta.']);
     }
     public function search()
     {
-        $q = $this->request->getGet('q');
-        $perPage = $this->request->getGet('perPage') ?? 10;
+        $q = trim($this->request->getGet('q') ?? '');
+        $perPage = intval($this->request->getGet('perPage') ?? 10);
 
-        $builder = $this->sellerModel;
+        $builder = $this->tipoVentaModel;
 
-        if ($q) {
-            $builder->groupStart()
-                ->like('seller', $q)
-                ->orLike('tel_seller', $q)
+        if ($q !== '') {
+            $builder = $builder
+                ->groupStart()
+                ->like('nombre_tipo_venta', $q)
                 ->orLike('id', $q)
                 ->groupEnd();
         }
 
         $data = [
-            'sellers' => $builder->paginate($perPage),
-            'pager' => $builder->pager,
-            'q' => $q,
-            'perPage' => $perPage
+            'tipo_ventas' => $builder->paginate($perPage),
+            'pager'       => $builder->pager,
+            'q'           => $q,
+            'perPage'     => $perPage
         ];
 
-        return view('sellers/_seller_table', $data);
+        return view('tipo_venta/_tipo_venta_table', $data);
     }
 
     public function createAjax()
     {
-        $sellerModel = new SellerModel();
+        $tipoVentaModel = new TipoVentaModel();
         $session = session();
         $data = [
-            'seller' => $this->request->getPost('seller'),
-            'tel_seller' => $this->request->getPost('tel_seller'),
+            'tipo_venta' => $this->request->getPost('tipo_venta'),
+            'descripcion' => $this->request->getPost('descripcion'),
         ];
 
-        if (empty($data['seller'])) {
+        if (empty($data['tipo_venta'])) {
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => 'El nombre del vendedor es obligatorio.'
+                'message' => 'El tipo de venta es obligatorio.'
             ]);
         }
 
         try {
-            $id = $sellerModel->insert($data);
+            $id = $tipoVentaModel->insert($data);
 
             if (!$id) {
-                throw new \Exception('No se pudo guardar el vendedor.');
+                throw new \Exception('No se pudo guardar el tipo de venta.');
             }
             registrar_bitacora(
-                'Creación de vendedor',
+                'Creación de tipo de venta',
                 'Paquetería',
-                'Se creó el vendedor ' . esc($data['seller']) . ' en el registro de paquete.',
+                'Se creó el tipo de venta ' . esc($data['tipo_venta']) . ' en el registro de paquete.',
                 $session->get('user_id')
             );
 
@@ -227,7 +225,7 @@ class TipoVentaController extends BaseController
                 'status' => 'success',
                 'data' => [
                     'id' => $id,
-                    'text' => $data['seller']
+                    'text' => $data['tipo_venta']
                 ]
             ]);
         } catch (\Throwable $e) {
@@ -244,14 +242,14 @@ class TipoVentaController extends BaseController
         // SOLO SELECT2
         if ($this->request->getGet('select2')) {
 
-            $sellers = $this->sellerModel->searchSellers($term);
+            $tipoVentas = $this->tipoVentaModel->searchTipoVentas($term);
 
             $results = [];
 
-            foreach ($sellers as $s) {
+            foreach ($tipoVentas as $t) {
                 $results[] = [
-                    'id'   => $s->id,
-                    'text' => $s->seller
+                    'id'   => $t->id,
+                    'text' => $t->nombre_tipo_venta
                 ];
             }
 

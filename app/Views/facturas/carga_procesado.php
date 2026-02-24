@@ -29,7 +29,6 @@
         width: 180px;
     }
 
-    /* Select2 inline compacto */
     .seller-inline+.select2 {
         width: 180px !important;
     }
@@ -48,9 +47,41 @@
     .select2-selection__arrow {
         height: 24px !important;
     }
-</style>
 
-<!-- Overlay global tipo WhatsApp -->
+    .remove-cell {
+        position: relative;
+        /* referencia para el botón */
+        padding-bottom: 28px;
+        /* espacio para la X abajo */
+    }
+
+    .remove-cell .remove-row {
+        position: absolute;
+        bottom: 4px;
+        /* 🔥 pegado al fondo */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: .4;
+
+        align-items: center;
+    }
+
+    .remove-cell:hover .remove-row {
+        opacity: 1;
+    }
+
+    .index-cell button {
+        opacity: .4;
+    }
+
+    .index-cell:hover button {
+        opacity: 1;
+    }
+
+    .tipo-venta-select+.select2 {
+        margin-top: 6px;
+    }
+</style>
 <div id="globalDropOverlay" class="d-none">
     <div class="overlay-content">
         <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
@@ -58,39 +89,29 @@
         <p class="mb-0">Carga masiva de facturas</p>
     </div>
 </div>
-
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between">
-
                 <h4 class="header-title mb-0">
                     <i class="fas fa-file-invoice me-2"></i>
                     Carga Masiva de Facturas (JSON)
                 </h4>
-
-                <!-- Dropzone compacto -->
                 <div id="dropZone"
                     class="border border-2 border-dashed rounded px-3 py-2 text-center"
                     style="cursor: pointer; background-color: #f8f9fa; min-width: 220px;">
-
                     <small class="text-muted">
                         <i class="fas fa-cloud-upload-alt me-1"></i>
                         Arrastra o haz clic
                     </small>
-
                     <input type="file"
                         id="jsonFiles"
                         accept=".json"
                         multiple
                         hidden>
                 </div>
-
             </div>
-
             <div class="card-body">
-
-                <!-- Tabla -->
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover align-middle" id="filesTable">
                         <thead class="table-light">
@@ -103,11 +124,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Inicialmente vacío -->
                         </tbody>
                     </table>
                 </div>
-
                 <div class="text-end mt-3">
                     <button class="btn btn-success" id="btnProcesar" disabled>
                         <i class="fas fa-check me-1"></i>
@@ -123,89 +142,66 @@
     const DTE_SIGLAS = <?= json_encode(dte_siglas()) ?>;
     const DTE_DESCRIPCIONES = <?= json_encode(dte_descripciones()) ?>;
 </script>
-
 <script>
     const overlay = document.getElementById('globalDropOverlay');
     const inputFiles = document.getElementById('jsonFiles');
     const dropZone = document.getElementById('dropZone');
     const tableBody = document.querySelector('#filesTable tbody');
     const btnProcesar = document.getElementById('btnProcesar');
-
     let archivosSeleccionados = [];
     let dragCounter = 0;
-
     dropZone.addEventListener('click', () => inputFiles.click());
-
     inputFiles.addEventListener('change', () => {
         handleFiles(inputFiles.files);
     });
-
     window.addEventListener('dragenter', (e) => {
         e.preventDefault();
         dragCounter++;
         overlay.classList.remove('d-none');
     });
-
     window.addEventListener('dragover', (e) => e.preventDefault());
-
     window.addEventListener('dragleave', () => {
         dragCounter--;
         if (dragCounter === 0) {
             overlay.classList.add('d-none');
         }
     });
-
     window.addEventListener('drop', (e) => {
         e.preventDefault();
         overlay.classList.add('d-none');
         dragCounter = 0;
-
         if (e.dataTransfer.files.length > 0) {
             handleFiles(e.dataTransfer.files);
         }
     });
 
     function handleFiles(files) {
-
         let archivosArray = Array.from(files);
         let codigosEnLote = new Set();
         let duplicados = [];
-
         archivosArray.forEach(file => {
             if (!file.name.toLowerCase().endsWith('.json')) return;
-
             const reader = new FileReader();
-
             reader.onload = function(e) {
                 try {
-
                     const json = JSON.parse(e.target.result);
-
                     const codigo = json.identificacion?.codigoGeneracion ?? null;
                     const numeroControlCompleto = json.identificacion?.numeroControl ?? null;
-
                     if (!codigo || !numeroControlCompleto) return;
-
                     const correlativoInterno = numeroControlCompleto.slice(-6);
-
-                    // 1️⃣ Duplicado dentro del mismo lote
                     if (codigosEnLote.has(codigo)) {
                         duplicados.push(file.name);
                         mostrarDuplicados(duplicados);
                         return;
                     }
-
-                    // 2️⃣ Duplicado contra los ya agregados en vista
                     const yaExiste = archivosSeleccionados.some(f =>
                         f.codigoGeneracion === codigo
                     );
-
                     if (yaExiste) {
                         duplicados.push(file.name);
                         mostrarDuplicados(duplicados);
                         return;
                     }
-
                     const factura = {
                         file: file,
                         codigoGeneracion: codigo,
@@ -216,10 +212,9 @@
                         cliente: json.receptor?.nombre ?? 'N/D',
                         total: json.resumen?.montoTotalOperacion ?? 0,
                         productos: json.cuerpoDocumento ?? [],
-                        seller_id: null
+                        seller_id: null,
+                        tipo_venta_id: null
                     };
-
-                    // 🔎 VALIDAR EN BASE DE DATOS
                     fetch("<?= base_url('facturas/validar-numero-control') ?>", {
                             method: "POST",
                             headers: {
@@ -229,9 +224,7 @@
                         })
                         .then(res => res.json())
                         .then(data => {
-
                             if (data.existe) {
-
                                 Swal.fire({
                                     toast: true,
                                     position: 'top-end',
@@ -246,11 +239,8 @@
                                     showConfirmButton: false,
                                     timer: 4000
                                 });
-
-                                return; // 🚫 No se agrega
+                                return;
                             }
-
-                            // ✅ Si pasa todo, ahora sí agregamos
                             codigosEnLote.add(codigo);
                             archivosSeleccionados.push(factura);
                             renderTable();
@@ -260,15 +250,51 @@
                     console.error("Error leyendo JSON:", error);
                 }
             };
-
             reader.readAsText(file);
         });
     }
 
+    function initTipoVentaSelects() {
+        $('.tipo-venta-select').each(function() {
+
+            if ($(this).hasClass("select2-hidden-accessible")) return;
+
+            const index = $(this).data('index');
+
+            $(this).select2({
+                placeholder: 'Tipo venta...',
+                minimumInputLength: 1,
+                ajax: {
+                    url: "<?= base_url('/tipo_venta/searchAjax') ?>",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term,
+                            select2: 1
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                }
+            });
+
+            $(this)
+                .append(new Option('Privado', 1, true, true))
+                .trigger('change');
+
+            archivosSeleccionados[index].tipo_venta_id = 1;
+
+            $(this).on('select2:select', function(e) {
+                archivosSeleccionados[index].tipo_venta_id = e.params.data.id;
+            });
+
+        });
+    }
+
     function mostrarDuplicados(lista) {
-
         if (!lista.length) return;
-
         Swal.fire({
             toast: true,
             position: 'top-end',
@@ -283,16 +309,13 @@
             timer: 5000,
             timerProgressBar: true
         });
-
     }
 
     function readJsonFile(file) {
         const reader = new FileReader();
-
         reader.onload = function(e) {
             try {
                 const json = JSON.parse(e.target.result);
-
                 const factura = {
                     file: file,
                     codigoGeneracion: json.identificacion?.codigoGeneracion ?? null,
@@ -303,13 +326,10 @@
                     total: json.resumen?.montoTotalOperacion ?? 0,
                     productos: json.cuerpoDocumento ?? []
                 };
-                // Verificar duplicado por codigoGeneracion
                 const existe = archivosSeleccionados.some(f =>
                     f.codigoGeneracion === factura.codigoGeneracion
                 );
-
                 if (existe) {
-
                     Swal.fire({
                         toast: true,
                         position: 'top-end',
@@ -327,10 +347,8 @@
                         timer: 3500,
                         timerProgressBar: true
                     });
-
                     return;
                 }
-
                 archivosSeleccionados.push(factura);
                 renderTable();
             } catch (error) {
@@ -341,7 +359,6 @@
     }
 
     function procesarFacturas() {
-
         Swal.fire({
             title: 'Procesando...',
             text: 'Por favor espera mientras se cargan las facturas.',
@@ -351,50 +368,38 @@
                 Swal.showLoading();
             }
         });
-
-        // Solo enviamos los JSON ya leídos
         const jsons = archivosSeleccionados.map(f => ({
             codigoGeneracion: f.codigoGeneracion,
             json: f.file
         }));
-
         const formData = new FormData();
-
         archivosSeleccionados.forEach((factura, index) => {
             formData.append('archivos[]', factura.file);
             formData.append('seller_ids[]', factura.seller_id);
+            formData.append('tipo_venta_ids[]', factura.tipo_venta_id);
         });
-
         fetch("<?= base_url('facturas/cargar') ?>", {
                 method: "POST",
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
-
                 Swal.close();
-
                 if (data.success) {
-
                     Swal.fire({
                         icon: 'success',
                         title: 'Carga completada',
                         text: data.message
                     });
-
                     archivosSeleccionados = [];
                     renderTable();
-
                 } else {
-
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: data.message
                     });
-
                 }
-
             })
             .catch(error => {
                 Swal.close();
@@ -409,22 +414,15 @@
 
     function formatFecha(fecha) {
         if (!fecha) return '';
-
-        const partes = fecha.split('-'); // yyyy-mm-dd
-
+        const partes = fecha.split('-');
         if (partes.length !== 3) return fecha;
-
         return `${partes[2]}/${partes[1]}/${partes[0]}`;
     }
 
     function initSellerSelects() {
-
         $('.seller-select').each(function() {
-
             if ($(this).hasClass("select2-hidden-accessible")) return;
-
             const index = $(this).data('index');
-
             $(this).select2({
                 placeholder: 'Buscar vendedor...',
                 minimumInputLength: 2,
@@ -443,26 +441,19 @@
                     }
                 }
             });
-
             $(this).on('click select2:opening select2:select', function(e) {
                 e.stopPropagation();
             });
-
-            // guardar selección
             $(this).on('select2:select', function(e) {
                 archivosSeleccionados[index].seller_id = e.params.data.id;
             });
-
         });
     }
 
     function renderTable() {
         tableBody.innerHTML = '';
-
         archivosSeleccionados.forEach((factura, index) => {
-
             const detailId = "detail_" + index;
-
             const productosHtml = factura.productos.length ?
                 `
                 <ul class="list-group list-group-flush">
@@ -484,39 +475,55 @@
                 </ul>
                 ` :
                 '<small class="text-muted">Sin productos</small>';
-
             const nombre = DTE_TIPOS[factura.nombre] ?? 'Desconocido';
             const sigla = DTE_SIGLAS[factura.tipoDoc] ?? '';
             const descripcion = DTE_DESCRIPCIONES[sigla] ?? '';
-
             const row = `
             <tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
-                <td>${index + 1}</td>
+                <td class="remove-cell">
+                    ${index + 1}
+
+                    <button class="btn btn-sm btn-outline-danger remove-row"
+                        data-index="${index}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
                 <td class="text-center">
                     <span class="badge-xl bg-white">
                         ${factura.correlativo ?? '------'}
                     </span>
                 </td>
                 <td>
-                <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start">
 
-                    <strong>${factura.cliente}</strong>
+                        <div class="d-flex flex-column">
+                            <strong class="mb-1">${factura.cliente}</strong>
 
-                    <select
-                        class="seller-select seller-inline"
-                        data-index="${index}">
-                    </select>
+                            <small class="text-primary">
+                                ${sigla} - ${descripcion}
+                            </small>
 
-                </div>
-                    <br>
-                    <small class="text-primary">${sigla} - ${descripcion}</small>
-                    <br>
-                    <small class="text-muted">${factura.file.name}</small>
+                            <small class="text-muted">
+                                ${factura.file.name}
+                            </small>
+                        </div>
+
+                        <div class="d-flex flex-column align-items-end">
+                            <select
+                                class="seller-select seller-inline mb-1"
+                                data-index="${index}">
+                            </select>
+                            <select
+                                class="tipo-venta-select seller-inline"
+                                data-index="${index}">
+                            </select>
+                        </div>
+
+                    </div>
                 </td>
                 <td>${formatFecha(factura.fecha)}</td>
                 <td class="text-end">$ ${parseFloat(factura.total || 0).toFixed(2)}</td>
             </tr>
-
             <tr id="${detailId}" class="detail-row" style="display:none;">
                 <td colspan="5">
                     <div class="p-2 bg-light rounded">
@@ -525,21 +532,14 @@
                 </td>
             </tr>
         `;
-
             tableBody.innerHTML += row;
         });
-
-        // Toggle manual
         document.querySelectorAll('.main-row').forEach(row => {
             row.addEventListener('click', function(e) {
-
-                // 🔴 SI EL CLICK VIENE DE SELECT2 → NO TOGGLE
                 if (e.target.closest('.seller-select') || e.target.closest('.select2')) {
                     return;
                 }
-
                 const target = document.getElementById(this.dataset.target);
-
                 if (target.style.display === "none") {
                     target.style.display = "table-row";
                 } else {
@@ -547,11 +547,27 @@
                 }
             });
         });
+        document.querySelectorAll('.remove-row').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
 
+                const idx = this.dataset.index;
+
+                archivosSeleccionados.splice(idx, 1);
+                renderTable();
+            });
+        });
         btnProcesar.addEventListener('click', function() {
-
             const sinVendedor = archivosSeleccionados.some(f => !f.seller_id);
-
+            const sinTipoVenta = archivosSeleccionados.some(f => !f.tipo_venta_id);
+            if (sinTipoVenta) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Faltan tipos de venta',
+                    text: 'Todas las facturas deben tener tipo de venta.'
+                });
+                return;
+            }
             if (sinVendedor) {
                 Swal.fire({
                     icon: 'warning',
@@ -568,7 +584,6 @@
                 });
                 return;
             }
-
             Swal.fire({
                 title: '¿Confirmar carga masiva?',
                 html: `
@@ -585,19 +600,15 @@
                 cancelButtonText: 'Cancelar',
                 reverseButtons: true
             }).then((result) => {
-
                 if (result.isConfirmed) {
-
                     // Aquí va tu lógica real de envío al backend
                     procesarFacturas();
-
                 }
-
             });
-
         });
         btnProcesar.disabled = archivosSeleccionados.length === 0;
         initSellerSelects();
+        initTipoVentaSelects();
     }
 </script>
 

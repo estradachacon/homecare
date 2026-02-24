@@ -35,8 +35,7 @@ class CreateTipoVenta extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->createTable('tipo_venta');
-
-        // 👇 INSERT AUTOMÁTICO DEL TIPO BASE
+        
         $this->db->table('tipo_venta')->insert([
             'id' => 1,
             'nombre_tipo_venta' => 'Privado',

@@ -85,6 +85,7 @@ class Facturas extends BaseController
         $user_id = session()->get('user_id');
 
         $files = $this->request->getFiles();
+        $tipoVentaIds = $this->request->getPost('tipo_venta_ids');
         $sellerIds = $this->request->getPost('seller_ids');
 
         if (!isset($files['archivos'])) {
@@ -117,6 +118,7 @@ class Facturas extends BaseController
             $json = json_decode($contenido, true);
             $clienteModel = new ClienteModel();
             $vendedorId = $sellerIds[$index] ?? null;
+            $tipoVentaId = $tipoVentaIds[$index] ?? 1; // fallback Privados
 
             if (!$json) {
                 continue;
@@ -209,6 +211,7 @@ class Facturas extends BaseController
                 'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
                 'total_pagar'           => $json['resumen']['totalPagar'] ?? 0,
                 'condicion_operacion'   => $json['resumen']['condicionOperacion'] ?? null,
+                'tipo_venta'           => $tipoVentaId
             ];
 
             $existe = $facturaHeadModel

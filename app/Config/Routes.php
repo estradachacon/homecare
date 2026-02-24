@@ -122,4 +122,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para mantenimiento de tipos de venta
     $routes->get('tipo_venta', 'TipoVentaController::index');
     $routes->get('tipo_venta/searchAjax', 'TipoVentaController::searchAjax');
+    $routes->get('tipo_venta-search', 'TipoVentaController::search');
+    $routes->post('tipo_venta/delete', 'TipoVentaController::delete');
+    $routes->presenter('tipo_venta', ['controller' => 'TipoVentaController', 'only' => ['new', 'create', 'edit', 'update']]);
 });
