@@ -80,7 +80,8 @@
                 <?php endif; ?>
                 
                 <?php if (
-                    tienePermiso('ingresar_pagos')
+                    tienePermiso('ingresar_pagos') ||
+                    tienePermiso('ver_pagos')
                 ): ?>
                 <a class="nav-link collapsed" href="#"
                     data-toggle="collapse"
@@ -101,11 +102,16 @@
 
                 <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
                     <nav class="sb-sidenav-menu-nested nav">
-
-                        <a class="nav-link" href="/payments">
-                            Ingresar pagos
-                        </a>
-
+                        <?php if (tienePermiso('ingresar_pagos')): ?>
+                            <a class="nav-link" href="/payments/new">
+                                Ingresar pagos
+                            </a>
+                        <?php endif; ?>
+                        <?php if (tienePermiso('ver_pagos')): ?>
+                            <a class="nav-link" href="/payments">
+                                Ver pagos
+                            </a>
+                        <?php endif; ?>
                     </nav>
                 </div>
                 <?php endif; ?>

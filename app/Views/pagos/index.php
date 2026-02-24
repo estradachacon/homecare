@@ -30,10 +30,10 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header d-flex">
-                <h4 class="header-title">Listado de facturas</h4>
-                <?php if (tienePermiso('cargar_facturas')): ?>
-                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('facturas/carga') ?>"><i
-                            class="fa-solid fa-plus"></i> Cargar..</a>
+                <h4 class="header-title">Listado de pagos</h4>
+                <?php if (tienePermiso('crear_pagos')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('payments/new') ?>"><i
+                            class="fa-solid fa-plus"></i> Nuevo</a>
                 <?php endif; ?>
             </div>
             <div class="card-body">
@@ -106,68 +106,46 @@
                 <table class="table table-striped table-bordered table-hover">
                     <thead>
                         <tr>
-                            <th>Correlativo</th>
-                            <th class="col-2">Tipo DOC</th>
+                            <th></th>
+                            <th>Fecha de pago</th>
                             <th class="col-3">Cliente</th>
-                            <th>Fecha/Hora</th>
-                            <th class="col-1">Condición</th>
-                            <th class="col-1">Total</th>
-                            <th class="col-1">Saldo</th>
+                            <th class="col-1">Vendedor</th>
+                            <th class="col-1">Monto</th>
                             <th class="col-1">Estado</th>
                             <th class="col-1">Menú</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($facturas)): ?>
-                            <?php foreach ($facturas as $factura): ?>
+                        <?php if (!empty($pagos)): ?>
+                            <?php foreach ($pagos as $pago): ?>
                                 <tr>
                                     <td class="text-center">
-                                        <?= esc(substr($factura->numero_control, -6)) ?>
+                                        <button class="btn btn-sm btn-light toggleFacturas"
+                                            data-id="<?= $pago->id ?>">
+                                            <i class="fa-solid fa-chevron-right"></i>
+                                        </button>
                                     </td>
 
                                     <td>
-                                        <?php
-                                        $siglas = dte_siglas();
-                                        $descripciones = dte_descripciones();
-
-                                        $codigo = $factura->tipo_dte;
-                                        $sigla = $siglas[$codigo] ?? null;
-                                        $descripcion = $sigla ? ($descripciones[$sigla] ?? null) : null;
-                                        ?>
-
-                                        <?php if ($sigla && $descripcion): ?>
-                                            <span class="badge bg-info text-white">
-                                                <?= esc($sigla) ?>
-                                            </span>
-                                            <br>
-                                            <small class="text-muted">
-                                                <?= esc($descripcion) ?>
-                                            </small>
-                                        <?php else: ?>
-                                            <span class="text-muted">Desconocido</span>
-                                        <?php endif; ?>
-                                    </td>
-
-                                    <td>
-                                        <?= esc($factura->cliente_nombre ?? 'Sin cliente') ?>
+                                        <?= esc($pago->cliente_nombre ?? 'Sin cliente') ?>
                                         <div class="text-right">
                                             <small class="text-muted">
-                                                Vendedor: <?= esc($factura->vendedor ?? 'Sin vendedor') ?>
+                                                Vendedor: <?= esc($pago->vendedor ?? 'Sin vendedor') ?>
                                             </small>
                                         </div>
                                     </td>
 
                                     <td class="text-center">
-                                        <?= date('d/m/Y', strtotime($factura->fecha_emision)) ?>
+                                        <?= date('d/m/Y', strtotime($pago->fecha_emision)) ?>
                                         <br>
                                         <small class="text-muted">
-                                            <?= date('H:i', strtotime($factura->hora_emision)) ?>
+                                            <?= date('H:i', strtotime($pago->hora_emision)) ?>
                                         </small>
                                     </td>
 
                                     <td class="text-center">
                                         <?php
-                                        $condicion = $factura->condicion_operacion ?? 1;
+                                        $condicion = $pago->condicion_operacion ?? 1;
 
                                         if ($condicion == 1) {
                                             echo '<span class="badge bg-success text-white">Contado</span>';
@@ -180,16 +158,16 @@
                                     </td>
 
                                     <td class="text-end">
-                                        $ <?= number_format($factura->total_pagar, 2) ?>
+                                        $ <?= number_format($pago->total_pagar, 2) ?>
                                     </td>
 
                                     <td class="text-end">
-                                        $ <?= number_format($factura->saldo, 2) ?>
+                                        $ <?= number_format($pago->saldo, 2) ?>
                                     </td>
 
                                     <td class="text-center">
 
-                                        <?php if (($factura->anulada ?? 0) == 1): ?>
+                                        <?php if (($pago->anulada ?? 0) == 1): ?>
 
                                             <span class="badge bg-danger text-white">
                                                 Anulado
@@ -206,17 +184,26 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <a href="<?= base_url('facturas/' . $factura->id) ?>"
+                                        <a href="<?= base_url('pagos/' . $pago->id) ?>"
                                             class="btn btn-sm btn-info">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
+                                    </td>
+                                </tr>
+                                <tr class="facturas-row d-none" id="facturas-<?= $pago->id ?>">
+                                    <td colspan="7" class="bg-light p-3">
+
+                                        <div class="facturas-container small text-muted">
+                                            Cargando facturas...
+                                        </div>
+
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
                                 <td colspan="9" class="text-center">
-                                    No hay facturas registradas
+                                    No hay pagos registrados
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -263,7 +250,7 @@
                 tipo_venta: tipoVenta || ''
             });
 
-            fetch('<?= base_url('facturas') ?>?' + params.toString(), {
+            fetch('<?= base_url('pagos') ?>?' + params.toString(), {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -356,6 +343,40 @@
             .then(data => {
                 $('tbody').html(data.tbody);
                 $('#pagerContainer').html(data.pager);
+            });
+
+    });
+    $(document).on('click', '.toggleFacturas', function() {
+
+        const btn = $(this);
+        const pagoId = btn.data('id');
+        const row = $('#facturas-' + pagoId);
+
+        row.toggleClass('d-none');
+
+        btn.find('i').toggleClass('fa-chevron-right fa-chevron-down');
+
+        if (row.data('loaded')) return;
+
+        fetch('<?= base_url("payments/facturas") ?>/' + pagoId)
+            .then(r => r.json())
+            .then(data => {
+
+                let html = '<strong>Facturas aplicadas:</strong><ul class="mb-0">';
+
+                if (data.length === 0) {
+                    html += '<li>No hay facturas</li>';
+                }
+
+                data.forEach(f => {
+                    html += `<li>${f.numero_control.substr(-6)} — $${f.monto}</li>`;
+                });
+
+                html += '</ul>';
+
+                row.find('.facturas-container').html(html);
+                row.data('loaded', true);
+
             });
 
     });

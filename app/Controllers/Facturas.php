@@ -6,90 +6,99 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\FacturaJsonModel;
 use App\Models\ClienteModel;
+use App\Models\FacturaHeadModel;
 
 class Facturas extends BaseController
 {
-public function index()
-{
-    $chk = requerirPermiso('ver_facturas');
-    if ($chk !== true) return $chk;
+    public function index()
+    {
+        $chk = requerirPermiso('ver_facturas');
+        if ($chk !== true) return $chk;
 
-    $model = new \App\Models\FacturaHeadModel();
+        $model = new FacturaHeadModel();
 
-    // SELECT PRINCIPAL + JOINS
-    $model->select('facturas_head.*, 
+        // SELECT PRINCIPAL + JOINS
+        $model->select(
+            'facturas_head.*, 
             clientes.nombre AS cliente_nombre, 
             sellers.seller AS vendedor,
             tipo_venta.nombre_tipo_venta AS tipo_venta_nombre'
         )
-        ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-        ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
-        ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left');
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left');
 
-    // ================= FILTROS =================
+        // ================= FILTROS =================
 
-    $clienteId = $this->request->getGet('cliente_id');
-    $sellerId  = $this->request->getGet('seller_id');
-    $estado    = $this->request->getGet('estado');
-    $tipoDte   = $this->request->getGet('tipo_dte');
-    $fecha     = $this->request->getGet('fecha');
-    $tipoVenta = $this->request->getGet('tipo_venta');
+        $clienteId = $this->request->getGet('cliente_id');
+        $sellerId  = $this->request->getGet('seller_id');
+        $estado    = $this->request->getGet('estado');
+        $tipoDte   = $this->request->getGet('tipo_dte');
+        $fecha     = $this->request->getGet('fecha');
+        $tipoVenta = $this->request->getGet('tipo_venta');
 
-    if (is_numeric($clienteId)) {
-        $model->where('facturas_head.receptor_id', $clienteId);
+        if (is_numeric($clienteId)) {
+            $model->where('facturas_head.receptor_id', $clienteId);
+        }
+
+        if (is_numeric($sellerId)) {
+            $model->where('facturas_head.vendedor_id', $sellerId);
+        }
+
+        if ($estado === 'activa') {
+            $model->where('facturas_head.anulada', 0);
+        }
+
+        if ($estado === 'anulada') {
+            $model->where('facturas_head.anulada', 1);
+        }
+
+        if ($estado === 'pagada') {
+            $model->where('facturas_head.anulada', 0)
+                ->where('facturas_head.saldo', 0);
+        }
+
+        if (is_numeric($tipoDte)) {
+            $model->where('facturas_head.tipo_dte', $tipoDte);
+        }
+
+        if (!empty($fecha)) {
+            $model->where('facturas_head.fecha_emision', $fecha);
+        }
+
+        if (is_numeric($tipoVenta)) {
+            $model->where('facturas_head.tipo_venta', $tipoVenta);
+        }
+
+        // ==========================================
+
+        $model->orderBy('fecha_emision', 'DESC')
+            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
+
+        $facturas = $model->paginate(10);
+        $pager = $model->pager;
+
+        // CATÁLOGO TIPO VENTA PARA EL SELECT
+        $tipoVentaModel = new \App\Models\TipoVentaModel();
+        $tiposVenta = $tipoVentaModel
+            ->orderBy('nombre_tipo_venta')
+            ->findAll();
+
+        // RESPUESTA AJAX
+        if ($this->request->isAJAX()) {
+
+            $tbody = view('facturas/tbody_row', compact('facturas'));
+            $pagerHtml = $pager->links('default', 'bootstrap_full');
+
+            return $this->response->setJSON([
+                'tbody' => $tbody,
+                'pager' => $pagerHtml
+            ]);
+        }
+
+        // VISTA NORMAL
+        return view('facturas/index', compact('facturas', 'pager', 'tiposVenta'));
     }
-
-    if (is_numeric($sellerId)) {
-        $model->where('facturas_head.vendedor_id', $sellerId);
-    }
-
-    if ($estado === 'activa') {
-        $model->where('facturas_head.anulada', 0);
-    }
-
-    if ($estado === 'anulada') {
-        $model->where('facturas_head.anulada', 1);
-    }
-
-    if ($estado === 'pagada') {
-        $model->where('facturas_head.anulada', 0)
-              ->where('facturas_head.saldo', 0);
-    }
-
-    if (is_numeric($tipoDte)) {
-        $model->where('facturas_head.tipo_dte', $tipoDte);
-    }
-
-    if (!empty($fecha)) {
-        $model->where('facturas_head.fecha_emision', $fecha);
-    }
-
-    if (is_numeric($tipoVenta)) {
-        $model->where('facturas_head.tipo_venta', $tipoVenta);
-    }
-
-    // ==========================================
-
-    $model->orderBy('fecha_emision', 'DESC')
-          ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
-
-    $facturas = $model->paginate(10);
-    $pager = $model->pager;
-
-    // CATÁLOGO TIPO VENTA PARA EL SELECT
-    $tipoVentaModel = new \App\Models\TipoVentaModel();
-    $tiposVenta = $tipoVentaModel
-        ->orderBy('nombre_tipo_venta')
-        ->findAll();
-
-    // RESPUESTA AJAX
-    if ($this->request->isAJAX()) {
-        return view('facturas/tbody_row', compact('facturas'));
-    }
-
-    // VISTA NORMAL
-    return view('facturas/index', compact('facturas', 'pager', 'tiposVenta'));
-}
 
     public function carga()
     {
@@ -114,7 +123,7 @@ public function index()
             ]);
         }
 
-        $facturaHeadModel = new \App\Models\FacturaHeadModel();
+        $facturaHeadModel = new FacturaHeadModel();
         $facturaHeadModel->resetQuery();
 
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
@@ -320,7 +329,7 @@ public function index()
     }
     public function detalle($id)
     {
-        $facturaHeadModel    = new \App\Models\FacturaHeadModel();
+        $facturaHeadModel    = new FacturaHeadModel();
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
 
         // Cabecera
@@ -356,7 +365,7 @@ public function index()
             ]);
         }
 
-        $facturaHeadModel = new \App\Models\FacturaHeadModel();
+        $facturaHeadModel = new FacturaHeadModel();
 
         $existe = $facturaHeadModel
             ->where('numero_control', $numeroControl)
@@ -377,7 +386,7 @@ public function index()
 
         $user_id = session()->get('user_id');
 
-        $facturaModel = new \App\Models\FacturaHeadModel();
+        $facturaModel = new FacturaHeadModel();
 
         $factura = $facturaModel->find($id);
 
@@ -413,6 +422,33 @@ public function index()
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Factura anulada correctamente.'
+        ]);
+    }
+    public function preview($id)
+    {
+        $facturaHeadModel    = new FacturaHeadModel();
+        $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
+
+        $factura = $facturaHeadModel
+            ->select('facturas_head.*,
+                  clientes.nombre AS cliente,
+                  sellers.seller AS vendedor,
+                  tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
+            ->where('facturas_head.id', $id)
+            ->first();
+
+        if (!$factura) return 'Factura no encontrada';
+
+        $detalles = $facturaDetalleModel
+            ->where('factura_id', $id)
+            ->findAll();
+
+        return view('facturas/_preview_modal', [
+            'factura'  => $factura,
+            'detalles' => $detalles
         ]);
     }
 }

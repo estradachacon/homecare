@@ -31,6 +31,8 @@ class Permisos extends BaseConfig
         
         'Cuentas por cobrar' => [
             'ingresar_pagos',
+            'ver_pagos',
+            'crear_pagos',
         ],
         
         'Finanzas' => [

@@ -125,4 +125,11 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('tipo_venta-search', 'TipoVentaController::search');
     $routes->post('tipo_venta/delete', 'TipoVentaController::delete');
     $routes->presenter('tipo_venta', ['controller' => 'TipoVentaController', 'only' => ['new', 'create', 'edit', 'update']]);
+
+    // Rutas para el módulo de pagos
+    $routes->presenter('payments', ['controller' => 'PaymentController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
+    $routes->get('payments/facturas/(:num)', 'PaymentController::facturas/$1');
+    $routes->get('payments/facturasPendientes/(:num)', 'PaymentController::facturasPendientes/$1');
+    $routes->get('accounts-search', 'AccountController::search');
+    $routes->get('facturas/preview/(:num)', 'Facturas::preview/$1');
 });

@@ -5,313 +5,146 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\PackageModel;
+use App\Models\PagosDetailsModel;
+use App\Models\TipoVentaModel;
+use App\Models\FacturaHeadModel;
 
 class PaymentController extends BaseController
 {
-    public function packagesBySeller($sellerId)
+    public function index()
     {
-        $packageModel = new PackageModel();
-        return $this->response->setJSON(
-            $packageModel->getPackagesPendingPaymentBySeller((int)$sellerId)
-        );
+        $chk = requerirPermiso('ver_facturas');
+        if ($chk !== true) return $chk;
+
+        $model = new FacturaHeadModel();
+
+        // SELECT PRINCIPAL + JOINS
+        $model->select(
+            'facturas_head.*, 
+            clientes.nombre AS cliente_nombre, 
+            sellers.seller AS vendedor,
+            tipo_venta.nombre_tipo_venta AS tipo_venta_nombre'
+        )
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left');
+
+        // ================= FILTROS =================
+
+        $clienteId = $this->request->getGet('cliente_id');
+        $sellerId  = $this->request->getGet('seller_id');
+        $estado    = $this->request->getGet('estado');
+        $tipoDte   = $this->request->getGet('tipo_dte');
+        $fecha     = $this->request->getGet('fecha');
+        $tipoVenta = $this->request->getGet('tipo_venta');
+
+        if (is_numeric($clienteId)) {
+            $model->where('facturas_head.receptor_id', $clienteId);
+        }
+
+        if (is_numeric($sellerId)) {
+            $model->where('facturas_head.vendedor_id', $sellerId);
+        }
+
+        if ($estado === 'activa') {
+            $model->where('facturas_head.anulada', 0);
+        }
+
+        if ($estado === 'anulada') {
+            $model->where('facturas_head.anulada', 1);
+        }
+
+        if ($estado === 'pagada') {
+            $model->where('facturas_head.anulada', 0)
+                ->where('facturas_head.saldo', 0);
+        }
+
+        if (is_numeric($tipoDte)) {
+            $model->where('facturas_head.tipo_dte', $tipoDte);
+        }
+
+        if (!empty($fecha)) {
+            $model->where('facturas_head.fecha_emision', $fecha);
+        }
+
+        if (is_numeric($tipoVenta)) {
+            $model->where('facturas_head.tipo_venta', $tipoVenta);
+        }
+
+        // ==========================================
+
+        $model->orderBy('fecha_emision', 'DESC')
+            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
+
+        $facturas = $model->paginate(10);
+        $pager = $model->pager;
+
+        // CATÁLOGO TIPO VENTA PARA EL SELECT
+        $tipoVentaModel = new TipoVentaModel();
+        $tiposVenta = $tipoVentaModel
+            ->orderBy('nombre_tipo_venta')
+            ->findAll();
+
+        // RESPUESTA AJAX
+        if ($this->request->isAJAX()) {
+
+            $tbody = view('pagos/tbody_row', compact('facturas'));
+            $pagerHtml = $pager->links('default', 'bootstrap_full');
+
+            return $this->response->setJSON([
+                'tbody' => $tbody,
+                'pager' => $pagerHtml
+            ]);
+        }
+
+        // VISTA NORMAL
+        return view('pagos/index', compact('facturas', 'pager', 'tiposVenta'));
     }
-    public function paySeller()
+    public function new()
     {
-        helper(['form']);
-        $session = session();
+        $chk = requerirPermiso('crear_pagos');
+        if ($chk !== true) return $chk;
 
-        $db = db_connect();
-        $data = $this->request->getJSON(true);
+        // Traer clientes (si luego quieres Select2 remoto, esto puede quitarse)
+        $clienteModel = new \App\Models\ClienteModel();
+        $clientes = $clienteModel->orderBy('nombre')->findAll();
 
-        // 🔹 Validar datos mínimos
-        if (!$data || empty($data['seller_id']) || empty($data['packages'])) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Datos incompletos'
-            ]);
-        }
+        // Traer vendedores
+        $sellerModel = new \App\Models\SellerModel();
+        $sellers = $sellerModel->orderBy('seller')->findAll();
 
-        $sellerId = (int) $data['seller_id'];
-        $packages = $data['packages'];
-
-        $db->transStart();
-
-        // 🔎 Obtener sesión de caja abierta del usuario
-        $cashierSession = $db->table('cashier_sessions')
-            ->where('status', 'open')
-            ->where('user_id', session()->get('id'))
-            ->get()
-            ->getRowArray();
-
-        if (!$cashierSession) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No hay una sesión de caja abierta'
-            ]);
-        }
-
-        // 🔎 Obtener caja
-        $cashier = $db->table('cashier')
-            ->where('id', $cashierSession['cashier_id'])
-            ->get()
-            ->getRowArray();
-
-        if (!$cashier) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Caja no encontrada'
-            ]);
-        }
-
-        // 🔹 Calcular total a pagar sumando los paquetes
-        $totalPay = 0;
-
-        foreach ($packages as $pkg) {
-            $package = $db->table('packages')
-                ->where('id', $pkg['id'])
-                ->where('vendedor', $sellerId)
-                ->get()
-                ->getRowArray();
-
-            if (!$package) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Paquete inválido: #' . $pkg['id']
-                ]);
-            }
-
-            $monto = (float) $package['monto'];
-            $pendiente = (float) ($package['flete_pendiente'] ?? 0);
-            $netAmount = $monto - $pendiente;
-
-            if ($netAmount < 0) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Monto inválido en paquete #' . $package['id']
-                ]);
-            }
-
-            $totalPay += $netAmount;
-
-            // 🔹 Actualizar paquete: marcar parcialmente pagado
-            $db->table('packages')
-                ->where('id', $package['id'])
-                ->update([
-                    'amount_paid'     => $netAmount,
-                    'flete_pendiente' => 0,
-                    'estatus'         => 'finalizado',
-                    'estatus2'        => 'remunerado',
-                ]);
-        }
-
-        // ❌ Saldo insuficiente en caja
-        if ((float)$cashier['current_balance'] < $totalPay) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Saldo insuficiente en caja'
-            ]);
-        }
-
-        // 🔹 Registrar movimiento en caja usando el modelo
-        $cashierMovementModel = new \App\Models\CashierMovementModel();
-
-        $newBalance = $cashier['current_balance'] - $totalPay;
-
-        $cashierMovementModel->insert([
-            'cashier_id'         => $cashier['id'],
-            'cashier_session_id' => $cashierSession['id'],
-            'user_id'            => session()->get('id'),
-            'branch_id'          => session()->get('branch_id'),
-            'type'               => 'out',
-            'amount'             => $totalPay,
-            'balance_after'      => $newBalance,
-            'concept'            => 'Pago a vendedor #' . $sellerId,
-            'reference_type'     => 'Remuneraciones',
-            'reference_id'       => null,
-            'created_at'         => date('Y-m-d H:i:s'),
-        ]);
-
-        // 🔹 Actualizar saldo de la caja
-        $db->table('cashier')
-            ->where('id', $cashier['id'])
-            ->update([
-                'current_balance' => $newBalance
-            ]);
-
-        // 🔹 Obtener cuenta efectivo (ID = 1)
-        $account = $db->table('accounts')
-            ->where('id', 1)
-            ->get()
-            ->getRowArray();
-
-        if (!$account) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Cuenta de efectivo no encontrada'
-            ]);
-        }
-
-        // ❌ Validar que exista reserva suficiente en cajas
-        if ((float)$account['cashier_reserv'] < $totalPay) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'La reserva de efectivo en cajas es insuficiente'
-            ]);
-        }
-
-        // 🔻 Actualizar reserva de efectivo (sale dinero de caja)
-        $db->table('accounts')
-            ->where('id', 1)
-            ->update([
-                'cashier_reserv' => $account['cashier_reserv'] - $totalPay,
-            ]);
-
-        $db->transComplete();
-
-        if ($db->transStatus() === false) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Error al procesar el pago'
-            ]);
-        }
-        registrar_bitacora(
-            'Pago a vendedor ID ' . esc($sellerId),
-            'Remuneraciones',
-            'Se pagó un total de $' . number_format($totalPay, 2) . ' al vendedor con ID ' . esc($sellerId) . '.',
-            $session->get('id')
-        );
-
-        return $this->response->setJSON([
-            'success'    => true,
-            'total_paid' => $totalPay,
-            'new_balance' => $newBalance
+        return view('pagos/new', [
+            'clientes' => $clientes,
+            'sellers'  => $sellers
         ]);
     }
-    public function paySellerbyAccount()
+
+    public function facturas($pagoId)
     {
-        helper(['form']);
-        $session = session();
+        $model = new PagosDetailsModel();
 
-        $db = db_connect();
-        $data = $this->request->getJSON(true);
+        $facturas = $model
+            ->select('facturas_head.numero_control, pagos_details.monto')
+            ->join('facturas_head', 'facturas_head.id = pagos_details.factura_id')
+            ->where('pagos_details.pago_id', $pagoId)
+            ->findAll();
 
-        if (
-            !$data ||
-            empty($data['seller_id']) ||
-            empty($data['packages']) ||
-            empty($data['cuenta_id'])
-        ) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Datos incompletos'
-            ]);
-        }
+        return $this->response->setJSON($facturas);
+    }
 
-        $sellerId = (int) $data['seller_id'];
-        $packages = $data['packages'];
-        $accountId = (int) $data['cuenta_id'];
+    public function facturasPendientes($clienteId)
+    {
+        $model = new FacturaHeadModel();
 
-        $db->transStart();
+        $facturas = $model
+            ->select('facturas_head.*, sellers.seller AS vendedor, tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
+            ->where('facturas_head.receptor_id', $clienteId)
+            ->where('facturas_head.saldo >', 0)
+            ->orderBy('facturas_head.fecha_emision', 'ASC')
+            ->findAll();
 
-        // 🔹 Calcular total a pagar sumando los paquetes
-        $totalPay = 0;
-
-        foreach ($packages as $pkg) {
-            $package = $db->table('packages')
-                ->where('id', $pkg['id'])
-                ->where('vendedor', $sellerId)
-                ->get()
-                ->getRowArray();
-
-            if (!$package) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Paquete inválido: #' . $pkg['id']
-                ]);
-            }
-
-            $monto = (float) $package['monto'];
-            $pendiente = (float) ($package['flete_pendiente'] ?? 0);
-            $netAmount = $monto - $pendiente;
-
-            if ($netAmount < 0) {
-                $db->transRollback();
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Monto inválido en paquete #' . $package['id']
-                ]);
-            }
-
-            $totalPay += $netAmount;
-
-            $db->table('packages')
-                ->where('id', $package['id'])
-                ->update([
-                    'amount_paid'     => $netAmount,
-                    'flete_pendiente' => 0,
-                    'estatus'         => 'finalizado',
-                    'estatus2'        => 'remunerado',
-                ]);
-        }
-
-        // 🔹 Obtener cuenta efectivo (ID = 1)
-        $account = $db->table('accounts')
-            ->where('id', $accountId)
-            ->get()
-            ->getRowArray();
-
-        if (!$account) {
-            $db->transRollback();
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Cuenta seleccionada no encontrada'
-            ]);
-        }
-        $db->table('accounts')
-            ->where('id', $accountId)
-            ->set('balance', 'balance - ' . $totalPay, false)
-            ->update();
-
-        $db->transComplete();
-
-        if ($db->transStatus() === false) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Error al procesar el pago'
-            ]);
-        }
-
-        registrarSalida(
-        $account['id'],
-        $totalPay,
-        "Remuneración por cuentas",
-        "Paquetes con ID: " . implode(
-            ', ',
-            array_map(function ($pkg) {
-                return $pkg['id'];
-            }, $packages)
-        ),
-        '-',
-        );
-
-        registrar_bitacora(
-            'Pago a vendedor ID ' . esc($sellerId),
-            'Remuneraciones',
-            'Se pagó un total de $' . number_format($totalPay, 2) . ' al vendedor con ID ' . esc($sellerId) . '.' . ' Usando cuenta ID ' . esc($data['cuenta_id']),
-            $session->get('id')
-        );
-
-        return $this->response->setJSON([
-            'success'    => true,
-            'total_paid' => $totalPay
-        ]);
+        return $this->response->setJSON($facturas);
     }
 }
