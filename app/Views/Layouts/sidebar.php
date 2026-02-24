@@ -242,6 +242,15 @@
                 <?php endif; ?>
 
                 <?php if (
+                    tienePermiso('ver_tipo_venta')
+                ): ?>
+                    <a class="nav-link" href="/tipo_venta">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+                        Tipos de venta
+                    </a>
+                <?php endif; ?>
+
+                <?php if (
                     tienePermiso('ver_puntosfijos') ||
                     tienePermiso('ver_rutas')
                 ): ?>

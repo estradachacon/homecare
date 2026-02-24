@@ -118,4 +118,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes', 'ClienteController::index');
     $routes->get('clientes/(:num)', 'ClienteController::show/$1');
     $routes->get('clientes/buscar', 'ClienteController::buscar');
+
+    // Rutas para mantenimiento de tipos de venta
+    $routes->get('tipo_venta', 'TipoVentaController::index');
+    $routes->get('tipo_venta/searchAjax', 'TipoVentaController::searchAjax');
 });

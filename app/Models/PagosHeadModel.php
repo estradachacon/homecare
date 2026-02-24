@@ -4,13 +4,10 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class PagoHeadModel extends Model
+class PagosHeadModel extends Model
 {
-    protected $table      = 'pagos_head';
+    protected $table = 'pagos_head';
     protected $primaryKey = 'id';
-
-    protected $returnType = 'object';
-    protected $useSoftDeletes = false;
 
     protected $allowedFields = [
         'numero_recupero',
@@ -19,10 +16,13 @@ class PagoHeadModel extends Model
         'forma_pago',
         'total',
         'fecha_pago',
+        'observaciones',
+        'anulado',
+        'created_at',
+        'updated_at'
     ];
 
     protected $useTimestamps = true;
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
 
+    protected $returnType = 'object';
 }

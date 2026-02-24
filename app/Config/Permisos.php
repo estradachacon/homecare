@@ -16,6 +16,10 @@ class Permisos extends BaseConfig
             'editar_clientes',
             'eliminar_clientes',
             'anular_factura',
+            'ver_tipo_venta',
+            'crear_tipo_venta',
+            'editar_tipo_venta',
+            'eliminar_tipo_venta',
         ],
 
         'Vendedores' => [
