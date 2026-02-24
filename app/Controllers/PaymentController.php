@@ -147,4 +147,5 @@ class PaymentController extends BaseController
 
         return $this->response->setJSON($facturas);
     }
+    function store() {}
 }

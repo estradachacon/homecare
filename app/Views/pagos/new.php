@@ -364,6 +364,14 @@
                 $('#cuentaTransferencia')
                     .prop('required', true)
                     .focus();
+                $('#boxRecupero')
+                    .removeClass('d-none')
+                    .hide()
+                    .slideDown(200);
+
+                $('#descripcionRecupero')
+                    .prop('required', true)
+                    .focus();
             }
 
         });
