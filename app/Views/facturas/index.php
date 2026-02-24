@@ -40,7 +40,7 @@
                 <form onsubmit="return false" class="mb-3">
                     <div class="row g-2">
 
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <small class="text-muted">Cliente</small>
                             <select id="clienteSelect" class="form-control"></select>
                         </div>
@@ -79,7 +79,18 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <small class="text-muted">Tipo venta</small>
+                            <select name="tipo_venta" id="tipoVentaSelect" class="form-control">
+                                <option value="">Todos</option>
 
+                                <?php foreach ($tiposVenta as $tv): ?>
+                                    <option value="<?= $tv->id ?>">
+                                        <?= esc($tv->nombre_tipo_venta) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <small class="text-muted">Fecha emisión</small>
                             <input
@@ -294,6 +305,7 @@
             let estado = $('[name="estado"]').val();
             let tipo_dte = $('[name="tipo_dte"]').val();
             let fecha = $('#fechaFiltro').val();
+            let tipoVenta = $('#tipoVentaSelect').val();
 
             if (fecha && fecha.length === 10) {
                 let p = fecha.split('/');
@@ -305,7 +317,8 @@
                 seller_id: sellerId || '',
                 estado: estado || '',
                 tipo_dte: tipo_dte || '',
-                fecha: fecha || ''
+                fecha: fecha || '',
+                tipo_venta: tipoVenta || ''
             });
 
             fetch('<?= base_url('facturas') ?>?' + params.toString(), {
@@ -358,6 +371,7 @@
 
         $('#clienteSelect, #sellerSelect').on('change', cargarFacturas);
         $('[name="estado"], [name="tipo_dte"]').on('change', cargarFacturas);
+        $('#tipoVentaSelect').on('change', cargarFacturas);
 
         // ================= FECHA MASK =================
 

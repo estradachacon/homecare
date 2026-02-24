@@ -9,68 +9,87 @@ use App\Models\ClienteModel;
 
 class Facturas extends BaseController
 {
-    public function index()
-    {
-        $chk = requerirPermiso('ver_facturas');
-        if ($chk !== true) return $chk;
+public function index()
+{
+    $chk = requerirPermiso('ver_facturas');
+    if ($chk !== true) return $chk;
 
-        $model = new \App\Models\FacturaHeadModel();
+    $model = new \App\Models\FacturaHeadModel();
 
-        $model->select('facturas_head.*, clientes.nombre AS cliente_nombre, sellers.seller AS vendedor')
-            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left');
+    // SELECT PRINCIPAL + JOINS
+    $model->select('facturas_head.*, 
+            clientes.nombre AS cliente_nombre, 
+            sellers.seller AS vendedor,
+            tipo_venta.nombre_tipo_venta AS tipo_venta_nombre'
+        )
+        ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+        ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+        ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left');
 
-        // ================= FILTROS =================
+    // ================= FILTROS =================
 
-        $clienteId = $this->request->getGet('cliente_id');
-        $sellerId  = $this->request->getGet('seller_id');
-        $estado = $this->request->getGet('estado');
-        $tipoDte = $this->request->getGet('tipo_dte');
-        $fecha = $this->request->getGet('fecha');
+    $clienteId = $this->request->getGet('cliente_id');
+    $sellerId  = $this->request->getGet('seller_id');
+    $estado    = $this->request->getGet('estado');
+    $tipoDte   = $this->request->getGet('tipo_dte');
+    $fecha     = $this->request->getGet('fecha');
+    $tipoVenta = $this->request->getGet('tipo_venta');
 
-        if (is_numeric($clienteId)) {
-            $model->where('facturas_head.receptor_id', $clienteId);
-        }
-
-        if (is_numeric($sellerId)) {
-            $model->where('facturas_head.vendedor_id', $sellerId);
-        }
-
-        if ($estado === 'activa') {
-            $model->where('facturas_head.anulada', 0);
-        }
-
-        if ($estado === 'anulada') {
-            $model->where('facturas_head.anulada', 1);
-        }
-
-        if ($estado === 'pagada') {
-            $model->where('facturas_head.anulada', 0)
-                ->where('facturas_head.saldo', 0);
-        }
-
-        if (is_numeric($tipoDte)) {
-            $model->where('facturas_head.tipo_dte', $tipoDte);
-        }
-
-        if (!empty($fecha)) {
-            $model->where('facturas_head.fecha_emision', $fecha);
-        }
-
-        // ==========================================
-
-        $model->orderBy('fecha_emision', 'DESC')
-            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
-
-        $facturas = $model->paginate(10);
-        $pager = $model->pager;
-
-        if ($this->request->isAJAX()) {
-            return view('facturas/tbody_row', compact('facturas'));
-        }
-
-        return view('facturas/index', compact('facturas', 'pager'));
+    if (is_numeric($clienteId)) {
+        $model->where('facturas_head.receptor_id', $clienteId);
     }
+
+    if (is_numeric($sellerId)) {
+        $model->where('facturas_head.vendedor_id', $sellerId);
+    }
+
+    if ($estado === 'activa') {
+        $model->where('facturas_head.anulada', 0);
+    }
+
+    if ($estado === 'anulada') {
+        $model->where('facturas_head.anulada', 1);
+    }
+
+    if ($estado === 'pagada') {
+        $model->where('facturas_head.anulada', 0)
+              ->where('facturas_head.saldo', 0);
+    }
+
+    if (is_numeric($tipoDte)) {
+        $model->where('facturas_head.tipo_dte', $tipoDte);
+    }
+
+    if (!empty($fecha)) {
+        $model->where('facturas_head.fecha_emision', $fecha);
+    }
+
+    if (is_numeric($tipoVenta)) {
+        $model->where('facturas_head.tipo_venta', $tipoVenta);
+    }
+
+    // ==========================================
+
+    $model->orderBy('fecha_emision', 'DESC')
+          ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
+
+    $facturas = $model->paginate(10);
+    $pager = $model->pager;
+
+    // CATÁLOGO TIPO VENTA PARA EL SELECT
+    $tipoVentaModel = new \App\Models\TipoVentaModel();
+    $tiposVenta = $tipoVentaModel
+        ->orderBy('nombre_tipo_venta')
+        ->findAll();
+
+    // RESPUESTA AJAX
+    if ($this->request->isAJAX()) {
+        return view('facturas/tbody_row', compact('facturas'));
+    }
+
+    // VISTA NORMAL
+    return view('facturas/index', compact('facturas', 'pager', 'tiposVenta'));
+}
 
     public function carga()
     {
@@ -306,9 +325,10 @@ class Facturas extends BaseController
 
         // Cabecera
         $factura = $facturaHeadModel
-            ->select('facturas_head.*, clientes.nombre AS cliente, sellers.seller AS vendedor')
+            ->select('facturas_head.*, clientes.nombre AS cliente, sellers.seller AS vendedor, tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
             ->where('facturas_head.id', $id)
             ->first();
 

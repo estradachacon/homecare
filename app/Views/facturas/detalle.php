@@ -17,6 +17,14 @@ if ($esCreditoFiscal) {
     $ivaCalculado = $factura->total_pagar - $subtotalProductos;
 }
 $tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento';
+$numeroCorto = !empty($factura->numero_control)
+    ? substr($factura->numero_control, -6)
+    : 'N/D';
+
+$numeroCompleto = $factura->numero_control ?? 'N/D';
+
+// Tipo de venta (catalogo)
+$tipoVenta = $factura->tipo_venta_nombre ?? null;
 ?>
 
 <div class="row">
@@ -39,9 +47,30 @@ $tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Docum
                     </div>
                 </div>
 
-                <small class="text-muted">
-                    Nº Control completo: <?= esc($factura->numero_control) ?>
-                </small>
+                <!-- PANEL DERECHO -->
+                <div class="text-end border rounded px-3 py-2 bg-light">
+
+                    <small class="text-muted d-block">Nº Control</small>
+                    <small class="text-muted d-block mt-1">
+                        <?= esc($numeroCompleto) ?>
+                    </small>
+
+                    <?php if (!empty($tipoVenta)): ?>
+                        <div class="mt-2 d-flex align-items-center">
+
+                            <small class="text-muted">
+                                Tipo de venta:
+                            </small>
+
+                            <span class="badge text-dark px-3 py-1 ml-auto" 
+                                style="background: #9efdc9;">
+                                <?= esc($tipoVenta) ?>
+                            </span>
+
+                        </div>
+                    <?php endif; ?>
+
+                </div>
 
             </div>
 
