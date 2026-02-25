@@ -136,12 +136,8 @@
                         <textarea class="form-control" rows="2"></textarea>
                     </div>
                     <div class="text-end mt-3">
-
-                        <button type="button" class="btn btn-secondary">
-                            Cancelar
-                        </button>
-
-                        <button type="submit" class="btn btn-success">
+                        
+                        <button type="button" id="btnGuardarPago" class="btn btn-success">
                             Guardar pago
                         </button>
 
@@ -200,21 +196,34 @@
 </div>
 <script>
     $(function() {
-        $('#formPago').on('submit', function(e) {
+        $(document).on('click', '#btnGuardarPago', function(e) {
 
             e.preventDefault();
-
+            console.log("Botón presionado");
             const cliente = $('#clienteSelect').val();
             const fecha = $('input[type="date"]').val();
             const tipoPago = $('#tipoPago').val();
-            const descRecupero = $('#descripcionRecupero').val().trim();
-            const cuenta = $('#cuentaTransferencia').val().trim();
+            const descRecupero = ($('#descripcionRecupero').val() || '').trim();
+            const cuenta = ($('#cuentaTransferencia').val() || '').trim();
 
             // ================= VALIDACIONES BASE =================
 
-            if (!cliente) {
-                Swal.fire('Cliente requerido', 'Seleccione un cliente.', 'warning');
-                return;
+            if (cliente === null || cliente === "" || cliente === undefined) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '¡Campo Obligatorio!',
+                    text: 'Debes seleccionar un cliente para registrar el pago.',
+                    confirmButtonText: 'Entendido',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'btn btn-info'
+                    }
+                }).then(() => {
+                    // Esto abre el select automáticamente después de cerrar la alerta
+                    $('#clienteSelect').select2('open');
+                });
+
+                return; // Detiene la ejecución
             }
 
             if (!fecha) {
@@ -284,7 +293,12 @@
                 showCancelButton: true,
                 confirmButtonText: 'Confirmar pago',
                 cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#28a745'
+
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-success me-2',
+                    cancelButton: 'btn btn-secondary'
+                }
             });
 
         });
@@ -397,7 +411,7 @@
         // ================= CARGAR FACTURAS =================
 
         $('#clienteSelect').on('change', function() {
-
+            $('#totalPago').val('0.00');
             const clienteId = $(this).val();
 
             if (!clienteId) return;
@@ -446,7 +460,7 @@
                         <i class="fa-solid fa-eye text-muted"></i>
                     </button>
                 </td>
-                <td>${new Date(f.created_at).toLocaleDateString()}</td>
+                <td>${new Date(f.fecha_emision).toLocaleDateString()}</td>
                 <td class="text-center">${diasDeAntiguedad(f.fecha_emision)}</td>
                 <td>${f.vendedor}</td>
                 <td>${f.tipo_venta_nombre}</td>

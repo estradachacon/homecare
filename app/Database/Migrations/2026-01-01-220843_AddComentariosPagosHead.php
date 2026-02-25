@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class AddTipoVentaFacturas extends Migration
+class AddComentariosPagosHead extends Migration
 {
     public function up()
     {

@@ -43,15 +43,6 @@ class CreatePasswordResetsTable extends Migration
         $this->forge->addKey('user_id');
         $this->forge->addKey('code');
 
-        // FK (opcional pero recomendado)
-        $this->forge->addForeignKey(
-            'user_id',
-            'users',
-            'id',
-            'CASCADE',
-            'CASCADE'
-        );
-
         $this->forge->createTable('password_resets', true);
     }
 
