@@ -13,6 +13,7 @@ class PagosDetailsModel extends Model
         'pago_id',
         'factura_id',
         'monto',
+        'observaciones',
         'created_at',
         'updated_at'
     ];

@@ -85,7 +85,13 @@
     <div id="globalDropOverlay" class="d-none">
         <div class="overlay-content">
             <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-            <h4>Suelta los archivos JSON aquí</h4>
+            <h4 class="header-title mb-0">
+                <i class="fas fa-file-invoice me-2 text-primary"></i>
+                Carga Masiva de Facturas (JSON)
+            </h4>
+            <small class="text-danger fw-bold ms-2">
+                Máximo 35 archivos por carga
+            </small>
             <p class="mb-0">Carga masiva de facturas</p>
         </div>
     </div>
@@ -96,7 +102,12 @@
                     <h4 class="header-title mb-0">
                         <i class="fas fa-file-invoice me-2"></i>
                         Carga Masiva de Facturas (JSON)
+                        <br>
+                        <small class="text-danger fw-bold ms-2">
+                            Máximo 35 archivos por carga
+                        </small>
                     </h4>
+
                     <div id="dropZone"
                         class="border border-2 border-dashed rounded px-3 py-2 text-center"
                         style="cursor: pointer; background-color: #f8f9fa; min-width: 220px;">
@@ -110,6 +121,7 @@
                             multiple
                             hidden>
                     </div>
+                    
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -148,6 +160,7 @@
         const dropZone = document.getElementById('dropZone');
         const tableBody = document.querySelector('#filesTable tbody');
         const btnProcesar = document.getElementById('btnProcesar');
+        const MAX_ARCHIVOS = 35;
         let archivosSeleccionados = [];
         let dragCounter = 0;
         dropZone.addEventListener('click', () => inputFiles.click());
@@ -176,7 +189,23 @@
         });
 
         function handleFiles(files) {
+
             let archivosArray = Array.from(files);
+
+            // 🔥 VALIDACIÓN DE LÍMITE
+            if (archivosSeleccionados.length + archivosArray.length > MAX_ARCHIVOS) {
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Límite excedido',
+                    html: `
+                        Puedes cargar un máximo de <strong>${MAX_ARCHIVOS}</strong> archivos por proceso.<br><br>
+                        Actualmente tienes ${archivosSeleccionados.length} archivo(s) cargado(s).
+                    `
+                });
+
+                return;
+            }
             let codigosEnLote = new Set();
             let duplicados = [];
             archivosArray.forEach(file => {
@@ -606,7 +635,7 @@
                     }
                 });
             });
-            btnProcesar.disabled = archivosSeleccionados.length === 0;
+            btnProcesar.disabled = archivosSeleccionados.length === 0 || archivosSeleccionados.length > MAX_ARCHIVOS;
             initSellerSelects();
             initTipoVentaSelects();
         }

@@ -298,7 +298,7 @@
                 confirmButtonText: 'Confirmar pago',
                 cancelButtonText: 'Cancelar',
                 buttonsStyling: false,
-                showLoaderOnConfirm: true, 
+                showLoaderOnConfirm: true,
                 allowOutsideClick: () => !Swal.isLoading(),
                 customClass: {
                     confirmButton: 'btn btn-success m-2',
@@ -334,14 +334,16 @@
                         cliente_id: cliente,
                         fecha_pago: fecha,
                         tipo_pago: tipoPago,
-                        recupero: tipoPago === 'recupero' ? descRecupero : null,
+                        recupero: descRecupero,
                         cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : null,
                         observaciones: $('textarea').val() || '',
                         total: total,
                         facturas: facturas
                     };
 
-                    // 👇 IMPORTANTE: retornar la promesa
+                    console.log("OBJETO PAGO ENVIADO:", pago);
+
+                    // IMPORTANTE: retornar la promesa
                     return fetch('<?= base_url("payments/store") ?>', {
                             method: 'POST',
                             headers: {
@@ -349,16 +351,19 @@
                             },
                             body: JSON.stringify(pago)
                         })
-                        .then(response => {
+                        .then(async response => {
+
+                            const data = await response.json();
+
                             if (!response.ok) {
-                                throw new Error('Error al guardar');
+                                throw new Error(data.message || 'Error desconocido');
                             }
-                            return response.json();
+
+                            return data;
                         })
                         .catch(error => {
-                            Swal.showValidationMessage(
-                                `Error: ${error.message}`
-                            );
+                            console.error("ERROR BACKEND:", error);
+                            Swal.showValidationMessage(`Error: ${error.message}`);
                         });
 
                 }
@@ -463,15 +468,17 @@
                     .removeClass('d-none')
                     .hide()
                     .slideDown(200);
-
                 $('#cuentaTransferencia')
                     .prop('required', true)
                     .focus();
+                setTimeout(() => {
+                    initCuentaSelect();
+                }, 200);
+                
                 $('#boxRecupero')
                     .removeClass('d-none')
                     .hide()
                     .slideDown(200);
-
                 $('#descripcionRecupero')
                     .prop('required', true)
                     .focus();
@@ -480,23 +487,32 @@
         });
 
         // ================= Ajax para Cuentas =================
-        $('#cuentaTransferencia').select2({
-            language: 'es',
-            placeholder: 'Buscar cuenta bancaria...',
-            allowClear: true,
-            minimumInputLength: 1,
-            ajax: {
-                url: '<?= base_url("accounts-search") ?>',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({
-                    q: params.term
-                }),
-                processResults: data => ({
-                    results: data
-                })
+        function initCuentaSelect() {
+
+            if ($('#cuentaTransferencia').hasClass("select2-hidden-accessible")) {
+                $('#cuentaTransferencia').select2('destroy');
             }
-        });
+
+            $('#cuentaTransferencia').select2({
+                language: 'es',
+                placeholder: 'Buscar cuenta bancaria...',
+                allowClear: true,
+                minimumInputLength: 1,
+                width: '100%',
+                dropdownParent: $('#boxTransferencia'),
+                ajax: {
+                    url: '<?= base_url("accounts-search") ?>',
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({
+                        q: params.term
+                    }),
+                    processResults: data => ({
+                        results: data
+                    })
+                }
+            });
+        }
 
         // ================= CARGAR FACTURAS =================
 

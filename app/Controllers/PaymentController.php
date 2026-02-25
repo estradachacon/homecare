@@ -148,7 +148,7 @@ class PaymentController extends BaseController
 
         return $this->response->setJSON($facturas);
     }
-        public function store()
+    public function store()
     {
         $db = \Config\Database::connect();
         $db->transBegin();
@@ -157,6 +157,9 @@ class PaymentController extends BaseController
         try {
 
             $data = $this->request->getJSON(true);
+            if (empty($data['facturas'])) {
+                throw new \Exception('No hay facturas');
+            }
 
             $pagosHead = new PagosHeadModel();
             $pagosDet  = new PagosDetailsModel();
@@ -164,7 +167,7 @@ class PaymentController extends BaseController
 
             // ================= HEAD =================
 
-            $pagoId = $pagosHead->insert([
+            $pagosHead->insert([
                 'cliente_id' => $data['cliente_id'],
                 'fecha_pago' => $data['fecha_pago'],
                 'forma_pago' => $data['tipo_pago'],
@@ -175,6 +178,7 @@ class PaymentController extends BaseController
                 'anulado' => 0
             ], true);
 
+            $pagoId = $pagosHead->getInsertID();
             // ================= DETAILS + FACTURAS =================
 
             foreach ($data['facturas'] as $f) {
@@ -183,7 +187,8 @@ class PaymentController extends BaseController
                 $pagosDet->insert([
                     'pago_id' => $pagoId,
                     'factura_id' => $f['factura_id'],
-                    'monto' => $f['monto']
+                    'monto' => $f['monto'],
+                    'observaciones' => $f['comentario'] ?? null
                 ]);
 
                 // obtener saldo actual
@@ -225,14 +230,13 @@ class PaymentController extends BaseController
                 'Pago de facturas ID ' . esc($pagoId),
                 'Pagos',
                 'Se pagó un total de $' . number_format($data['total'], 2) . ' al cliente con ID ' . esc($data['cliente_id']) . '.' . ' Usando cuenta ID ' . esc($data['cuenta_bancaria']),
-                $session->get('id')
+                $session->get('user_id')
             );
 
             return $this->response->setJSON([
                 'status' => 'ok',
                 'pago_id' => $pagoId
             ]);
-
         } catch (\Throwable $e) {
 
             $db->transRollback();
