@@ -8,6 +8,7 @@ use App\Models\PackageModel;
 use App\Models\PagosDetailsModel;
 use App\Models\TipoVentaModel;
 use App\Models\FacturaHeadModel;
+use App\Models\PagosHeadModel;
 
 class PaymentController extends BaseController
 {
@@ -147,5 +148,101 @@ class PaymentController extends BaseController
 
         return $this->response->setJSON($facturas);
     }
-    function store() {}
+        public function store()
+    {
+        $db = \Config\Database::connect();
+        $db->transBegin();
+        $session = session();
+
+        try {
+
+            $data = $this->request->getJSON(true);
+
+            $pagosHead = new PagosHeadModel();
+            $pagosDet  = new PagosDetailsModel();
+            $facturas  = new FacturaHeadModel();
+
+            // ================= HEAD =================
+
+            $pagoId = $pagosHead->insert([
+                'cliente_id' => $data['cliente_id'],
+                'fecha_pago' => $data['fecha_pago'],
+                'forma_pago' => $data['tipo_pago'],
+                'numero_recupero' => $data['recupero'],
+                'numero_cuenta_bancaria' => $data['cuenta_bancaria'],
+                'total' => $data['total'],
+                'observaciones' => $data['observaciones'],
+                'anulado' => 0
+            ], true);
+
+            // ================= DETAILS + FACTURAS =================
+
+            foreach ($data['facturas'] as $f) {
+
+                // detalle
+                $pagosDet->insert([
+                    'pago_id' => $pagoId,
+                    'factura_id' => $f['factura_id'],
+                    'monto' => $f['monto']
+                ]);
+
+                // obtener saldo actual
+                $factura = $facturas->find($f['factura_id']);
+
+                if (!$factura) {
+                    throw new \Exception('Factura no encontrada');
+                }
+
+                $nuevoSaldo = $factura->saldo - $f['monto'];
+
+                if ($nuevoSaldo < 0) {
+                    throw new \Exception('Monto mayor al saldo');
+                }
+
+                $facturas->update($f['factura_id'], [
+                    'saldo' => $nuevoSaldo
+                ]);
+            }
+
+            // ================= CUENTA =================
+
+            if ($data['tipo_pago'] === 'transferencia') {
+
+                helper('cuentas');
+
+                registrarEntrada(
+                    $data['cuenta_bancaria'],
+                    $data['total'],
+                    'Pago de facturas',
+                    'Pago ID ' . $pagoId,
+                    $pagoId
+                );
+            }
+
+            $db->transCommit();
+
+            registrar_bitacora(
+                'Pago de facturas ID ' . esc($pagoId),
+                'Pagos',
+                'Se pagó un total de $' . number_format($data['total'], 2) . ' al cliente con ID ' . esc($data['cliente_id']) . '.' . ' Usando cuenta ID ' . esc($data['cuenta_bancaria']),
+                $session->get('id')
+            );
+
+            return $this->response->setJSON([
+                'status' => 'ok',
+                'pago_id' => $pagoId
+            ]);
+
+        } catch (\Throwable $e) {
+
+            $db->transRollback();
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+        }
+    }
 }

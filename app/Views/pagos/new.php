@@ -136,7 +136,7 @@
                         <textarea class="form-control" rows="2"></textarea>
                     </div>
                     <div class="text-end mt-3">
-                        
+
                         <button type="button" id="btnGuardarPago" class="btn btn-success">
                             Guardar pago
                         </button>
@@ -152,11 +152,11 @@
     </div>
     <!-- Modal configuración de pago -->
     <div class="modal fade" id="modalPagoFactura">
-        <div class="modal-dialog modal-sm">
+        <div class="modal-dialog">
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h6 class="modal-title">Aplicar pago</h6>
+                    <h6 class="modal-title" id="tituloModalPago"></h6>
                     <button class="close" data-dismiss="modal">&times;</button>
                 </div>
 
@@ -164,6 +164,9 @@
 
                     <label>Monto</label>
                     <input type="number" step="0.01" id="modalMonto" class="form-control">
+
+                    <label class="mt-2">Comentario</label>
+                    <textarea id="modalComentario" class="form-control" rows="2"></textarea>
 
                 </div>
 
@@ -177,6 +180,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal preview de factura -->
     <div class="modal fade" id="modalFactura">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -259,7 +264,6 @@
                     total += v;
                     cantidad++;
                 }
-
             });
 
             if (cantidad === 0) {
@@ -293,35 +297,120 @@
                 showCancelButton: true,
                 confirmButtonText: 'Confirmar pago',
                 cancelButtonText: 'Cancelar',
-
                 buttonsStyling: false,
+                showLoaderOnConfirm: true, 
+                allowOutsideClick: () => !Swal.isLoading(),
                 customClass: {
-                    confirmButton: 'btn btn-success me-2',
-                    cancelButton: 'btn btn-secondary'
+                    confirmButton: 'btn btn-success m-2',
+                    cancelButton: 'btn btn-secondary m-2'
+                },
+
+                preConfirm: () => {
+
+                    // ================= ARMAR OBJETO =================
+
+                    let facturas = [];
+
+                    $('.factura-row').each(function() {
+
+                        const monto = parseFloat($(this).find('.aplicarMonto').val()) || 0;
+
+                        if (monto > 0) {
+
+                            facturas.push({
+                                factura_id: $(this).find('.btnConfigPago').data('id'),
+                                monto: monto,
+                                comentario: $(this).find('.comentarioFactura').val() || '',
+                                saldo: parseFloat($(this).find('.btnConfigPago').data('saldo')),
+                                tipo: $(this).find('.btnConfigPago').data('tipo'),
+                                numero: $(this).find('.btnConfigPago').data('numero')
+                            });
+
+                        }
+
+                    });
+
+                    const pago = {
+                        cliente_id: cliente,
+                        fecha_pago: fecha,
+                        tipo_pago: tipoPago,
+                        recupero: tipoPago === 'recupero' ? descRecupero : null,
+                        cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : null,
+                        observaciones: $('textarea').val() || '',
+                        total: total,
+                        facturas: facturas
+                    };
+
+                    // 👇 IMPORTANTE: retornar la promesa
+                    return fetch('<?= base_url("payments/store") ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(pago)
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Error al guardar');
+                            }
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(
+                                `Error: ${error.message}`
+                            );
+                        });
+
                 }
+
+            }).then(result => {
+
+                if (result.isConfirmed) {
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pago registrado correctamente'
+                    }).then(() => location.reload());
+
+                }
+
             });
 
         });
 
         let inputActual = null;
+        let comentarioActual = null;
 
         $(document).on('click', '.btnConfigPago', function() {
 
-            inputActual = $(this).closest('.input-group').find('.aplicarMonto');
+            const row = $(this).closest('tr');
+
+            inputActual = row.find('.aplicarMonto');
+            comentarioActual = row.find('.comentarioFactura');
 
             const saldo = $(this).data('saldo');
+            const tipo = $(this).data('tipo');
+            const numero = $(this).data('numero');
+
+            $('#tituloModalPago').text(`${tipo} #${numero}`);
 
             $('#modalMonto').attr('max', saldo).val(inputActual.val());
+            $('#modalComentario').val(comentarioActual.val());
 
             $('#modalPagoFactura').modal('show');
         });
 
         $('#guardarMonto').on('click', function() {
 
-            inputActual.val(parseFloat($('#modalMonto').val() || 0).toFixed(2)).trigger('input');
+            inputActual
+                .val(parseFloat($('#modalMonto').val() || 0).toFixed(2))
+                .trigger('input');
+
+            comentarioActual.val($('#modalComentario').val());
 
             $('#modalPagoFactura').modal('hide');
         });
+
         // ================= CLIENTE SELECT2 =================
 
         $('#clienteSelect').select2({
@@ -389,6 +478,7 @@
             }
 
         });
+
         // ================= Ajax para Cuentas =================
         $('#cuentaTransferencia').select2({
             language: 'es',
@@ -449,46 +539,55 @@
                     let html = '';
 
                     data.forEach(f => {
+                        let tipoTexto = 'Factura';
 
+                        if (f.tipo_dte === '03') {
+                            tipoTexto = 'Crédito fiscal';
+                        }
+                        if (f.tipo_dte === '01') {
+                            tipoTexto = 'Factura Consumidor final';
+                        }
                         html += `
-            <tr class="factura-row">
-                <td>
-                    ${f.numero_control.substr(-6)}
-                    <button type="button"
-                        class="btn btn-link p-0 ms-1 verFactura"
-                        data-id="${f.id}">
-                        <i class="fa-solid fa-eye text-muted"></i>
-                    </button>
-                </td>
-                <td>${new Date(f.fecha_emision).toLocaleDateString()}</td>
-                <td class="text-center">${diasDeAntiguedad(f.fecha_emision)}</td>
-                <td>${f.vendedor}</td>
-                <td>${f.tipo_venta_nombre}</td>
-                <td class="text-end">
-                    $${parseFloat(f.saldo).toFixed(2)}
-                    <div class="mt-1">
-                        <span class="badge badge-secondary pagoBadge d-none"></span>
-                    </div>
-                </td>
-                <td>
-                    <div class="input-group input-group-sm">
-                        <input type="text"
-                            class="form-control text-end aplicarMonto"
-                            value="0.00"
-                            readonly>
-
-                        <div class="input-group-append">
-                        <button type="button"
-                                class="btn btn-outline-primary btnConfigPago"
-                                data-id="${f.id}"
-                                data-saldo="${f.saldo}">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-            `;
+                        <tr class="factura-row">
+                            <td>
+                                ${f.numero_control.substr(-6)}
+                                <button type="button"
+                                    class="btn btn-link p-0 ms-1 verFactura"
+                                    data-id="${f.id}">
+                                    <i class="fa-solid fa-eye text-muted"></i>
+                                </button>
+                            </td>
+                            <td>${new Date(f.fecha_emision).toLocaleDateString()}</td>
+                            <td class="text-center">${diasDeAntiguedad(f.fecha_emision)}</td>
+                            <td>${f.vendedor}</td>
+                            <td>${f.tipo_venta_nombre}</td>
+                            <td class="text-end">
+                                $${parseFloat(f.saldo).toFixed(2)}
+                                <div class="mt-1">
+                                    <span class="badge badge-secondary pagoBadge d-none"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="text"
+                                        class="form-control text-end aplicarMonto"
+                                        value="0.00"
+                                        readonly>
+                                    <input type="hidden" class="comentarioFactura">
+                                    <div class="input-group-append">
+                                        <button type="button"
+                                            class="btn btn-outline-primary btnConfigPago"
+                                            data-id="${f.id}"
+                                            data-saldo="${f.saldo}"
+                                            data-tipo="${tipoTexto}"
+                                            data-numero="${f.numero_control}">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        `;
                     });
                     $('#facturasContainer').html(html);
                 });

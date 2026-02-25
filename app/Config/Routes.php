@@ -10,7 +10,7 @@ $routes->get('/', 'Home::index');
 $routes->post('/login', 'AuthController::login');
 $routes->get('/logout', 'AuthController::logout');
 
-// 🔐 Recuperación de contraseña (SIN AUTH)
+// Recuperación de contraseña (SIN AUTH)
 $routes->group('auth', function ($routes) {
     $routes->post('send-reset-code', 'AuthController::sendResetCode');
     $routes->post('verify-reset-code', 'AuthController::verifyResetCode');
@@ -132,4 +132,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('payments/facturasPendientes/(:num)', 'PaymentController::facturasPendientes/$1');
     $routes->get('accounts-search', 'AccountController::search');
     $routes->get('facturas/preview/(:num)', 'Facturas::preview/$1');
+    $routes->post('payments/store', 'PaymentController::store');
 });

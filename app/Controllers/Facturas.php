@@ -109,8 +109,8 @@ class Facturas extends BaseController
     }
     public function procesarCarga()
     {
-        helper(['form']);
         $user_id = session()->get('user_id');
+        session_write_close();   
 
         $files = $this->request->getFiles();
         $tipoVentaIds = $this->request->getPost('tipo_venta_ids');
@@ -124,7 +124,6 @@ class Facturas extends BaseController
         }
 
         $facturaHeadModel = new FacturaHeadModel();
-        $facturaHeadModel->resetQuery();
 
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
         $facturaJsonModel    = new FacturaJsonModel();
