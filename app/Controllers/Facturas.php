@@ -36,6 +36,7 @@ class Facturas extends BaseController
         $tipoDte   = $this->request->getGet('tipo_dte');
         $fecha     = $this->request->getGet('fecha');
         $tipoVenta = $this->request->getGet('tipo_venta');
+        $numeroFactura = trim($this->request->getGet('numero_factura'));
 
         if (is_numeric($clienteId)) {
             $model->where('facturas_head.receptor_id', $clienteId);
@@ -68,6 +69,10 @@ class Facturas extends BaseController
 
         if (is_numeric($tipoVenta)) {
             $model->where('facturas_head.tipo_venta', $tipoVenta);
+        }
+        
+        if (!empty($numeroFactura)) {
+            $model->like('facturas_head.numero_control', $numeroFactura);
         }
 
         // ==========================================
@@ -110,7 +115,7 @@ class Facturas extends BaseController
     public function procesarCarga()
     {
         $user_id = session()->get('user_id');
-        session_write_close();   
+        session_write_close();
 
         $files = $this->request->getFiles();
         $tipoVentaIds = $this->request->getPost('tipo_venta_ids');

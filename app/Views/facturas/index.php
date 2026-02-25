@@ -40,12 +40,19 @@
                 <form onsubmit="return false" class="mb-3">
                     <div class="row g-2">
 
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             <small class="text-muted">Cliente</small>
                             <select id="clienteSelect" class="form-control"></select>
                         </div>
-
                         <div class="col-md-2">
+                            <small class="text-muted">N° Factura</small>
+                            <input
+                                type="text"
+                                id="numeroFactura"
+                                class="form-control"
+                                placeholder="Ej: 000123">
+                        </div>
+                        <div class="col-md-4">
                             <small class="text-muted">Vendedor</small>
                             <select id="sellerSelect" class="form-control"></select>
                         </div>
@@ -60,7 +67,7 @@
                             </select>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             <small class="text-muted">Tipo documento</small>
                             <select name="tipo_dte" class="form-control">
                                 <option value="">Todos</option>
@@ -79,7 +86,7 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <small class="text-muted">Tipo venta</small>
                             <select name="tipo_venta" id="tipoVentaSelect" class="form-control">
                                 <option value="">Todos</option>
@@ -222,7 +229,7 @@
                         <?php endif; ?>
                     </tbody>
                 </table>
-                <div id="pagerContainer" class="d-flex justify-content-center mt-3">
+                <div id="pagerContainer" class="d-flex mt-3">
                     <?= $pager->links('default', 'bootstrap_full') ?>
                 </div>
             </div>
@@ -248,6 +255,7 @@
             let tipo_dte = $('[name="tipo_dte"]').val();
             let fecha = $('#fechaFiltro').val();
             let tipoVenta = $('#tipoVentaSelect').val();
+            let numeroFactura = $('#numeroFactura').val();
 
             if (fecha && fecha.length === 10) {
                 let p = fecha.split('/');
@@ -260,7 +268,8 @@
                 estado: estado || '',
                 tipo_dte: tipo_dte || '',
                 fecha: fecha || '',
-                tipo_venta: tipoVenta || ''
+                tipo_venta: tipoVenta || '',
+                numero_factura: numeroFactura || ''
             });
 
             fetch('<?= base_url('facturas') ?>?' + params.toString(), {
@@ -315,6 +324,10 @@
         $('#clienteSelect, #sellerSelect').on('change', cargarFacturas);
         $('[name="estado"], [name="tipo_dte"]').on('change', cargarFacturas);
         $('#tipoVentaSelect').on('change', cargarFacturas);
+        $('#numeroFactura').on('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            cargarFacturas();
+        });
 
         // ================= FECHA MASK =================
 
