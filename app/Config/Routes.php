@@ -132,6 +132,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('payments/facturasPendientes/(:num)', 'PaymentController::facturasPendientes/$1');
     $routes->get('accounts-search', 'AccountController::search');
     $routes->get('facturas/preview/(:num)', 'Facturas::preview/$1');
+    $routes->get('facturas/checkPagos/(:num)', 'Facturas::checkPagos/$1');
     $routes->post('payments/store', 'PaymentController::store');
     $routes->get('payments/(:num)', 'PaymentController::show/$1');
     $routes->get('payments/anular/(:num)', 'PaymentController::anular/$1');

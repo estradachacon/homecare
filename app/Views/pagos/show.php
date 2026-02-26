@@ -69,6 +69,16 @@
                             $<?= number_format($pago->total, 2) ?>
                         </span>
                     </div>
+                    <div class="mt-3 pt-2 border-top text-muted small text-end">
+                        Creado el
+                        <span class="fw-semibold">
+                            <?= date('d/m/Y', strtotime($pago->created_at)) ?>
+                        </span>
+                        a las
+                        <span class="fw-semibold">
+                            <?= date('H:i', strtotime($pago->created_at)) ?>
+                        </span>
+                    </div>
 
                 </div>
 
@@ -131,17 +141,28 @@
                 <table class="table table-sm table-bordered">
                     <thead class="table-light">
                         <tr>
-                            <th class="col-md-4">Factura</th>
-                            <th class="col-md-6">Observaciones</th>
+                            <th class="col-md-3">Factura</th>
+                            <th class="col-md-5">Observaciones</th>
                             <th class="col-md-2 text-end">Monto aplicado</th>
+                            <th class="col-md-2 text-center">Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $totalAplicado = 0; ?>
+                        <?php $hayAnulaciones = false; ?>
+
                         <?php if (!empty($facturas)): ?>
                             <?php foreach ($facturas as $f): ?>
-                                <?php $totalAplicado += $f->monto; ?>
-                                <tr>
+
+                                <?php
+                                if (!$f->anulado) {
+                                    $totalAplicado += $f->monto;
+                                } else {
+                                    $hayAnulaciones = true;
+                                }
+                                ?>
+
+                                <tr class="<?= $f->anulado ? 'table-danger' : '' ?>">
                                     <td>
                                         <?= esc($f->numero_control) ?>
                                     </td>
@@ -157,11 +178,24 @@
                                     <td class="text-end">
                                         $<?= number_format($f->monto, 2) ?>
                                     </td>
+
+                                    <td class="text-center">
+                                        <?php if ($f->anulado): ?>
+                                            <span class="badge bg-danger">
+                                                <i class="fa-solid fa-ban me-1"></i> Anulado
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-success">
+                                                <i class="fa-solid fa-check me-1"></i> Aplicado
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
+
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="3" class="text-center">
+                                <td colspan="4" class="text-center">
                                     No hay facturas aplicadas
                                 </td>
                             </tr>
@@ -170,7 +204,7 @@
 
                     <tfoot class="table-light">
                         <tr>
-                            <th colspan="2" class="text-end fs-6">
+                            <th colspan="3" class="text-end fs-6">
                                 Total aplicado:
                             </th>
                             <th class="text-end fs-5 text-success">
@@ -179,46 +213,79 @@
                         </tr>
                     </tfoot>
                 </table>
+                <?php if (!empty($hayAnulaciones) && $hayAnulaciones): ?>
 
+                    <hr>
+
+                    <h6 class="mt-4 text-danger">
+                        Historial de anulaciones
+                    </h6>
+
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Factura</th>
+                                <th>Monto</th>
+                                <th>Fecha anulación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($facturas as $f): ?>
+                                <?php if ($f->anulado): ?>
+                                    <tr>
+                                        <td><?= esc($f->numero_control) ?></td>
+                                        <td class="text-end">$<?= number_format($f->monto, 2) ?></td>
+                                        <td>
+                                            <?= $f->anulado_at
+                                                ? date('d/m/Y H:i', strtotime($f->anulado_at))
+                                                : '—' ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
+                <?php endif; ?>
             </div>
         </div>
 
     </div>
 </div>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
 
-    const btn = document.getElementById('btnAnularPago');
+        const btn = document.getElementById('btnAnularPago');
 
-    if (btn) {
+        if (btn) {
 
-        btn.addEventListener('click', function () {
+            btn.addEventListener('click', function() {
 
-            const pagoId = this.dataset.id;
+                const pagoId = this.dataset.id;
 
-            Swal.fire({
-                title: '¿Anular este pago?',
-                text: "Esta acción revertirá los saldos aplicados.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Sí, anular',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
+                Swal.fire({
+                    title: '¿Anular este pago?',
+                    text: "Esta acción revertirá los saldos aplicados.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, anular',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
 
-                if (result.isConfirmed) {
+                    if (result.isConfirmed) {
 
-                    window.location.href = "<?= base_url('payments/anular/') ?>" + pagoId;
+                        window.location.href = "<?= base_url('payments/anular/') ?>" + pagoId;
 
-                }
+                    }
+
+                });
 
             });
 
-        });
+        }
 
-    }
-
-});
+    });
 </script>
 <?= $this->endSection() ?>

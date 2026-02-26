@@ -7,6 +7,10 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\FacturaJsonModel;
 use App\Models\ClienteModel;
 use App\Models\FacturaHeadModel;
+use App\Models\PagosDetailsModel;
+use App\Models\PagosHeadModel;
+use App\Models\TransactionModel;
+use App\Models\AccountModel;
 
 class Facturas extends BaseController
 {
@@ -390,7 +394,11 @@ class Facturas extends BaseController
 
         $user_id = session()->get('user_id');
 
-        $facturaModel = new FacturaHeadModel();
+        $facturaModel       = new FacturaHeadModel();
+        $pagosDetailsModel  = new PagosDetailsModel();
+        $pagosHeadModel     = new PagosHeadModel();
+        $transactionModel   = new TransactionModel();
+        $accountModel       = new AccountModel();
 
         $factura = $facturaModel->find($id);
 
@@ -408,11 +416,68 @@ class Facturas extends BaseController
             ]);
         }
 
-        // Marcar como anulada
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        // 1️⃣ Anular factura
         $facturaModel->update($id, [
             'anulada' => 1,
             'saldo'   => 0
         ]);
+
+        // 2️⃣ Obtener detalles de pagos activos
+        $detalles = $pagosDetailsModel
+            ->where('factura_id', $id)
+            ->where('anulado', 0)
+            ->findAll();
+
+        foreach ($detalles as $detalle) {
+
+            $montoDevuelto = $detalle->monto;
+            $pagoId        = $detalle->pago_id;
+
+            $pago = $pagosHeadModel->find($pagoId);
+            if (!$pago) continue;
+
+            $accountId = $pago->numero_cuenta_bancaria; // es el id real
+
+            // 🔹 1. Obtener cuenta actual
+            $cuenta = $accountModel->find($accountId);
+            if (!$cuenta) continue;
+
+            // 🔹 2. Restar el monto al balance actual
+            $nuevoBalance = $cuenta->balance - $montoDevuelto;
+
+            // 🔹 3. Actualizar balance en accounts
+            $accountModel->update($accountId, [
+                'balance' => $nuevoBalance
+            ]);
+
+            // 🔹 4. Registrar transacción
+            $transactionModel->addSalida(
+                $accountId,
+                $montoDevuelto,
+                'Reversión por anulación de factura',
+                'Factura Nº ' . substr($factura->numero_control, -6),
+                $pagoId
+            );
+
+            // 🔹 5. Anular detalle
+            $pagosDetailsModel->update($detalle->id, [
+                'anulado'    => 1,
+                'anulado_at' => date('Y-m-d H:i:s'),
+                'anulado_by' => $user_id
+            ]);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error al anular la factura.'
+            ]);
+        }
 
         // Bitácora
         registrar_bitacora(
@@ -425,14 +490,15 @@ class Facturas extends BaseController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Factura anulada correctamente.'
+            'message' => 'Factura anulada correctamente y saldo reintegrado.'
         ]);
     }
+
     public function preview($id)
     {
         $facturaHeadModel    = new FacturaHeadModel();
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
-        $pagosDetalleModel   = new \App\Models\PagosDetailsModel();
+        $pagosDetalleModel   = new PagosDetailsModel();
 
         $factura = $facturaHeadModel
             ->select('facturas_head.*,
@@ -469,6 +535,41 @@ class Facturas extends BaseController
             'factura'  => $factura,
             'detalles' => $detalles,
             'pagos'    => $pagos
+        ]);
+    }
+    public function checkPagos($facturaId)
+    {
+        $detalleModel = new PagosDetailsModel();
+        $pagoHeadModel = new PagosHeadModel();
+
+        $pagos = $detalleModel
+            ->select('
+            pagos_details.monto,
+            pagos_head.id as pago_id,
+            pagos_head.fecha_pago,
+            pagos_head.forma_pago
+        ')
+            ->join('pagos_head', 'pagos_head.id = pagos_details.pago_id')
+            ->where('pagos_details.factura_id', $facturaId)
+            ->where('pagos_details.anulado', 0)
+            ->where('pagos_head.anulado', 0)
+            ->findAll();
+
+        if (empty($pagos)) {
+            return $this->response->setJSON([
+                'tiene_pagos' => false
+            ]);
+        }
+
+        $totalPagado = 0;
+        foreach ($pagos as $p) {
+            $totalPagado += $p->monto;
+        }
+
+        return $this->response->setJSON([
+            'tiene_pagos' => true,
+            'total_pagado' => number_format($totalPagado, 2),
+            'pagos' => $pagos
         ]);
     }
 }

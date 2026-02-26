@@ -22,15 +22,21 @@ class PaymentController extends BaseController
 
         $model->select('
         pagos_head.*,
-        clientes.nombre AS cliente_nombre
+        clientes.nombre AS cliente_nombre,
+
+        COALESCE(SUM(CASE WHEN pagos_details.anulado = 0 THEN pagos_details.monto ELSE 0 END),0) AS total_aplicado,
+        COALESCE(SUM(CASE WHEN pagos_details.anulado = 1 THEN pagos_details.monto ELSE 0 END),0) AS total_anulado
     ')
-            ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left');
+            ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
+            ->join('pagos_details', 'pagos_details.pago_id = pagos_head.id', 'left')
+            ->groupBy('pagos_head.id');
 
         // ===== FILTROS =====
 
         $clienteId = $this->request->getGet('cliente_id');
         $estado    = $this->request->getGet('estado');
         $fecha     = $this->request->getGet('fecha');
+        $tipoAplicacion = $this->request->getGet('tipo_aplicacion');
 
         if (is_numeric($clienteId)) {
             $model->where('pagos_head.cliente_id', $clienteId);
@@ -47,7 +53,19 @@ class PaymentController extends BaseController
         if (!empty($fecha)) {
             $model->where('pagos_head.fecha_pago', $fecha);
         }
+        
+        if ($tipoAplicacion === 'con_anulaciones') {
+            $model->having('total_anulado >', 0);
+        }
 
+        if ($tipoAplicacion === 'sin_efecto') {
+            $model->having('total_aplicado', 0);
+        }
+
+        if ($tipoAplicacion === 'normal') {
+            $model->having('total_anulado', 0);
+        }
+        
         $model->orderBy('pagos_head.fecha_pago', 'DESC');
 
         $pagos = $model->paginate(10);
@@ -227,8 +245,8 @@ class PaymentController extends BaseController
                     $pagoId
                 );
 
-                // 🔥 ACTUALIZAR BALANCE CACHE (opcional pero recomendado)
-                $accountModel = new \App\Models\AccountModel();
+                // ACTUALIZAR BALANCE CACHE (opcional pero recomendado)
+                $accountModel = new AccountModel();
                 $nuevoBalance = $accountModel->getBalance($accountId);
 
                 $accountModel->update($accountId, [
@@ -306,12 +324,14 @@ class PaymentController extends BaseController
             ]);
         }
 
+        $accountModel = new AccountModel();
         //Crear movimiento inverso en banco
-
         if (!empty($pago->numero_cuenta_bancaria)) {
 
+            $accountId = $pago->numero_cuenta_bancaria;
+
             $db->table('transactions')->insert([
-                'account_id'   => $pago->numero_cuenta_bancaria,
+                'account_id'   => $accountId,
                 'tracking_id'  => $pago->id,
                 'tipo'         => 'salida',
                 'monto'        => $pago->total,
@@ -319,6 +339,14 @@ class PaymentController extends BaseController
                 'referencia'   => 'Anulación de pago #' . $pago->id,
                 'created_at'   => date('Y-m-d H:i:s'),
                 'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+
+            // Recalcular balance desde transactions
+            $nuevoBalance = $accountModel->getBalance($accountId);
+
+            // Guardar balance escrito
+            $accountModel->update($accountId, [
+                'balance' => $nuevoBalance
             ]);
         }
 

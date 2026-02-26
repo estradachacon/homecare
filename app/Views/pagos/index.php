@@ -56,7 +56,7 @@
                         </div>
 
                         <div class="col-md-2">
-                            <small class="text-muted">Fecha emisión</small>
+                            <small class="text-muted">Fecha de recepción</small>
                             <input
                                 type="text"
                                 name="fecha"
@@ -64,7 +64,15 @@
                                 class="form-control"
                                 placeholder="dd/mm/yyyy">
                         </div>
-
+                        <div class="col-md-2">
+                            <small class="text-muted">Aplicación</small>
+                            <select name="tipo_aplicacion" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="normal">Solo aplicados normales</option>
+                                <option value="con_anulaciones">Con facturas anuladas</option>
+                                <option value="sin_efecto">Sin efecto (todo anulado)</option>
+                            </select>
+                        </div>
                     </div>
                 </form>
                 <table class="table table-striped table-bordered table-hover">
@@ -99,15 +107,60 @@
                                     </td>
 
                                     <td class="text-end">
-                                        $<?= number_format($pago->total, 2) ?>
+
+                                        <div class="fw-semibold fs-6">
+                                            $<?= number_format($pago->total, 2) ?>
+                                        </div>
+
+                                        <?php if ($pago->total_anulado > 0): ?>
+
+                                            <div class="small text-muted mt-1">
+                                                Anulado:
+                                                <span class="fw-semibold">
+                                                    - $<?= number_format($pago->total_anulado, 2) ?>
+                                                </span>
+                                            </div>
+
+                                            <div class="small mt-1">
+                                                <span class="text-muted">Total efectivo:</span>
+                                                <span class="fw-bold">
+                                                    $<?= number_format($pago->total_aplicado, 2) ?>
+                                                </span>
+                                            </div>
+
+                                        <?php endif; ?>
+
                                     </td>
 
                                     <td class="text-center">
-                                        <?php if ($pago->anulado): ?>
-                                            <span class="badge text-white bg-danger">Anulado</span>
-                                        <?php else: ?>
-                                            <span class="badge text-white bg-success">Aplicado</span>
-                                        <?php endif; ?>
+
+                                        <div class="d-flex flex-column align-items-center gap-1 text-white">
+
+                                            <?php if ($pago->anulado): ?>
+
+                                                <span class="badge bg-danger w-100 mb-1">
+                                                    <i class="fa-solid fa-ban me-1"></i> Anulado
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span class="badge bg-success w-100 mb-1">
+                                                    <i class="fa-solid fa-check me-1"></i> Aplicado
+                                                </span>
+
+                                                <?php if (!empty($pago->total_anulado) && $pago->total_anulado > 0): ?>
+
+                                                    <span class="badge bg-warning text-dark w-100">
+                                                        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                                        Con facturas anuladas
+                                                    </span>
+
+                                                <?php endif; ?>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
                                     </td>
 
                                     <td class="text-center">
@@ -151,6 +204,7 @@
             let clienteId = $('#clienteSelect').val();
             let estado = $('[name="estado"]').val();
             let fecha = $('#fechaFiltro').val();
+            let tipoAplicacion = $('[name="tipo_aplicacion"]').val();
 
             if (fecha && fecha.length === 10) {
                 let p = fecha.split('/');
@@ -160,10 +214,11 @@
             const params = new URLSearchParams({
                 cliente_id: clienteId || '',
                 estado: estado || '',
-                fecha: fecha || ''
+                fecha: fecha || '',
+                tipo_aplicacion: tipoAplicacion || ''
             });
 
-            fetch('<?= base_url('pagos') ?>?' + params.toString(), {
+            fetch('<?= base_url('payments') ?>?' + params.toString(), {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -198,6 +253,7 @@
 
         $('#clienteSelect').on('change', cargarPagos);
         $('[name="estado"]').on('change', cargarPagos);
+        $('[name="tipo_aplicacion"]').on('change', cargarPagos);
 
         // ================= FECHA MASK =================
 
@@ -218,7 +274,7 @@
             }
 
             if (this.value === '' || this.value.length === 10) {
-                cargarFacturas();
+                cargarPagos();
             }
 
         });
