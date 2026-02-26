@@ -62,14 +62,68 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                 Tipo de venta:
                             </small>
 
-                            <span class="badge text-dark px-3 py-1 ml-auto" 
+                            <span class="badge text-dark px-3 py-1 ml-auto"
                                 style="background: #9efdc9;">
                                 <?= esc($tipoVenta) ?>
                             </span>
 
                         </div>
                     <?php endif; ?>
+                    <?php
+                    $saldoPendiente = $factura->saldo ?? 0;
+                    ?>
 
+                    <div class="mt-2 d-flex">
+
+                        <small class="text-muted d-block">Estado</small>
+
+                        <?php if (($factura->anulada ?? 0) == 1): ?>
+
+                            <span class="badge text-dark px-3 py-1 ml-auto"
+                                style="background: #e65220;">
+                                <i class="fa-solid fa-ban me-1"></i> Anulada
+                            </span>
+
+                        <?php elseif ($saldoPendiente == 0): ?>
+
+                            <span class="badge text-white px-3 py-1 ml-auto"
+                                style="background: #15913a;">
+                                <i class="fa-solid fa-check-circle me-1"></i> Pagada
+                            </span>
+
+                        <?php else: ?>
+
+                            <span class="badge text-dark px-3 py-1 ml-auto"
+                                style="background: #fdda11;">
+                                Activa
+                            </span>
+
+                        <?php endif; ?>
+
+                    </div>
+
+                    <div class="mt-2 align-items-start d-flex">
+
+                        <small class="text-muted">
+                            Saldo pendiente
+                        </small>
+
+                        <?php if (($factura->anulada ?? 0) == 1): ?>
+
+                            <span class="fw-bold text-muted ml-auto">
+                                —
+                            </span>
+
+                        <?php else: ?>
+
+                            <span class="fw-bold fs-5 ml-auto justify-content-end
+                        <?= $saldoPendiente > 0 ? 'text-danger' : 'text-success' ?>">
+                                $<?= number_format($saldoPendiente, 2) ?>
+                            </span>
+
+                        <?php endif; ?>
+
+                    </div>
                 </div>
 
             </div>
@@ -225,49 +279,85 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 <script>
     document.getElementById('btnAnularFactura')?.addEventListener('click', function() {
 
-        Swal.fire({
-            title: '¿Anular factura?',
-            html: `
-            <small>Esta acción no se puede revertir.</small><br>
-            <strong>Nº <?= substr($factura->numero_control, -6) ?></strong>
-        `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, anular',
-            cancelButtonText: 'Cancelar'
-        }).then(result => {
+        fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
 
-            if (result.isConfirmed) {
+                if (data.tiene_pagos) {
 
-                fetch("<?= base_url('facturas/anular/' . $factura->id) ?>", {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
+                    Swal.fire({
+                        title: 'La factura tiene pagos aplicados',
+                        html: `
+                    <div class="text-start">
+                        <p>Total pagado: <strong>$${data.total_pagado}</strong></p>
+                        <p>¿Desea revertir los pagos y anular la factura?</p>
+                    </div>
+                `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Revertir y anular',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc3545'
+                    }).then(result => {
 
-                        Swal.fire({
-                            icon: data.success ? 'success' : 'error',
-                            title: data.success ? 'Factura anulada' : 'Error',
-                            text: data.message,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-
-                        if (data.success) {
-                            setTimeout(() => location.reload(), 1500);
+                        if (result.isConfirmed) {
+                            ejecutarAnulacion(true);
                         }
 
                     });
 
-            }
+                } else {
 
-        });
+                    Swal.fire({
+                        title: '¿Anular factura?',
+                        text: 'Esta acción no se puede revertir.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, anular'
+                    }).then(result => {
 
+                        if (result.isConfirmed) {
+                            ejecutarAnulacion(false);
+                        }
+
+                    });
+
+                }
+
+            });
+
+        function ejecutarAnulacion(revertirPagos = false) {
+
+            fetch("<?= base_url('facturas/anular/' . $factura->id) ?>", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        revertir_pagos: revertirPagos
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Factura anulada' : 'Error',
+                        text: data.message
+                    });
+
+                    if (data.success) {
+                        setTimeout(() => location.reload(), 1500);
+                    }
+
+                });
+
+        }
     });
 </script>
 <?= $this->endSection() ?>

@@ -14,82 +14,47 @@ class PaymentController extends BaseController
 {
     public function index()
     {
-        $chk = requerirPermiso('ver_facturas');
+        $chk = requerirPermiso('ver_pagos');
         if ($chk !== true) return $chk;
 
-        $model = new FacturaHeadModel();
+        $model = new PagosHeadModel();
 
-        // SELECT PRINCIPAL + JOINS
-        $model->select(
-            'facturas_head.*, 
-            clientes.nombre AS cliente_nombre, 
-            sellers.seller AS vendedor,
-            tipo_venta.nombre_tipo_venta AS tipo_venta_nombre'
-        )
-            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
-            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left');
+        $model->select('
+        pagos_head.*,
+        clientes.nombre AS cliente_nombre
+    ')
+            ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left');
 
-        // ================= FILTROS =================
+        // ===== FILTROS =====
 
         $clienteId = $this->request->getGet('cliente_id');
-        $sellerId  = $this->request->getGet('seller_id');
         $estado    = $this->request->getGet('estado');
-        $tipoDte   = $this->request->getGet('tipo_dte');
         $fecha     = $this->request->getGet('fecha');
-        $tipoVenta = $this->request->getGet('tipo_venta');
 
         if (is_numeric($clienteId)) {
-            $model->where('facturas_head.receptor_id', $clienteId);
-        }
-
-        if (is_numeric($sellerId)) {
-            $model->where('facturas_head.vendedor_id', $sellerId);
+            $model->where('pagos_head.cliente_id', $clienteId);
         }
 
         if ($estado === 'activa') {
-            $model->where('facturas_head.anulada', 0);
+            $model->where('pagos_head.anulado', 0);
         }
 
         if ($estado === 'anulada') {
-            $model->where('facturas_head.anulada', 1);
-        }
-
-        if ($estado === 'pagada') {
-            $model->where('facturas_head.anulada', 0)
-                ->where('facturas_head.saldo', 0);
-        }
-
-        if (is_numeric($tipoDte)) {
-            $model->where('facturas_head.tipo_dte', $tipoDte);
+            $model->where('pagos_head.anulado', 1);
         }
 
         if (!empty($fecha)) {
-            $model->where('facturas_head.fecha_emision', $fecha);
+            $model->where('pagos_head.fecha_pago', $fecha);
         }
 
-        if (is_numeric($tipoVenta)) {
-            $model->where('facturas_head.tipo_venta', $tipoVenta);
-        }
+        $model->orderBy('pagos_head.fecha_pago', 'DESC');
 
-        // ==========================================
-
-        $model->orderBy('fecha_emision', 'DESC')
-            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'DESC', false);
-
-        $facturas = $model->paginate(10);
+        $pagos = $model->paginate(10);
         $pager = $model->pager;
 
-        // CATÁLOGO TIPO VENTA PARA EL SELECT
-        $tipoVentaModel = new TipoVentaModel();
-        $tiposVenta = $tipoVentaModel
-            ->orderBy('nombre_tipo_venta')
-            ->findAll();
-
-        // RESPUESTA AJAX
         if ($this->request->isAJAX()) {
 
-            $tbody = view('pagos/tbody_row', compact('facturas'));
+            $tbody = view('pagos/tbody_row', compact('pagos'));
             $pagerHtml = $pager->links('default', 'bootstrap_full');
 
             return $this->response->setJSON([
@@ -98,8 +63,7 @@ class PaymentController extends BaseController
             ]);
         }
 
-        // VISTA NORMAL
-        return view('pagos/index', compact('facturas', 'pager', 'tiposVenta'));
+        return view('pagos/index', compact('pagos', 'pager'));
     }
     public function new()
     {
@@ -119,7 +83,34 @@ class PaymentController extends BaseController
             'sellers'  => $sellers
         ]);
     }
+    public function show($id)
+    {
+        $pagoModel = new PagosHeadModel();
+        $detalleModel = new PagosDetailsModel();
 
+        $pago = $pagoModel
+            ->select('
+        pagos_head.*,
+        clientes.nombre AS cliente_nombre,
+        accounts.name AS cuenta_nombre
+    ')
+            ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
+            ->join('accounts', 'accounts.id = pagos_head.numero_cuenta_bancaria', 'left')
+            ->where('pagos_head.id', $id)
+            ->first();
+
+        if (!$pago) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $facturas = $detalleModel
+            ->select('pagos_details.*, facturas_head.numero_control')
+            ->join('facturas_head', 'facturas_head.id = pagos_details.factura_id')
+            ->where('pagos_details.pago_id', $id)
+            ->findAll();
+
+        return view('pagos/show', compact('pago', 'facturas'));
+    }
     public function facturas($pagoId)
     {
         $model = new PagosDetailsModel();
@@ -209,19 +200,39 @@ class PaymentController extends BaseController
                 ]);
             }
 
-            // ================= CUENTA =================
+            // ================= CUENTAS =================
 
+            helper('cuentas');
+
+            $accountId = null;
+
+            // Si es recupero → efectivo (ID 1)
+            if ($data['tipo_pago'] === 'recupero') {
+                $accountId = 1;
+            }
+
+            // Si es transferencia → cuenta seleccionada
             if ($data['tipo_pago'] === 'transferencia') {
+                $accountId = $data['cuenta_bancaria'];
+            }
 
-                helper('cuentas');
+            if ($accountId) {
 
                 registrarEntrada(
-                    $data['cuenta_bancaria'],
+                    $accountId,
                     $data['total'],
                     'Pago de facturas',
                     'Pago ID ' . $pagoId,
                     $pagoId
                 );
+
+                // 🔥 ACTUALIZAR BALANCE CACHE (opcional pero recomendado)
+                $accountModel = new \App\Models\AccountModel();
+                $nuevoBalance = $accountModel->getBalance($accountId);
+
+                $accountModel->update($accountId, [
+                    'balance' => $nuevoBalance
+                ]);
             }
 
             $db->transCommit();
@@ -229,7 +240,7 @@ class PaymentController extends BaseController
             registrar_bitacora(
                 'Pago de facturas ID ' . esc($pagoId),
                 'Pagos',
-                'Se pagó un total de $' . number_format($data['total'], 2) . ' al cliente con ID ' . esc($data['cliente_id']) . '.' . ' Usando cuenta ID ' . esc($data['cuenta_bancaria']),
+                'Se pagó un total de $' . number_format($data['total'], 2) . ' al cliente con ID ' . esc($data['cliente_id']) . '.' . 'Forma de pago: ' . esc($data['tipo_pago']),
                 $session->get('user_id')
             );
 

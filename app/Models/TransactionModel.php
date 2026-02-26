@@ -52,15 +52,25 @@ class TransactionModel extends Model
     }
     public function getTransactionsWithAccountName()
     {
-        return $this->select('transactions.*, accounts.name AS account_name')
+        return $this->select('
+            transactions.*,
+            accounts.name AS account_name,
+            pagos_head.anulado AS pago_anulado
+        ')
             ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->join('pagos_head', 'pagos_head.id = transactions.tracking_id', 'left')
             ->orderBy('transactions.created_at', 'DESC')
             ->findAll();
     }
-        public function getTransactionsWithAccountNamePaginated($perPage = 10)
+    public function getTransactionsWithAccountNamePaginated($perPage = 10)
     {
-        return $this->select('transactions.*, accounts.name as account_name')
+        return $this->select('
+            transactions.*,
+            accounts.name AS account_name,
+            pagos_head.anulado AS pago_anulado
+        ')
             ->join('accounts', 'accounts.id = transactions.account_id', 'left')
+            ->join('pagos_head', 'pagos_head.id = transactions.tracking_id', 'left')
             ->orderBy('transactions.created_at', 'DESC')
             ->paginate($perPage);
     }

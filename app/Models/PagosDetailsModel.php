@@ -14,6 +14,9 @@ class PagosDetailsModel extends Model
         'factura_id',
         'monto',
         'observaciones',
+        'anulado',
+        'anulado_at',
+        'anulado_by',
         'created_at',
         'updated_at'
     ];

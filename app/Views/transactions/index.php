@@ -68,7 +68,7 @@
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
-                    
+
                     <!-- PAGINACIÓN -->
                     <div class="mt-3">
                         <?= $pager->links('default', 'bitacora_pagination') ?>
@@ -85,8 +85,8 @@
                                 <th>Tipo</th>
                                 <th>Monto</th>
                                 <th>Descripción</th>
-                                <th>Referencia</th>
-                                <th>Tracking</th>
+                                <th>Estado</th>
+                                <th>ID Pago</th>
                                 <th>Fecha</th>
                             </tr>
                         </thead>
@@ -108,8 +108,43 @@
                                     </td>
                                     <td><strong>$<?= number_format($t->monto, 2) ?></strong></td>
                                     <td><?= esc($t->origen ?? '—') ?></td>
-                                    <td><?= esc($t->referencia ?? '—') ?></td>
-                                    <td><?= esc($t->tracking_id ?? '—') ?></td>
+                                    <td class="text-center">
+
+                                        <?php if (!empty($t->tracking_id)): ?>
+
+                                            <?php if (isset($t->pago_anulado) && $t->pago_anulado == 1): ?>
+                                                <span class="badge bg-danger text-white">
+                                                    <i class="fa-solid fa-ban"></i> Anulado
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success text-white">
+                                                    <i class="fa-solid fa-check-circle"></i> Activo
+                                                </span>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+
+                                    </td>
+                                    <td>
+
+                                        <?php if (!empty($t->tracking_id)): ?>
+
+                                            <a href="<?= base_url('payments/' . $t->tracking_id) ?>"
+                                                class="btn btn-sm btn-light"
+                                                title="Ver pago #<?= esc($t->tracking_id) ?>">
+
+                                                <i class="fa-solid fa-eye text-primary"></i>
+                                                <?= esc($t->tracking_id) ?>
+
+                                            </a>
+
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+
+                                    </td>
                                     <td><?= date('d/m/Y H:i', strtotime($t->created_at)) ?></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -286,7 +321,7 @@
         }
     }
 
-    $(document).ready(function () {
+    $(document).ready(function() {
         toggleTransactionsView();
         $(window).on('resize', toggleTransactionsView);
     });

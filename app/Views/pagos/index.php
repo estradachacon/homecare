@@ -46,11 +46,6 @@
                         </div>
 
                         <div class="col-md-2">
-                            <small class="text-muted">Vendedor</small>
-                            <select id="sellerSelect" class="form-control"></select>
-                        </div>
-
-                        <div class="col-md-2">
                             <small class="text-muted">Estado</small>
                             <select name="estado" class="form-control">
                                 <option value="">Todos</option>
@@ -60,37 +55,6 @@
                             </select>
                         </div>
 
-                        <div class="col-md-2">
-                            <small class="text-muted">Tipo documento</small>
-                            <select name="tipo_dte" class="form-control">
-                                <option value="">Todos</option>
-
-                                <?php
-                                $siglas = dte_siglas();
-                                $descripciones = dte_descripciones();
-                                ?>
-
-                                <?php foreach ($siglas as $key => $sigla): ?>
-                                    <?php $nombre = $descripciones[$sigla] ?? $sigla; ?>
-
-                                    <option value="<?= $key ?>">
-                                        <?= esc($sigla . ' - ' . $nombre) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Tipo venta</small>
-                            <select name="tipo_venta" id="tipoVentaSelect" class="form-control">
-                                <option value="">Todos</option>
-
-                                <?php foreach ($tiposVenta as $tv): ?>
-                                    <option value="<?= $tv->id ?>">
-                                        <?= esc($tv->nombre_tipo_venta) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                         <div class="col-md-2">
                             <small class="text-muted">Fecha emisión</small>
                             <input
@@ -106,103 +70,58 @@
                 <table class="table table-striped table-bordered table-hover">
                     <thead>
                         <tr>
-                            <th></th>
                             <th>Fecha de pago</th>
-                            <th class="col-3">Cliente</th>
-                            <th class="col-1">Vendedor</th>
-                            <th class="col-1">Monto</th>
-                            <th class="col-1">Estado</th>
-                            <th class="col-1">Menú</th>
+                            <th>Cliente</th>
+                            <th>Forma pago</th>
+                            <th class="text-end">Total</th>
+                            <th>Estado</th>
+                            <th>Menú</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($pagos)): ?>
                             <?php foreach ($pagos as $pago): ?>
                                 <tr>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-light toggleFacturas"
-                                            data-id="<?= $pago->id ?>">
-                                            <i class="fa-solid fa-chevron-right"></i>
-                                        </button>
+                                    <td>
+                                        <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
+                                        <br>
+                                        <small class="text-muted">
+                                            <?= date('H:i', strtotime($pago->created_at)) ?>
+                                        </small>
                                     </td>
 
                                     <td>
                                         <?= esc($pago->cliente_nombre ?? 'Sin cliente') ?>
-                                        <div class="text-right">
-                                            <small class="text-muted">
-                                                Vendedor: <?= esc($pago->vendedor ?? 'Sin vendedor') ?>
-                                            </small>
-                                        </div>
                                     </td>
 
-                                    <td class="text-center">
-                                        <?= date('d/m/Y', strtotime($pago->fecha_emision)) ?>
-                                        <br>
-                                        <small class="text-muted">
-                                            <?= date('H:i', strtotime($pago->hora_emision)) ?>
-                                        </small>
-                                    </td>
-
-                                    <td class="text-center">
-                                        <?php
-                                        $condicion = $pago->condicion_operacion ?? 1;
-
-                                        if ($condicion == 1) {
-                                            echo '<span class="badge bg-success text-white">Contado</span>';
-                                        } elseif ($condicion == 2) {
-                                            echo '<span class="badge bg-warning text-white">Crédito</span>';
-                                        } else {
-                                            echo '<span class="badge bg-secondary text-white">N/D</span>';
-                                        }
-                                        ?>
+                                    <td>
+                                        <?= esc(ucfirst($pago->forma_pago)) ?>
                                     </td>
 
                                     <td class="text-end">
-                                        $ <?= number_format($pago->total_pagar, 2) ?>
-                                    </td>
-
-                                    <td class="text-end">
-                                        $ <?= number_format($pago->saldo, 2) ?>
+                                        $<?= number_format($pago->total, 2) ?>
                                     </td>
 
                                     <td class="text-center">
-
-                                        <?php if (($pago->anulada ?? 0) == 1): ?>
-
-                                            <span class="badge bg-danger text-white">
-                                                Anulado
-                                            </span>
-
+                                        <?php if ($pago->anulado): ?>
+                                            <span class="badge text-white bg-danger">Anulado</span>
                                         <?php else: ?>
-
-                                            <span class="badge bg-success text-white">
-                                                Activa
-                                            </span>
-
+                                            <span class="badge text-white bg-success">Aplicado</span>
                                         <?php endif; ?>
-
                                     </td>
 
                                     <td class="text-center">
-                                        <a href="<?= base_url('pagos/' . $pago->id) ?>"
+                                        <a href="<?= base_url('payments/' . $pago->id) ?>"
                                             class="btn btn-sm btn-info">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
                                     </td>
-                                </tr>
-                                <tr class="facturas-row d-none" id="facturas-<?= $pago->id ?>">
-                                    <td colspan="7" class="bg-light p-3">
 
-                                        <div class="facturas-container small text-muted">
-                                            Cargando facturas...
-                                        </div>
-
-                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="9" class="text-center">
+                                <td colspan="8" class="text-center">
                                     No hay pagos registrados
                                 </td>
                             </tr>
@@ -227,14 +146,11 @@
             }
         });
 
-        function cargarFacturas() {
+        function cargarPagos() {
 
             let clienteId = $('#clienteSelect').val();
-            let sellerId = $('#sellerSelect').val();
             let estado = $('[name="estado"]').val();
-            let tipo_dte = $('[name="tipo_dte"]').val();
             let fecha = $('#fechaFiltro').val();
-            let tipoVenta = $('#tipoVentaSelect').val();
 
             if (fecha && fecha.length === 10) {
                 let p = fecha.split('/');
@@ -243,11 +159,8 @@
 
             const params = new URLSearchParams({
                 cliente_id: clienteId || '',
-                seller_id: sellerId || '',
                 estado: estado || '',
-                tipo_dte: tipo_dte || '',
-                fecha: fecha || '',
-                tipo_venta: tipoVenta || ''
+                fecha: fecha || ''
             });
 
             fetch('<?= base_url('pagos') ?>?' + params.toString(), {
@@ -281,27 +194,10 @@
             }
         });
 
-        $('#sellerSelect').select2({
-            language: 'es',
-            placeholder: 'Buscar vendedor...',
-            minimumInputLength: 2,
-            ajax: {
-                url: '<?= base_url("sellers/searchAjax") ?>',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({
-                    q: params.term,
-                    select2: 1
-                }),
-                processResults: data => data
-            }
-        });
-
         // ================= LISTENERS =================
 
-        $('#clienteSelect, #sellerSelect').on('change', cargarFacturas);
-        $('[name="estado"], [name="tipo_dte"]').on('change', cargarFacturas);
-        $('#tipoVentaSelect').on('change', cargarFacturas);
+        $('#clienteSelect').on('change', cargarPagos);
+        $('[name="estado"]').on('change', cargarPagos);
 
         // ================= FECHA MASK =================
 
@@ -343,40 +239,6 @@
             .then(data => {
                 $('tbody').html(data.tbody);
                 $('#pagerContainer').html(data.pager);
-            });
-
-    });
-    $(document).on('click', '.toggleFacturas', function() {
-
-        const btn = $(this);
-        const pagoId = btn.data('id');
-        const row = $('#facturas-' + pagoId);
-
-        row.toggleClass('d-none');
-
-        btn.find('i').toggleClass('fa-chevron-right fa-chevron-down');
-
-        if (row.data('loaded')) return;
-
-        fetch('<?= base_url("payments/facturas") ?>/' + pagoId)
-            .then(r => r.json())
-            .then(data => {
-
-                let html = '<strong>Facturas aplicadas:</strong><ul class="mb-0">';
-
-                if (data.length === 0) {
-                    html += '<li>No hay facturas</li>';
-                }
-
-                data.forEach(f => {
-                    html += `<li>${f.numero_control.substr(-6)} — $${f.monto}</li>`;
-                });
-
-                html += '</ul>';
-
-                row.find('.facturas-container').html(html);
-                row.data('loaded', true);
-
             });
 
     });

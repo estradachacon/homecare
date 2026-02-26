@@ -1,3 +1,4 @@
+<?php $pagos = $pagos ?? []; ?>
 <?php
 $subtotalProductos = 0;
 
@@ -96,3 +97,67 @@ if ($esCreditoFiscal) {
     </div>
 
 </div>
+<?php if (!empty($pagos)): ?>
+
+<hr>
+
+<h6 class="mt-4">Pagos aplicados</h6>
+
+<table class="table table-sm table-bordered">
+
+    <thead class="table-light">
+        <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Referencia</th>
+            <th class="text-end">Monto</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        <?php 
+        $totalPagado = 0;
+        foreach ($pagos as $p): 
+            $monto = floatval($p->monto);
+            $totalPagado += $monto;
+        ?>
+
+        <tr>
+            <td><?= date('d/m/Y', strtotime($p->fecha_pago)) ?></td>
+            <td><?= esc(ucfirst($p->forma_pago)) ?></td>
+            <td>
+                Pago #<?= esc($p->pago_id) ?>
+                <?php if (!empty($p->observaciones)): ?>
+                    <br>
+                    <small class="text-muted"><?= esc($p->observaciones) ?></small>
+                <?php endif; ?>
+            </td>
+            <td class="text-end">
+                $<?= number_format($monto, 2) ?>
+            </td>
+        </tr>
+
+        <?php endforeach; ?>
+
+    </tbody>
+
+    <tfoot class="table-light">
+        <tr>
+            <th colspan="3" class="text-end">Total pagado:</th>
+            <th class="text-end text-primary">
+                $<?= number_format($totalPagado, 2) ?>
+            </th>
+        </tr>
+
+        <tr>
+            <th colspan="3" class="text-end">Saldo pendiente:</th>
+            <th class="text-end text-danger">
+                $<?= number_format($factura->total_pagar - $totalPagado, 2) ?>
+            </th>
+        </tr>
+    </tfoot>
+
+</table>
+
+<?php endif; ?>

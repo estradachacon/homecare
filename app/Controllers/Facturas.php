@@ -70,7 +70,7 @@ class Facturas extends BaseController
         if (is_numeric($tipoVenta)) {
             $model->where('facturas_head.tipo_venta', $tipoVenta);
         }
-        
+
         if (!empty($numeroFactura)) {
             $model->like('facturas_head.numero_control', $numeroFactura);
         }
@@ -432,12 +432,13 @@ class Facturas extends BaseController
     {
         $facturaHeadModel    = new FacturaHeadModel();
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
+        $pagosDetalleModel   = new \App\Models\PagosDetailsModel();
 
         $factura = $facturaHeadModel
             ->select('facturas_head.*,
-                  clientes.nombre AS cliente,
-                  sellers.seller AS vendedor,
-                  tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
+              clientes.nombre AS cliente,
+              sellers.seller AS vendedor,
+              tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
             ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
@@ -450,9 +451,24 @@ class Facturas extends BaseController
             ->where('factura_id', $id)
             ->findAll();
 
+        // TRAER PAGOS APLICADOS A ESTA FACTURA
+        $pagos = $pagosDetalleModel
+            ->distinct()
+            ->select('pd.monto,
+      pd.observaciones,
+      ph.fecha_pago,
+      ph.forma_pago,
+      ph.id as pago_id')
+            ->from('pagos_details as pd')
+            ->join('pagos_head as ph', 'ph.id = pd.pago_id')
+            ->where('pd.factura_id', $id)
+            ->orderBy('ph.fecha_pago', 'ASC')
+            ->findAll();
+
         return view('facturas/_preview_modal', [
             'factura'  => $factura,
-            'detalles' => $detalles
+            'detalles' => $detalles,
+            'pagos'    => $pagos
         ]);
     }
 }

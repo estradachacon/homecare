@@ -133,4 +133,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('accounts-search', 'AccountController::search');
     $routes->get('facturas/preview/(:num)', 'Facturas::preview/$1');
     $routes->post('payments/store', 'PaymentController::store');
+    $routes->get('payments/(:num)', 'PaymentController::show/$1');
 });

@@ -202,9 +202,15 @@
                                                 Anulado
                                             </span>
 
+                                        <?php elseif (($factura->saldo ?? 0) == 0): ?>
+
+                                            <span class="badge bg-info text-white">
+                                                <i class="fa-solid fa-check-circle"></i> Pagada
+                                            </span>
+
                                         <?php else: ?>
 
-                                            <span class="badge bg-success text-white">
+                                            <span class="badge bg-warning text-dark">
                                                 Activa
                                             </span>
 

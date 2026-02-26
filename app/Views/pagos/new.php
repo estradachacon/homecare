@@ -1,6 +1,15 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <style>
+    body {
+        overflow-x: hidden !important;
+    }
+
+    /* Corrige el padding-right que Bootstrap deja a veces pegado al body */
+    body.modal-open {
+        padding-right: 0 !important;
+    }
+
     /* Unificar altura Select2 con Bootstrap */
 
     .select2-container .select2-selection--single {
@@ -307,8 +316,6 @@
 
                 preConfirm: () => {
 
-                    // ================= ARMAR OBJETO =================
-
                     let facturas = [];
 
                     $('.factura-row').each(function() {
@@ -316,7 +323,6 @@
                         const monto = parseFloat($(this).find('.aplicarMonto').val()) || 0;
 
                         if (monto > 0) {
-
                             facturas.push({
                                 factura_id: $(this).find('.btnConfigPago').data('id'),
                                 monto: monto,
@@ -325,9 +331,7 @@
                                 tipo: $(this).find('.btnConfigPago').data('tipo'),
                                 numero: $(this).find('.btnConfigPago').data('numero')
                             });
-
                         }
-
                     });
 
                     const pago = {
@@ -341,9 +345,6 @@
                         facturas: facturas
                     };
 
-                    console.log("OBJETO PAGO ENVIADO:", pago);
-
-                    // IMPORTANTE: retornar la promesa
                     return fetch('<?= base_url("payments/store") ?>', {
                             method: 'POST',
                             headers: {
@@ -353,10 +354,16 @@
                         })
                         .then(async response => {
 
+                            const contentType = response.headers.get("content-type");
+
+                            if (!contentType || !contentType.includes("application/json")) {
+                                throw new Error("Respuesta inválida del servidor");
+                            }
+
                             const data = await response.json();
 
                             if (!response.ok) {
-                                throw new Error(data.message || 'Error desconocido');
+                                throw new Error(data.message || 'Error en servidor');
                             }
 
                             return data;
@@ -365,7 +372,6 @@
                             console.error("ERROR BACKEND:", error);
                             Swal.showValidationMessage(`Error: ${error.message}`);
                         });
-
                 }
 
             }).then(result => {
@@ -427,11 +433,50 @@
                 data: p => ({
                     q: p.term
                 }),
-                processResults: data => ({
-                    results: data
-                })
+                processResults: function(data) {
+
+                    if (!Array.isArray(data)) {
+                        return {
+                            results: []
+                        };
+                    }
+
+                    return {
+                        results: data
+                    };
+                }
             }
         });
+
+        // ================= Ajax para Cuentas =================
+        function initCuentaSelect() {
+            // Si ya está inicializado, lo destruimos para evitar duplicados
+            if ($('#cuentaTransferencia').hasClass("select2-hidden-accessible")) {
+                $('#cuentaTransferencia').select2('destroy');
+            }
+
+            $('#cuentaTransferencia').select2({
+                language: 'es',
+                placeholder: 'Buscar cuenta bancaria...',
+                allowClear: true,
+                minimumInputLength: 1,
+                width: '100%',
+                // ELIMINA dropdownParent si el select NO ESTÁ dentro de un modal
+                // O asegúrate de que sea el body si falla
+                dropdownParent: $('#boxTransferencia'),
+                ajax: {
+                    url: '<?= base_url("accounts-search") ?>',
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({
+                        q: params.term
+                    }),
+                    processResults: data => ({
+                        results: Array.isArray(data) ? data : []
+                    })
+                }
+            });
+        }
 
         // ================= CARGAR TIPO DE PAGO =================
 
@@ -467,52 +512,26 @@
                 $('#boxTransferencia')
                     .removeClass('d-none')
                     .hide()
-                    .slideDown(200);
-                $('#cuentaTransferencia')
-                    .prop('required', true)
-                    .focus();
-                setTimeout(() => {
-                    initCuentaSelect();
-                }, 200);
-                
+                    .slideDown(200, function() {
+                        initCuentaSelect();
+                    });
                 $('#boxRecupero')
                     .removeClass('d-none')
                     .hide()
                     .slideDown(200);
+
                 $('#descripcionRecupero')
                     .prop('required', true)
                     .focus();
+
+                $('#cuentaTransferencia').prop('required', true);
             }
 
         });
 
-        // ================= Ajax para Cuentas =================
-        function initCuentaSelect() {
-
-            if ($('#cuentaTransferencia').hasClass("select2-hidden-accessible")) {
-                $('#cuentaTransferencia').select2('destroy');
-            }
-
-            $('#cuentaTransferencia').select2({
-                language: 'es',
-                placeholder: 'Buscar cuenta bancaria...',
-                allowClear: true,
-                minimumInputLength: 1,
-                width: '100%',
-                dropdownParent: $('#boxTransferencia'),
-                ajax: {
-                    url: '<?= base_url("accounts-search") ?>',
-                    dataType: 'json',
-                    delay: 250,
-                    data: params => ({
-                        q: params.term
-                    }),
-                    processResults: data => ({
-                        results: data
-                    })
-                }
-            });
-        }
+        $('#modalFactura').on('hidden.bs.modal', function() {
+            $('#facturaPreview').html('');
+        });
 
         // ================= CARGAR FACTURAS =================
 
@@ -542,6 +561,7 @@
 
                 return Math.floor(diff / (1000 * 60 * 60 * 24));
             }
+
 
             fetch('<?= base_url("payments/facturasPendientes") ?>/' + clienteId)
                 .then(r => r.json())
@@ -628,21 +648,28 @@
         }
 
         $(document).on('input', '.aplicarMonto', actualizarTotal);
+
         $(document).on('click', '.verFactura', function() {
 
             const id = $(this).data('id');
 
             $('#facturaPreview').html('Cargando...');
-
             $('#modalFactura').modal('show');
 
-            fetch('<?= base_url("facturas/preview") ?>/' + id)
-                .then(r => r.text())
-                .then(html => {
+            $.ajax({
+                url: '<?= base_url("facturas/preview") ?>/' + id,
+                type: 'GET',
+                success: function(html) {
                     $('#facturaPreview').html(html);
-                });
+                },
+                error: function(xhr) {
+                    console.error("Error preview:", xhr.responseText);
+                    $('#facturaPreview').html('Error al cargar');
+                }
+            });
 
         });
+
         $(document).on('click', '.btnPreviewFactura', function() {
 
             const id = $(this).data('id');
@@ -657,6 +684,23 @@
                     $('#modalFacturaBody').html(html);
                 });
 
+        });
+
+        //Limpiar modal al cerrarlo para evitar datos pegados
+
+        $('#modalFactura').on('hidden.bs.modal', function() {
+
+            // limpiar contenido
+            $('#facturaPreview').html('');
+
+            // eliminar backdrop manual si quedó pegado
+            $('.modal-backdrop').remove();
+
+            // quitar clase del body si quedó pegada
+            $('body').removeClass('modal-open');
+
+            // restaurar overflow
+            $('body').css('padding-right', '');
         });
 
         function actualizarBadges() {
@@ -686,6 +730,10 @@
                 }
             });
         }
+    });
+
+    window.addEventListener('error', function(e) {
+        console.log("GLOBAL JS ERROR:", e.error);
     });
 </script>
 
