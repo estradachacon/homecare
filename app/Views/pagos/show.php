@@ -76,7 +76,7 @@
                         </span>
                         a las
                         <span class="fw-semibold">
-                            <?= date('H:i', strtotime($pago->created_at)) ?>
+                            <?= date('H:i:s', strtotime($pago->created_at)) ?>
                         </span>
                     </div>
 
@@ -237,7 +237,7 @@
                                         <td class="text-end">$<?= number_format($f->monto, 2) ?></td>
                                         <td>
                                             <?= $f->anulado_at
-                                                ? date('d/m/Y H:i', strtotime($f->anulado_at))
+                                                ? date('d/m/Y H:i:s', strtotime($f->anulado_at))
                                                 : '—' ?>
                                         </td>
                                     </tr>
