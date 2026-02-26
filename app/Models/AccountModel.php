@@ -43,14 +43,14 @@ class AccountModel extends Model
             ->findAll();
     }
     public function searchAccounts($term)
-{
-    if (!$term || trim($term) === '') {
-        return [];
-    }
+    {
+        if (!$term || trim($term) === '') {
+            return [];
+        }
 
-    return $this->select('id, name')
-        ->like('name', $term)
-        ->orderBy('name')
-        ->findAll(20);
-}
+        return $this->select('id, name')
+            ->like('name', $term)
+            ->orderBy('name')
+            ->findAll(20);
+    }
 }

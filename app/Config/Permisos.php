@@ -33,6 +33,7 @@ class Permisos extends BaseConfig
             'ingresar_pagos',
             'ver_pagos',
             'crear_pagos',
+            'anular_pagos',
         ],
         
         'Finanzas' => [

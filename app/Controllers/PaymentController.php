@@ -9,6 +9,7 @@ use App\Models\PagosDetailsModel;
 use App\Models\TipoVentaModel;
 use App\Models\FacturaHeadModel;
 use App\Models\PagosHeadModel;
+use App\Models\AccountModel;
 
 class PaymentController extends BaseController
 {
@@ -90,10 +91,10 @@ class PaymentController extends BaseController
 
         $pago = $pagoModel
             ->select('
-        pagos_head.*,
-        clientes.nombre AS cliente_nombre,
-        accounts.name AS cuenta_nombre
-    ')
+                pagos_head.*,
+                clientes.nombre AS cliente_nombre,
+                accounts.name AS cuenta_nombre
+            ')
             ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
             ->join('accounts', 'accounts.id = pagos_head.numero_cuenta_bancaria', 'left')
             ->where('pagos_head.id', $id)
@@ -259,5 +260,81 @@ class PaymentController extends BaseController
                     'message' => $e->getMessage()
                 ]);
         }
+    }
+    public function anular($id)
+    {
+        $pagoHeadModel     = new PagosHeadModel();
+        $pagoDetailsModel  = new PagosDetailsModel();
+        $facturaHeadModel  = new FacturaHeadModel();
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $pago = $pagoHeadModel->find($id);
+
+        if (!$pago) {
+            return redirect()->back()->with('error', 'Pago no encontrado');
+        }
+
+        if ($pago->anulado) {
+            return redirect()->back()->with('error', 'El pago ya está anulado');
+        }
+
+        //Revertir facturas
+
+        $detalles = $pagoDetailsModel
+            ->where('pago_id', $id)
+            ->where('anulado', 0)
+            ->findAll();
+        foreach ($detalles as $detalle) {
+
+            $factura = $facturaHeadModel->find($detalle->factura_id);
+
+            if ($factura) {
+
+                $nuevoSaldo = $factura->saldo + $detalle->monto;
+
+                $facturaHeadModel->update($factura->id, [
+                    'saldo' => $nuevoSaldo
+                ]);
+            }
+
+            $pagoDetailsModel->update($detalle->id, [
+                'anulado'    => 1,
+                'anulado_at' => date('Y-m-d H:i:s'),
+                'anulado_by' => session()->get('user_id')
+            ]);
+        }
+
+        //Crear movimiento inverso en banco
+
+        if (!empty($pago->numero_cuenta_bancaria)) {
+
+            $db->table('transactions')->insert([
+                'account_id'   => $pago->numero_cuenta_bancaria,
+                'tracking_id'  => $pago->id,
+                'tipo'         => 'salida',
+                'monto'        => $pago->total,
+                'origen'       => 'anulacion_pago',
+                'referencia'   => 'Anulación de pago #' . $pago->id,
+                'created_at'   => date('Y-m-d H:i:s'),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        //Marcar pago como anulado
+        $pagoHeadModel->update($id, [
+            'anulado' => 1
+        ]);
+
+        $db->transComplete();
+
+
+        if ($db->transStatus() === false) {
+            dd($db->error());
+        }
+
+        return redirect()->to(base_url('payments/' . $id))
+            ->with('success', 'Pago anulado correctamente y movimiento compensado');
     }
 }

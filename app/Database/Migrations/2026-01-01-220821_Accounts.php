@@ -57,7 +57,7 @@ class Accounts extends Migration
         $this->forge->addKey('id', true);
         $this->forge->createTable('accounts');
         $this->db->table('accounts')->insertBatch([
-            ['ID' => '1', 'name' => 'Efectivo', 'type' => 'Efectivo', 'description' => 'Cuenta de efectivo', 'balance' => 0.00],
+            ['id' => '1', 'name' => 'Efectivo', 'type' => 'Efectivo', 'description' => 'Cuenta de efectivo', 'balance' => 0.00],
         ]);
     }
 

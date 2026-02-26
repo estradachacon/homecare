@@ -455,10 +455,10 @@ class Facturas extends BaseController
         $pagos = $pagosDetalleModel
             ->distinct()
             ->select('pd.monto,
-      pd.observaciones,
-      ph.fecha_pago,
-      ph.forma_pago,
-      ph.id as pago_id')
+                pd.observaciones,
+                ph.fecha_pago,
+                ph.forma_pago,
+                ph.id as pago_id')
             ->from('pagos_details as pd')
             ->join('pagos_head as ph', 'ph.id = pd.pago_id')
             ->where('pd.factura_id', $id)
