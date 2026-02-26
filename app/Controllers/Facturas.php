@@ -377,12 +377,28 @@ class Facturas extends BaseController
         $detalles = $facturaDetalleModel
             ->where('factura_id', $id)
             ->findAll();
+        
+        // Traer fecha del último pago aplicado a esta factura
+        $db = \Config\Database::connect();
 
+        $ultimoPago = $db->table('pagos_details pd')
+            ->select('ph.fecha_pago')
+            ->join('pagos_head ph', 'ph.id = pd.pago_id')
+            ->where('pd.factura_id', $id)
+            ->where('pd.anulado', 0)
+            ->orderBy('ph.fecha_pago', 'DESC')
+            ->get()
+            ->getRow();
+
+        $factura->fecha_ultimo_pago = $ultimoPago->fecha_pago ?? null;
+
+        // VISTA
         return view('facturas/detalle', [
             'factura'  => $factura,
             'detalles' => $detalles
         ]);
     }
+    
     public function validarNumeroControl()
     {
         $numeroControl = $this->request->getPost('numero_control');

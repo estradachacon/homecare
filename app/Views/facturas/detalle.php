@@ -142,6 +142,17 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                 <?php endif; ?>
                             </div>
 
+                            <?php if (($factura->anulada ?? 0) == 0 && $saldoPendiente == 0 && !empty($factura->fecha_ultimo_pago)): ?>
+
+                                <div class="mt-1 text-muted small text-end">
+                                    Pagada el
+                                    <strong>
+                                        <?= date('d/m/Y', strtotime($factura->fecha_ultimo_pago)) ?>
+                                    </strong>
+                                </div>
+
+                            <?php endif; ?>
+
                             <!-- SALDO -->
                             <div class="mt-2 d-flex align-items-center">
                                 <small class="text-muted">Saldo pendiente</small>
