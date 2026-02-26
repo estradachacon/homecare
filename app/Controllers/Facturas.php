@@ -124,6 +124,8 @@ class Facturas extends BaseController
         $files = $this->request->getFiles();
         $tipoVentaIds = $this->request->getPost('tipo_venta_ids');
         $sellerIds = $this->request->getPost('seller_ids');
+        $plazos = $this->request->getPost('plazos_credito');
+        $condiciones = $this->request->getPost('condiciones');
 
         if (!isset($files['archivos'])) {
             return $this->response->setJSON([
@@ -155,6 +157,7 @@ class Facturas extends BaseController
             $clienteModel = new ClienteModel();
             $vendedorId = $sellerIds[$index] ?? null;
             $tipoVentaId = $tipoVentaIds[$index] ?? 1; // fallback Privados
+            $plazo = $plazos[$index] ?? null;
 
             if (!$json) {
                 continue;
@@ -228,6 +231,21 @@ class Facturas extends BaseController
                     }
                 }
             }
+
+            $condicionDte = isset($condiciones[$index])
+                ? (int)$condiciones[$index]
+                : 1;
+            $fechaEmision = $json['identificacion']['fecEmi'] ?? null;
+
+            $saldoInicial = 0;
+            $plazoCredito = null;
+
+            if ($condicionDte === 2) {
+
+                $plazoCredito = is_numeric($plazo) ? (int)$plazo : 30;
+                $saldoInicial = $json['resumen']['totalPagar'] ?? 0;
+            }
+
             // INSERTAR HEAD
             $dataHead = [
                 'ambiente'          => $json['identificacion']['ambiente'] ?? null,
@@ -239,15 +257,16 @@ class Facturas extends BaseController
                 'tipo_moneda'       => $json['identificacion']['tipoMoneda'] ?? null,
                 'receptor_id'       => $clienteId,
                 'vendedor_id'       => $vendedorId,
-                'saldo'              => $json['resumen']['totalPagar'] ?? 0,
+                'saldo' => $saldoInicial,
 
                 'total_gravada'         => $json['resumen']['totalGravada'] ?? 0,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
                 'total_iva'             => $json['resumen']['totalIva'] ?? 0,
                 'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
                 'total_pagar'           => $json['resumen']['totalPagar'] ?? 0,
-                'condicion_operacion'   => $json['resumen']['condicionOperacion'] ?? null,
-                'tipo_venta'           => $tipoVentaId
+                'tipo_venta'            => $tipoVentaId,
+                'condicion_operacion' => $condicionDte,
+                'plazo_credito'       => $plazoCredito,
             ];
 
             $existe = $facturaHeadModel
@@ -335,6 +354,7 @@ class Facturas extends BaseController
             'message' => 'Facturas procesadas correctamente'
         ]);
     }
+
     public function detalle($id)
     {
         $facturaHeadModel    = new FacturaHeadModel();

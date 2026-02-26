@@ -29,16 +29,22 @@
                             <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
                         </div>
                     </div>
-                    <?php if (tienePermiso('anular_factura') && ($factura->anulada ?? 0) == 0): ?>
-                        <?php if (!$pago->anulado): ?>
-                            <div class="mt-3 text-end">
-                                <button id="btnAnularPago"
-                                    class="btn btn-danger btn-sm"
-                                    data-id="<?= $pago->id ?>">
-                                    <i class="fa-solid fa-ban me-1"></i> Anular transacción
-                                </button>
-                            </div>
-                        <?php endif; ?>
+                    <?php if (!$pago->anulado): ?>
+                        <div class="mt-3 text-end">
+                            <button id="btnAnularPago"
+                                class="btn btn-danger btn-sm"
+                                data-id="<?= $pago->id ?>">
+
+                                <i class="fa-solid fa-ban me-1"></i>
+
+                                <?php if (!empty($anulacionParcial) && $anulacionParcial): ?>
+                                    Completar anulación del pago
+                                <?php else: ?>
+                                    Anular transacción
+                                <?php endif; ?>
+
+                            </button>
+                        </div>
                     <?php endif; ?>
                 </div>
 
@@ -263,21 +269,25 @@
 
                 const pagoId = this.dataset.id;
 
+                let mensaje = "Esta acción revertirá los saldos aplicados.";
+
+                <?php if (!empty($anulacionParcial) && $anulacionParcial): ?>
+                    mensaje = "Algunas facturas ya están anuladas. Se anularán únicamente las facturas activas restantes.";
+                <?php endif; ?>
+
                 Swal.fire({
                     title: '¿Anular este pago?',
-                    text: "Esta acción revertirá los saldos aplicados.",
+                    text: mensaje,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, anular',
+                    confirmButtonText: 'Sí, continuar',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
 
                     if (result.isConfirmed) {
-
                         window.location.href = "<?= base_url('payments/anular/') ?>" + pagoId;
-
                     }
 
                 });

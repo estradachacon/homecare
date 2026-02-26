@@ -35,6 +35,7 @@ class FacturaHeadModel extends Model
         'monto_total_operacion',
         'total_pagar',
         'condicion_operacion',
+        'plazo_credito',
 
         // Firma
         'firma_electronica',

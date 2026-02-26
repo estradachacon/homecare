@@ -85,7 +85,6 @@
                                 <th>Tipo</th>
                                 <th>Monto</th>
                                 <th>Descripción</th>
-                                <th>Estado</th>
                                 <th>ID Pago</th>
                                 <th>Fecha</th>
                             </tr>
@@ -108,25 +107,6 @@
                                     </td>
                                     <td><strong>$<?= number_format($t->monto, 2) ?></strong></td>
                                     <td><?= esc($t->origen ?? '—') ?></td>
-                                    <td class="text-center">
-
-                                        <?php if (!empty($t->tracking_id)): ?>
-
-                                            <?php if (isset($t->pago_anulado) && $t->pago_anulado == 1): ?>
-                                                <span class="badge bg-danger text-white">
-                                                    <i class="fa-solid fa-ban"></i> Anulado
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-success text-white">
-                                                    <i class="fa-solid fa-check-circle"></i> Activo
-                                                </span>
-                                            <?php endif; ?>
-
-                                        <?php else: ?>
-                                            —
-                                        <?php endif; ?>
-
-                                    </td>
                                     <td>
 
                                         <?php if (!empty($t->tracking_id)): ?>

@@ -47,83 +47,135 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     </div>
                 </div>
 
-                <!-- PANEL DERECHO -->
-                <div class="text-end border rounded px-3 py-2 bg-light">
+                <div class="row">
+                    <!-- PANEL DOCUMENTO -->
+                    <div class="col-md-6">
+                        <div class="text-end border rounded px-3 py-2 bg-light h-100">
 
-                    <small class="text-muted d-block">Nº Control</small>
-                    <small class="text-muted d-block mt-1">
-                        <?= esc($numeroCompleto) ?>
-                    </small>
-
-                    <?php if (!empty($tipoVenta)): ?>
-                        <div class="mt-2 d-flex align-items-center">
-
-                            <small class="text-muted">
-                                Tipo de venta:
+                            <small class="text-muted d-block">Nº Control</small>
+                            <small class="text-muted d-block mt-1">
+                                <?= esc($numeroCompleto) ?>
                             </small>
 
-                            <span class="badge text-dark px-3 py-1 ml-auto"
-                                style="background: #9efdc9;">
-                                <?= esc($tipoVenta) ?>
-                            </span>
+                            <?php if (!empty($tipoVenta)): ?>
+                                <div class="mt-2 d-flex align-items-center">
+                                    <small class="text-muted">
+                                        Tipo de venta:
+                                    </small>
+
+                                    <span class="badge text-dark px-3 py-1 ml-auto"
+                                        style="background: #9efdc9;">
+                                        <?= esc($tipoVenta) ?>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php
+                            $condicionOperacion = $factura->condicion_operacion ?? 1; // 1 por defecto contado
+                            $esContado = $condicionOperacion == 1;
+
+                            $diasCondicion = (!$esContado)
+                                ? (int)($factura->plazo_credito ?? 0)
+                                : 0;
+                            ?>
+
+                            <!-- CONDICIÓN DE PAGO -->
+                            <div class="mt-2 d-flex align-items-center">
+                                <small class="text-muted">
+                                    Condición:
+                                </small>
+
+                                <?php if ($esContado): ?>
+
+                                    <span class="ml-auto text-muted fw-semibold">
+                                        Contado
+                                    </span>
+
+                                <?php else: ?>
+
+                                    <span class="ml-auto fw-semibold">
+                                        Crédito <?= $diasCondicion ?> días
+                                    </span>
+
+                                <?php endif; ?>
+                            </div>
 
                         </div>
-                    <?php endif; ?>
-                    <?php
-                    $saldoPendiente = $factura->saldo ?? 0;
-                    ?>
-
-                    <div class="mt-2 d-flex">
-
-                        <small class="text-muted d-block">Estado</small>
-
-                        <?php if (($factura->anulada ?? 0) == 1): ?>
-
-                            <span class="badge text-dark px-3 py-1 ml-auto"
-                                style="background: #e65220;">
-                                <i class="fa-solid fa-ban me-1"></i> Anulada
-                            </span>
-
-                        <?php elseif ($saldoPendiente == 0): ?>
-
-                            <span class="badge text-white px-3 py-1 ml-auto"
-                                style="background: #15913a;">
-                                <i class="fa-solid fa-check-circle me-1"></i> Pagada
-                            </span>
-
-                        <?php else: ?>
-
-                            <span class="badge text-dark px-3 py-1 ml-auto"
-                                style="background: #fdda11;">
-                                Activa
-                            </span>
-
-                        <?php endif; ?>
-
                     </div>
 
-                    <div class="mt-2 align-items-start d-flex">
+                    <!-- PANEL FINANCIERO -->
+                    <div class="col-md-6">
+                        <div class="text-end border rounded px-3 py-2 bg-light h-100">
 
-                        <small class="text-muted">
-                            Saldo pendiente
-                        </small>
+                            <?php
+                            $saldoPendiente = $factura->saldo ?? 0;
+                            $fechaEmision = strtotime($factura->fecha_emision);
+                            $hoy = time();
+                            $diasTranscurridos = floor(($hoy - $fechaEmision) / 86400);
+                            ?>
 
-                        <?php if (($factura->anulada ?? 0) == 1): ?>
+                            <!-- ESTADO -->
+                            <div class="d-flex align-items-center">
+                                <small class="text-muted">Estado</small>
 
-                            <span class="fw-bold text-muted ml-auto">
-                                —
-                            </span>
+                                <?php if (($factura->anulada ?? 0) == 1): ?>
 
-                        <?php else: ?>
+                                    <span class="badge text-dark px-3 py-1 ml-auto"
+                                        style="background: #e65220;">
+                                        <i class="fa-solid fa-ban me-1"></i> Anulada
+                                    </span>
 
-                            <span class="fw-bold fs-5 ml-auto justify-content-end
-                        <?= $saldoPendiente > 0 ? 'text-danger' : 'text-success' ?>">
-                                $<?= number_format($saldoPendiente, 2) ?>
-                            </span>
+                                <?php elseif ($saldoPendiente == 0): ?>
 
-                        <?php endif; ?>
+                                    <span class="badge text-white px-3 py-1 ml-auto"
+                                        style="background: #15913a;">
+                                        <i class="fa-solid fa-check-circle me-1"></i> Pagada
+                                    </span>
 
+                                <?php else: ?>
+
+                                    <span class="badge text-dark px-3 py-1 ml-auto"
+                                        style="background: #fdda11;">
+                                        Activa
+                                    </span>
+
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- SALDO -->
+                            <div class="mt-2 d-flex align-items-center">
+                                <small class="text-muted">Saldo pendiente</small>
+
+                                <?php if (($factura->anulada ?? 0) == 1): ?>
+
+                                    <span class="fw-bold text-muted ml-auto">—</span>
+
+                                <?php else: ?>
+
+                                    <span class="fw-bold fs-5 ml-auto
+            <?= $saldoPendiente > 0 ? 'text-danger' : 'text-success' ?>">
+                                        $<?= number_format($saldoPendiente, 2) ?>
+                                    </span>
+
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- DÍAS TRANSCURRIDOS SOLO SI ES CRÉDITO -->
+                            <?php if (!$esContado): ?>
+
+                                <div class="mt-2 d-flex align-items-center">
+                                    <small class="text-muted">Transcurrido</small>
+
+                                    <span class="ml-auto 
+            <?= $diasTranscurridos > $diasCondicion ? 'text-danger fw-bold' : '' ?>">
+                                        <?= $diasTranscurridos ?> días
+                                    </span>
+                                </div>
+
+                            <?php endif; ?>
+                        </div>
                     </div>
+
                 </div>
 
             </div>
@@ -162,7 +214,6 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                             </div>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- TABLA DETALLES -->
@@ -277,23 +328,23 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
     </div>
 </div>
 <script>
-document.getElementById('btnAnularFactura')?.addEventListener('click', function () {
+    document.getElementById('btnAnularFactura')?.addEventListener('click', function() {
 
-    fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(r => r.json())
-    .then(data => {
+        fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
 
-        // 🔴 SI TIENE PAGOS
-        if (data.tiene_pagos) {
+                // 🔴 SI TIENE PAGOS
+                if (data.tiene_pagos) {
 
-            let pagosHtml = '<ul class="list-group text-start mb-3">';
+                    let pagosHtml = '<ul class="list-group text-start mb-3">';
 
-            data.pagos.forEach(p => {
-                pagosHtml += `
+                    data.pagos.forEach(p => {
+                        pagosHtml += `
                     <li class="list-group-item d-flex justify-content-between">
                         <div>
                             <strong>Pago #${p.pago_id}</strong><br>
@@ -304,13 +355,13 @@ document.getElementById('btnAnularFactura')?.addEventListener('click', function 
                         </span>
                     </li>
                 `;
-            });
+                    });
 
-            pagosHtml += '</ul>';
+                    pagosHtml += '</ul>';
 
-            Swal.fire({
-                title: 'Factura con pagos aplicados',
-                html: `
+                    Swal.fire({
+                        title: 'Factura con pagos aplicados',
+                        html: `
                     <div class="text-start">
                         ${pagosHtml}
                         <p class="mt-3">
@@ -321,77 +372,77 @@ document.getElementById('btnAnularFactura')?.addEventListener('click', function 
                         </p>
                     </div>
                 `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Revertir y anular',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#dc3545',
-                width: 600
-            }).then(result => {
-                if (result.isConfirmed) {
-                    ejecutarAnulacion(true);
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Revertir y anular',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc3545',
+                        width: 600
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            ejecutarAnulacion(true);
+                        }
+                    });
+
                 }
-            });
+                // 🟢 SI NO TIENE PAGOS
+                else {
 
-        }
-        // 🟢 SI NO TIENE PAGOS
-        else {
+                    Swal.fire({
+                        title: '¿Anular factura?',
+                        text: 'Esta acción marcará la factura como anulada.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, anular',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#dc3545'
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            ejecutarAnulacion(false);
+                        }
+                    });
 
-            Swal.fire({
-                title: '¿Anular factura?',
-                text: 'Esta acción marcará la factura como anulada.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, anular',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#dc3545'
-            }).then(result => {
-                if (result.isConfirmed) {
-                    ejecutarAnulacion(false);
                 }
-            });
 
-        }
-
-    })
-    .catch(error => {
-        console.error(error);
-        Swal.fire('Error', 'No se pudo verificar los pagos.', 'error');
-    });
-
-    function ejecutarAnulacion(revertirPagos = false) {
-
-        fetch("<?= base_url('facturas/anular/' . $factura->id) ?>", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                revertir_pagos: revertirPagos
             })
-        })
-        .then(r => r.json())
-        .then(data => {
-
-            Swal.fire({
-                icon: data.success ? 'success' : 'error',
-                title: data.success ? 'Factura anulada' : 'Error',
-                text: data.message
+            .catch(error => {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo verificar los pagos.', 'error');
             });
 
-            if (data.success) {
-                setTimeout(() => location.reload(), 1500);
-            }
+        function ejecutarAnulacion(revertirPagos = false) {
 
-        })
-        .catch(error => {
-            console.error(error);
-            Swal.fire('Error', 'No se pudo procesar la anulación.', 'error');
-        });
+            fetch("<?= base_url('facturas/anular/' . $factura->id) ?>", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        revertir_pagos: revertirPagos
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
 
-    }
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Factura anulada' : 'Error',
+                        text: data.message
+                    });
 
-});
+                    if (data.success) {
+                        setTimeout(() => location.reload(), 1500);
+                    }
+
+                })
+                .catch(error => {
+                    console.error(error);
+                    Swal.fire('Error', 'No se pudo procesar la anulación.', 'error');
+                });
+
+        }
+
+    });
 </script>
 <?= $this->endSection() ?>

@@ -121,7 +121,7 @@
                             multiple
                             hidden>
                     </div>
-                    
+
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -242,7 +242,9 @@
                             total: json.resumen?.montoTotalOperacion ?? 0,
                             productos: json.cuerpoDocumento ?? [],
                             seller_id: null,
-                            tipo_venta_id: null
+                            tipo_venta_id: null,
+                            condicion_operacion: parseInt(json.resumen?.condicionOperacion ?? 1),
+                            plazo_credito: (json.resumen?.condicionOperacion == 2) ? 30 : null
                         };
                         fetch("<?= base_url('facturas/validar-numero-control') ?>", {
                                 method: "POST",
@@ -353,7 +355,7 @@
                         fecha: json.identificacion?.fecEmi ?? 'N/D',
                         cliente: json.receptor?.nombre ?? 'N/D',
                         total: json.resumen?.montoTotalOperacion ?? 0,
-                        productos: json.cuerpoDocumento ?? []
+                        productos: json.cuerpoDocumento ?? [],
                     };
                     const existe = archivosSeleccionados.some(f =>
                         f.codigoGeneracion === factura.codigoGeneracion
@@ -402,10 +404,13 @@
                 json: f.file
             }));
             const formData = new FormData();
+            
             archivosSeleccionados.forEach((factura, index) => {
                 formData.append('archivos[]', factura.file);
                 formData.append('seller_ids[]', factura.seller_id);
                 formData.append('tipo_venta_ids[]', factura.tipo_venta_id);
+                formData.append('condiciones[]', factura.condicion_operacion);
+                formData.append('plazos_credito[]', factura.plazo_credito);
             });
             fetch("<?= base_url('facturas/cargar') ?>", {
                     method: "POST",
@@ -536,7 +541,30 @@
                                         ${factura.file.name}
                                     </small>
                                 </div>
+                                <div class="d-flex flex-wrap justify-content-end gap-1" style="width: 180px;">
+                                    <!-- Selector condición -->
+                                    <select class="condicion-select seller-inline mb-1"
+                                        data-index="${index}">
+                                        <option value="1" ${factura.condicion_operacion == 1 ? 'selected' : ''}>
+                                            Contado
+                                        </option>
+                                        <option value="2" ${factura.condicion_operacion == 2 ? 'selected' : ''}>
+                                            Crédito
+                                        </option>
+                                    </select>
 
+                                    <!-- Selector plazo (solo si es crédito) -->
+                                    ${factura.condicion_operacion == 2 ? `
+                                        <select class="credito-select seller-inline"
+                                            data-index="${index}">
+                                            <option value="30" ${factura.plazo_credito == 30 ? 'selected' : ''}>30 días</option>
+                                            <option value="45" ${factura.plazo_credito == 45 ? 'selected' : ''}>45 días</option>
+                                            <option value="60" ${factura.plazo_credito == 60 ? 'selected' : ''}>60 días</option>
+                                            <option value="90" ${factura.plazo_credito == 90 ? 'selected' : ''}>90 días</option>
+                                            <option value="120" ${factura.plazo_credito == 120 ? 'selected' : ''}>120 días</option>
+                                        </select>
+                                    ` : ''}
+                                </div>
                                 <div class="d-flex flex-column align-items-end">
                                     <select
                                         class="seller-select seller-inline mb-1"
@@ -547,7 +575,6 @@
                                         data-index="${index}">
                                     </select>
                                 </div>
-
                             </div>
                         </td>
                         <td>${formatFecha(factura.fecha)}</td>
@@ -563,19 +590,28 @@
                 `;
                 tableBody.innerHTML += row;
             });
+
+                        // Bloqueo para el row de los detalles en factura
             document.querySelectorAll('.main-row').forEach(row => {
                 row.addEventListener('click', function(e) {
-                    if (e.target.closest('.seller-select') || e.target.closest('.select2')) {
+
+                    // 🔥 bloquear clicks en cualquier select
+                    if (
+                        e.target.closest('select') ||
+                        e.target.closest('.select2')
+                    ) {
                         return;
                     }
+
                     const target = document.getElementById(this.dataset.target);
-                    if (target.style.display === "none") {
-                        target.style.display = "table-row";
-                    } else {
-                        target.style.display = "none";
-                    }
+
+                    target.style.display =
+                        target.style.display === "none"
+                        ? "table-row"
+                        : "none";
                 });
             });
+
             document.querySelectorAll('.remove-row').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -586,6 +622,34 @@
                     renderTable();
                 });
             });
+
+            document.querySelectorAll('.credito-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const idx = this.dataset.index;
+                    archivosSeleccionados[idx].plazo_credito = parseInt(this.value);
+                });
+            });
+
+            document.querySelectorAll('.condicion-select').forEach(select => {
+                select.addEventListener('change', function() {
+
+                    const idx = this.dataset.index;
+                    const valor = parseInt(this.value);
+
+                    archivosSeleccionados[idx].condicion_operacion = valor;
+
+                    if (valor === 1) {
+                        // Contado
+                        archivosSeleccionados[idx].plazo_credito = null;
+                    } else {
+                        // Crédito
+                        archivosSeleccionados[idx].plazo_credito = 30;
+                    }
+
+                    renderTable(); // 🔥 redibujar fila
+                });
+            });
+
             btnProcesar.addEventListener('click', function() {
                 const sinVendedor = archivosSeleccionados.some(f => !f.seller_id);
                 const sinTipoVenta = archivosSeleccionados.some(f => !f.tipo_venta_id);

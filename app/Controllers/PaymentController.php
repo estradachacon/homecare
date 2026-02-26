@@ -53,7 +53,7 @@ class PaymentController extends BaseController
         if (!empty($fecha)) {
             $model->where('pagos_head.fecha_pago', $fecha);
         }
-        
+
         if ($tipoAplicacion === 'con_anulaciones') {
             $model->having('total_anulado >', 0);
         }
@@ -65,7 +65,7 @@ class PaymentController extends BaseController
         if ($tipoAplicacion === 'normal') {
             $model->having('total_anulado', 0);
         }
-        
+
         $model->orderBy('pagos_head.fecha_pago', 'DESC');
 
         $pagos = $model->paginate(10);
@@ -109,10 +109,10 @@ class PaymentController extends BaseController
 
         $pago = $pagoModel
             ->select('
-                pagos_head.*,
-                clientes.nombre AS cliente_nombre,
-                accounts.name AS cuenta_nombre
-            ')
+            pagos_head.*,
+            clientes.nombre AS cliente_nombre,
+            accounts.name AS cuenta_nombre
+        ')
             ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
             ->join('accounts', 'accounts.id = pagos_head.numero_cuenta_bancaria', 'left')
             ->where('pagos_head.id', $id)
@@ -128,7 +128,34 @@ class PaymentController extends BaseController
             ->where('pagos_details.pago_id', $id)
             ->findAll();
 
-        return view('pagos/show', compact('pago', 'facturas'));
+        // ==============================
+        // 🔎 Detectar anulaciones parciales
+        // ==============================
+
+        $totalDetalles   = count($facturas);
+        $totalAnulados   = 0;
+        $totalActivo     = 0;
+
+        foreach ($facturas as $f) {
+            if ($f->anulado) {
+                $totalAnulados++;
+            } else {
+                $totalActivo += $f->monto;
+            }
+        }
+
+        $anulacionParcial = (
+            $totalDetalles > 0 &&
+            $totalAnulados > 0 &&
+            $totalAnulados < $totalDetalles
+        );
+
+        return view('pagos/show', compact(
+            'pago',
+            'facturas',
+            'anulacionParcial',
+            'totalActivo'
+        ));
     }
     public function facturas($pagoId)
     {
@@ -281,9 +308,10 @@ class PaymentController extends BaseController
     }
     public function anular($id)
     {
-        $pagoHeadModel     = new PagosHeadModel();
-        $pagoDetailsModel  = new PagosDetailsModel();
-        $facturaHeadModel  = new FacturaHeadModel();
+        $pagoHeadModel    = new PagosHeadModel();
+        $pagoDetailsModel = new PagosDetailsModel();
+        $facturaHeadModel = new FacturaHeadModel();
+        $accountModel     = new AccountModel();
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -298,24 +326,30 @@ class PaymentController extends BaseController
             return redirect()->back()->with('error', 'El pago ya está anulado');
         }
 
-        //Revertir facturas
+        // =============================
+        // 1️⃣ Obtener solo detalles activos
+        // =============================
 
-        $detalles = $pagoDetailsModel
+        $detallesActivos = $pagoDetailsModel
             ->where('pago_id', $id)
             ->where('anulado', 0)
             ->findAll();
-        foreach ($detalles as $detalle) {
+
+        $totalARevertir = 0;
+
+        foreach ($detallesActivos as $detalle) {
 
             $factura = $facturaHeadModel->find($detalle->factura_id);
 
             if ($factura) {
-
                 $nuevoSaldo = $factura->saldo + $detalle->monto;
 
                 $facturaHeadModel->update($factura->id, [
                     'saldo' => $nuevoSaldo
                 ]);
             }
+
+            $totalARevertir += $detalle->monto;
 
             $pagoDetailsModel->update($detalle->id, [
                 'anulado'    => 1,
@@ -324,42 +358,46 @@ class PaymentController extends BaseController
             ]);
         }
 
-        $accountModel = new AccountModel();
-        //Crear movimiento inverso en banco
-        if (!empty($pago->numero_cuenta_bancaria)) {
+        // =============================
+        // 2️⃣ Reversión bancaria SOLO si hay monto activo
+        // =============================
+
+        if (!empty($pago->numero_cuenta_bancaria) && $totalARevertir > 0) {
 
             $accountId = $pago->numero_cuenta_bancaria;
 
             $db->table('transactions')->insert([
-                'account_id'   => $accountId,
-                'tracking_id'  => $pago->id,
-                'tipo'         => 'salida',
-                'monto'        => $pago->total,
-                'origen'       => 'anulacion_pago',
-                'referencia'   => 'Anulación de pago #' . $pago->id,
-                'created_at'   => date('Y-m-d H:i:s'),
-                'updated_at'   => date('Y-m-d H:i:s'),
+                'account_id'  => $accountId,
+                'tracking_id' => $pago->id,
+                'tipo'        => 'salida',
+                'monto'       => $totalARevertir,
+                'origen'      => 'anulacion_pago',
+                'referencia'  => 'Anulación de pago #' . $pago->id,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s'),
             ]);
 
-            // Recalcular balance desde transactions
+            // Recalcular balance real desde transactions
             $nuevoBalance = $accountModel->getBalance($accountId);
 
-            // Guardar balance escrito
             $accountModel->update($accountId, [
                 'balance' => $nuevoBalance
             ]);
         }
 
-        //Marcar pago como anulado
+        // =============================
+        // 3️⃣ Marcar pago como anulado
+        // =============================
+
         $pagoHeadModel->update($id, [
             'anulado' => 1
         ]);
 
         $db->transComplete();
 
-
         if ($db->transStatus() === false) {
-            dd($db->error());
+            return redirect()->back()
+                ->with('error', 'Error al anular el pago');
         }
 
         return redirect()->to(base_url('payments/' . $id))
