@@ -8,25 +8,6 @@
             </div>
             <div class="card-body">
                 <div class="row" style="padding-left: 100px !important;padding-right: 100px !important">
-                    <a href="<?= base_url('reports/packages') ?>" class="col-md-3 card-options">
-                        <div class="card border-success mb-3 card-option-container">
-                            <div class="card-body text-info icon-card-options"><i class="fa-solid fa-boxes-packing"></i></div>
-                            <div class="card-footer bg-transparent border-info card-footer-options">Reporte de paquetería por fecha</div>
-                        </div>
-                    </a>
-
-                    <a href="<?= base_url('reports/trans') ?>" class="col-md-3 card-options">
-                        <div class="card border-success mb-3 card-option-container">
-                            <div class="card-body text-info icon-card-options"><i class="fa-solid fa-money-bill-transfer"></i></div>
-                            <div class="card-footer bg-transparent border-info card-footer-options">Reporte de Movimientos financieros</div>
-                        </div>
-                    </a>
-                    <a href="<?= base_url('reports/cashiersmovements') ?>" class="col-md-3 card-options">
-                        <div class="card border-success mb-3 card-option-container">
-                            <div class="card-body text-info icon-card-options"><i class="fa-solid fa-cash-register"></i></div>
-                            <div class="card-footer bg-transparent border-info card-footer-options">Reporte de Movimientos de caja</div>
-                        </div>
-                    </a>
                     <a href="<?= base_url('reports/saldos-antiguedad') ?>" class="col-md-3 card-options">
                         <div class="card border-success mb-3 card-option-container">
                             <div class="card-body text-info icon-card-options"><i class="fa-solid fa-file-invoice-dollar"></i></div>
