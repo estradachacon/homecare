@@ -25,10 +25,6 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
-        .seller-inline {
-            width: 180px;
-        }
-
         .seller-inline+.select2 {
             width: 180px !important;
         }
@@ -78,9 +74,23 @@
             opacity: 1;
         }
 
-        .tipo-venta-select+.select2 {
-            margin-top: 6px;
+        .form-select-sm {
+            font-size: 13px;
+            padding: .25rem .5rem;
         }
+
+        .select-group {
+            min-width: 380px;
+            min-height: 70px;
+            /* 🔥 Ajusta aquí */
+            display: flex;
+            align-items: center;
+        }
+        .condicion-select,
+.credito-select {
+    border-radius: 8px !important;
+    max-height: 27px !important;
+}
     </style>
     <div id="globalDropOverlay" class="d-none">
         <div class="overlay-content">
@@ -404,7 +414,7 @@
                 json: f.file
             }));
             const formData = new FormData();
-            
+
             archivosSeleccionados.forEach((factura, index) => {
                 formData.append('archivos[]', factura.file);
                 formData.append('seller_ids[]', factura.seller_id);
@@ -541,40 +551,46 @@
                                         ${factura.file.name}
                                     </small>
                                 </div>
-                                <div class="d-flex flex-wrap justify-content-end gap-1" style="width: 180px;">
-                                    <!-- Selector condición -->
-                                    <select class="condicion-select seller-inline mb-1"
-                                        data-index="${index}">
-                                        <option value="1" ${factura.condicion_operacion == 1 ? 'selected' : ''}>
-                                            Contado
-                                        </option>
-                                        <option value="2" ${factura.condicion_operacion == 2 ? 'selected' : ''}>
-                                            Crédito
-                                        </option>
-                                    </select>
+                                <div class="ms-auto select-group">
+                            <div class="ms-auto select-group">
+                                <div class="d-flex flex-wrap" style="width: 360px;">
 
-                                    <!-- Selector plazo (solo si es crédito) -->
-                                    ${factura.condicion_operacion == 2 ? `
-                                        <select class="credito-select seller-inline"
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="condicion-select form-control form-control-sm"
                                             data-index="${index}">
+                                            <option value="1" ${factura.condicion_operacion == 1 ? 'selected' : ''}>Contado</option>
+                                            <option value="2" ${factura.condicion_operacion == 2 ? 'selected' : ''}>Crédito</option>
+                                        </select>
+                                    </div>
+
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="seller-select form-control form-control-sm"
+                                            data-index="${index}">
+                                        </select>
+                                    </div>
+
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="credito-select form-control form-control-sm"
+                                            data-index="${index}"
+                                            style="${factura.condicion_operacion == 2 ? '' : 'visibility:hidden;'}">
+
                                             <option value="30" ${factura.plazo_credito == 30 ? 'selected' : ''}>30 días</option>
                                             <option value="45" ${factura.plazo_credito == 45 ? 'selected' : ''}>45 días</option>
                                             <option value="60" ${factura.plazo_credito == 60 ? 'selected' : ''}>60 días</option>
                                             <option value="90" ${factura.plazo_credito == 90 ? 'selected' : ''}>90 días</option>
                                             <option value="120" ${factura.plazo_credito == 120 ? 'selected' : ''}>120 días</option>
                                         </select>
-                                    ` : ''}
+                                    </div>
+
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="tipo-venta-select form-control form-control-sm"
+                                            data-index="${index}">
+                                        </select>
+                                    </div>
+
                                 </div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <select
-                                        class="seller-select seller-inline mb-1"
-                                        data-index="${index}">
-                                    </select>
-                                    <select
-                                        class="tipo-venta-select seller-inline"
-                                        data-index="${index}">
-                                    </select>
-                                </div>
+                            </div>
+                            </div>
                             </div>
                         </td>
                         <td>${formatFecha(factura.fecha)}</td>
@@ -591,7 +607,7 @@
                 tableBody.innerHTML += row;
             });
 
-                        // Bloqueo para el row de los detalles en factura
+            // Bloqueo para el row de los detalles en factura
             document.querySelectorAll('.main-row').forEach(row => {
                 row.addEventListener('click', function(e) {
 
@@ -606,9 +622,9 @@
                     const target = document.getElementById(this.dataset.target);
 
                     target.style.display =
-                        target.style.display === "none"
-                        ? "table-row"
-                        : "none";
+                        target.style.display === "none" ?
+                        "table-row" :
+                        "none";
                 });
             });
 

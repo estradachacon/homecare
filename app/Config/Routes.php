@@ -98,6 +98,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     //Rutas para reportería
     $routes->get('reports', 'ReportController::index');
+    $routes->get('reportes/saldos-antiguedad', 'ReportesController::formSaldosAntiguedad');
+    $routes->get('reportes/saldos-antiguedad-pdf', 'ReportesController::saldosAntiguedadPDF');
+    $routes->get('reportes/saldos-antiguedad', 'ReportesController::saldosAntiguedad');
+    $routes->get('reportes/saldos-antiguedad-detalle-pdf', 'ReportesController::saldosAntiguedadDetallePDF');
 
     // Rutas para el módulo de facturación
     $routes->get('facturas', 'Facturas::index');
