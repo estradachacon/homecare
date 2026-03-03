@@ -40,12 +40,12 @@ th {
     text-align: right;
 }
 
-.cliente-bloque {
+.vendedor-bloque {
     page-break-inside: avoid;
     margin-bottom: 15px;
 }
 
-.cliente-header {
+.vendedor-header {
     background: #ddebf7;
     font-weight: bold;
     padding: 6px;
@@ -72,7 +72,7 @@ th {
 
 <body>
 
-<h3>SALDOS POR ANTIGÜEDAD CON DETALLE</h3>
+<h3>SALDOS POR ANTIGÜEDAD CON DETALLE - POR VENDEDOR</h3>
 
 <div class="header-info">
     <strong>Fecha corte:</strong> <?= date('d/m/Y', strtotime($fecha)) ?>
@@ -80,30 +80,32 @@ th {
     <strong>Generado:</strong> <?= esc($generado_en) ?>
 </div>
 
-<?php foreach ($reporte as $cliente): ?>
+<?php foreach ($reporte as $vendedor): ?>
 
-    <div class="cliente-bloque">
+    <div class="vendedor-bloque">
 
-        <div class="cliente-header">
-            CLIENTE: <?= esc($cliente['cliente']) ?>
+        <div class="vendedor-header">
+            VENDEDOR: <?= esc($vendedor['vendedor']) ?>
         </div>
 
         <table>
             <thead>
                 <tr>
                     <th width="20%">Factura</th>
-                    <th width="20%">Fecha</th>
-                    <th width="20%" class="text-right">Total</th>
-                    <th width="20%" class="text-right">Saldo</th>
-                    <th width="20%">Días</th>
+                    <th width="20%">Cliente</th>
+                    <th width="15%">Fecha</th>
+                    <th width="15%" class="text-right">Total</th>
+                    <th width="15%" class="text-right">Saldo</th>
+                    <th width="15%">Días</th>
                 </tr>
             </thead>
             <tbody>
 
-                <?php foreach ($cliente['facturas'] as $item): ?>
+                <?php foreach ($vendedor['facturas'] as $item): ?>
 
                     <tr>
-                        <td><?= esc($item['factura']->numero_control) ?></td>
+                        <td><?= esc($item['factura']->numero_control ?? $item['factura']->id) ?></td>
+                        <td><?= esc($item['factura']->cliente_nombre) ?></td>
                         <td><?= date('d/m/Y', strtotime($item['factura']->fecha_emision)) ?></td>
                         <td class="text-right">$ <?= number_format($item['factura']->monto_total_operacion, 2) ?></td>
                         <td class="text-right">$ <?= number_format($item['factura']->saldo, 2) ?></td>
@@ -116,6 +118,7 @@ th {
                             <td colspan="2">
                                 ↳ Pago <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
                             </td>
+                            <td></td>
                             <td colspan="2" class="text-right">
                                 $ <?= number_format($pago->monto, 2) ?>
                             </td>
@@ -129,12 +132,12 @@ th {
 
             <tfoot>
                 <tr class="totales">
-                    <td colspan="2">Totales Cliente</td>
+                    <td colspan="3">Totales Vendedor</td>
                     <td class="text-right">
-                        $ <?= number_format($cliente['totales']['total_facturas'], 2) ?>
+                        $ <?= number_format($vendedor['totales']['total_facturas'], 2) ?>
                     </td>
                     <td class="text-right">
-                        $ <?= number_format($cliente['totales']['total_saldo'], 2) ?>
+                        $ <?= number_format($vendedor['totales']['total_saldo'], 2) ?>
                     </td>
                     <td></td>
                 </tr>

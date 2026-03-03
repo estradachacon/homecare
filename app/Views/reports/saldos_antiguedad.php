@@ -148,7 +148,7 @@
 
                                     <div class="col-md-6">
                                         <button type="submit"
-                                            formaction="<?= base_url('reports/saldos-antiguedad-pdf') ?>"
+                                            formaction="<?= base_url('reports/saldos-antiguedad-vendedor-pdf') ?>"
                                             class="btn btn-primary btn-block btn-equal">
                                             <i class="fas fa-file-pdf mr-2"></i>
                                             Resumido
@@ -157,7 +157,7 @@
 
                                     <div class="col-md-6">
                                         <button type="submit"
-                                            formaction="<?= base_url('reports/saldos-antiguedad-detalle-pdf') ?>"
+                                            formaction="<?= base_url('reports/saldos-antiguedad-vendedor-detalle-pdf') ?>"
                                             class="btn btn-success btn-block btn-equal">
                                             <i class="fas fa-list mr-2"></i>
                                             Con Detalle
