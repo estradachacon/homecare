@@ -14,7 +14,6 @@ class ReportesController extends Controller
         if ($chk !== true) return $chk;
         return view('reports/index');
     }
-    
     public function formSaldosAntiguedad()
     {
         return view('reports/saldos_antiguedad');
@@ -67,6 +66,7 @@ class ReportesController extends Controller
             'fecha'   => $hoy
         ]);
     }
+
     public function saldosAntiguedadPDF()
     {
         $facturaModel = new FacturaHeadModel();
@@ -129,7 +129,7 @@ class ReportesController extends Controller
         // ⚠ Verificación rápida (puedes probar esto una vez)
         // dd($facturas);
 
-        $html = view('reports/saldos_antiguedad_pdf', $data);
+        $html = view('reports/maestro/saldos_antiguedad_pdf', $data);
 
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
@@ -207,7 +207,7 @@ class ReportesController extends Controller
             'generado_en' => date('d/m/Y h:i A')
         ];
 
-        $html = view('reports/saldos_antiguedad_detalle_pdf', $data);
+        $html = view('reports/maestro/saldos_antiguedad_detalle_pdf', $data);
 
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
