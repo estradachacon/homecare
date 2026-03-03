@@ -272,11 +272,11 @@
                                         icon: 'error',
                                         title: 'Factura ya existe en el sistema',
                                         html: `
-                        <div style="text-align:left;">
-                            <small><strong>Número de control:</strong></small><br>
-                            <small>${numeroControlCompleto}</small>
-                        </div>
-                    `,
+                                            <div style="text-align:left;">
+                                                <small><strong>Número de control:</strong></small><br>
+                                                <small>${numeroControlCompleto}</small>
+                                            </div>
+                                        `,
                                         showConfirmButton: false,
                                         timer: 4000
                                     });

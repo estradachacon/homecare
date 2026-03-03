@@ -97,7 +97,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->put('access/(:num)', 'RoleController::saveAccess/$1');
 
     //Rutas para reportería
-    $routes->get('reports', 'ReportController::index');
+    $routes->get('reports', 'ReportesController::index');
     $routes->get('reports/saldos-antiguedad', 'ReportesController::formSaldosAntiguedad');
     $routes->get('reports/saldos-antiguedad-pdf', 'ReportesController::saldosAntiguedadPDF');
     $routes->get('reports/saldos-antiguedad', 'ReportesController::saldosAntiguedad');

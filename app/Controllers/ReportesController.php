@@ -8,6 +8,13 @@ use App\Models\ClienteModel;
 
 class ReportesController extends Controller
 {
+    public function index()
+    {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
+        return view('reports/index');
+    }
+    
     public function formSaldosAntiguedad()
     {
         return view('reports/saldos_antiguedad');
@@ -67,14 +74,20 @@ class ReportesController extends Controller
         // 📅 Tomar fecha desde el form
         $fecha_corte = $this->request->getGet('fecha_corte');
         $fecha_corte = $fecha_corte ?: date('Y-m-d');
+        $cliente_id = $this->request->getGet('cliente_id');
 
-        $facturas = $facturaModel
+        $query = $facturaModel
             ->select('facturas_head.*, clientes.nombre as cliente_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->where('facturas_head.saldo >', 0)
             ->where('facturas_head.anulada', 0)
-            ->where('facturas_head.fecha_emision <=', $fecha_corte)
-            ->findAll();
+            ->where('facturas_head.fecha_emision <=', $fecha_corte);
+
+        if (!empty($cliente_id)) {
+            $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        $facturas = $query->findAll();
 
         $reporte = [];
         foreach ($facturas as $factura) {
@@ -135,16 +148,23 @@ class ReportesController extends Controller
         $db = \Config\Database::connect();
 
         $fecha_corte = $this->request->getGet('fecha_corte') ?: date('Y-m-d');
+        $cliente_id = $this->request->getGet('cliente_id');
 
-        $facturas = $facturaModel
+        $query = $facturaModel
             ->select('facturas_head.*, clientes.nombre as cliente_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->where('facturas_head.saldo >', 0)
             ->where('facturas_head.anulada', 0)
-            ->where('facturas_head.fecha_emision <=', $fecha_corte)
+            ->where('facturas_head.fecha_emision <=', $fecha_corte);
+
+        if (!empty($cliente_id)) {
+            $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        $facturas = $query
             ->orderBy('clientes.nombre')
             ->findAll();
-
+            
         $reporte = [];
 
         foreach ($facturas as $factura) {

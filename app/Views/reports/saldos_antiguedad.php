@@ -9,8 +9,21 @@
         align-items: center;
         justify-content: center;
     }
-        .btn-container-adjust {
-        margin-top: 30px; /* ajusta este valor a tu gusto */
+
+    .btn-container-adjust {
+        margin-top: 30px;
+        /* ajusta este valor a tu gusto */
+    }
+        .select2-container .select2-selection--single {
+        height: 38px !important;
+        /* altura estándar Bootstrap */
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px !important;
+        /* centra texto */
+        padding-left: .75rem;
     }
 </style>
 <div class="row align-items-end">
@@ -31,7 +44,7 @@
                         <div class="row">
 
                             <!-- Fecha Corte -->
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Fecha de Corte</label>
                                     <input type="date"
@@ -44,11 +57,19 @@
                             <!-- Cliente -->
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Cliente (Opcional)</label>
-                                    <input type="text"
-                                        name="cliente"
-                                        class="form-control"
-                                        placeholder="Nombre del cliente">
+                                    <label class="text-muted">Cliente</label>
+                                    <select id="clienteSelect" name="cliente_id" class="form-control"></select>
+                                </div>
+                            </div>
+
+                            <!-- Vendedor -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="text-muted">Vendedor</label>
+                                    <select id="sellerSelect"
+                                            name="seller_id"
+                                            class="form-control seller-select">
+                                    </select>
                                 </div>
                             </div>
 
@@ -58,7 +79,7 @@
 
                                     <div class="col-md-6">
                                         <button type="submit"
-                                            formaction="<?= base_url('reportes/saldos-antiguedad-pdf') ?>"
+                                            formaction="<?= base_url('reports/saldos-antiguedad-pdf') ?>"
                                             class="btn btn-primary btn-block btn-equal">
                                             <i class="fas fa-file-pdf mr-2"></i>
                                             Resumido
@@ -67,7 +88,7 @@
 
                                     <div class="col-md-6">
                                         <button type="submit"
-                                            formaction="<?= base_url('reportes/saldos-antiguedad-detalle-pdf') ?>"
+                                            formaction="<?= base_url('reports/saldos-antiguedad-detalle-pdf') ?>"
                                             class="btn btn-success btn-block btn-equal">
                                             <i class="fas fa-list mr-2"></i>
                                             Con Detalle
@@ -87,5 +108,54 @@
         </div>
     </div>
 </div>
+<script>
+    $(document).ready(function() {
+        const cliente = $('#clienteSelect').val();
+        // ================= CLIENTE SELECT2 =================
+
+        $('#clienteSelect').select2({
+            placeholder: 'Buscar cliente...',
+            ajax: {
+                url: '<?= base_url("clientes/buscar") ?>',
+                dataType: 'json',
+                delay: 250,
+                data: p => ({
+                    q: p.term
+                }),
+                processResults: function(data) {
+
+                    if (!Array.isArray(data)) {
+                        return {
+                            results: []
+                        };
+                    }
+
+                    return {
+                        results: data
+                    };
+                }
+            }
+        });
+
+        $('#sellerSelect').select2({
+            placeholder: 'Buscar vendedor...',
+            minimumInputLength: 2,
+            ajax: {
+                url: "<?= base_url('sellers/searchAjax') ?>",
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term,
+                        select2: 1
+                    };
+                },
+                processResults: function(data) {
+                    return data;
+                }
+            }
+        });
+    });
+</script>
 
 <?= $this->endSection() ?>
