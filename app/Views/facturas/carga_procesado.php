@@ -163,6 +163,14 @@
         const DTE_TIPOS = <?= json_encode(dte_tipos()) ?>;
         const DTE_SIGLAS = <?= json_encode(dte_siglas()) ?>;
         const DTE_DESCRIPCIONES = <?= json_encode(dte_descripciones()) ?>;
+        const EMISOR_NIT = "<?= $emisor->nit ?>";
+        const EMISOR_NRC = "<?= $emisor->nrc ?>";
+
+        // función para normalizar NIT/NRC (quitar guiones y espacios)
+        function limpiarDoc(doc) {
+            if (!doc) return '';
+            return doc.toString().replace(/[^0-9]/g, '');
+        }
     </script>
     <script>
         const overlay = document.getElementById('globalDropOverlay');
@@ -224,6 +232,42 @@
                 reader.onload = function(e) {
                     try {
                         const json = JSON.parse(e.target.result);
+                        const nitJson = json.emisor?.nit ?? null;
+                        const nrcJson = json.emisor?.nrc ?? null;
+
+                        const nitSistema = limpiarDoc(EMISOR_NIT);
+                        const nrcSistema = limpiarDoc(EMISOR_NRC);
+
+                        const nitFactura = limpiarDoc(nitJson);
+                        const nrcFactura = limpiarDoc(nrcJson);
+
+                        // 🔴 VALIDACIÓN DEL EMISOR
+                        if (nitFactura !== nitSistema && nrcFactura !== nrcSistema) {
+
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'error',
+                                title: 'Factura rechazada',
+                                html: `
+                                    <div style="text-align:left;">
+                                        <small><strong>El emisor no coincide</strong></small><br><br>
+
+                                        <small><b>NIT factura:</b> ${nitJson ?? 'N/D'}</small><br>
+                                        <small><b>NRC factura:</b> ${nrcJson ?? 'N/D'}</small><br><br>
+
+                                        <small><b>Emisor esperado:</b></small><br>
+                                        <small>NIT: ${EMISOR_NIT}</small><br>
+                                        <small>NRC: ${EMISOR_NRC}</small>
+                                    </div>
+                                `,
+                                showConfirmButton: false,
+                                timer: 5000
+                            });
+
+                            return; // NO CARGA LA FACTURA
+                        }
+
                         const codigo = json.identificacion?.codigoGeneracion ?? null;
                         const numeroControlCompleto = json.identificacion?.numeroControl ?? null;
                         if (!codigo || !numeroControlCompleto) return;

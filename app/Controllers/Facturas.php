@@ -114,7 +114,12 @@ class Facturas extends BaseController
         $chk = requerirPermiso('cargar_facturas');
         if ($chk !== true) return $chk;
 
-        return view('facturas/carga_procesado');
+        $emisorModel = new \App\Models\EmisorModel();
+        $emisor = $emisorModel->first(); // solo debería existir uno
+
+        return view('facturas/carga_procesado', [
+            'emisor' => $emisor
+        ]);
     }
     public function procesarCarga()
     {
