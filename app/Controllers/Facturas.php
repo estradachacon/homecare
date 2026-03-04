@@ -151,6 +151,7 @@ class Facturas extends BaseController
         $facturasInsertadas = 0;
         $controles = [];
         $totalOperacion = 0;
+        $seProcesoNC = false;
 
         foreach ($files['archivos'] as $index => $file) {
 
@@ -166,8 +167,8 @@ class Facturas extends BaseController
                 $json['resumen']['totalPagar']
                 ?? $json['resumen']['montoTotalOperacion']
                 ?? 0;
-            
-                $codigoRelacionado = null;
+
+            $codigoRelacionado = null;
 
             if ($tipoDte === '05' && !empty($json['documentoRelacionado'][0]['numeroDocumento'])) {
                 $codigoRelacionado = $json['documentoRelacionado'][0]['numeroDocumento'];
@@ -237,7 +238,6 @@ class Facturas extends BaseController
 
                         $clienteId = $cliente->id;
 
-                        // 🔥 OPCIONAL PRO
                         // actualizar datos si vienen nuevos
                         $clienteModel->update($clienteId, [
                             'telefono' => $receptor['telefono'] ?? $cliente->telefono,
@@ -254,6 +254,7 @@ class Facturas extends BaseController
             $condicionDte = isset($condiciones[$index])
                 ? (int)$condiciones[$index]
                 : 1;
+
             $fechaEmision = $json['identificacion']['fecEmi'] ?? null;
 
             $saldoInicial = 0;
@@ -296,7 +297,7 @@ class Facturas extends BaseController
                 'plazo_credito'       => $plazoCredito,
                 'codigo_generacion_relacionado' => $codigoRelacionado,
             ];
-            
+
             log_message('error', json_encode($dataHead));
             $existe = $facturaHeadModel
                 ->where('numero_control', $dataHead['numero_control'])
@@ -321,24 +322,68 @@ class Facturas extends BaseController
             $facturaId = $facturaHeadModel->getInsertID();
 
             if ($tipoDte === '05' && $codigoRelacionado) {
-
+                $seProcesoNC = true;
                 $facturaRelacionada = $facturaHeadModel
                     ->where('codigo_generacion', $codigoRelacionado)
                     ->first();
+                
+                if (!$facturaRelacionada) {
 
-                if ($facturaRelacionada) {
+                    $db->transRollback();
 
-                    $montoNC = $totalDte;
-
-                    $nuevoSaldo = $facturaRelacionada->saldo - $montoNC;
-
-                    $facturaHeadModel->update(
-                        $facturaRelacionada->id,
-                        ['saldo' => $nuevoSaldo]
-                    );
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'La Nota de Crédito hace referencia a un documento inexistente.'
+                    ]);
                 }
+
+                $montoNC = (float)$totalDte;
+                
+                $saldoActual = (float)$facturaRelacionada->saldo;
+
+                $nuevoSaldo = round($saldoActual - $montoNC, 2);
+
+                $diferencia = abs($nuevoSaldo);
+
+                // tolerancia de redondeo (3 centavos)
+                $tolerancia = 0.03;
+
+                if ($nuevoSaldo < 0) {
+
+                    if ($diferencia <= $tolerancia) {
+
+                        // ajuste permitido
+                        $nuevoSaldo = 0;
+                    } else {
+
+                        $db->transRollback();
+
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' =>
+                            'La Nota de Crédito excede el saldo de la factura por $' .
+                                number_format($diferencia, 2) .
+                                '. Solo se permite una tolerancia de $0.03 por redondeo.'
+                        ]);
+                    }
+                }
+
+                $facturaHeadModel->update(
+                    $facturaRelacionada->id,
+                    ['saldo' => $nuevoSaldo]
+                );
+                // Registrar en bitácora la Nota de Crédito aplicada
+                registrar_bitacora(
+                    'Aplicación de Nota de Crédito',
+                    'Facturas',
+                    'Se registró Nota de Crédito Nº ' . substr($dataHead['numero_control'], -6) .
+                    ' por $' . number_format($montoNC, 2) .
+                    ' aplicada a Factura Nº ' . substr($facturaRelacionada->numero_control, -6) .
+                    '. Nuevo saldo: $' . number_format($nuevoSaldo, 2),
+                    $user_id
+                );
             }
-            
+
             $facturasInsertadas++;
             $controles[] = substr($dataHead['numero_control'], -6);
             $totalOperacion += $dataHead['total_pagar'];
@@ -386,17 +431,19 @@ class Facturas extends BaseController
         }
 
         // Registrar bitácora
-        registrar_bitacora(
-            'Carga masiva de facturas',
-            'Facturas',
-            sprintf(
-                'Cargó %d factura(s) desde archivos JSON. Total procesado: $%s. Controles: %s',
-                $facturasInsertadas,
-                number_format($totalOperacion, 2),
-                implode(', ', $controles)
-            ),
-            $user_id
-        );
+        if (!$seProcesoNC) {
+            registrar_bitacora(
+                'Carga masiva de facturas',
+                'Facturas',
+                sprintf(
+                    'Cargó %d factura(s) desde archivos JSON. Total procesado: $%s. Controles: %s',
+                    $facturasInsertadas,
+                    number_format($totalOperacion, 2),
+                    implode(', ', $controles)
+                ),
+                $user_id
+            );
+        }
 
         return $this->response->setJSON([
             'success' => true,
@@ -426,7 +473,7 @@ class Facturas extends BaseController
         $detalles = $facturaDetalleModel
             ->where('factura_id', $id)
             ->findAll();
-        
+
         // Traer fecha del último pago aplicado a esta factura
         $db = \Config\Database::connect();
 
@@ -443,20 +490,44 @@ class Facturas extends BaseController
 
         $facturaRelacionada = null;
 
+        $notasCredito = $facturaHeadModel
+            ->where('tipo_dte', '05')
+            ->where('codigo_generacion_relacionado', $factura->codigo_generacion)
+            ->orderBy("CAST(SUBSTRING(numero_control, -6) AS UNSIGNED)", 'ASC', false)
+            ->findAll();
+
         if (!empty($factura->codigo_generacion_relacionado)) {
 
-        $facturaRelacionada = $facturaHeadModel
+            $facturaRelacionada = $facturaHeadModel
                 ->where('codigo_generacion', $factura->codigo_generacion_relacionado)
                 ->first();
         }
 
+        $pagoDetalleModel = new PagosDetailsModel();
+
+        $pagos = $pagoDetalleModel
+            ->select('
+                pagos_details.monto,
+                pagos_details.pago_id,
+                pagos_details.anulado,
+                pagos_head.fecha_pago,
+                pagos_head.forma_pago,
+                pagos_head.anulado AS pago_anulado
+            ')
+            ->join('pagos_head', 'pagos_head.id = pagos_details.pago_id')
+            ->where('pagos_details.factura_id', $id)
+            ->orderBy('pagos_head.fecha_pago', 'ASC')
+            ->findAll();
+
         return view('facturas/detalle', [
             'factura' => $factura,
             'detalles' => $detalles,
-            'facturaRelacionada' => $facturaRelacionada
+            'facturaRelacionada' => $facturaRelacionada,
+            'notasCredito' => $notasCredito,
+            'pagos' => $pagos
         ]);
     }
-    
+
     public function validarNumeroControl()
     {
         $numeroControl = $this->request->getPost('numero_control');
@@ -666,24 +737,36 @@ class Facturas extends BaseController
             'pagos' => $pagos
         ]);
     }
-    public function validarDocumentoRelacionado()
-    {
-        $codigo = $this->request->getPost('codigo_generacion');
+        public function validarDocumentoRelacionado()
+        {
+            $codigo = $this->request->getPost('codigo_generacion');
 
-        if (!$codigo) {
+            if (!$codigo) {
+                return $this->response->setJSON([
+                    'existe' => false
+                ]);
+            }
+
+            $model = new FacturaHeadModel();
+
+            $factura = $model
+                ->select('id, numero_control, saldo, total_pagar')
+                ->where('codigo_generacion', $codigo)
+                ->where('anulada', 0)
+                ->first();
+
+            if (!$factura) {
+                return $this->response->setJSON([
+                    'existe' => false
+                ]);
+            }
+
             return $this->response->setJSON([
-                'existe' => false
+                'existe' => true,
+                'id' => $factura->id,
+                'numero_control' => $factura->numero_control,
+                'saldo' => (float)$factura->saldo,
+                'total' => (float)$factura->total_pagar
             ]);
         }
-
-        $model = new FacturaHeadModel();
-
-        $factura = $model
-            ->where('codigo_generacion', $codigo)
-            ->first();
-
-        return $this->response->setJSON([
-            'existe' => $factura ? true : false
-        ]);
-    }
 }

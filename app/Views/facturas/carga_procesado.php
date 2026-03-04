@@ -274,6 +274,7 @@
                         const tipoDte = json.identificacion?.tipoDte ?? null;
 
                         let documentoRelacionado = json.documentoRelacionado?.[0]?.numeroDocumento ?? null;
+                        const correlativoInterno = numeroControlCompleto ? numeroControlCompleto.slice(-6) : '------';
 
                         if (tipoDte === "05") {
 
@@ -305,19 +306,69 @@
                             if (!data.existe) {
 
                                 Swal.fire({
-                                    toast: true,
-                                    position: 'top-end',
                                     icon: 'error',
                                     title: 'Nota de crédito rechazada',
                                     html: `
                                         <div style="text-align:left;">
-                                            <small><b>Documento relacionado no existe</b></small><br><br>
-                                            <small>Código:</small><br>
+                                            <b>Documento relacionado no existe</b><br><br>
+                                            Código:<br>
                                             <small>${documentoRelacionado}</small>
                                         </div>
+                                    `
+                                });
+
+                                return;
+                            }
+
+                            // 🔴 VALIDAR MONTO DE NC VS SALDO DE FACTURA
+                            const montoNC = parseFloat(
+                                json.resumen?.totalPagar ??
+                                json.resumen?.montoTotalOperacion ??
+                                0
+                            );
+
+                            const saldoFactura = parseFloat(data.saldo ?? 0);
+                            const TOLERANCIA = 0.03;
+
+                            if (montoNC > (saldoFactura + TOLERANCIA)) {
+
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: `NC <span class="badge bg-warning text-dark">${correlativoInterno}</span>`,
+                                    html: `
+                                        <div style="text-align:left;">
+                                            <b>La factura relacionada ya tiene pagos aplicados.</b>
+                                            <br><br>
+
+                                            <small><b>NC detectada:</b> ${numeroControlCompleto}</small><br>
+                                            <small><b>Factura relacionada:</b> ${data.numero_control}</small>
+                                            <br><br>
+
+                                            <small><b>Total factura:</b> $${parseFloat(data.total).toFixed(2)}</small><br>
+                                            <small><b>Saldo disponible:</b> $${saldoFactura.toFixed(2)}</small><br>
+                                            <small><b>Monto NC:</b> $${montoNC.toFixed(2)}</small>
+                                            <br><br>
+
+                                            <small class="text-muted">
+                                                Se permite una tolerancia máxima de $0.03 por redondeo.
+                                            </small>
+                                        </div>
                                     `,
-                                    showConfirmButton: false,
-                                    timer: 5000
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Ver factura',
+                                    cancelButtonText: 'Cerrar',
+                                    confirmButtonColor: '#0d6efd'
+                                }).then((result) => {
+
+                                    if (result.isConfirmed) {
+
+                                        window.open(
+                                            "<?= base_url('facturas/') ?>/" + data.id,
+                                            "_blank"
+                                        );
+
+                                    }
+
                                 });
 
                                 return;
@@ -325,7 +376,7 @@
                         }
 
                         if (!codigo || !numeroControlCompleto) return;
-                        const correlativoInterno = numeroControlCompleto.slice(-6);
+                        
                         if (codigosEnLote.has(codigo)) {
                             duplicados.push(file.name);
                             mostrarDuplicados(duplicados);
