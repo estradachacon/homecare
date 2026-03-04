@@ -121,6 +121,7 @@ class Facturas extends BaseController
             'emisor' => $emisor
         ]);
     }
+
     public function procesarCarga()
     {
         $user_id = session()->get('user_id');
@@ -159,6 +160,19 @@ class Facturas extends BaseController
 
             $contenido = file_get_contents($file->getTempName());
             $json = json_decode($contenido, true);
+            $tipoDte = $json['identificacion']['tipoDte'] ?? null;
+
+            $totalDte =
+                $json['resumen']['totalPagar']
+                ?? $json['resumen']['montoTotalOperacion']
+                ?? 0;
+            
+                $codigoRelacionado = null;
+
+            if ($tipoDte === '05' && !empty($json['documentoRelacionado'][0]['numeroDocumento'])) {
+                $codigoRelacionado = $json['documentoRelacionado'][0]['numeroDocumento'];
+            }
+
             $clienteModel = new ClienteModel();
             $vendedorId = $sellerIds[$index] ?? null;
             $tipoVentaId = $tipoVentaIds[$index] ?? 1; // fallback Privados
@@ -248,7 +262,15 @@ class Facturas extends BaseController
             if ($condicionDte === 2) {
 
                 $plazoCredito = is_numeric($plazo) ? (int)$plazo : 30;
-                $saldoInicial = $json['resumen']['totalPagar'] ?? 0;
+                $saldoInicial = $totalDte;
+            }
+
+            if (!empty($json['resumen']['tributos'])) {
+                foreach ($json['resumen']['tributos'] as $t) {
+                    if (($t['codigo'] ?? null) == '20') {
+                        $totalIva = $t['valor'];
+                    }
+                }
             }
 
             // INSERTAR HEAD
@@ -266,14 +288,16 @@ class Facturas extends BaseController
 
                 'total_gravada'         => $json['resumen']['totalGravada'] ?? 0,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
-                'total_iva'             => $json['resumen']['totalIva'] ?? 0,
+                'total_iva' => $totalIva,
                 'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
-                'total_pagar'           => $json['resumen']['totalPagar'] ?? 0,
+                'total_pagar' => $totalDte,
                 'tipo_venta'            => $tipoVentaId,
                 'condicion_operacion' => $condicionDte,
                 'plazo_credito'       => $plazoCredito,
+                'codigo_generacion_relacionado' => $codigoRelacionado,
             ];
-
+            
+            log_message('error', json_encode($dataHead));
             $existe = $facturaHeadModel
                 ->where('numero_control', $dataHead['numero_control'])
                 ->first();
@@ -289,12 +313,32 @@ class Facturas extends BaseController
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Error insertando factura',
-                    'errors'  => $facturaHeadModel->errors()
+                    'errors'  => $facturaHeadModel->errors(),
+                    'data'    => $dataHead
                 ]);
             }
 
             $facturaId = $facturaHeadModel->getInsertID();
 
+            if ($tipoDte === '05' && $codigoRelacionado) {
+
+                $facturaRelacionada = $facturaHeadModel
+                    ->where('codigo_generacion', $codigoRelacionado)
+                    ->first();
+
+                if ($facturaRelacionada) {
+
+                    $montoNC = $totalDte;
+
+                    $nuevoSaldo = $facturaRelacionada->saldo - $montoNC;
+
+                    $facturaHeadModel->update(
+                        $facturaRelacionada->id,
+                        ['saldo' => $nuevoSaldo]
+                    );
+                }
+            }
+            
             $facturasInsertadas++;
             $controles[] = substr($dataHead['numero_control'], -6);
             $totalOperacion += $dataHead['total_pagar'];

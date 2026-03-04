@@ -44,6 +44,7 @@ class FacturaHeadModel extends Model
         'saldo',
         'anulada',
         'tipo_venta',
+        'codigo_generacion_relacionado',
     ];
 
     protected $useTimestamps = true;
