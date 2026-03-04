@@ -45,6 +45,65 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     <div class="fw-bold text-uppercase mt-1" style="letter-spacing: 1px;">
                         <?= esc($tipoDoc) ?>
                     </div>
+
+                    <?php if (!empty($factura->codigo_generacion_relacionado)): ?>
+
+                        <div class="mt-2 border rounded px-3 py-2 bg-light" style="max-width:340px;">
+
+                            <div class="d-flex justify-content-between">
+
+                                <small class="text-muted">
+                                    Documento asociado
+                                </small>
+
+                                <?php if (!empty($facturaRelacionada)): ?>
+
+                                    <a href="<?= base_url('facturas/' . $facturaRelacionada->id) ?>"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        title="Ver documento">
+
+                                        <i class="fa-solid fa-eye"></i>
+
+                                    </a>
+
+                                <?php endif; ?>
+
+                            </div>
+                            <div class="d-flex align-items-center mt-1">
+
+                                <div>
+
+                                    <div class="fw-bold">
+
+                                        <?php if (!empty($facturaRelacionada)): ?>
+
+                                            <?php
+                                            $siglaRelacionado = dte_siglas()[$facturaRelacionada->tipo_dte] ?? 'DOC';
+                                            ?>
+
+                                            <?= esc($siglaRelacionado) ?>
+                                            <?= substr($facturaRelacionada->numero_control, -6) ?>
+
+                                        <?php else: ?>
+
+                                            N/D
+
+                                        <?php endif; ?>
+
+                                    </div>
+
+                                    <small class="text-muted">
+                                        <?= esc($factura->codigo_generacion_relacionado) ?>
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    <?php endif; ?>
+
                 </div>
 
                 <div class="row">

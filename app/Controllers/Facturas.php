@@ -441,10 +441,19 @@ class Facturas extends BaseController
 
         $factura->fecha_ultimo_pago = $ultimoPago->fecha_pago ?? null;
 
-        // VISTA
+        $facturaRelacionada = null;
+
+        if (!empty($factura->codigo_generacion_relacionado)) {
+
+        $facturaRelacionada = $facturaHeadModel
+                ->where('codigo_generacion', $factura->codigo_generacion_relacionado)
+                ->first();
+        }
+
         return view('facturas/detalle', [
-            'factura'  => $factura,
-            'detalles' => $detalles
+            'factura' => $factura,
+            'detalles' => $detalles,
+            'facturaRelacionada' => $facturaRelacionada
         ]);
     }
     
@@ -655,6 +664,26 @@ class Facturas extends BaseController
             'tiene_pagos' => true,
             'total_pagado' => number_format($totalPagado, 2),
             'pagos' => $pagos
+        ]);
+    }
+    public function validarDocumentoRelacionado()
+    {
+        $codigo = $this->request->getPost('codigo_generacion');
+
+        if (!$codigo) {
+            return $this->response->setJSON([
+                'existe' => false
+            ]);
+        }
+
+        $model = new FacturaHeadModel();
+
+        $factura = $model
+            ->where('codigo_generacion', $codigo)
+            ->first();
+
+        return $this->response->setJSON([
+            'existe' => $factura ? true : false
         ]);
     }
 }

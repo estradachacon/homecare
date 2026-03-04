@@ -86,11 +86,12 @@
             display: flex;
             align-items: center;
         }
+
         .condicion-select,
-.credito-select {
-    border-radius: 8px !important;
-    max-height: 27px !important;
-}
+        .credito-select {
+            border-radius: 8px !important;
+            max-height: 27px !important;
+        }
     </style>
     <div id="globalDropOverlay" class="d-none">
         <div class="overlay-content">
@@ -229,7 +230,7 @@
             archivosArray.forEach(file => {
                 if (!file.name.toLowerCase().endsWith('.json')) return;
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     try {
                         const json = JSON.parse(e.target.result);
                         const nitJson = json.emisor?.nit ?? null;
@@ -270,6 +271,59 @@
 
                         const codigo = json.identificacion?.codigoGeneracion ?? null;
                         const numeroControlCompleto = json.identificacion?.numeroControl ?? null;
+                        const tipoDte = json.identificacion?.tipoDte ?? null;
+
+                        let documentoRelacionado = json.documentoRelacionado?.[0]?.numeroDocumento ?? null;
+
+                        if (tipoDte === "05") {
+
+                            if (!documentoRelacionado) {
+
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Nota de crédito inválida',
+                                    text: 'No contiene documento relacionado.',
+                                    showConfirmButton: false,
+                                    timer: 4000
+                                });
+
+                                return;
+                            }
+
+                            const resp = await fetch("<?= base_url('facturas/validar-documento-relacionado') ?>", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/x-www-form-urlencoded"
+                                },
+                                body: "codigo_generacion=" + encodeURIComponent(documentoRelacionado)
+                            });
+
+                            const data = await resp.json();
+
+                            if (!data.existe) {
+
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'error',
+                                    title: 'Nota de crédito rechazada',
+                                    html: `
+                                        <div style="text-align:left;">
+                                            <small><b>Documento relacionado no existe</b></small><br><br>
+                                            <small>Código:</small><br>
+                                            <small>${documentoRelacionado}</small>
+                                        </div>
+                                    `,
+                                    showConfirmButton: false,
+                                    timer: 5000
+                                });
+
+                                return;
+                            }
+                        }
+
                         if (!codigo || !numeroControlCompleto) return;
                         const correlativoInterno = numeroControlCompleto.slice(-6);
                         if (codigosEnLote.has(codigo)) {
