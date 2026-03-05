@@ -376,7 +376,7 @@
                         }
 
                         if (!codigo || !numeroControlCompleto) return;
-                        
+
                         if (codigosEnLote.has(codigo)) {
                             duplicados.push(file.name);
                             mostrarDuplicados(duplicados);
@@ -470,11 +470,13 @@
                     }
                 });
 
+                const tipoGuardado = archivosSeleccionados[index].tipo_venta_id ?? 1;
+
                 $(this)
-                    .append(new Option('Privado', 1, true, true))
+                    .append(new Option('Privado', tipoGuardado, true, true))
                     .trigger('change');
 
-                archivosSeleccionados[index].tipo_venta_id = 1;
+                archivosSeleccionados[index].tipo_venta_id = tipoGuardado;
 
                 $(this).on('select2:select', function(e) {
                     archivosSeleccionados[index].tipo_venta_id = e.params.data.id;
@@ -613,9 +615,14 @@
         }
 
         function initSellerSelects() {
+
             $('.seller-select').each(function() {
+
                 if ($(this).hasClass("select2-hidden-accessible")) return;
+
                 const index = $(this).data('index');
+                const vendedorGuardado = archivosSeleccionados[index].seller_id;
+
                 $(this).select2({
                     placeholder: 'Buscar vendedor...',
                     minimumInputLength: 2,
@@ -634,12 +641,25 @@
                         }
                     }
                 });
-                $(this).on('click select2:opening select2:select', function(e) {
-                    e.stopPropagation();
-                });
+
+                // 🔥 Restaurar vendedor seleccionado
+                if (vendedorGuardado) {
+
+                    fetch("<?= base_url('sellers/get') ?>/" + vendedorGuardado)
+                        .then(r => r.json())
+                        .then(data => {
+
+                            const option = new Option(data.text, data.id, true, true);
+                            $(this).append(option).trigger('change');
+
+                        });
+
+                }
+
                 $(this).on('select2:select', function(e) {
                     archivosSeleccionados[index].seller_id = e.params.data.id;
                 });
+
             });
         }
 
@@ -796,6 +816,7 @@
             });
 
             document.querySelectorAll('.condicion-select').forEach(select => {
+
                 select.addEventListener('change', function() {
 
                     const idx = this.dataset.index;
@@ -803,16 +824,20 @@
 
                     archivosSeleccionados[idx].condicion_operacion = valor;
 
+                    const creditoSelect = document.querySelector(
+                        `.credito-select[data-index="${idx}"]`
+                    );
+
                     if (valor === 1) {
-                        // Contado
                         archivosSeleccionados[idx].plazo_credito = null;
+                        creditoSelect.style.visibility = 'hidden';
                     } else {
-                        // Crédito
                         archivosSeleccionados[idx].plazo_credito = 30;
+                        creditoSelect.style.visibility = 'visible';
                     }
 
-                    renderTable(); // 🔥 redibujar fila
                 });
+
             });
 
             btnProcesar.addEventListener('click', function() {

@@ -34,7 +34,7 @@
             <div class="card-header">
                 <h4>Reporte de Saldos por Antigüedad - Maestro</h4>
                 <small class="text-muted">
-                    Genera el reporte de cuentas por cobrar clasificadas por rango de días.
+                    Genera el reporte de cuentas por cobrar clasificadas hasta el día seleccionado.
                 </small>
             </div>
 
@@ -176,6 +176,70 @@
 
         </div>
     </div>
+    <div class="col-md-12 mt-2">
+        <div class="card">
+            <div class="card-header">
+                <h4>Estado de Cuenta de Cliente</h4>
+                <small class="text-muted">
+                    Muestra todos los documentos y pagos aplicados a un cliente con su saldo acumulado.
+                </small>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <form method="get" target="_blank">
+
+                        <div class="row">
+
+                            <!-- Cliente -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="text-muted">Cliente</label>
+                                    <select name="cliente_id" class="form-control cliente-select" required></select>
+                                </div>
+                            </div>
+
+                            <!-- Fecha inicio -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date"
+                                        name="fecha_inicio"
+                                        class="form-control">
+                                </div>
+                            </div>
+
+                            <!-- Fecha fin -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date"
+                                        name="fecha_fin"
+                                        class="form-control"
+                                        value="<?= date('Y-m-d') ?>">
+                                </div>
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="col-md-2 btn-container-adjust">
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/estado-cuenta-cliente-pdf') ?>"
+                                    class="btn btn-dark btn-block btn-equal">
+                                    <i class="fas fa-file-invoice-dollar mr-2"></i>
+                                    Generar
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 <script>
     $(document).ready(function() {
@@ -192,12 +256,18 @@
                     url: '<?= base_url("clientes/buscar") ?>',
                     dataType: 'json',
                     delay: 250,
-                    data: p => ({ q: p.term }),
+                    data: p => ({
+                        q: p.term
+                    }),
                     processResults: function(data) {
                         if (!Array.isArray(data)) {
-                            return { results: [] };
+                            return {
+                                results: []
+                            };
                         }
-                        return { results: data };
+                        return {
+                            results: data
+                        };
                     }
                 }
             });

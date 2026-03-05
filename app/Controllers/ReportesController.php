@@ -444,7 +444,6 @@ class ReportesController extends Controller
                 }
 
                 $reporte[$fecha][$tipoDte] += $factura->monto_total_operacion;
-
             } else {
 
                 if (!isset($reporte[$tipoDte][$fecha])) {
@@ -479,13 +478,169 @@ class ReportesController extends Controller
         $dompdf->render();
         $canvas = $dompdf->getCanvas();
         $canvas->page_text(
-            520, 820,
+            520,
+            820,
             "Página {PAGE_NUM} de {PAGE_COUNT}",
             null,
             8,
             array(0, 0, 0)
         );
-        
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
+    public function estadoCuentaClientePDF()
+    {
+        $db = \Config\Database::connect();
+
+        $cliente_id = $this->request->getGet('cliente_id');
+
+        if (!$cliente_id) {
+            return "Debe seleccionar un cliente";
+        }
+
+        $facturaModel = new FacturaHeadModel();
+
+        $cliente = $db->table('clientes')
+            ->where('id', $cliente_id)
+            ->get()
+            ->getRow();
+
+        $movimientos = [];
+
+        /*
+    ========================================
+    FACTURAS Y NOTAS DE CREDITO
+    ========================================
+    */
+
+        $docs = $facturaModel
+            ->where('receptor_id', $cliente_id)
+            ->where('anulada', 0)
+            ->orderBy('fecha_emision', 'ASC')
+            ->findAll();
+
+        foreach ($docs as $d) {
+
+            $correlativo = substr($d->numero_control, -6);
+
+            // FACTURAS
+            if ($d->tipo_dte == '01' || $d->tipo_dte == '03') {
+
+                $tipo = $d->tipo_dte == '03' ? 'CCF' : 'FCF';
+
+                $movimientos[] = (object)[
+                    'fecha' => $d->fecha_emision,
+                    'tipo' => $tipo,
+                    'numDoc' => $correlativo,
+                    'asociado' => '-',
+                    'cargo' => $d->monto_total_operacion,
+                    'abono' => 0
+                ];
+            }
+
+            // NOTAS DE CREDITO
+            if ($d->tipo_dte == '05') {
+
+                $facturaRelacionada = $db->table('facturas_head')
+                    ->select('numero_control')
+                    ->where('codigo_generacion', $d->codigo_generacion_relacionado)
+                    ->get()
+                    ->getRow();
+
+                $asociado = '-';
+
+                if ($facturaRelacionada) {
+                    $asociado = 'CCF ' . substr($facturaRelacionada->numero_control, -6);
+                }
+
+                $movimientos[] = (object)[
+                    'fecha' => $d->fecha_emision,
+                    'tipo' => 'NC',
+                    'numDoc' => $correlativo,
+                    'asociado' => $asociado,
+                    'cargo' => 0,
+                    'abono' => $d->monto_total_operacion
+                ];
+            }
+        }
+
+        /*
+    ========================================
+    PAGOS
+    ========================================
+    */
+
+        $pagos = $db->table('pagos_details')
+            ->select('
+            pagos_head.fecha_pago,
+            pagos_head.numero_recupero,
+            pagos_details.monto,
+            facturas_head.numero_control
+        ')
+            ->join('pagos_head', 'pagos_head.id = pagos_details.pago_id')
+            ->join('facturas_head', 'facturas_head.id = pagos_details.factura_id')
+            ->where('pagos_head.cliente_id', $cliente_id)
+            ->where('pagos_details.anulado', 0)
+            ->get()
+            ->getResult();
+
+        foreach ($pagos as $p) {
+
+            $movimientos[] = (object)[
+                'fecha' => $p->fecha_pago,
+                'tipo' => 'ABONO',
+                'numDoc' => str_pad($p->numero_recupero, 6, '0', STR_PAD_LEFT),
+                'asociado' => 'CCF ' . substr($p->numero_control, -6),
+                'cargo' => 0,
+                'abono' => $p->monto
+            ];
+        }
+
+        /*
+    ========================================
+    ORDENAR POR FECHA
+    ========================================
+    */
+
+        usort($movimientos, function ($a, $b) {
+            return strtotime($a->fecha) - strtotime($b->fecha);
+        });
+
+        /*
+    ========================================
+    TOTALES
+    ========================================
+    */
+
+        $totalCargo = 0;
+        $totalAbono = 0;
+
+        foreach ($movimientos as $m) {
+
+            $totalCargo += $m->cargo;
+            $totalAbono += $m->abono;
+        }
+
+        $saldo = $totalCargo - $totalAbono;
+
+        $data = [
+            'cliente' => $cliente,
+            'movimientos' => $movimientos,
+            'totalCargo' => $totalCargo,
+            'totalAbono' => $totalAbono,
+            'saldo' => $saldo,
+            'generado_en' => date('d/m/Y h:i A')
+        ];
+
+        $html = view('reports/estadodecuenta/estado_cuenta_cliente_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
         return $this->response
             ->setContentType('application/pdf')
             ->setBody($dompdf->output());

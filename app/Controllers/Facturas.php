@@ -257,14 +257,31 @@ class Facturas extends BaseController
 
             $fechaEmision = $json['identificacion']['fecEmi'] ?? null;
 
-            $saldoInicial = 0;
             $plazoCredito = null;
 
-            if ($condicionDte === 2) {
+            /*
+            ================================================
+            SALDO INICIAL SEGÚN TIPO DE DOCUMENTO
+            ================================================
+            */
 
-                $plazoCredito = is_numeric($plazo) ? (int)$plazo : 30;
+            if ($tipoDte === '05') {
+
+                // Nota de Crédito no genera saldo
+                $saldoInicial = 0;
+
+            } else {
+
+                // Facturas nacen con saldo completo
                 $saldoInicial = $totalDte;
+
             }
+
+            if ($condicionDte === 2) {
+                $plazoCredito = is_numeric($plazo) ? (int)$plazo : 30;
+            }
+
+            $totalIva = 0;
 
             if (!empty($json['resumen']['tributos'])) {
                 foreach ($json['resumen']['tributos'] as $t) {
