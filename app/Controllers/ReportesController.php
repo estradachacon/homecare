@@ -5,6 +5,7 @@ namespace App\Controllers;
 use CodeIgniter\Controller;
 use App\Models\FacturaHeadModel;
 use App\Models\ClienteModel;
+use App\Models\SettingModel;
 
 class ReportesController extends Controller
 {
@@ -24,7 +25,35 @@ class ReportesController extends Controller
     {
         return view('reports/facturacion');
     }
+    private function applyPdfHeader($dompdf)
+    {
+        $settingModel = new SettingModel();
+        $setting = $settingModel->first();
 
+        $companyName = $setting->company_name ?? 'Mi Empresa';
+
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
+        $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
+
+        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
+        $pageWidth = $canvas->get_width();
+
+        $x = ($pageWidth - $textWidth) / 2;
+
+        $canvas->page_text($x, 20, $companyName, $fontBold, 12, [0, 0, 0]);
+
+        $canvas->page_text(
+            500,
+            820,
+            "Página {PAGE_NUM} de {PAGE_COUNT}",
+            $fontNormal,
+            8,
+            [0, 0, 0]
+        );
+    }
     public function saldosAntiguedad()
     {
         $facturaModel = new FacturaHeadModel();
@@ -68,10 +97,27 @@ class ReportesController extends Controller
             $reporte[$factura->receptor_id]['total'] += $factura->saldo;
         }
 
-        return view('reports/saldos_antiguedad', [
+        $data = [
             'reporte' => $reporte,
             'fecha'   => $hoy
-        ]);
+        ];
+
+        /* GENERAR HTML */
+        $html = view('reports/saldos_antiguedad', $data);
+
+        /* DOMPDF */
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+
+        $dompdf->render();
+
+        /* HEADER + PAGINADO */
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
     }
 
     public function saldosAntiguedadPDF()
@@ -135,9 +181,6 @@ class ReportesController extends Controller
             'fecha'   => $fecha_corte,
             'generado_en' => date('d/m/Y H:i')
         ];
-
-        // ⚠ Verificación rápida (puedes probar esto una vez)
-        // dd($facturas);
 
         $html = view('reports/maestro/saldos_antiguedad_pdf', $data);
 
@@ -235,6 +278,10 @@ class ReportesController extends Controller
     public function saldosAntiguedadVendedorPDF()
     {
         $facturaModel = new FacturaHeadModel();
+        $settingModel = new SettingModel();
+
+        $setting = $settingModel->first();
+        $companyName = $setting->company_name ?? 'Mi Empresa';
 
         $fecha_corte = $this->request->getGet('fecha_corte') ?: date('Y-m-d');
         $cliente_id  = $this->request->getGet('cliente_id');
@@ -242,8 +289,8 @@ class ReportesController extends Controller
 
         $query = $facturaModel
             ->select('facturas_head.*, 
-                clientes.nombre as cliente_nombre,
-                sellers.seller as vendedor_nombre')
+            clientes.nombre as cliente_nombre,
+            sellers.seller as vendedor_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
             ->where('facturas_head.saldo >', 0)
@@ -308,6 +355,38 @@ class ReportesController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
+        /* CANVAS */
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
+        $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
+
+        /* CENTRAR NOMBRE EMPRESA */
+        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
+        $pageWidth = $canvas->get_width();
+
+        $x = ($pageWidth - $textWidth) / 2;
+
+        $canvas->page_text(
+            $x,
+            20,
+            $companyName,
+            $fontBold,
+            12,
+            [0, 0, 0]
+        );
+
+        /* PAGINADO */
+        $canvas->page_text(
+            500,
+            820,
+            "Página {PAGE_NUM} de {PAGE_COUNT}",
+            $fontNormal,
+            8,
+            [0, 0, 0]
+        );
+
         return $this->response
             ->setContentType('application/pdf')
             ->setBody($dompdf->output());
@@ -316,6 +395,9 @@ class ReportesController extends Controller
     {
         $facturaModel = new FacturaHeadModel();
         $db = \Config\Database::connect();
+        $settingModel = new SettingModel();
+        $setting = $settingModel->first();
+        $companyName = $setting->company_name ?? 'Mi Empresa';
 
         $fecha_corte = $this->request->getGet('fecha_corte') ?: date('Y-m-d');
         $cliente_id  = $this->request->getGet('cliente_id');
@@ -353,36 +435,79 @@ class ReportesController extends Controller
                 (strtotime($fecha_corte) - strtotime($factura->fecha_emision)) / 86400
             );
 
+            $saldo = $factura->saldo;
+
+            // Rangos de antigüedad
+            $r0 = $r30 = $r60 = $r90 = 0;
+
+            if ($dias <= 30) {
+                $r0 = $saldo;
+            } elseif ($dias <= 60) {
+                $r30 = $saldo;
+            } elseif ($dias <= 90) {
+                $r60 = $saldo;
+            } else {
+                $r90 = $saldo;
+            }
+
             $vendedorKey = $factura->vendedor_id ?? 0;
+            $clienteKey  = $factura->receptor_id ?? 0;
 
             if (!isset($reporte[$vendedorKey])) {
+
                 $reporte[$vendedorKey] = [
                     'vendedor' => $factura->vendedor_nombre ?? 'Sin vendedor',
-                    'facturas' => [],
-                    'totales'  => [
-                        'total_facturas' => 0,
-                        'total_saldo'    => 0
+                    'clientes' => []
+                ];
+            }
+
+            if (!isset($reporte[$vendedorKey]['clientes'][$clienteKey])) {
+
+                $reporte[$vendedorKey]['clientes'][$clienteKey] = [
+                    'cliente' => $factura->cliente_nombre,
+                    'documentos' => [],
+                    'totales' => [
+                        '0_30' => 0,
+                        '31_60' => 0,
+                        '61_90' => 0,
+                        '90_mas' => 0,
+                        'total' => 0
                     ]
                 ];
             }
 
-            // Obtener pagos vivos
-            $pagos = $db->table('pagos_details')
-                ->select('pagos_details.*, pagos_head.fecha_pago')
-                ->join('pagos_head', 'pagos_head.id = pagos_details.pago_id', 'left')
-                ->where('pagos_details.factura_id', $factura->id)
-                ->where('pagos_details.anulado', 0)
-                ->get()
-                ->getResult();
+            if ($factura->condicion_operacion == 1) {
 
-            $reporte[$vendedorKey]['facturas'][] = [
-                'factura' => $factura,
-                'dias'    => $dias,
-                'pagos'   => $pagos
+                $plazo = 'CONTADO';
+            } else {
+
+                $diasCredito = $factura->plazo_credito ?? 0;
+
+                $plazo = $diasCredito > 0
+                    ? $diasCredito . ' días'
+                    : 'CRÉDITO';
+            }
+            // Documento
+            $doc = [
+                'fecha' => $factura->fecha_emision,
+                'doc'   => $factura->numero_control,
+                'tipo'  => $factura->tipo_dte,
+                'plazo' => $plazo,
+                'rango_0_30' => $r0,
+                'rango_31_60' => $r30,
+                'rango_61_90' => $r60,
+                'rango_90_mas' => $r90,
+                'total' => $saldo
             ];
 
-            $reporte[$vendedorKey]['totales']['total_facturas'] += $factura->monto_total_operacion;
-            $reporte[$vendedorKey]['totales']['total_saldo']    += $factura->saldo;
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['documentos'][] = $doc;
+
+            // Totales por cliente
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['0_30'] += $r0;
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['31_60'] += $r30;
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['61_90'] += $r60;
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['90_mas'] += $r90;
+            $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['total'] += $saldo;
         }
 
         $data = [
@@ -397,6 +522,38 @@ class ReportesController extends Controller
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+
+        /* CANVAS */
+        $canvas = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
+        $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
+
+        /* CENTRAR NOMBRE EMPRESA */
+        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
+        $pageWidth = $canvas->get_width();
+
+        $x = ($pageWidth - $textWidth) / 2;
+
+        $canvas->page_text(
+            $x,
+            20,
+            $companyName,
+            $fontBold,
+            12,
+            [0, 0, 0]
+        );
+
+        /* PAGINADO */
+        $canvas->page_text(
+            500,
+            820,
+            "Página {PAGE_NUM} de {PAGE_COUNT}",
+            $fontNormal,
+            8,
+            [0, 0, 0]
+        );
 
         return $this->response
             ->setContentType('application/pdf')

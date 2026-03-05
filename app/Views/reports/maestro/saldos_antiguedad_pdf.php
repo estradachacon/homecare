@@ -127,9 +127,5 @@ th {
     </tfoot>
 </table>
 
-<div class="footer">
-    Página {PAGE_NUM} de {PAGE_COUNT}
-</div>
-
 </body>
 </html>
