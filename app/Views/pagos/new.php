@@ -80,7 +80,7 @@
                             <select id="clienteSelect" class="form-control"></select>
                         </div>
 
-                        <!-- FECHA -->
+                        <!-- FECHA (campos para el pago)-->
                         <div class="col-md-3 mb-3">
                             <label class="text-muted">Fecha pago</label>
                             <input type="date" class="form-control">
