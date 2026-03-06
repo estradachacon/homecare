@@ -1,152 +1,213 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="UTF-8">
-<style>
+    <meta charset="UTF-8">
 
-body {
-    font-family: DejaVu Sans;
-    font-size: 9px;
-    color: #333;
-}
+    <style>
+        body {
+            font-family: DejaVu Sans;
+            font-size: 9px;
+            color: #333;
+        }
 
-h3 {
-    margin-bottom: 5px;
-}
+        @page {
+            margin: 40px 30px 60px 30px;
+        }
 
-.header-info {
-    margin-bottom: 10px;
-    font-size: 9px;
-}
+        footer {
+            position: fixed;
+            bottom: -40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 9px;
+        }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-}
+        h3 {
+            margin-bottom: 5px;
+        }
 
-th, td {
-    border: 0.5px solid #999;
-    padding: 4px;
-}
+        .header-info {
+            margin-bottom: 10px;
+            font-size: 9px;
+        }
 
-th {
-    background: #1f4e79;
-    color: #fff;
-    font-weight: bold;
-}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
 
-.text-right {
-    text-align: right;
-}
+        th,
+        td {
+            border: 0.5px solid #999;
+            padding: 4px;
+        }
 
-.vendedor-bloque {
-    page-break-inside: avoid;
-    margin-bottom: 15px;
-}
+        th {
+            background: #1f4e79;
+            color: #fff;
+            font-weight: bold;
+        }
 
-.vendedor-header {
-    background: #ddebf7;
-    font-weight: bold;
-    padding: 6px;
-    border: 1px solid #9dc3e6;
-    margin-top: 10px;
-}
+        .text-right {
+            text-align: right;
+        }
 
-.pago-row td {
-    background: #f7f7f7;
-    font-size: 8.5px;
-}
+        .vendedor-header {
+            background: #ddebf7;
+            font-weight: bold;
+            padding: 6px;
+            border: 1px solid #9dc3e6;
+            margin-top: 10px;
+        }
 
-.totales {
-    background: #e2efda;
-    font-weight: bold;
-}
+        .cliente-bloque {
+            page-break-inside: avoid;
+        }
 
-.totales td {
-    border-top: 2px solid #548235;
-}
+        .cliente-header {
+            font-weight: bold;
+            margin-top: 8px;
+        }
 
-</style>
+        .totales {
+            background: #e2efda;
+            font-weight: bold;
+        }
+
+        .totales td {
+            border-top: 2px solid #548235;
+        }
+    </style>
+
 </head>
-
+<?php
+$tipos = [
+    '01' => 'FCF',
+    '03' => 'CCF',
+    '05' => 'NCF'
+];
+?>
 <body>
+    <h3>SALDOS POR ANTIGÜEDAD CON DETALLE - POR VENDEDOR</h3>
 
-<h3>SALDOS POR ANTIGÜEDAD CON DETALLE - POR VENDEDOR</h3>
+    <div class="header-info">
+        <strong>Fecha corte:</strong> <?= date('d/m/Y', strtotime($fecha)) ?>
+        &nbsp;&nbsp;&nbsp;
+        <strong>Generado:</strong> <?= esc($generado_en) ?>
+    </div>
 
-<div class="header-info">
-    <strong>Fecha corte:</strong> <?= date('d/m/Y', strtotime($fecha)) ?>
-    &nbsp;&nbsp;&nbsp;
-    <strong>Generado:</strong> <?= esc($generado_en) ?>
-</div>
-
-<?php foreach ($reporte as $vendedor): ?>
-
-    <div class="vendedor-bloque">
-
+    <?php foreach ($reporte as $vendedor): ?>
         <div class="vendedor-header">
             VENDEDOR: <?= esc($vendedor['vendedor']) ?>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th width="20%">Factura</th>
-                    <th width="20%">Cliente</th>
-                    <th width="15%">Fecha</th>
-                    <th width="15%" class="text-right">Total</th>
-                    <th width="15%" class="text-right">Saldo</th>
-                    <th width="15%">Días</th>
-                </tr>
-            </thead>
-            <tbody>
+        <?php foreach ($vendedor['clientes'] as $cliente): ?>
 
-                <?php foreach ($vendedor['facturas'] as $item): ?>
+            <div class="cliente-bloque">
 
-                    <tr>
-                        <td><?= esc($item['factura']->numero_control ?? $item['factura']->id) ?></td>
-                        <td><?= esc($item['factura']->cliente_nombre) ?></td>
-                        <td><?= date('d/m/Y', strtotime($item['factura']->fecha_emision)) ?></td>
-                        <td class="text-right">$ <?= number_format($item['factura']->monto_total_operacion, 2) ?></td>
-                        <td class="text-right">$ <?= number_format($item['factura']->saldo, 2) ?></td>
-                        <td><?= $item['dias'] ?></td>
-                    </tr>
+                <div class="cliente-header">
+                    Cliente: <?= esc($cliente['cliente']) ?>
+                </div>
 
-                    <!-- PAGOS -->
-                    <?php foreach ($item['pagos'] as $pago): ?>
-                        <tr class="pago-row">
-                            <td colspan="2">
-                                ↳ Pago <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
-                            </td>
-                            <td></td>
-                            <td colspan="2" class="text-right">
-                                $ <?= number_format($pago->monto, 2) ?>
-                            </td>
-                            <td>Aplicado</td>
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th width="12%">Fecha</th>
+                            <th width="15%">N. Doc.</th>
+                            <th width="10%">Plazo</th>
+                            <th width="12%" class="text-right">30 días</th>
+                            <th width="12%" class="text-right">60 días</th>
+                            <th width="12%" class="text-right">90 días</th>
+                            <th width="12%" class="text-right">120 + días</th>
+                            <th width="15%" class="text-right">Total</th>
                         </tr>
-                    <?php endforeach; ?>
+                    </thead>
 
-                <?php endforeach; ?>
+                    <tbody>
 
-            </tbody>
+                        <?php foreach ($cliente['documentos'] as $doc): ?>
 
-            <tfoot>
-                <tr class="totales">
-                    <td colspan="3">Totales Vendedor</td>
-                    <td class="text-right">
-                        $ <?= number_format($vendedor['totales']['total_facturas'], 2) ?>
-                    </td>
-                    <td class="text-right">
-                        $ <?= number_format($vendedor['totales']['total_saldo'], 2) ?>
-                    </td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
+                            <tr>
 
-    </div>
+                                <td><?= date('d/m/Y', strtotime($doc['fecha'])) ?></td>
 
-<?php endforeach; ?>
+                                <td>
+                                <?php
+                                $tipo = $tipos[$doc['tipo']] ?? $doc['tipo'];
+                                ?>
+                                <?= esc($tipo) ?> <?= substr($doc['doc'], -4) ?>
+                                </td>
+
+                                <td><?= esc($doc['plazo']) ?></td>
+
+                                <td class="text-right">
+                                    <?= $doc['rango_0_30'] ? '$ ' . number_format($doc['rango_0_30'], 2) : '' ?>
+                                </td>
+
+                                <td class="text-right">
+                                    <?= $doc['rango_31_60'] ? '$ ' . number_format($doc['rango_31_60'], 2) : '' ?>
+                                </td>
+
+                                <td class="text-right">
+                                    <?= $doc['rango_61_90'] ? '$ ' . number_format($doc['rango_61_90'], 2) : '' ?>
+                                </td>
+
+                                <td class="text-right">
+                                    <?= $doc['rango_90_mas'] ? '$ ' . number_format($doc['rango_90_mas'], 2) : '' ?>
+                                </td>
+
+                                <td class="text-right">
+                                    $ <?= number_format($doc['total'], 2) ?>
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+
+                    <tfoot>
+
+                        <tr class="totales">
+
+                            <td colspan="3">SALDO</td>
+
+                            <td class="text-right">
+                                $ <?= number_format($cliente['totales']['0_30'], 2) ?>
+                            </td>
+
+                            <td class="text-right">
+                                $ <?= number_format($cliente['totales']['31_60'], 2) ?>
+                            </td>
+
+                            <td class="text-right">
+                                $ <?= number_format($cliente['totales']['61_90'], 2) ?>
+                            </td>
+
+                            <td class="text-right">
+                                $ <?= number_format($cliente['totales']['90_mas'], 2) ?>
+                            </td>
+
+                            <td class="text-right">
+                                $ <?= number_format($cliente['totales']['total'], 2) ?>
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+        <?php endforeach; ?>
+
+    <?php endforeach; ?>
 
 </body>
+
 </html>
