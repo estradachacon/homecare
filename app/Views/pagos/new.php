@@ -89,7 +89,7 @@
                             <label class="text-muted">Tipo de pago</label>
                             <select class="form-control" id="tipoPago">
                                 <option value="">Seleccione</option>
-                                <option value="recupero">Recupero</option>
+                                <option value="efectivo">Efectivo</option>
                                 <option value="transferencia">Transferencia</option>
                             </select>
                         </div>
@@ -250,8 +250,8 @@
                 return;
             }
 
-            if (tipoPago === 'recupero' && descRecupero === '') {
-                Swal.fire('Recupero', 'Ingrese número o descripción de recupero.', 'warning');
+            if (tipoPago === 'efectivo' && descRecupero === '') {
+                Swal.fire('Efectivo', 'Ingrese número o descripción de recupero.', 'warning');
                 return;
             }
 
@@ -284,7 +284,7 @@
 
             let detallePago = '';
 
-            if (tipoPago === 'recupero') {
+            if (tipoPago === 'efectivo') {
                 detallePago = `<p><strong>Recupero:</strong> ${descRecupero}</p>`;
             }
 
@@ -495,7 +495,7 @@
                 .slideUp(150)
                 .addClass('d-none');
 
-            if (tipo === 'recupero') {
+            if (tipo === 'efectivo') {
 
                 $('#boxRecupero')
                     .removeClass('d-none')
