@@ -42,7 +42,7 @@ if (!function_exists('dte_descripciones')) {
     function dte_descripciones()
     {
         return [
-            'FE'   => 'Factura Electrónica',
+            'FAC'   => 'Factura Electrónica',
             'CCFE' => 'Comprobante de Crédito Fiscal Electrónico',
             'NCE'  => 'Nota de Crédito Electrónica',
             'NDE'  => 'Nota de Débito Electrónica',
