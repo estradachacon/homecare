@@ -36,6 +36,7 @@ class FacturaHeadModel extends Model
         'total_pagar',
         'condicion_operacion',
         'plazo_credito',
+        'iva_rete1',
 
         // Firma
         'firma_electronica',

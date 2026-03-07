@@ -578,7 +578,7 @@ class ReportesController extends Controller
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->where('fecha_emision >=', $desde)
             ->where('fecha_emision <=', $hasta)
-            ->where('anulada', 0);
+            ->where('tipo_dte !=', '14'); // EXCLUIR SUJETO EXCLUIDO
 
         if (!empty($tipo)) {
             $query->where('tipo_dte', $tipo);

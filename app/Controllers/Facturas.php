@@ -168,6 +168,48 @@ class Facturas extends BaseController
                 ?? $json['resumen']['montoTotalOperacion']
                 ?? 0;
 
+            $totalGravada = 0;
+            $totalIva = 0;
+
+            if ($tipoDte === '01') {
+
+                $retencion = (float) ($json['resumen']['ivaRete1'] ?? 0);
+
+                if ($retencion > 0) {
+
+                    // Caso con retención
+                    $base = $totalDte + $retencion;
+
+                    $totalGravada = round($base / 1.13, 2);
+                    $totalIva     = round($totalGravada * 0.13, 2);
+
+                } else {
+
+                    // Caso sin retención
+                    $totalGravada = round($totalDte / 1.13, 2);
+                    $totalIva     = round($totalDte - $totalGravada, 2);
+
+                }
+
+            } else {
+
+                // Otros DTE
+                $totalGravada = (float) ($json['resumen']['totalGravada'] ?? 0);
+
+                if (!empty($json['resumen']['tributos'])) {
+
+                    foreach ($json['resumen']['tributos'] as $t) {
+
+                        if (($t['codigo'] ?? null) == '20') {
+                            $totalIva = (float) $t['valor'];
+                        }
+
+                    }
+
+                }
+
+            }
+
             $codigoRelacionado = null;
 
             if ($tipoDte === '05' && !empty($json['documentoRelacionado'][0]['numeroDocumento'])) {
@@ -269,26 +311,14 @@ class Facturas extends BaseController
 
                 // Nota de Crédito no genera saldo
                 $saldoInicial = 0;
-
             } else {
 
                 // Facturas nacen con saldo completo
                 $saldoInicial = $totalDte;
-
             }
 
             if ($condicionDte === 2) {
                 $plazoCredito = is_numeric($plazo) ? (int)$plazo : 30;
-            }
-
-            $totalIva = 0;
-
-            if (!empty($json['resumen']['tributos'])) {
-                foreach ($json['resumen']['tributos'] as $t) {
-                    if (($t['codigo'] ?? null) == '20') {
-                        $totalIva = $t['valor'];
-                    }
-                }
             }
 
             // INSERTAR HEAD
@@ -297,21 +327,23 @@ class Facturas extends BaseController
                 'tipo_dte'          => $json['identificacion']['tipoDte'] ?? null,
                 'numero_control'    => $json['identificacion']['numeroControl'] ?? null,
                 'codigo_generacion' => $json['identificacion']['codigoGeneracion'] ?? null,
+                'sello_recibido'    => $json['identificacion']['selloRecibido'] ?? null,
                 'fecha_emision'     => $json['identificacion']['fecEmi'] ?? null,
                 'hora_emision'      => $json['identificacion']['horEmi'] ?? null,
                 'tipo_moneda'       => $json['identificacion']['tipoMoneda'] ?? null,
                 'receptor_id'       => $clienteId,
                 'vendedor_id'       => $vendedorId,
-                'saldo' => $saldoInicial,
+                'saldo'             => $saldoInicial,
+                'iva_rete1' => $json['resumen']['ivaRete1'] ?? 0,
 
-                'total_gravada'         => $json['resumen']['totalGravada'] ?? 0,
+                'total_gravada' => $totalGravada,
+                'total_iva'     => $totalIva,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
-                'total_iva' => $totalIva,
                 'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
-                'total_pagar' => $totalDte,
+                'total_pagar'           => $totalDte,
                 'tipo_venta'            => $tipoVentaId,
-                'condicion_operacion' => $condicionDte,
-                'plazo_credito'       => $plazoCredito,
+                'condicion_operacion'   => $condicionDte,
+                'plazo_credito'         => $plazoCredito,
                 'codigo_generacion_relacionado' => $codigoRelacionado,
             ];
 
@@ -343,7 +375,7 @@ class Facturas extends BaseController
                 $facturaRelacionada = $facturaHeadModel
                     ->where('codigo_generacion', $codigoRelacionado)
                     ->first();
-                
+
                 if (!$facturaRelacionada) {
 
                     $db->transRollback();
@@ -355,7 +387,7 @@ class Facturas extends BaseController
                 }
 
                 $montoNC = (float)$totalDte;
-                
+
                 $saldoActual = (float)$facturaRelacionada->saldo;
 
                 $nuevoSaldo = round($saldoActual - $montoNC, 2);
@@ -394,9 +426,9 @@ class Facturas extends BaseController
                     'Aplicación de Nota de Crédito',
                     'Facturas',
                     'Se registró Nota de Crédito Nº ' . substr($dataHead['numero_control'], -6) .
-                    ' por $' . number_format($montoNC, 2) .
-                    ' aplicada a Factura Nº ' . substr($facturaRelacionada->numero_control, -6) .
-                    '. Nuevo saldo: $' . number_format($nuevoSaldo, 2),
+                        ' por $' . number_format($montoNC, 2) .
+                        ' aplicada a Factura Nº ' . substr($facturaRelacionada->numero_control, -6) .
+                        '. Nuevo saldo: $' . number_format($nuevoSaldo, 2),
                     $user_id
                 );
             }
@@ -754,36 +786,36 @@ class Facturas extends BaseController
             'pagos' => $pagos
         ]);
     }
-        public function validarDocumentoRelacionado()
-        {
-            $codigo = $this->request->getPost('codigo_generacion');
+    public function validarDocumentoRelacionado()
+    {
+        $codigo = $this->request->getPost('codigo_generacion');
 
-            if (!$codigo) {
-                return $this->response->setJSON([
-                    'existe' => false
-                ]);
-            }
-
-            $model = new FacturaHeadModel();
-
-            $factura = $model
-                ->select('id, numero_control, saldo, total_pagar')
-                ->where('codigo_generacion', $codigo)
-                ->where('anulada', 0)
-                ->first();
-
-            if (!$factura) {
-                return $this->response->setJSON([
-                    'existe' => false
-                ]);
-            }
-
+        if (!$codigo) {
             return $this->response->setJSON([
-                'existe' => true,
-                'id' => $factura->id,
-                'numero_control' => $factura->numero_control,
-                'saldo' => (float)$factura->saldo,
-                'total' => (float)$factura->total_pagar
+                'existe' => false
             ]);
         }
+
+        $model = new FacturaHeadModel();
+
+        $factura = $model
+            ->select('id, numero_control, saldo, total_pagar')
+            ->where('codigo_generacion', $codigo)
+            ->where('anulada', 0)
+            ->first();
+
+        if (!$factura) {
+            return $this->response->setJSON([
+                'existe' => false
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'existe' => true,
+            'id' => $factura->id,
+            'numero_control' => $factura->numero_control,
+            'saldo' => (float)$factura->saldo,
+            'total' => (float)$factura->total_pagar
+        ]);
+    }
 }

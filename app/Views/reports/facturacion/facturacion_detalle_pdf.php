@@ -45,7 +45,6 @@ $siglas = dte_siglas();
             background: #1f4e79;
             color: #fff;
             font-weight: bold;
-            font-size: 8px;
         }
 
         .text-right {
@@ -58,14 +57,12 @@ $siglas = dte_siglas();
             font-weight: bold;
             padding: 3px;
             margin-top: 8px;
-            font-size: 8px;
         }
 
         .fecha-header {
             background: #ddebf7;
             font-weight: bold;
             padding: 3px;
-            font-size: 8px;
         }
 
         .totales {
@@ -77,14 +74,9 @@ $siglas = dte_siglas();
             border-top: 1.5px solid #548235;
         }
 
-        .footer {
-            position: fixed;
-            bottom: -5px;
-            left: 0px;
-            right: 0px;
-            height: 15px;
-            font-size: 7px;
-            text-align: center;
+        .anulada {
+            color: #888;
+            background: #f5f5f5;
         }
     </style>
 </head>
@@ -101,15 +93,12 @@ $siglas = dte_siglas();
         <strong>Generado:</strong> <?= esc($generado_en) ?>
     </div>
 
-    <?php $granTotal = 0; ?>
     <?php
-
     $gt_base = 0;
     $gt_iva = 0;
     $gt_valor = 0;
     $gt_ret = 0;
     $gt_total = 0;
-
     ?>
 
     <?php foreach ($reporte as $tipo => $fechas): ?>
@@ -119,13 +108,20 @@ $siglas = dte_siglas();
             <?= esc($tiposDocumento[$tipo] ?? 'Documento ' . $tipo) ?>
         </div>
 
-        <?php $totalTipo = 0; ?>
-
         <?php foreach ($fechas as $fecha => $data): ?>
 
             <div class="fecha-header">
                 Fecha: <?= date('d/m/Y', strtotime($fecha)) ?>
             </div>
+
+            <?php
+            /* TOTALES DEL DÍA */
+            $day_base = 0;
+            $day_iva = 0;
+            $day_valor = 0;
+            $day_ret = 0;
+            $day_total = 0;
+            ?>
 
             <table>
                 <thead>
@@ -146,23 +142,49 @@ $siglas = dte_siglas();
                 <tbody>
 
                     <?php foreach ($data['facturas'] as $factura): ?>
+
                         <?php
 
-                        $total = $factura->monto_total_operacion;
+                        $baseReal  = $factura->total_gravada ?? 0;
+                        $ivaReal   = $factura->total_iva ?? 0;
+                        $valorReal = $factura->monto_total_operacion ?? 0;
+                        $retReal   = $factura->iva_rete1 ?? 0;
+                        $totalReal = $factura->total_pagar ?? 0;
 
-                        $base = $total / 1.13;
-                        $iva = $total - $base;
-                        $ret = $base * 0.01;
-                        $valor = $base + $iva;
+                        $esAnulada = $factura->anulada == 1;
+
+                        /* VALORES PARA SUMAS */
+                        $base  = $esAnulada ? 0 : $baseReal;
+                        $iva   = $esAnulada ? 0 : $ivaReal;
+                        $valor = $esAnulada ? 0 : $valorReal;
+                        $ret   = $esAnulada ? 0 : $retReal;
+                        $total = $esAnulada ? 0 : $totalReal;
 
                         /* NOTA DE CREDITO RESTA */
                         if ($factura->tipo_dte == '05') {
-                            $base *= -1;
-                            $iva *= -1;
+
+                            $baseReal  *= -1;
+                            $ivaReal   *= -1;
+                            $valorReal *= -1;
+                            $retReal   *= -1;
+                            $totalReal *= -1;
+
+                            $base  *= -1;
+                            $iva   *= -1;
                             $valor *= -1;
-                            $ret *= -1;
+                            $ret   *= -1;
                             $total *= -1;
                         }
+
+                        if ($esAnulada) {
+                            $base = $iva = $valor = $ret = $total = 0;
+                        }
+                        /* TOTALES DEL DÍA */
+                        $day_base += $base;
+                        $day_iva += $iva;
+                        $day_valor += $valor;
+                        $day_ret += $ret;
+                        $day_total += $total;
 
                         /* GRAN TOTALES */
                         $gt_base += $base;
@@ -172,84 +194,102 @@ $siglas = dte_siglas();
                         $gt_total += $total;
 
                         ?>
-                        <tr>
+
+                        <tr class="<?= $esAnulada ? 'anulada' : '' ?>">
 
                             <td><?= esc($siglas[$factura->tipo_dte] ?? $factura->tipo_dte) ?></td>
 
                             <td><?= esc(str_pad(substr($factura->numero_control, -6), 6, '0', STR_PAD_LEFT)) ?></td>
 
-                            <td><?= esc($factura->cliente_nombre) ?></td>
+                            <td style="padding:0;">
+                                <table style="width:100%; border-collapse:collapse;">
+                                    <tr>
+                                        <td style="border:none;">
+                                            <?= esc($factura->cliente_nombre) ?>
+                                        </td>
 
-                            <td class="text-right">$ <?= number_format($base, 2) ?></td>
+                                        <?php if ($esAnulada): ?>
+                                            <td style="border:none; text-align:right; color:#b00020; font-weight:bold;">
+                                                ANULADO
+                                            </td>
+                                        <?php else: ?>
+                                            <td style="border:none;"></td>
+                                        <?php endif; ?>
 
-                            <td class="text-right">$ <?= number_format($iva, 2) ?></td>
+                                    </tr>
+                                </table>
+                            </td>
 
-                            <td class="text-right">$ <?= number_format($valor, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($baseReal, 2) ?></td>
 
-                            <td class="text-right">$ <?= number_format($ret, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($ivaReal, 2) ?></td>
 
-                            <td class="text-right">$ <?= number_format($total, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($valorReal, 2) ?></td>
+
+                            <td class="text-right">$ <?= number_format($retReal, 2) ?></td>
+
+                            <td class="text-right">$ <?= number_format($totalReal, 2) ?></td>
 
                         </tr>
+
                     <?php endforeach; ?>
 
                 </tbody>
 
                 <tfoot>
+
                     <tr class="totales">
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td class="text-right">TOTAL DÍA</td>
+
+                        <td colspan="3">TOTAL DÍA</td>
+
                         <td class="text-right">
-                            $ <?= number_format($data['total'], 2) ?>
+                            $ <?= number_format($day_base, 2) ?>
                         </td>
+
+                        <td class="text-right">
+                            $ <?= number_format($day_iva, 2) ?>
+                        </td>
+
+                        <td class="text-right">
+                            $ <?= number_format($day_valor, 2) ?>
+                        </td>
+
+                        <td class="text-right">
+                            $ <?= number_format($day_ret, 2) ?>
+                        </td>
+
+                        <td class="text-right">
+                            $ <?= number_format($day_total, 2) ?>
+                        </td>
+
                     </tr>
+
                 </tfoot>
             </table>
 
-            <?php
-            $totalTipo += $data['total'];
-            $granTotal += $data['total'];
-            ?>
-
         <?php endforeach; ?>
-
-        <table>
-            <tfoot>
-
-                <tr class="totales">
-
-                    <td colspan="3">GRAN TOTAL</td>
-
-                    <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
-
-                    <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
-
-                    <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
-
-                    <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
-
-                    <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
-
-                </tr>
-
-            </tfoot>
-        </table>
 
     <?php endforeach; ?>
 
     <table>
         <tfoot>
+
             <tr class="totales">
-                <td class="text-right">TOTAL GENERAL</td>
-                <td class="text-right">
-                    $ <?= number_format($granTotal, 2) ?>
-                </td>
+
+                <td colspan="3">GRAN TOTAL</td>
+
+                <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
+
+                <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
+
+                <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
+
+                <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
+
+                <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
+
             </tr>
+
         </tfoot>
     </table>
 
