@@ -189,7 +189,9 @@ class ReportesController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $canvas = $dompdf->getCanvas();
-        $canvas->page_text(520, 820, "Página {PAGE_NUM} de {PAGE_COUNT}", null, 8, array(0, 0, 0));
+        $dompdf->render();
+
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')
@@ -268,6 +270,7 @@ class ReportesController extends Controller
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')
@@ -633,15 +636,8 @@ class ReportesController extends Controller
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $canvas = $dompdf->getCanvas();
-        $canvas->page_text(
-            520,
-            820,
-            "Página {PAGE_NUM} de {PAGE_COUNT}",
-            null,
-            8,
-            array(0, 0, 0)
-        );
+
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')
@@ -797,6 +793,7 @@ class ReportesController extends Controller
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')

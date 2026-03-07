@@ -23,7 +23,7 @@ if (!function_exists('dte_siglas')) {
     function dte_siglas()
     {
         return [
-            '01' => 'FE',
+            '01' => 'FAC',
             '03' => 'CCFE',
             '04' => 'NRE',
             '05' => 'NCE',
