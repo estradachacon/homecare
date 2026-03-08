@@ -2,159 +2,215 @@
 <html>
 
 <head>
-<meta charset="UTF-8">
-<style>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: DejaVu Sans;
+            font-size: 10px;
+            color: #333;
+        }
 
-body {
-    font-family: DejaVu Sans;
-    font-size: 10px;
-    color: #333;
-}
+        h3 {
+            margin-bottom: 5px;
+        }
 
-h3 { margin-bottom: 5px; }
+        .header-info {
+            margin-bottom: 12px;
+            font-size: 9px;
+        }
 
-.header-info {
-    margin-bottom: 12px;
-    font-size: 9px;
-}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 10px;
-}
+        th,
+        td {
+            border: 0.5px solid #999;
+            padding: 5px;
+        }
 
-th, td {
-    border: 0.5px solid #999;
-    padding: 5px;
-}
+        th {
+            background: #1f4e79;
+            color: #fff;
+            font-weight: bold;
+        }
 
-th {
-    background: #1f4e79;
-    color: #fff;
-    font-weight: bold;
-}
+        .text-right {
+            text-align: right;
+        }
 
-.text-right { text-align: right; }
+        .tipo-header {
+            background: #1f4e79;
+            color: #fff;
+            font-weight: bold;
+            padding: 6px;
+            margin-top: 15px;
+        }
 
-.tipo-header {
-    background: #1f4e79;
-    color: #fff;
-    font-weight: bold;
-    padding: 6px;
-    margin-top: 15px;
-}
+        .totales {
+            background: #e2efda;
+            font-weight: bold;
+        }
 
-.totales {
-    background: #e2efda;
-    font-weight: bold;
-}
-
-.totales td {
-    border-top: 2px solid #548235;
-}
-
-</style>
+        .totales td {
+            border-top: 2px solid #548235;
+        }
+    </style>
 </head>
 
 <body>
 
-<h3>REPORTE DE FACTURACIÓN - RESUMEN</h3>
+    <h3>
+        REPORTE DE FACTURACIÓN - RESUMEN
+        <?= !empty($cliente) ? ' — ' . esc($cliente->nombre) : '' ?>
+    </h3>
 
-<div class="header-info">
-    <strong>Desde:</strong> <?= date('d/m/Y', strtotime($desde)) ?>
-    &nbsp;&nbsp;&nbsp;
-    <strong>Hasta:</strong> <?= date('d/m/Y', strtotime($hasta)) ?>
-    &nbsp;&nbsp;&nbsp;
-    <strong>Generado:</strong> <?= esc($generado_en) ?>
-</div>
+    <div class="header-info">
 
-<?php
-$tiposDocumento = [
-    '01' => 'Factura de Consumidor Final Electrónica',
-    '03' => 'Comprobante de Crédito Fiscal Electrónico',
-    '04' => 'Nota de Remisión',
-    '05' => 'Nota de Crédito',
-    '06' => 'Nota de Débito',
-];
+        <strong>Desde:</strong> <?= date('d/m/Y', strtotime($desde)) ?>
 
-$aliasTipo = [
-    '01' => 'FACT-DTE',
-    '03' => 'CCF-DTE',
-    '04' => 'NR-DTE',
-    '05' => 'NC-DTE',
-    '06' => 'ND-DTE',
-];
+        &nbsp;&nbsp;&nbsp;
 
-// 🔥 Reorganizar por tipo
-$agrupado = [];
+        <strong>Hasta:</strong> <?= date('d/m/Y', strtotime($hasta)) ?>
 
-foreach ($reporte as $fecha => $tipos) {
-    foreach ($tipos as $tipo => $total) {
-        $agrupado[$tipo][$fecha] = $total;
+        &nbsp;&nbsp;&nbsp;
+
+        <strong>Generado:</strong> <?= esc($generado_en) ?>
+
+    </div>
+
+    <?php
+    $tiposDocumento = [
+        '01' => 'Factura de Consumidor Final Electrónica',
+        '03' => 'Comprobante de Crédito Fiscal Electrónico',
+        '04' => 'Nota de Remisión',
+        '05' => 'Nota de Crédito',
+        '06' => 'Nota de Débito',
+    ];
+
+    $aliasTipo = [
+        '01' => 'FACT-DTE',
+        '03' => 'CCF-DTE',
+        '04' => 'NR-DTE',
+        '05' => 'NC-DTE',
+        '06' => 'ND-DTE',
+    ];
+
+    // 🔥 Reorganizar por tipo
+    $agrupado = [];
+
+    foreach ($reporte as $fecha => $tipos) {
+        foreach ($tipos as $tipo => $data) {
+            $agrupado[$tipo][$fecha] = $data;
+        }
     }
-}
-?>
 
-<?php $granTotal = 0; ?>
+    $gt_base = 0;
+    $gt_iva = 0;
+    $gt_valor = 0;
+    $gt_ret = 0;
+    $gt_total = 0;
+    ?>
 
-<?php foreach ($agrupado as $tipo => $fechas): ?>
+    <?php foreach ($agrupado as $tipo => $fechas): ?>
 
-<div class="tipo-header">
-    TIPO DOCUMENTO:
-    <?= esc($tiposDocumento[$tipo] ?? 'Documento ' . $tipo) ?>
-</div>
+        <div class="tipo-header">
+            TIPO DOCUMENTO:
+            <?= esc($tiposDocumento[$tipo] ?? 'Documento ' . $tipo) ?>
+        </div>
 
-<table>
-<thead>
-<tr>
-    <th width="50%">Fecha</th>
-    <th width="50%" class="text-right">Total</th>
-</tr>
-</thead>
-<tbody>
+        <table>
+            <thead>
+                <tr>
+                    <th width="18%">Fecha</th>
+                    <th class="text-right">Total S/IVA</th>
+                    <th class="text-right">IVA 13%</th>
+                    <th class="text-right">Valor Venta</th>
+                    <th class="text-right">1% Ret</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
 
-<?php $totalTipo = 0; ?>
+                <?php $totalTipo = 0; ?>
 
-<?php foreach ($fechas as $fecha => $total): ?>
-<tr>
-    <td><?= date('d/m/Y', strtotime($fecha)) ?></td>
-    <td class="text-right">
-        $ <?= number_format($total, 2) ?>
-    </td>
-</tr>
-<?php 
-$totalTipo += $total;
-$granTotal += $total;
-?>
-<?php endforeach; ?>
+                <?php
+                $totalBase = 0;
+                $totalIva = 0;
+                $totalValor = 0;
+                $totalRet = 0;
+                $totalTipo = 0;
+                ?>
 
-</tbody>
+                <?php foreach ($fechas as $fecha => $data): ?>
 
-<tfoot>
-<tr class="totales">
-    <td class="text-right">
-        TOTAL <?= esc($aliasTipo[$tipo] ?? $tipo) ?>
-    </td>
-    <td class="text-right">
-        $ <?= number_format($totalTipo, 2) ?>
-    </td>
-</tr>
-</tfoot>
-</table>
+                    <tr>
+                        <td><?= date('d/m/Y', strtotime($fecha)) ?></td>
 
-<?php endforeach; ?>
+                        <td class="text-right">$ <?= number_format($data['base'], 2) ?></td>
+                        <td class="text-right">$ <?= number_format($data['iva'], 2) ?></td>
+                        <td class="text-right">$ <?= number_format($data['valor'], 2) ?></td>
+                        <td class="text-right">$ <?= number_format($data['ret'], 2) ?></td>
+                        <td class="text-right">$ <?= number_format($data['total'], 2) ?></td>
 
-<table>
-<tfoot>
-<tr class="totales">
-    <td class="text-right">TOTAL GENERAL</td>
-    <td class="text-right">
-        $ <?= number_format($granTotal, 2) ?>
-    </td>
-</tr>
-</tfoot>
-</table>
+                    </tr>
+
+                    <?php
+                    $totalBase  += $data['base'];
+                    $totalIva   += $data['iva'];
+                    $totalValor += $data['valor'];
+                    $totalRet   += $data['ret'];
+                    $totalTipo  += $data['total'];
+
+                    /* GRAN TOTALES */
+                    $gt_base  += $data['base'];
+                    $gt_iva   += $data['iva'];
+                    $gt_valor += $data['valor'];
+                    $gt_ret   += $data['ret'];
+                    $gt_total += $data['total'];
+                    ?>
+
+                <?php endforeach; ?>
+
+            </tbody>
+
+            <tfoot>
+                <tr class="totales">
+
+                    <td>TOTAL <?= esc($aliasTipo[$tipo] ?? $tipo) ?></td>
+
+                    <td class="text-right">$ <?= number_format($totalBase, 2) ?></td>
+                    <td class="text-right">$ <?= number_format($totalIva, 2) ?></td>
+                    <td class="text-right">$ <?= number_format($totalValor, 2) ?></td>
+                    <td class="text-right">$ <?= number_format($totalRet, 2) ?></td>
+                    <td class="text-right">$ <?= number_format($totalTipo, 2) ?></td>
+
+                </tr>
+            </tfoot>
+        </table>
+
+    <?php endforeach; ?>
+
+    <table>
+        <tfoot>
+
+            <tr class="totales">
+
+                <td>TOTAL GENERAL</td>
+
+                <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
+                <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
+                <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
+                <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
+                <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
+
+            </tr>
+
+        </tfoot>
+    </table>
 
 </body>
+
 </html>

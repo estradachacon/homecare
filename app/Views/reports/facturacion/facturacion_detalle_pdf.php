@@ -83,14 +83,23 @@ $siglas = dte_siglas();
 
 <body>
 
-    <h3>REPORTE DE FACTURACIÓN - DETALLE</h3>
+    <h3>
+        REPORTE DE FACTURACIÓN - DETALLE
+        <?= !empty($cliente) ? ' — ' . esc($cliente->nombre) : '' ?>
+    </h3>
 
     <div class="header-info">
+
         <strong>Desde:</strong> <?= date('d/m/Y', strtotime($desde)) ?>
+
         &nbsp;&nbsp;&nbsp;
+
         <strong>Hasta:</strong> <?= date('d/m/Y', strtotime($hasta)) ?>
+
         &nbsp;&nbsp;&nbsp;
+
         <strong>Generado:</strong> <?= esc($generado_en) ?>
+
     </div>
 
     <?php

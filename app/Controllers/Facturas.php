@@ -11,6 +11,8 @@ use App\Models\PagosDetailsModel;
 use App\Models\PagosHeadModel;
 use App\Models\TransactionModel;
 use App\Models\AccountModel;
+use App\Models\ProductoModel;
+use App\Models\ProductoMovimientoModel;
 
 class Facturas extends BaseController
 {
@@ -141,9 +143,11 @@ class Facturas extends BaseController
         }
 
         $facturaHeadModel = new FacturaHeadModel();
-
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
         $facturaJsonModel    = new FacturaJsonModel();
+
+        $productoModel = new ProductoModel();
+        $movimientoModel = new ProductoMovimientoModel();
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -161,6 +165,10 @@ class Facturas extends BaseController
 
             $contenido = file_get_contents($file->getTempName());
             $json = json_decode($contenido, true);
+
+                if (!$json || json_last_error() !== JSON_ERROR_NONE) {
+                    continue;
+                }
             $tipoDte = $json['identificacion']['tipoDte'] ?? null;
 
             $totalDte =
@@ -182,15 +190,12 @@ class Facturas extends BaseController
 
                     $totalGravada = round($base / 1.13, 2);
                     $totalIva     = round($totalGravada * 0.13, 2);
-
                 } else {
 
                     // Caso sin retención
                     $totalGravada = round($totalDte / 1.13, 2);
                     $totalIva     = round($totalDte - $totalGravada, 2);
-
                 }
-
             } else {
 
                 // Otros DTE
@@ -203,11 +208,8 @@ class Facturas extends BaseController
                         if (($t['codigo'] ?? null) == '20') {
                             $totalIva = (float) $t['valor'];
                         }
-
                     }
-
                 }
-
             }
 
             $codigoRelacionado = null;
@@ -449,16 +451,81 @@ class Facturas extends BaseController
 
             // INSERTAR DETALLES
             if (!empty($json['cuerpoDocumento'])) {
-
                 foreach ($json['cuerpoDocumento'] as $item) {
 
-                    $facturaDetalleModel->insert([
+                    // SOLO PRODUCTOS (NO SERVICIOS)
+                    if (($item['tipoItem'] ?? null) != 1) {
+                        continue;
+                    }
+
+                    $codigo = trim($item['codigo'] ?? '');
+                    $cantidad = (float)($item['cantidad'] ?? 0);
+
+                    // limpiar descripción (solo primera línea)
+                    $descripcion = trim($item['descripcion'] ?? '');
+                    $descripcion = strtok($descripcion, "\n");
+
+                    /*
+    ==============================
+    BUSCAR PRODUCTO POR CODIGO
+    ==============================
+    */
+
+                    $producto = null;
+                    $productoId = null;
+
+                    if ($codigo) {
+
+                        $producto = $productoModel
+                            ->where('codigo', $codigo)
+                            ->first();
+                    }
+
+                    if (!$producto) {
+
+                        if (!$productoModel->insert([
+                            'codigo' => $codigo,
+                            'descripcion' => $descripcion
+                        ])) {
+
+                            return $this->response->setJSON([
+                                'success' => false,
+                                'message' => 'Error creando producto',
+                                'errors' => $productoModel->errors(),
+                                'codigo' => $codigo
+                            ]);
+                        }
+
+                        $productoId = $productoModel->getInsertID();
+                    } else {
+
+                        $productoId = $producto->id;
+                    }
+
+                    if (!$productoId) {
+
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'No se pudo determinar el producto_id',
+                            'codigo' => $codigo,
+                            'descripcion' => $descripcion
+                        ]);
+                    }
+
+                    /*
+    ==============================
+    INSERTAR DETALLE
+    ==============================
+    */
+
+                    $detalleData = [
                         'factura_id'      => $facturaId,
+                        'producto_id'     => $productoId,
                         'num_item'        => $item['numItem'] ?? null,
                         'tipo_item'       => $item['tipoItem'] ?? null,
-                        'codigo'          => $item['codigo'] ?? null,
-                        'descripcion'     => $item['descripcion'] ?? null,
-                        'cantidad'        => $item['cantidad'] ?? 0,
+                        'codigo'          => $codigo,
+                        'descripcion'     => $descripcion,
+                        'cantidad'        => $cantidad,
                         'unidad_medida'   => $item['uniMedida'] ?? null,
                         'precio_unitario' => $item['precioUni'] ?? 0,
                         'monto_descuento' => $item['montoDescu'] ?? 0,
@@ -466,16 +533,52 @@ class Facturas extends BaseController
                         'venta_exenta'    => $item['ventaExenta'] ?? 0,
                         'venta_gravada'   => $item['ventaGravada'] ?? 0,
                         'iva_item'        => $item['ivaItem'] ?? 0,
-                    ]);
+                    ];
+
+                    if (!$facturaDetalleModel->insert($detalleData)) {
+
+                        $dbError = $facturaDetalleModel->db->error();
+
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Error insertando detalle',
+                            'model_errors' => $facturaDetalleModel->errors(),
+                            'db_error' => $dbError,
+                            'data' => $detalleData
+                        ]);
+                    }
+
+                    /*
+    ==============================
+    MOVIMIENTO INVENTARIO
+    ==============================
+    */
+
+                    if ($cantidad > 0) {
+
+                        $movimientoModel->insert([
+                            'producto_id' => $productoId,
+                            'tipo_movimiento' => 'venta',
+                            'cantidad' => -abs($cantidad),
+                            'referencia_tipo' => 'factura',
+                            'referencia_id' => $facturaId
+                        ]);
+                    }
                 }
             }
         }
 
         $db->transComplete();
+
         if ($db->transStatus() === false) {
+
+            $error = $db->error();
+
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error al procesar las facturas'
+                'message' => 'Error en base de datos',
+                'code' => $error['code'] ?? null,
+                'error' => $error['message'] ?? 'Error desconocido'
             ]);
         }
 

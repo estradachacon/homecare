@@ -572,6 +572,7 @@ class ReportesController extends Controller
         $hasta = $this->request->getGet('hasta');
         $modo  = $this->request->getGet('modo') ?? 'resumen';
         $tipo  = $this->request->getGet('tipo_documento');
+        $cliente_id = $this->request->getGet('cliente_id');
 
         $query = $facturaModel
             ->select('facturas_head.*, clientes.nombre as cliente_nombre')
@@ -582,6 +583,10 @@ class ReportesController extends Controller
 
         if (!empty($tipo)) {
             $query->where('tipo_dte', $tipo);
+        }
+
+        if (!empty($cliente_id)) {
+            $query->where('facturas_head.receptor_id', $cliente_id);
         }
 
         $facturas = $query
@@ -600,10 +605,41 @@ class ReportesController extends Controller
             if ($modo === 'resumen') {
 
                 if (!isset($reporte[$fecha][$tipoDte])) {
-                    $reporte[$fecha][$tipoDte] = 0;
+
+                    $reporte[$fecha][$tipoDte] = [
+                        'base'  => 0,
+                        'iva'   => 0,
+                        'valor' => 0,
+                        'ret'   => 0,
+                        'total' => 0
+                    ];
                 }
 
-                $reporte[$fecha][$tipoDte] += $factura->monto_total_operacion;
+                $base  = $factura->total_gravada ?? 0;
+                $iva   = $factura->total_iva ?? 0;
+                $valor = $factura->monto_total_operacion ?? 0;
+                $ret   = $factura->iva_rete1 ?? 0;
+                $total = $factura->total_pagar ?? 0;
+
+                $esAnulada = $factura->anulada == 1;
+
+                if ($esAnulada) {
+                    $base = $iva = $valor = $ret = $total = 0;
+                }
+
+                if ($factura->tipo_dte == '05') {
+                    $base  *= -1;
+                    $iva   *= -1;
+                    $valor *= -1;
+                    $ret   *= -1;
+                    $total *= -1;
+                }
+
+                $reporte[$fecha][$tipoDte]['base']  += $base;
+                $reporte[$fecha][$tipoDte]['iva']   += $iva;
+                $reporte[$fecha][$tipoDte]['valor'] += $valor;
+                $reporte[$fecha][$tipoDte]['ret']   += $ret;
+                $reporte[$fecha][$tipoDte]['total'] += $total;
             } else {
 
                 if (!isset($reporte[$tipoDte][$fecha])) {
@@ -618,11 +654,22 @@ class ReportesController extends Controller
             }
         }
 
+        ksort($reporte);
+
+        $cliente = null;
+
+        if (!empty($cliente_id)) {
+
+            $clienteModel = new ClienteModel();
+            $cliente = $clienteModel->find($cliente_id);
+        }
+
         $data = [
             'desde'       => $desde,
             'hasta'       => $hasta,
             'modo'        => $modo,
             'reporte'     => $reporte,
+            'cliente'     => $cliente,
             'generado_en' => date('d/m/Y H:i')
         ];
 
@@ -643,6 +690,81 @@ class ReportesController extends Controller
             ->setContentType('application/pdf')
             ->setBody($dompdf->output());
     }
+
+public function facturacionExcel()
+{
+    $facturaModel = new FacturaHeadModel();
+
+    $desde = $this->request->getGet('desde');
+    $hasta = $this->request->getGet('hasta');
+    $tipo  = $this->request->getGet('tipo_documento');
+    $cliente_id = $this->request->getGet('cliente_id');
+
+    $query = $facturaModel
+        ->select('facturas_head.*, clientes.nombre as cliente_nombre')
+        ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+        ->where('fecha_emision >=', $desde)
+        ->where('fecha_emision <=', $hasta)
+        ->where('tipo_dte !=', '14');
+
+    if (!empty($tipo)) {
+        $query->where('tipo_dte', $tipo);
+    }
+
+    /* FILTRO CLIENTE */
+    if (!empty($cliente_id)) {
+        $query->where('facturas_head.receptor_id', $cliente_id);
+    }
+
+    $facturas = $query
+        ->orderBy('tipo_dte', 'ASC')
+        ->orderBy('fecha_emision', 'ASC')
+        ->orderBy('numero_control', 'ASC')
+        ->findAll();
+
+    $reporte = [];
+
+    foreach ($facturas as $factura) {
+
+        $fecha = $factura->fecha_emision;
+        $tipoDte = $factura->tipo_dte;
+
+        if (!isset($reporte[$tipoDte][$fecha])) {
+            $reporte[$tipoDte][$fecha] = [
+                'facturas' => []
+            ];
+        }
+
+        $reporte[$tipoDte][$fecha]['facturas'][] = $factura;
+    }
+
+    /* BUSCAR CLIENTE PARA ENCABEZADO */
+    $cliente = null;
+
+    if (!empty($cliente_id)) {
+        $clienteModel = new ClienteModel();
+        $cliente = $clienteModel->find($cliente_id);
+    }
+
+    $data = [
+        'desde' => $desde,
+        'hasta' => $hasta,
+        'reporte' => $reporte,
+        'cliente' => $cliente,
+        'generado_en' => date('d/m/Y H:i')
+    ];
+
+    $filename = "reporte_facturacion_" . date('Ymd_His') . ".xls";
+
+    $html = "\xEF\xBB\xBF" . view('reports/facturacion/facturacion_detalle_excel', $data);
+
+    return $this->response
+        ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+        ->setHeader('Content-Disposition', 'attachment; filename="'.$filename.'"')
+        ->setHeader('Content-Transfer-Encoding', 'binary')
+        ->setBody($html);
+}
+
     public function estadoCuentaClientePDF()
     {
         $db = \Config\Database::connect();

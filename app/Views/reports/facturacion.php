@@ -45,7 +45,7 @@
                         <div class="row">
 
                             <!-- Fecha Desde -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>Desde</label>
                                     <input type="date"
@@ -56,13 +56,26 @@
                             </div>
 
                             <!-- Fecha Hasta -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>Hasta</label>
                                     <input type="date"
                                         name="hasta"
                                         class="form-control"
                                         value="<?= date('Y-m-d') ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Cliente</label>
+
+                                    <select name="cliente_id"
+                                            id="clienteSelect"
+                                            class="form-control cliente-select">
+
+                                        <option value="">Todos los clientes</option>
+
+                                    </select>
                                 </div>
                             </div>
 
@@ -77,12 +90,11 @@
                                     </select>
                                 </div>
                             </div>
-
                             <!-- Botones -->
-                            <div class="col-md-3 btn-container-adjust">
+                            <div class="col-md-6 btn-container-adjust">
                                 <div class="row">
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <button type="submit"
                                             name="modo"
                                             value="resumen"
@@ -93,17 +105,26 @@
                                         </button>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <button type="submit"
                                             name="modo"
                                             value="detalle"
                                             formaction="<?= base_url('reports/facturacion-pdf') ?>"
                                             class="btn btn-success btn-block btn-equal">
                                             <i class="fas fa-list mr-2"></i>
-                                            Detalle
+                                            Detalle PDF
                                         </button>
                                     </div>
+                                    <div class="col-md-4">
+                                        <button type="submit"
+                                            formaction="<?= base_url('reports/facturacion-excel') ?>"
+                                            class="btn btn-success btn-block btn-equal">
 
+                                            <i class="fas fa-file-excel mr-2"></i>
+                                            Detalle Excel
+
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

@@ -109,6 +109,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // -- Reportes de Facturación
     $routes->get('reports/facturacion', 'ReportesController::facturacion');
     $routes->get('reports/facturacion-pdf', 'ReportesController::facturacionPDF');
+    $routes->get('reports/facturacion-excel', 'ReportesController::facturacionExcel');
     // -- Reporte de estados de cuenta
     $routes->get('reports/estado-cuenta-cliente-pdf', 'ReportesController::estadoCuentaClientePdf');
 

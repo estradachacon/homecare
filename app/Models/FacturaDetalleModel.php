@@ -27,6 +27,7 @@ class FacturaDetalleModel extends Model
         'venta_exenta',
         'venta_gravada',
         'iva_item',
+        'producto_id',
     ];
 
     protected $useTimestamps = true;
