@@ -51,6 +51,56 @@
     .select2-container--default .select2-selection--multiple .select2-selection__choice__display {
         padding-left: 18px;
     }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 24px;
+    }
+
+    .switch input {
+        display: none;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ccc;
+        transition: .3s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+
+    .switch input:checked+.slider {
+        background: #28a745;
+    }
+
+    .switch input:checked+.slider:before {
+        transform: translateX(22px);
+    }
+
+    .switch-label {
+        display: block;
+        font-size: 13px;
+        color: #6c757d;
+        margin-top: 6px;
+    }
 </style>
 <div class="row align-items-end">
     <div class="col-md-12 mt-2">
@@ -259,6 +309,161 @@
         </div>
     </div>
     <div class="col-md-12 mt-3">
+
+        <div class="card">
+
+            <div class="card-header">
+                <h4>Reporte de Ventas por Tipo de Venta</h4>
+                <small class="text-muted">
+                    Genera el reporte de ventas filtrado por tipo de venta, vendedor o cliente.
+                </small>
+            </div>
+
+            <div class="card shadow-sm">
+
+                <div class="card-body">
+
+                    <form method="get" target="_blank">
+
+                        <div class="row">
+
+                            <!-- Fecha Desde -->
+                            <div class="col-md-2">
+                                <label>Desde</label>
+                                <input type="date"
+                                    name="desde"
+                                    class="form-control"
+                                    value="<?= date('Y-m-01') ?>">
+                            </div>
+
+                            <!-- Fecha Hasta -->
+                            <div class="col-md-2">
+                                <label>Hasta</label>
+                                <input type="date"
+                                    name="hasta"
+                                    class="form-control"
+                                    value="<?= date('Y-m-d') ?>">
+                            </div>
+
+                            <!-- Tipo de Venta -->
+                            <div class="col-md-3">
+                                <label>Tipo de Venta</label>
+
+                                <select name="tipo_venta[]"
+                                    class="form-control tipo-venta-select"
+                                    multiple>
+
+                                </select>
+
+                            </div>
+
+                            <!-- Clasificado por -->
+                            <div class="col-md-2">
+                                <label>Clasificado por</label>
+
+                                <select name="clasificado"
+                                    class="form-control">
+
+                                    <option value="vendedor">
+                                        Vendedor
+                                    </option>
+
+                                    <option value="cliente">
+                                        Cliente
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <!-- Nivel -->
+                            <div class="col-md-3">
+                                <label>Nivel de Reporte</label>
+
+                                <select name="nivel"
+                                    class="form-control">
+
+                                    <option value="detalle">
+                                        Detalle por factura
+                                    </option>
+
+                                    <option value="resumen">
+                                        Resumen
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                            <!-- Vendedor -->
+                            <div class="col-md-6 mt-2">
+
+                                <label>Vendedor</label>
+
+                                <select name="vendedores[]"
+                                    class="form-control vendedor-select"
+                                    multiple>
+
+                                    <!-- cargado por ajax -->
+
+                                </select>
+
+                            </div>
+
+                            <!-- Mostrar items -->
+                            <div class="col-md-2 mt-4 text-center">
+
+                                <label class="switch">
+                                    <input type="checkbox" name="mostrar_items" value="1">
+                                    <span class="slider"></span>
+                                </label>
+
+                                <span class="switch-label">
+                                    Mostrar detalle de items
+                                </span>
+
+                            </div>
+
+                            <!-- Salto de página -->
+                            <div class="col-md-2 mt-4 text-center">
+
+                                <label class="switch">
+                                    <input type="checkbox" name="salto_tipo" value="1">
+                                    <span class="slider"></span>
+                                </label>
+
+                                <span class="switch-label">
+                                    Salto de página por tipo
+                                </span>
+
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="col-md-2 mt-3">
+
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/ventas-tipo-pdf') ?>"
+                                    class="btn btn-success btn-block">
+
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    Detalle PDF
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <div class="col-md-12 mt-3">
         <div class="card">
 
             <div class="card-header">
@@ -446,6 +651,58 @@
                     return data;
                 }
             }
+        });
+
+        $('.vendedor-select').each(function() {
+
+            if ($(this).hasClass("select2-hidden-accessible")) return;
+
+            $(this).select2({
+                placeholder: 'Buscar vendedores...',
+                multiple: true,
+                minimumInputLength: 2,
+                ajax: {
+                    url: "<?= base_url('sellers/searchAjax') ?>",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term,
+                            select2: 1
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                }
+            });
+
+        });
+
+        $('.tipo-venta-select').each(function() {
+
+            if ($(this).hasClass("select2-hidden-accessible")) return;
+
+            $(this).select2({
+                placeholder: 'Buscar tipo de venta...',
+                multiple: true,
+                minimumInputLength: 1,
+                ajax: {
+                    url: "<?= base_url('tipo_venta/searchAjax') ?>",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term,
+                            select2: 1
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                }
+            });
+
         });
     });
 </script>

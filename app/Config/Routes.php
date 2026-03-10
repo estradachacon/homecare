@@ -112,6 +112,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/facturacion-excel', 'ReportesController::facturacionExcel');
     $routes->get('reports/ventas-cliente-pdf', 'ReportesController::ventasClientePDF');
     $routes->get('reports/ventas-cliente-excel', 'ReportesController::ventasClienteExcel'); 
+    $routes->get('reports/ventas-tipo-pdf', 'ReportesController::ventasTipoPDF');
     // -- Reportes Facturación/Vendedor (pruebas)
     $routes->get('reports/facturacion-vendedores-pdf', 'ReportesController::facturacionVendedoresPDF');
     $routes->get('reports/ventas-vendedores-excel', 'ReportesController::ventasVendedoresExcel');
