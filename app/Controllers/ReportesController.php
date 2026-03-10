@@ -6,6 +6,11 @@ use CodeIgniter\Controller;
 use App\Models\FacturaHeadModel;
 use App\Models\ClienteModel;
 use App\Models\SettingModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class ReportesController extends Controller
 {
@@ -25,6 +30,7 @@ class ReportesController extends Controller
     {
         return view('reports/facturacion');
     }
+
     private function applyPdfHeader($dompdf)
     {
         $settingModel = new SettingModel();
@@ -54,6 +60,10 @@ class ReportesController extends Controller
             [0, 0, 0]
         );
     }
+
+
+
+    // REPORTES DE CUENTAS POR COBRAR
     public function saldosAntiguedad()
     {
         $facturaModel = new FacturaHeadModel();
@@ -563,7 +573,387 @@ class ReportesController extends Controller
             ->setBody($dompdf->output());
     }
 
-    // Reportes de facturación
+
+
+
+    // REPORTES DE FACTURACIÓN
+
+    public function ventasClienteExcel()
+    {
+        $facturaModel = new FacturaHeadModel();
+        $clienteModel = new ClienteModel();
+
+        $desde = $this->request->getGet('desde');
+        $hasta = $this->request->getGet('hasta');
+        $tipo  = $this->request->getGet('tipo_documento');
+        $cliente_id = $this->request->getGet('cliente_id');
+
+        $query = $facturaModel
+            ->select('facturas_head.*, clientes.nombre as cliente_nombre')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->where('fecha_emision >=', $desde)
+            ->where('fecha_emision <=', $hasta)
+            ->where('tipo_dte !=', '14');
+
+        if (!empty($tipo)) {
+            $query->where('tipo_dte', $tipo);
+        }
+
+        if (!empty($cliente_id)) {
+            $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        $facturas = $query
+            ->orderBy('clientes.nombre', 'ASC')
+            ->orderBy('tipo_dte', 'ASC')
+            ->orderBy('fecha_emision', 'ASC')
+            ->findAll();
+
+
+        /* AGRUPACIÓN ORIGINAL */
+        $reporte = [];
+
+        foreach ($facturas as $factura) {
+
+            $cliente = $factura->cliente_nombre;
+            $tipoDte = $factura->tipo_dte;
+
+            if (!isset($reporte[$cliente])) {
+                $reporte[$cliente] = [];
+            }
+
+            if (!isset($reporte[$cliente][$tipoDte])) {
+                $reporte[$cliente][$tipoDte] = [
+                    'facturas' => []
+                ];
+            }
+
+            $reporte[$cliente][$tipoDte]['facturas'][] = $factura;
+        }
+
+
+        $cliente = null;
+
+        if (!empty($cliente_id)) {
+            $cliente = $clienteModel->find($cliente_id);
+        }
+
+
+        $tiposDocumento = dte_tipos();
+        $siglas = dte_siglas();
+
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $row = 1;
+
+        /* TITULO */
+
+        $sheet->setCellValue("A$row", "REPORTE DE VENTAS POR CLIENTE");
+        $sheet->mergeCells("A$row:I$row");
+
+        $row += 2;
+
+        /* INFORMACIÓN */
+
+        $sheet->setCellValue("A$row", "Desde:");
+        $sheet->setCellValue("B$row", $desde);
+
+        $sheet->setCellValue("D$row", "Hasta:");
+        $sheet->setCellValue("E$row", $hasta);
+
+        $sheet->setCellValue("G$row", "Generado:");
+        $sheet->setCellValue("H$row", date('d/m/Y H:i'));
+
+        $row += 2;
+
+
+        /* HEADERS */
+
+        $headers = [
+            "Fecha",
+            "Tipo",
+            "Número",
+            "Cliente",
+            "Total S/IVA",
+            "IVA 13%",
+            "Valor Venta",
+            "1% Ret",
+            "Total"
+        ];
+
+        $col = 'A';
+
+        foreach ($headers as $h) {
+
+            $sheet->setCellValue($col . $row, $h);
+
+            $sheet->getStyle($col . $row)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('1F4E79');
+
+            $sheet->getStyle($col . $row)->getFont()->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle($col . $row)->getFont()->setBold(true);
+
+            $col++;
+        }
+
+        $row++;
+
+
+        $gt_base = 0;
+        $gt_iva = 0;
+        $gt_valor = 0;
+        $gt_ret = 0;
+        $gt_total = 0;
+
+
+        foreach ($reporte as $clienteNombre => $tipos) {
+
+            /* CLIENTE */
+
+            $sheet->setCellValue("A$row", "CLIENTE: " . $clienteNombre);
+            $sheet->mergeCells("A$row:I$row");
+
+            $sheet->getStyle("A$row")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('DDEBF7');
+
+            $row++;
+
+
+            foreach ($tipos as $tipo => $data) {
+
+                $sheet->setCellValue("A$row", "TIPO DOCUMENTO: " . ($tiposDocumento[$tipo] ?? $tipo));
+                $sheet->mergeCells("A$row:I$row");
+
+                $row++;
+
+                $sub_base = 0;
+                $sub_iva = 0;
+                $sub_valor = 0;
+                $sub_ret = 0;
+                $sub_total = 0;
+
+
+                foreach ($data['facturas'] as $factura) {
+
+                    $base = $factura->total_gravada ?? 0;
+                    $iva = $factura->total_iva ?? 0;
+                    $valor = $factura->monto_total_operacion ?? 0;
+                    $ret = $factura->iva_rete1 ?? 0;
+                    $total = $factura->total_pagar ?? 0;
+
+                    if ($factura->tipo_dte == '05') {
+                        $base *= -1;
+                        $iva *= -1;
+                        $valor *= -1;
+                        $ret *= -1;
+                        $total *= -1;
+                    }
+
+                    if ($factura->anulada) {
+                        $base = $iva = $valor = $ret = $total = 0;
+                    }
+
+                    $excelDate = Date::PHPToExcel(new \DateTime($factura->fecha_emision));
+
+                    $sheet->setCellValue("A$row", $excelDate);
+
+                    $sheet->getStyle("A$row")
+                        ->getNumberFormat()
+                        ->setFormatCode(NumberFormat::FORMAT_DATE_DDMMYYYY);
+                    $sheet->setCellValue("B$row", $siglas[$factura->tipo_dte] ?? $factura->tipo_dte);
+                    $sheet->setCellValue("C$row", substr($factura->numero_control, -6));
+                    $sheet->setCellValue("D$row", $factura->cliente_nombre);
+
+                    $sheet->setCellValue("E$row", $base);
+                    $sheet->setCellValue("F$row", $iva);
+                    $sheet->setCellValue("G$row", $valor);
+                    $sheet->setCellValue("H$row", $ret);
+                    $sheet->setCellValue("I$row", $total);
+                    $sheet->getStyle("E$row:I$row")
+                        ->getNumberFormat()
+                        ->setFormatCode('"$"#,##0.00');
+
+                    $sub_base += $base;
+                    $sub_iva += $iva;
+                    $sub_valor += $valor;
+                    $sub_ret += $ret;
+                    $sub_total += $total;
+
+                    $gt_base += $base;
+                    $gt_iva += $iva;
+                    $gt_valor += $valor;
+                    $gt_ret += $ret;
+                    $gt_total += $total;
+
+                    $row++;
+                }
+
+                /* SUBTOTAL */
+
+                $sheet->setCellValue("A$row", "SUBTOTAL " . ($siglas[$tipo] ?? $tipo));
+                $sheet->mergeCells("A$row:D$row");
+
+                $sheet->setCellValue("E$row", $sub_base);
+                $sheet->setCellValue("F$row", $sub_iva);
+                $sheet->setCellValue("G$row", $sub_valor);
+                $sheet->setCellValue("H$row", $sub_ret);
+                $sheet->setCellValue("I$row", $sub_total);
+                $sheet->getStyle("E$row:I$row")
+                    ->getNumberFormat()
+                    ->setFormatCode('"$"#,##0.00');
+
+                $sheet->getStyle("A$row:I$row")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('E2EFDA');
+
+                $row += 2;
+            }
+        }
+
+
+        /* GRAN TOTAL */
+        $sheet->setCellValue("A$row", "GRAN TOTAL");
+        $sheet->mergeCells("A$row:D$row");
+
+        $sheet->setCellValue("E$row", $gt_base);
+        $sheet->setCellValue("F$row", $gt_iva);
+        $sheet->setCellValue("G$row", $gt_valor);
+        $sheet->setCellValue("H$row", $gt_ret);
+        $sheet->setCellValue("I$row", $gt_total);
+
+        $sheet->getStyle("E$row:I$row")
+            ->getNumberFormat()
+            ->setFormatCode('"$"#,##0.00');
+
+        $sheet->getStyle("A$row:I$row")->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('C6E0B4');
+
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+
+        $filename = "ventas_cliente_" . date('Ymd_His') . ".xlsx";
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function ventasClientePDF()
+    {
+        $facturaModel = new FacturaHeadModel();
+
+        $desde = $this->request->getGet('desde');
+        $hasta = $this->request->getGet('hasta');
+        $tipo  = $this->request->getGet('tipo_documento');
+        $cliente_id = $this->request->getGet('cliente_id');
+
+        $query = $facturaModel
+            ->select('facturas_head.*, clientes.nombre as cliente_nombre')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->where('fecha_emision >=', $desde)
+            ->where('fecha_emision <=', $hasta)
+            ->where('tipo_dte !=', '14'); // excluir sujeto excluido
+
+        if (!empty($tipo)) {
+            $query->where('tipo_dte', $tipo);
+        }
+
+        if (!empty($cliente_id)) {
+            $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        $facturas = $query
+            ->orderBy('clientes.nombre', 'ASC')
+            ->orderBy('tipo_dte', 'ASC')
+            ->orderBy('fecha_emision', 'ASC')
+            ->orderBy('numero_control', 'ASC')
+            ->findAll();
+
+        $reporte = [];
+
+        foreach ($facturas as $factura) {
+
+            $cliente = $factura->cliente_nombre;
+            $tipoDte = $factura->tipo_dte;
+
+            if (!isset($reporte[$cliente])) {
+
+                $reporte[$cliente] = [];
+            }
+
+            if (!isset($reporte[$cliente][$tipoDte])) {
+
+                $reporte[$cliente][$tipoDte] = [
+                    'facturas' => [],
+                    'totales' => [
+                        'base' => 0,
+                        'iva' => 0,
+                        'valor' => 0,
+                        'ret' => 0,
+                        'total' => 0
+                    ]
+                ];
+            }
+
+            $base  = $factura->total_gravada ?? 0;
+            $iva   = $factura->total_iva ?? 0;
+            $valor = $factura->monto_total_operacion ?? 0;
+            $ret   = $factura->iva_rete1 ?? 0;
+            $total = $factura->total_pagar ?? 0;
+
+            if ($factura->anulada) {
+                $base = $iva = $valor = $ret = $total = 0;
+            }
+
+            if ($factura->tipo_dte == '05') {
+                $base *= -1;
+                $iva *= -1;
+                $valor *= -1;
+                $ret *= -1;
+                $total *= -1;
+            }
+
+            $reporte[$cliente][$tipoDte]['facturas'][] = $factura;
+
+            $reporte[$cliente][$tipoDte]['totales']['base']  += $base;
+            $reporte[$cliente][$tipoDte]['totales']['iva']   += $iva;
+            $reporte[$cliente][$tipoDte]['totales']['valor'] += $valor;
+            $reporte[$cliente][$tipoDte]['totales']['ret']   += $ret;
+            $reporte[$cliente][$tipoDte]['totales']['total'] += $total;
+        }
+
+        $data = [
+            'desde'       => $desde,
+            'hasta'       => $hasta,
+            'reporte'     => $reporte,
+            'generado_en' => date('d/m/Y H:i')
+        ];
+
+        $html = view('reports/facturacion/clientes/ventas_cliente_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
     public function facturacionPDF()
     {
         $facturaModel = new FacturaHeadModel();
@@ -905,6 +1295,7 @@ class ReportesController extends Controller
             ->setContentType('application/pdf')
             ->setBody($dompdf->output());
     }
+
     public function facturacionVendedoresPDF()
     {
         $facturaModel = new FacturaHeadModel();

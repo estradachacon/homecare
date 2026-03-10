@@ -160,6 +160,104 @@
 
         </div>
     </div>
+    <div class="col-md-12 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>Reporte de Ventas por Cliente</h4>
+                <small class="text-muted">
+                    Genera el detalle de ventas agrupado por cliente y tipo de documento.
+                </small>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <form method="get" target="_blank">
+
+                        <div class="row">
+
+                            <!-- Fecha Desde -->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Desde</label>
+                                    <input type="date"
+                                        name="desde"
+                                        class="form-control"
+                                        value="<?= date('Y-m-01') ?>">
+                                </div>
+                            </div>
+
+                            <!-- Fecha Hasta -->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Hasta</label>
+                                    <input type="date"
+                                        name="hasta"
+                                        class="form-control"
+                                        value="<?= date('Y-m-d') ?>">
+                                </div>
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Cliente</label>
+
+                                    <select name="cliente_id"
+                                        class="form-control cliente-select">
+
+                                        <option value="">Todos los clientes</option>
+
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- Tipo Documento -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Tipo Documento</label>
+
+                                    <select name="tipo_documento" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="01">Factura</option>
+                                        <option value="03">Crédito Fiscal</option>
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="col-md-2 mt-2">
+
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/ventas-cliente-pdf') ?>"
+                                    class="btn btn-success btn-block">
+
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    Detalle PDF
+
+                                </button>
+
+                            </div>
+                            <div class="col-md-2 mt-2">
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/ventas-cliente-excel') ?>"
+                                    class="btn btn-success btn-block btn-equal">
+
+                                    <i class="fas fa-file-excel mr-2"></i>
+                                    Detalle Excel
+
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="col-md-12 mt-3">
         <div class="card">
 
