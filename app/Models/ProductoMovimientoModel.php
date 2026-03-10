@@ -17,6 +17,7 @@ class ProductoMovimientoModel extends Model
         'producto_id',
         'tipo_movimiento',
         'cantidad',
+        'costo_unitario',
         'referencia_tipo',
         'referencia_id',
     ];
@@ -25,12 +26,6 @@ class ProductoMovimientoModel extends Model
     protected $createdField  = 'created_at';
 
     protected $skipValidation = false;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Métodos útiles
-    |--------------------------------------------------------------------------
-    */
 
     public function registrarVenta($productoId, $cantidad, $facturaId)
     {

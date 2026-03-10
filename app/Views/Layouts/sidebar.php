@@ -179,63 +179,34 @@
                 <?php endif; ?>
 
                 <?php if (
-                    tienePermiso('crear_paquetes') ||
-                    tienePermiso('ver_paquetes') ||
-                    tienePermiso('ver_tracking')
+                    tienePermiso('ver_inventario') 
                 ): ?>
+                <a class="nav-link collapsed" href="#"
+                    data-toggle="collapse"
+                    data-target="#inventario"
+                    aria-expanded="false"
+                    aria-controls="inventario">
 
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sales" aria-expanded="false"
-                        aria-controls="sales">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-box-open"></i></div>
-                        Paquetería
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                    </a>
-
-                    <div class="collapse" id="sales" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-
-                            <?php if (tienePermiso('crear_paquetes')): ?>
-                                <a class="nav-link" href="/packages/new">Registrar paquete</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_paquetes')): ?>
-                                <a class="nav-link" href="/packages">Lista de paquetes</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_tracking')): ?>
-                                <a class="nav-link" href="/tracking">Seguimiento de paquetes</a>
-                            <?php endif; ?>
-
-                        </nav>
+                    <div class="sb-nav-link-icon">
+                        <i class="fa-solid fa-boxes-packing"></i>
                     </div>
-                <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('remunerar_paquetes') ||
-                    tienePermiso('devolver_paquetes') ||
-                    tienePermiso('remunerar_paquetes_por_cuenta')
-                ): ?>
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#treasury"
-                        aria-expanded="false" aria-controls="treasury">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
-                        Remuneraciones
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                    </a>
-                    <div class="collapse" id="treasury" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav" id="navAccordionTreasury">
-                            <?php if (tienePermiso('remunerar_paquetes')): ?>
-                                <a class="nav-link" href="/remu/create">Remunerar paquetes</a>
-                            <?php endif; ?>
+                    Inventario
 
-                            <?php if (tienePermiso('remunerar_paquetes_por_cuenta')): ?>
-                                <a class="nav-link" href="/remuaccount/create">Remunerar paquetes por cuenta</a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('devolver_paquetes')): ?>
-                                <a class="nav-link" href="/packages/return">Devolución de paquetes</a>
-                            <?php endif; ?>
-                        </nav>
+                    <div class="sb-sidenav-collapse-arrow">
+                        <i class="fa-solid fa-angle-down"></i>
                     </div>
+                </a>
+
+                <div class="collapse" id="inventario" data-parent="#sidenavAccordion">
+                    <nav class="sb-sidenav-menu-nested nav">
+                        <?php if (tienePermiso('ver_inventario')): ?>
+                            <a class="nav-link" href="/inventory">
+                                Inventario
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+                </div>
                 <?php endif; ?>
 
                 <?php if (
@@ -254,28 +225,6 @@
                         <div class="sb-nav-link-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                         Tipos de venta
                     </a>
-                <?php endif; ?>
-
-                <?php if (
-                    tienePermiso('ver_puntosfijos') ||
-                    tienePermiso('ver_rutas')
-                ): ?>
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#settledpoint"
-                        aria-expanded="false" aria-controls="settledpoint">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-map-marker-alt"></i></div>
-                        Puntos fijos y Rutas
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                    </a>
-                    <div class="collapse" id="settledpoint" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-                            <?php if (tienePermiso('ver_puntosfijos')): ?>
-                                <a class="nav-link" href="/settledpoint">Puntos fijos</a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ver_rutas')): ?>
-                                <a class="nav-link" href="/routes">Rutas</a>
-                            <?php endif; ?>
-                        </nav>
-                    </div>
                 <?php endif; ?>
 
                 <?php if (

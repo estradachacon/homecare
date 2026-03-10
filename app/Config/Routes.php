@@ -110,6 +110,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/facturacion', 'ReportesController::facturacion');
     $routes->get('reports/facturacion-pdf', 'ReportesController::facturacionPDF');
     $routes->get('reports/facturacion-excel', 'ReportesController::facturacionExcel');
+    $routes->get('reports/facturacion-vendedores-pdf', 'ReportesController::facturacionVendedoresPDF');
+    $routes->get('reports/ventas-vendedores-excel', 'ReportesController::ventasVendedoresExcel');
     // -- Reporte de estados de cuenta
     $routes->get('reports/estado-cuenta-cliente-pdf', 'ReportesController::estadoCuentaClientePdf');
 
@@ -152,4 +154,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('payments/store', 'PaymentController::store');
     $routes->get('payments/(:num)', 'PaymentController::show/$1');
     $routes->get('payments/anular/(:num)', 'PaymentController::anular/$1');
+
+    // Rutas para el módulo de inventarios
+    $routes->get('inventory', 'InventoryController::index');
+    $routes->post('productos/delete/(:num)', 'InventoryController::delete/$1');
+    $routes->get('inventory/excel', 'InventoryController::excel');
+    $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
 });

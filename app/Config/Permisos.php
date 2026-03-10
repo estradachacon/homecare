@@ -44,6 +44,10 @@ class Permisos extends BaseConfig
             'registrar_transferencia',
         ],
 
+        'Inventario' => [
+            'ver_inventario',
+        ],
+
         'Reportes' => [
             'ver_reportes',
         ],
