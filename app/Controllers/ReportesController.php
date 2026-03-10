@@ -808,6 +808,7 @@ class ReportesController extends Controller
             'clasificado' => $clasificado,
             'mostrarItems' => $mostrarItems,
             'saltoTipo' => $saltoTipo,
+            'nivel' => $nivel,
             'generado_en' => date('d/m/Y H:i')
         ];
 

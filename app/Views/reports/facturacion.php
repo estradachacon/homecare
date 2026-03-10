@@ -380,8 +380,7 @@
                             <div class="col-md-3">
                                 <label>Nivel de Reporte</label>
 
-                                <select name="nivel"
-                                    class="form-control">
+                                <select name="nivel" id="nivelReporte" class="form-control">
 
                                     <option value="detalle">
                                         Detalle por factura
@@ -414,7 +413,7 @@
                             <div class="col-md-2 mt-4 text-center">
 
                                 <label class="switch">
-                                    <input type="checkbox" name="mostrar_items" value="1">
+                                    <input type="checkbox" id="mostrarItemsSwitch" name="mostrar_items" value="1">
                                     <span class="slider"></span>
                                 </label>
 
@@ -439,7 +438,7 @@
                             </div>
 
                             <!-- Botón -->
-                            <div class="col-md-2 mt-3">
+                            <div class="col-md-2 mt-2">
 
                                 <button type="submit"
                                     formaction="<?= base_url('reports/ventas-tipo-pdf') ?>"
@@ -703,6 +702,38 @@
                 }
             });
 
+        });
+
+        function controlarItems() {
+
+            let nivel = $('#nivelReporte').val();
+            let sw = $('#mostrarItemsSwitch');
+
+            if (nivel === 'resumen') {
+
+                sw.prop('checked', false);
+                sw.prop('disabled', true);
+
+                sw.closest('.switch').css({
+                    'opacity': '0.4',
+                    'cursor': 'not-allowed'
+                });
+
+            } else {
+
+                sw.prop('disabled', false);
+
+                sw.closest('.switch').css({
+                    'opacity': '1',
+                    'cursor': 'pointer'
+                });
+            }
+        }
+
+        $('#nivelReporte').on('change', controlarItems);
+
+        $(document).ready(function() {
+            controlarItems();
         });
     });
 </script>
