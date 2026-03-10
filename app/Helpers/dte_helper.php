@@ -24,7 +24,7 @@ if (!function_exists('dte_siglas')) {
     {
         return [
             '01' => 'FAC',
-            '03' => 'CCFE',
+            '03' => 'CCF',
             '04' => 'NRE',
             '05' => 'NCE',
             '06' => 'NDE',
@@ -43,7 +43,7 @@ if (!function_exists('dte_descripciones')) {
     {
         return [
             'FAC'   => 'Factura Electrónica',
-            'CCFE' => 'Comprobante de Crédito Fiscal Electrónico',
+            'CCF' => 'Comprobante de Crédito Fiscal Electrónico',
             'NCE'  => 'Nota de Crédito Electrónica',
             'NDE'  => 'Nota de Débito Electrónica',
             'NRE'  => 'Nota de Remisión Electrónica',

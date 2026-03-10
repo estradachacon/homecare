@@ -135,6 +135,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('sellers/create-ajax', 'SellerController::createAjax');
     $routes->get('sellers/searchAjax', 'SellerController::searchAjax');
     $routes->get('sellers/filter-for-packages', 'SellerController::filterForPackages');
+    $routes->post('facturas/cambiar-vendedor', 'Facturas::cambiarVendedor');
 
     // Rutas para el módulo de clientes
     $routes->get('clientes', 'ClienteController::index');

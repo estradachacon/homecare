@@ -27,6 +27,7 @@ class Permisos extends BaseConfig
             'crear_vendedor',
             'editar_vendedor',
             'eliminar_vendedor',
+            'editar_vendedor_en_detalle'
         ],
         
         'Cuentas por cobrar' => [

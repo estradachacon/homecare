@@ -1,6 +1,24 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    .swal2-container .select2-container .select2-selection--single {
+        height: 42px !important;
+        padding: 6px 10px;
+        font-size: 15px;
+    }
 
+    .swal2-container .select2-selection__rendered {
+        line-height: 28px !important;
+    }
+
+    .swal2-container .select2-selection__arrow {
+        height: 40px !important;
+    }
+
+    .swal2-container .select2-container {
+        width: 100% !important;
+    }
+</style>
 <?php
 // Calcular subtotal desde los productos
 $subtotalProductos = 0;
@@ -290,7 +308,23 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                             <small class="text-muted mt-2 d-block">Vendedor</small>
                             <div class="fw-semibold">
-                                <strong><?= esc($factura->vendedor ?? 'N/D') ?></strong>
+                                <?php if (tienePermiso('editar_vendedor_en_detalle')): ?>
+
+                                    <strong
+                                        id="editarVendedorFactura"
+                                        data-factura="<?= $factura->id ?>"
+                                        style="cursor:pointer; border-bottom:1px dashed #999;"
+                                        title="Cambiar vendedor">
+
+                                        <?= esc($factura->vendedor ?? 'N/D') ?>
+
+                                    </strong>
+
+                                <?php else: ?>
+
+                                    <strong><?= esc($factura->vendedor ?? 'N/D') ?></strong>
+
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -672,6 +706,84 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                 });
 
         }
+
+    });
+    document.getElementById('editarVendedorFactura')?.addEventListener('click', function() {
+
+        const facturaId = this.dataset.factura;
+
+        Swal.fire({
+            title: 'Cambiar vendedor',
+            html: `<select id="swalSellerSelect" style="width:100%"></select>`,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            didOpen: () => {
+
+                $('#swalSellerSelect').select2({
+                    placeholder: 'Buscar vendedor...',
+                    dropdownParent: $('.swal2-container'),
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: "<?= base_url('sellers/searchAjax') ?>",
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                q: params.term,
+                                select2: 1
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        }
+                    }
+                });
+
+            },
+            preConfirm: () => {
+
+                const seller = $('#swalSellerSelect').val();
+
+                if (!seller) {
+                    Swal.showValidationMessage('Debe seleccionar un vendedor');
+                }
+
+                return seller;
+
+            }
+
+        }).then(result => {
+
+            if (!result.isConfirmed) return;
+
+            fetch("<?= base_url('facturas/cambiar-vendedor') ?>", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        factura_id: facturaId,
+                        vendedor_id: result.value
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Vendedor actualizado' : 'Error',
+                        text: data.message
+                    });
+
+                    if (data.success) {
+                        setTimeout(() => location.reload(), 1200);
+                    }
+
+                });
+
+        });
 
     });
 </script>

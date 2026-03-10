@@ -945,4 +945,68 @@ CCF YA VIENE SIN IVA
             'total' => (float)$factura->total_pagar
         ]);
     }
+    public function cambiarVendedor()
+    {
+        if (!tienePermiso('editar_vendedor_en_detalle')) {
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No tiene permisos.'
+            ]);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        $facturaId  = $data['factura_id'] ?? null;
+        $vendedorId = $data['vendedor_id'] ?? null;
+
+        if (!$facturaId || !$vendedorId) {
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Datos incompletos.'
+            ]);
+        }
+
+        $facturaModel = new FacturaHeadModel();
+
+        $factura = $facturaModel->find($facturaId);
+
+        if (!$factura) {
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Factura no encontrada.'
+            ]);
+        }
+
+        $vendedorModel = new \App\Models\SellerModel();
+        $vendedor = $vendedorModel->find($vendedorId);
+
+        if (!$vendedor) {
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Vendedor inválido.'
+            ]);
+        }
+
+        $facturaModel->update($facturaId, [
+            'vendedor_id' => $vendedorId
+        ]);
+
+        registrar_bitacora(
+            'Cambio de vendedor en factura',
+            'Facturas',
+            'Se cambió el vendedor de la factura Nº ' .
+                substr($factura->numero_control, -6) .
+                ' a ' . $vendedor->seller,
+            session()->get('user_id')
+        );
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Vendedor actualizado correctamente.'
+        ]);
+    }
 }
