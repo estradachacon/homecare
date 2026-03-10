@@ -395,7 +395,7 @@
                             </div>
 
                             <!-- Vendedor -->
-                            <div class="col-md-6 mt-2">
+                            <div class="col-md-3 mt-2">
 
                                 <label>Vendedor</label>
 

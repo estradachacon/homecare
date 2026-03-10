@@ -166,9 +166,9 @@ class Facturas extends BaseController
             $contenido = file_get_contents($file->getTempName());
             $json = json_decode($contenido, true);
 
-                if (!$json || json_last_error() !== JSON_ERROR_NONE) {
-                    continue;
-                }
+            if (!$json || json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
             $tipoDte = $json['identificacion']['tipoDte'] ?? null;
 
             $totalDte =
@@ -453,12 +453,14 @@ class Facturas extends BaseController
             if (!empty($json['cuerpoDocumento'])) {
                 foreach ($json['cuerpoDocumento'] as $item) {
 
-                    // SOLO PRODUCTOS (NO SERVICIOS)
-                    if (($item['tipoItem'] ?? null) != 1) {
-                        continue;
-                    }
+                    $tipoItem = $item['tipoItem'] ?? null;
 
                     $codigo = trim($item['codigo'] ?? '');
+
+                    if ($tipoItem == 2) {
+                        $codigo = 'SERV';
+                    }
+
                     $cantidad = (float)($item['cantidad'] ?? 0);
 
                     // limpiar descripción (solo primera línea)
@@ -474,18 +476,15 @@ class Facturas extends BaseController
                     $producto = null;
                     $productoId = null;
 
-                    if ($codigo) {
-
-                        $producto = $productoModel
-                            ->where('codigo', $codigo)
-                            ->first();
-                    }
+                    $producto = $productoModel
+                        ->where('codigo', $codigo)
+                        ->first();
 
                     if (!$producto) {
 
                         if (!$productoModel->insert([
                             'codigo' => $codigo,
-                            'descripcion' => $descripcion
+                            'descripcion' => $tipoItem == 2 ? 'Servicio' : $descripcion
                         ])) {
 
                             return $this->response->setJSON([
@@ -518,6 +517,31 @@ class Facturas extends BaseController
     ==============================
     */
 
+                    $ventaGravada = (float) ($item['ventaGravada'] ?? 0);
+                    $ivaItem = (float) ($item['ivaItem'] ?? 0);
+
+                    /*
+================================================
+SEPARAR IVA PARA FACTURA CONSUMIDOR FINAL (01)
+================================================
+*/
+
+                    if ($tipoDte === '01') {
+
+                        // ventaGravada viene CON IVA
+                        $base = round($ventaGravada / 1.13, 2);
+                        $iva  = round($ventaGravada - $base, 2);
+
+                        $ventaGravada = $base;
+                        $ivaItem = $iva;
+                    }
+
+                    /*
+================================================
+CCF YA VIENE SIN IVA
+================================================
+*/
+
                     $detalleData = [
                         'factura_id'      => $facturaId,
                         'producto_id'     => $productoId,
@@ -531,8 +555,8 @@ class Facturas extends BaseController
                         'monto_descuento' => $item['montoDescu'] ?? 0,
                         'venta_no_sujeta' => $item['ventaNoSuj'] ?? 0,
                         'venta_exenta'    => $item['ventaExenta'] ?? 0,
-                        'venta_gravada'   => $item['ventaGravada'] ?? 0,
-                        'iva_item'        => $item['ivaItem'] ?? 0,
+                        'venta_gravada'   => $ventaGravada,
+                        'iva_item'        => $ivaItem,
                     ];
 
                     if (!$facturaDetalleModel->insert($detalleData)) {
@@ -554,7 +578,7 @@ class Facturas extends BaseController
     ==============================
     */
 
-                    if ($cantidad > 0) {
+                    if ($cantidad > 0 && $tipoItem == 1) {
 
                         $movimientoModel->insert([
                             'producto_id' => $productoId,
