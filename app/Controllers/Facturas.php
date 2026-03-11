@@ -481,10 +481,12 @@ class Facturas extends BaseController
                         ->first();
 
                     if (!$producto) {
-
+                        
+                    $tipoProducto = (int) $tipoItem; 
                         if (!$productoModel->insert([
                             'codigo' => $codigo,
-                            'descripcion' => $tipoItem == 2 ? 'Servicio' : $descripcion
+                            'descripcion' => $tipoItem == 2 ? 'Servicio' : $descripcion,
+                            'tipo' => $tipoProducto
                         ])) {
 
                             return $this->response->setJSON([

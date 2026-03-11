@@ -23,6 +23,7 @@ class InventoryController extends BaseController
         $estado = $this->request->getGet('estado');
         $stock  = $this->request->getGet('stock');
         $orden  = $this->request->getGet('orden');
+        $tipo = $this->request->getGet('tipo');
 
         $productoModel->conStock();
 
@@ -59,6 +60,10 @@ class InventoryController extends BaseController
             $perPage = 10000; // o un número grande
         }
 
+        if ($tipo !== '' && $tipo !== null) {
+            $productoModel->where('productos.tipo', $tipo);
+        }
+        
         $productos = $productoModel->paginate($perPage);
         $pager = $productoModel->pager;
 

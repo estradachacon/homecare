@@ -33,7 +33,7 @@
 
                     <div class="row g-2">
 
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <small class="text-muted">Buscar producto</small>
                             <input type="text" name="buscar" class="form-control">
                         </div>
@@ -46,7 +46,15 @@
                                 <option value="0">Inactivos</option>
                             </select>
                         </div>
-
+                        <div class="col-md-2">
+                            <small class="text-muted">Tipo</small>
+                            <select name="tipo" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="1">Bien</option>
+                                <option value="2">Servicio</option>
+                                <option value="3">Otro</option>
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <small class="text-muted">Stock</small>
                             <select name="stock" class="form-control">
@@ -135,6 +143,7 @@
             let stock = $('[name="stock"]').val();
             let orden = $('[name="orden"]').val();
             let perPage = $('[name="perPage"]').val();
+            let tipo = $('[name="tipo"]').val();
 
             const params = new URLSearchParams({
                 page: page,
@@ -142,7 +151,8 @@
                 buscar: buscar || '',
                 estado: estado || '',
                 stock: stock || '',
-                orden: orden || ''
+                orden: orden || '',
+                tipo: tipo || ''
             });
 
             fetch('<?= base_url('inventory') ?>?' + params.toString(), {
@@ -187,6 +197,11 @@
         $('[name="estado"], [name="stock"], [name="orden"], [name="perPage"]').on('change', function() {
             cargarProductos(1);
         });
+
+        $('[name="tipo"]').on('change', function() {
+            cargarProductos(1);
+        });
+       
     });
 
     $(document).on('click', '.btnEditar', function() {
@@ -317,6 +332,7 @@
         let estado = $('[name="estado"]').val();
         let stock = $('[name="stock"]').val();
         let orden = $('[name="orden"]').val();
+        let tipo = $('[name="tipo"]').val();
 
         const params = new URLSearchParams({
             buscar: buscar || '',

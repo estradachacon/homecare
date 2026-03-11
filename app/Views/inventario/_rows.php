@@ -4,8 +4,24 @@
 
         <tr>
             <td>
-                <div class="fw-semibold">
-                    <?= esc($p->descripcion) ?>
+                <div class="d-flex flex-column h-100">
+
+                    <strong><?= esc($p->descripcion) ?></strong>
+
+                    <?php
+                    $tipoTexto = 'Bien';
+
+                    if ($p->tipo == 2) {
+                        $tipoTexto = 'Servicio';
+                    } elseif ($p->tipo == 3) {
+                        $tipoTexto = 'Otro';
+                    }
+                    ?>
+
+                    <small class="text-muted mt-auto text-right">
+                        <?= $tipoTexto ?>
+                    </small>
+
                 </div>
             </td>
 

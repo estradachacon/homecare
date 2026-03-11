@@ -18,6 +18,8 @@ class ProductoModel extends Model
         'descripcion',
         'activo',
         'costo_promedio',
+        'costo_promedio_actual',
+        'tipo'
     ];
 
     protected $useTimestamps = true;
