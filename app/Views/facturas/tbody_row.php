@@ -49,11 +49,11 @@
             $condicion = $factura->condicion_operacion ?? 1;
 
             if ($condicion == 1) {
-                echo '<span class="badge bg-success text-white">Contado</span>';
+                echo '<span class="badge bg-success badge-estado text-white">Contado</span>';
             } elseif ($condicion == 2) {
-                echo '<span class="badge bg-warning text-white">Crédito</span>';
+                echo '<span class="badge bg-warning badge-estado text-grey">Crédito</span>';
             } else {
-                echo '<span class="badge bg-secondary text-white">N/D</span>';
+                echo '<span class="badge bg-secondary badge-estado text-white">N/D</span>';
             }
             ?>
         </td>
@@ -70,19 +70,19 @@
 
             <?php if (($factura->anulada ?? 0) == 1): ?>
 
-                <span class="badge bg-danger text-white">
+                <span class="badge badge-estado bg-danger text-white">
                     Anulado
                 </span>
 
             <?php elseif (($factura->saldo ?? 0) == 0): ?>
 
-                <span class="badge bg-info text-white">
+                <span class="badge badge-estado bg-info text-white">
                     <i class="fa-solid fa-check-circle"></i> Pagada
                 </span>
 
             <?php else: ?>
 
-                <span class="badge bg-warning text-dark">
+                <span class="badge badge-estado bg-warning text-dark">
                     Activa
                 </span>
 

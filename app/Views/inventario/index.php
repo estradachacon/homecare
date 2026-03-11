@@ -49,10 +49,10 @@
                         <div class="col-md-2">
                             <small class="text-muted">Tipo</small>
                             <select name="tipo" class="form-control">
-                                <option value="">Todos</option>
-                                <option value="1">Bien</option>
+                                <option value="1" selected>Bien</option>
                                 <option value="2">Servicio</option>
                                 <option value="3">Otro</option>
+                                <option value="">Todos</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -173,7 +173,6 @@
         }
 
         // LISTENERS FILTROS
-
         $('[name="buscar"]').on('keyup', function() {
             cargarProductos();
         });
@@ -201,7 +200,7 @@
         $('[name="tipo"]').on('change', function() {
             cargarProductos(1);
         });
-       
+        cargarProductos(1);
     });
 
     $(document).on('click', '.btnEditar', function() {

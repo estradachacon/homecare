@@ -25,6 +25,20 @@
         border-color: #86b7fe;
         box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
     }
+
+    .badge-estado{
+        font-size: 0.75rem;
+        padding: 5px 12px;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .badge-estado1{
+        font-size: 0.65rem;
+        padding: 4px 12px;
+        border-radius: 5px;
+        font-weight: 500;
+    }
 </style>
 <div class="row">
     <div class="col-md-12">
@@ -143,7 +157,7 @@
                                         ?>
 
                                         <?php if ($sigla && $descripcion): ?>
-                                            <span class="badge bg-info text-white">
+                                            <span class="badge badge-estado1 bg-info text-white">
                                                 <?= esc($sigla) ?>
                                             </span>
                                             <br>
@@ -177,11 +191,11 @@
                                         $condicion = $factura->condicion_operacion ?? 1;
 
                                         if ($condicion == 1) {
-                                            echo '<span class="badge bg-success text-white">Contado</span>';
+                                            echo '<span class="badge badge-estado bg-success text-white">Contado</span>';
                                         } elseif ($condicion == 2) {
-                                            echo '<span class="badge bg-warning text-white">Crédito</span>';
+                                            echo '<span class="badge badge-estado bg-warning text-dark">Crédito</span>';
                                         } else {
-                                            echo '<span class="badge bg-secondary text-white">N/D</span>';
+                                            echo '<span class="badge badge-estado bg-secondary text-white">N/D</span>';
                                         }
                                         ?>
                                     </td>
@@ -198,19 +212,19 @@
 
                                         <?php if (($factura->anulada ?? 0) == 1): ?>
 
-                                            <span class="badge bg-danger text-white">
+                                            <span class="badge badge-estado bg-danger text-white">
                                                 Anulado
                                             </span>
 
                                         <?php elseif (($factura->saldo ?? 0) == 0): ?>
 
-                                            <span class="badge bg-info text-white">
+                                            <span class="badge bg-info badge-estado text-white">
                                                 <i class="fa-solid fa-check-circle"></i> Pagada
                                             </span>
 
                                         <?php else: ?>
 
-                                            <span class="badge bg-warning text-dark">
+                                            <span class="badge bg-warning badge-estado text-dark">
                                                 Activa
                                             </span>
 
