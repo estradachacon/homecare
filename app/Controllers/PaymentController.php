@@ -181,6 +181,7 @@ class PaymentController extends BaseController
             ->where('facturas_head.receptor_id', $clienteId)
             ->where('facturas_head.saldo >', 0)
             ->orderBy('facturas_head.fecha_emision', 'ASC')
+            ->orderBy('numero_control', 'ASC')
             ->findAll();
 
         return $this->response->setJSON($facturas);
