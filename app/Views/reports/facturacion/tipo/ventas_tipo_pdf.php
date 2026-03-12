@@ -81,6 +81,26 @@ $gt_total = 0;
             font-weight: bold;
             border-top: 1.5px solid #548235;
         }
+
+        .item-row td {
+            border: 0.4px dotted #999;
+            font-size: 7px;
+            color: #444;
+        }
+
+        .item-row td:first-child {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .item-row td:nth-child(1) {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .item-row td:nth-child(3) {
+            padding-left: 10px;
+        }
     </style>
 
 </head>
@@ -263,8 +283,9 @@ $gt_total = 0;
 
                                     <tr class="item-row">
 
-                                        <td></td>
-                                        <td></td>
+                                        <td colspan="2" style="font-size:7px; color:#555; white-space:nowrap; padding-left:8px;">
+                                            QTY: <?= number_format($cantidad) ?>
+                                        </td>
 
                                         <td colspan="2">
                                             <?= esc($item->descripcion ?? '') ?>
@@ -311,6 +332,7 @@ $gt_total = 0;
                                 <td class="text-right">$ <?= number_format($tipo_ret, 2) ?></td>
                                 <td class="text-right">$ <?= number_format($tipo_total, 2) ?></td>
                             </tr>
+
                             <tr>
                                 <td colspan="9" style="border:none; height:8px;"></td>
                             </tr>
