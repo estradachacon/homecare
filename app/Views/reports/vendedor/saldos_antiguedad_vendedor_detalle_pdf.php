@@ -229,55 +229,53 @@ $tipos = [
             </div>
 
         <?php endforeach; ?>
+        <div class="cliente-header">
+            TOTAL VENDEDOR
+        </div>
 
+        <table>
+
+            <thead>
+                <tr>
+                    <th width="12%">30 días</th>
+                    <th width="12%">60 días</th>
+                    <th width="12%">90 días</th>
+                    <th width="12%">120 + días</th>
+                    <th width="15%">Total</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr class="totales">
+
+                    <td class="text-right">
+                        $ <?= number_format($vendedor['totales_vendedor']['0_30'], 2) ?>
+                    </td>
+
+                    <td class="text-right">
+                        $ <?= number_format($vendedor['totales_vendedor']['31_60'], 2) ?>
+                    </td>
+
+                    <td class="text-right">
+                        $ <?= number_format($vendedor['totales_vendedor']['61_90'], 2) ?>
+                    </td>
+
+                    <td class="text-right">
+                        $ <?= number_format($vendedor['totales_vendedor']['90_mas'], 2) ?>
+                    </td>
+
+                    <td class="text-right">
+                        $ <?= number_format($vendedor['totales_vendedor']['total'], 2) ?>
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
     <?php endforeach; ?>
-    <br>
 
-    <div class="vendedor-header">
-        TOTAL GENERAL
-    </div>
-
-    <table>
-
-        <thead>
-            <tr>
-                <th width="12%">30 días</th>
-                <th width="12%">60 días</th>
-                <th width="12%">90 días</th>
-                <th width="12%">120 + días</th>
-                <th width="15%">Total</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-            <tr class="totales">
-
-                <td class="text-right">
-                    $ <?= number_format($granTotal['0_30'], 2) ?>
-                </td>
-
-                <td class="text-right">
-                    $ <?= number_format($granTotal['31_60'], 2) ?>
-                </td>
-
-                <td class="text-right">
-                    $ <?= number_format($granTotal['61_90'], 2) ?>
-                </td>
-
-                <td class="text-right">
-                    $ <?= number_format($granTotal['90_mas'], 2) ?>
-                </td>
-
-                <td class="text-right">
-                    $ <?= number_format($granTotal['total'], 2) ?>
-                </td>
-
-            </tr>
-
-        </tbody>
-
-    </table>
 </body>
 
 </html>

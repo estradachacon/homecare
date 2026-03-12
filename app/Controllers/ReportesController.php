@@ -418,7 +418,9 @@ class ReportesController extends Controller
             ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
             ->where('facturas_head.saldo >', 0)
             ->where('facturas_head.anulada', 0)
+            ->where('facturas_head.tipo_dte !=', '14')
             ->where('facturas_head.fecha_emision <=', $fecha_corte);
+            
 
         if (!empty($cliente_id)) {
             $query->where('facturas_head.receptor_id', $cliente_id);
@@ -527,6 +529,28 @@ class ReportesController extends Controller
             $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['61_90'] += $r60;
             $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['90_mas'] += $r90;
             $reporte[$vendedorKey]['clientes'][$clienteKey]['totales']['total'] += $saldo;
+        }
+
+        foreach ($reporte as $vendedorKey => $vendedor) {
+
+            $totales = [
+                '0_30' => 0,
+                '31_60' => 0,
+                '61_90' => 0,
+                '90_mas' => 0,
+                'total' => 0
+            ];
+
+            foreach ($vendedor['clientes'] as $cliente) {
+
+                $totales['0_30']  += $cliente['totales']['0_30'];
+                $totales['31_60'] += $cliente['totales']['31_60'];
+                $totales['61_90'] += $cliente['totales']['61_90'];
+                $totales['90_mas'] += $cliente['totales']['90_mas'];
+                $totales['total'] += $cliente['totales']['total'];
+            }
+
+            $reporte[$vendedorKey]['totales_vendedor'] = $totales;
         }
 
         $data = [
