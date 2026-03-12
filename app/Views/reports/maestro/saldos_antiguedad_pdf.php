@@ -61,7 +61,12 @@ th {
     font-size: 8px;
     text-align: center;
 }
-
+@page {
+    margin-top: 55px;
+    margin-bottom: 60px;
+    margin-left: 40px;
+    margin-right: 40px;
+}
 </style>
 </head>
 

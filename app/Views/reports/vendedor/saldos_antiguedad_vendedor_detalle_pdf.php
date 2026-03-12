@@ -63,10 +63,6 @@
             margin-top: 10px;
         }
 
-        .cliente-bloque {
-            page-break-inside: avoid;
-        }
-
         .cliente-header {
             font-weight: bold;
             margin-top: 8px;
@@ -80,6 +76,26 @@
         .totales td {
             border-top: 2px solid #548235;
         }
+
+        @page {
+            margin: 60px 30px 60px 30px;
+        }
+
+        .cliente-bloque {
+            page-break-inside: auto;
+        }
+
+        .vendedor-header:not(:first-of-type) {
+            page-break-before: always;
+        }
+
+        thead {
+            display: table-header-group;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
     </style>
 
 </head>
@@ -90,6 +106,7 @@ $tipos = [
     '05' => 'NCF'
 ];
 ?>
+
 <body>
     <h3>SALDOS POR ANTIGÜEDAD CON DETALLE - POR VENDEDOR</h3>
 
@@ -99,7 +116,14 @@ $tipos = [
         <strong>Generado:</strong> <?= esc($generado_en) ?>
     </div>
 
+    <?php $i = 0; ?>
     <?php foreach ($reporte as $vendedor): ?>
+
+        <?php if ($i > 0): ?>
+            <div style="page-break-before: always;"></div>
+        <?php endif; ?>
+
+        <?php $i++; ?>
         <div class="vendedor-header">
             VENDEDOR: <?= esc($vendedor['vendedor']) ?>
         </div>
@@ -136,10 +160,10 @@ $tipos = [
                                 <td><?= date('d/m/Y', strtotime($doc['fecha'])) ?></td>
 
                                 <td>
-                                <?php
-                                $tipo = $tipos[$doc['tipo']] ?? $doc['tipo'];
-                                ?>
-                                <?= esc($tipo) ?> <?= substr($doc['doc'], -4) ?>
+                                    <?php
+                                    $tipo = $tipos[$doc['tipo']] ?? $doc['tipo'];
+                                    ?>
+                                    <?= esc($tipo) ?> <?= substr($doc['doc'], -4) ?>
                                 </td>
 
                                 <td><?= esc($doc['plazo']) ?></td>
@@ -207,7 +231,53 @@ $tipos = [
         <?php endforeach; ?>
 
     <?php endforeach; ?>
+    <br>
 
+    <div class="vendedor-header">
+        TOTAL GENERAL
+    </div>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th width="12%">30 días</th>
+                <th width="12%">60 días</th>
+                <th width="12%">90 días</th>
+                <th width="12%">120 + días</th>
+                <th width="15%">Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr class="totales">
+
+                <td class="text-right">
+                    $ <?= number_format($granTotal['0_30'], 2) ?>
+                </td>
+
+                <td class="text-right">
+                    $ <?= number_format($granTotal['31_60'], 2) ?>
+                </td>
+
+                <td class="text-right">
+                    $ <?= number_format($granTotal['61_90'], 2) ?>
+                </td>
+
+                <td class="text-right">
+                    $ <?= number_format($granTotal['90_mas'], 2) ?>
+                </td>
+
+                <td class="text-right">
+                    $ <?= number_format($granTotal['total'], 2) ?>
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
 </body>
 
 </html>

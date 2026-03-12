@@ -58,6 +58,13 @@
         .totales td {
             border-top: 2px solid #548235;
         }
+
+        @page {
+            margin-top: 55px;
+            margin-bottom: 60px;
+            margin-left: 40px;
+            margin-right: 40px;
+        }
     </style>
 </head>
 

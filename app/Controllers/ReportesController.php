@@ -11,6 +11,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Reader\Html as HtmlReader;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 class ReportesController extends Controller
 {
@@ -37,6 +39,7 @@ class ReportesController extends Controller
         $setting = $settingModel->first();
 
         $companyName = $setting->company_name ?? 'Mi Empresa';
+        $logo = $setting->logo ?? null;
 
         $canvas = $dompdf->getCanvas();
         $fontMetrics = $dompdf->getFontMetrics();
@@ -44,21 +47,39 @@ class ReportesController extends Controller
         $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
         $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
 
-        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
-        $pageWidth = $canvas->get_width();
+        $logoPath = $logo ? FCPATH . 'upload/settings/' . $logo : null;
 
-        $x = ($pageWidth - $textWidth) / 2;
+        $canvas->page_script(function ($pageNumber, $pageCount, $canvas, $fontMetrics) use ($companyName, $fontBold, $fontNormal, $logoPath) {
 
-        $canvas->page_text($x, 20, $companyName, $fontBold, 12, [0, 0, 0]);
+            $pageWidth = $canvas->get_width();
 
-        $canvas->page_text(
-            500,
-            820,
-            "Página {PAGE_NUM} de {PAGE_COUNT}",
-            $fontNormal,
-            8,
-            [0, 0, 0]
-        );
+            /* EMPRESA CENTRADA */
+            $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
+            $x = ($pageWidth - $textWidth) / 2;
+
+            $canvas->text($x, 20, $companyName, $fontBold, 12);
+
+            /* PAGINADO */
+            $canvas->text(
+                $pageWidth - 120,
+                820,
+                "Página $pageNumber de $pageCount",
+                $fontNormal,
+                8
+            );
+
+            /* LOGO SOLO EN PAGINA 1 */
+            if ($pageNumber == 1 && $logoPath && file_exists($logoPath)) {
+
+                $canvas->image(
+                    $logoPath,
+                    $pageWidth - 120, // derecha
+                    20,
+                    80,
+                    45
+                );
+            }
+        });
     }
 
 
@@ -133,6 +154,11 @@ class ReportesController extends Controller
     public function saldosAntiguedadPDF()
     {
         $facturaModel = new FacturaHeadModel();
+        $settingModel = new SettingModel();
+        $setting = $settingModel->first();
+
+        $logo = $setting->logo ?? null;
+        $companyName = $setting->company_name ?? 'Mi Empresa';
 
         // 📅 Tomar fecha desde el form
         $fecha_corte = $this->request->getGet('fecha_corte');
@@ -197,8 +223,6 @@ class ReportesController extends Controller
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $canvas = $dompdf->getCanvas();
         $dompdf->render();
 
         $this->applyPdfHeader($dompdf);
@@ -368,37 +392,7 @@ class ReportesController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        /* CANVAS */
-        $canvas = $dompdf->getCanvas();
-        $fontMetrics = $dompdf->getFontMetrics();
-
-        $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
-        $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
-
-        /* CENTRAR NOMBRE EMPRESA */
-        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
-        $pageWidth = $canvas->get_width();
-
-        $x = ($pageWidth - $textWidth) / 2;
-
-        $canvas->page_text(
-            $x,
-            20,
-            $companyName,
-            $fontBold,
-            12,
-            [0, 0, 0]
-        );
-
-        /* PAGINADO */
-        $canvas->page_text(
-            500,
-            820,
-            "Página {PAGE_NUM} de {PAGE_COUNT}",
-            $fontNormal,
-            8,
-            [0, 0, 0]
-        );
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')
@@ -441,7 +435,13 @@ class ReportesController extends Controller
             ->findAll();
 
         $reporte = [];
-
+        $granTotal = [
+            '0_30' => 0,
+            '31_60' => 0,
+            '61_90' => 0,
+            '90_mas' => 0,
+            'total' => 0
+        ];
         foreach ($facturas as $factura) {
 
             $dias = floor(
@@ -462,6 +462,12 @@ class ReportesController extends Controller
             } else {
                 $r90 = $saldo;
             }
+
+            $granTotal['0_30'] += $r0;
+            $granTotal['31_60'] += $r30;
+            $granTotal['61_90'] += $r60;
+            $granTotal['90_mas'] += $r90;
+            $granTotal['total'] += $saldo;
 
             $vendedorKey = $factura->vendedor_id ?? 0;
             $clienteKey  = $factura->receptor_id ?? 0;
@@ -526,7 +532,8 @@ class ReportesController extends Controller
         $data = [
             'reporte'     => $reporte,
             'fecha'       => $fecha_corte,
-            'generado_en' => date('d/m/Y H:i')
+            'generado_en' => date('d/m/Y H:i'),
+            'granTotal'   => $granTotal
         ];
 
         $html = view('reports/vendedor/saldos_antiguedad_vendedor_detalle_pdf', $data);
@@ -536,37 +543,9 @@ class ReportesController extends Controller
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        /* CANVAS */
-        $canvas = $dompdf->getCanvas();
-        $fontMetrics = $dompdf->getFontMetrics();
+        $dompdf->render();
 
-        $fontBold = $fontMetrics->getFont("DejaVu Sans", "bold");
-        $fontNormal = $fontMetrics->getFont("DejaVu Sans", "normal");
-
-        /* CENTRAR NOMBRE EMPRESA */
-        $textWidth = $fontMetrics->getTextWidth($companyName, $fontBold, 12);
-        $pageWidth = $canvas->get_width();
-
-        $x = ($pageWidth - $textWidth) / 2;
-
-        $canvas->page_text(
-            $x,
-            20,
-            $companyName,
-            $fontBold,
-            12,
-            [0, 0, 0]
-        );
-
-        /* PAGINADO */
-        $canvas->page_text(
-            500,
-            820,
-            "Página {PAGE_NUM} de {PAGE_COUNT}",
-            $fontNormal,
-            8,
-            [0, 0, 0]
-        );
+        $this->applyPdfHeader($dompdf);
 
         return $this->response
             ->setContentType('application/pdf')
@@ -707,6 +686,7 @@ class ReportesController extends Controller
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+
         $this->applyPdfHeader($dompdf);
 
         return $this->response
@@ -1201,7 +1181,33 @@ class ReportesController extends Controller
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
+        /* LOGO */
 
+        $settingModel = new SettingModel();
+        $setting = $settingModel->first();
+
+        if (!empty($setting->logo)) {
+
+            $logoPath = FCPATH . 'upload/settings/' . $setting->logo;
+
+            if (file_exists($logoPath)) {
+
+                $drawing = new Drawing();
+                $drawing->setName('Logo');
+                $drawing->setDescription('Logo empresa');
+                $drawing->setPath($logoPath);
+
+                $drawing->setHeight(72);
+
+                // MISMA POSICIÓN QUE EN FACTURACION
+                $drawing->setCoordinates('H1');
+
+                $drawing->setOffsetX(10);
+                $drawing->setOffsetY(5);
+
+                $drawing->setWorksheet($sheet);
+            }
+        }
         $row = 1;
 
         /* TITULO */
@@ -1209,7 +1215,7 @@ class ReportesController extends Controller
         $sheet->setCellValue("A$row", "REPORTE DE VENTAS POR CLIENTE");
         $sheet->mergeCells("A$row:I$row");
 
-        $row += 2;
+        $row += 4;
 
         /* INFORMACIÓN */
 
@@ -1657,7 +1663,6 @@ class ReportesController extends Controller
             $query->where('tipo_dte', $tipo);
         }
 
-        /* FILTRO CLIENTE */
         if (!empty($cliente_id)) {
             $query->where('facturas_head.receptor_id', $cliente_id);
         }
@@ -1684,7 +1689,6 @@ class ReportesController extends Controller
             $reporte[$tipoDte][$fecha]['facturas'][] = $factura;
         }
 
-        /* BUSCAR CLIENTE PARA ENCABEZADO */
         $cliente = null;
 
         if (!empty($cliente_id)) {
@@ -1700,14 +1704,74 @@ class ReportesController extends Controller
             'generado_en' => date('d/m/Y H:i')
         ];
 
-        $filename = "reporte_facturacion_" . date('Ymd_His') . ".xls";
+        /* GENERAR HTML DEL VIEW */
+        $html = view('reports/facturacion/facturacion_detalle_excel', $data);
 
-        $html = "\xEF\xBB\xBF" . view('reports/facturacion/facturacion_detalle_excel', $data);
+        $reader = new HtmlReader();
+        $spreadsheet = $reader->loadFromString($html);
+
+        $sheet = $spreadsheet->getActiveSheet();
+
+        /* LOGO */
+
+        $settingModel = new SettingModel();
+        $setting = $settingModel->first();
+
+        if (!empty($setting->logo)) {
+
+            $logoPath = FCPATH . 'upload/settings/' . $setting->logo;
+
+            if (file_exists($logoPath)) {
+
+                $drawing = new Drawing();
+                $drawing->setName('Logo');
+                $drawing->setDescription('Logo empresa');
+                $drawing->setPath($logoPath);
+
+                $drawing->setHeight(76); // tamaño del logo
+
+                $drawing->setCoordinates('H1'); // celda donde aparece
+
+                $drawing->setOffsetX(10);
+                $drawing->setOffsetY(5);
+
+                $drawing->setWorksheet($sheet);
+            }
+        }
+
+        /* ESTILOS */
+        $sheet->getStyle('A6:I6')->getFont()->setBold(true);
+
+        $sheet->getStyle('A6:I6')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('1F4E79');
+
+        $sheet->getStyle('A6:I6')->getFont()->getColor()->setARGB('FFFFFF');
+
+        $highestRow = $sheet->getHighestRow();
+
+        $sheet->getStyle("E7:I$highestRow")
+            ->getNumberFormat()
+            ->setFormatCode('"$"#,##0.00');
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = "reporte_facturacion_" . date('Ymd_His') . ".xlsx";
 
         return $this->response
-            ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
-            ->setHeader('Content-Transfer-Encoding', 'binary')
-            ->setBody($html);
+            ->setHeader('Cache-Control', 'max-age=0')
+            ->setBody($this->writeSpreadsheet($writer));
+    }
+    private function writeSpreadsheet($writer)
+    {
+        ob_start();
+        $writer->save('php://output');
+        return ob_get_clean();
     }
 }

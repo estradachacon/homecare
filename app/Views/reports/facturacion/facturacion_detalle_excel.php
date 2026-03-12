@@ -1,11 +1,13 @@
 <?php helper('dte'); ?>
 
 <meta charset="UTF-8">
+<br>
 <h3>
     REPORTE DE FACTURACIÓN - DETALLE
     <?= !empty($cliente) ? ' — ' . esc($cliente->nombre) : '' ?>
 </h3>
-
+<br>
+<br>
 <table border="0">
 
     <tr>
@@ -27,7 +29,9 @@
 <br>
 
 <style>
-td { white-space: nowrap; }
+    td {
+        white-space: nowrap;
+    }
 </style>
 <table border="1">
 
