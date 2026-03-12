@@ -29,6 +29,7 @@ class PaymentController extends BaseController
     ')
             ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
             ->join('pagos_details', 'pagos_details.pago_id = pagos_head.id', 'left')
+            ->join('facturas_head', 'facturas_head.id = pagos_details.factura_id', 'left')
             ->groupBy('pagos_head.id');
 
         // ===== FILTROS =====
@@ -37,6 +38,18 @@ class PaymentController extends BaseController
         $estado    = $this->request->getGet('estado');
         $fecha     = $this->request->getGet('fecha');
         $tipoAplicacion = $this->request->getGet('tipo_aplicacion');
+        $factura = trim($this->request->getGet('factura'));
+
+        if (!empty($factura)) {
+
+            $model->groupStart()
+
+                ->like('facturas_head.numero_control', $factura)
+
+                ->orLike('facturas_head.id', $factura)
+
+                ->groupEnd();
+        }
 
         if (is_numeric($clienteId)) {
             $model->where('pagos_head.cliente_id', $clienteId);
@@ -65,6 +78,8 @@ class PaymentController extends BaseController
         if ($tipoAplicacion === 'normal') {
             $model->having('total_anulado', 0);
         }
+
+
 
         $model->orderBy('pagos_head.fecha_pago', 'DESC');
 
@@ -380,7 +395,7 @@ class PaymentController extends BaseController
         $pagoHeadModel->update($id, [
             'anulado' => 1
         ]);
-        
+
         // Registrar bitácora
 
         $session = session();

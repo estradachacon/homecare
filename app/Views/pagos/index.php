@@ -73,11 +73,21 @@
                                 <option value="sin_efecto">Sin efecto (todo anulado)</option>
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <small class="text-muted">Factura</small>
+                            <input
+                                type="text"
+                                name="factura"
+                                id="facturaFiltro"
+                                class="form-control"
+                                placeholder="Número de factura">
+                        </div>
                     </div>
                 </form>
                 <table class="table table-striped table-bordered table-hover">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Fecha de pago</th>
                             <th>Cliente</th>
                             <th>Forma pago</th>
@@ -90,6 +100,10 @@
                         <?php if (!empty($pagos)): ?>
                             <?php foreach ($pagos as $pago): ?>
                                 <tr>
+                                    <td>
+                                        <?= esc($pago->id) ?>
+                                    </td>
+
                                     <td>
                                         <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
                                         <br>
@@ -205,6 +219,7 @@
             let estado = $('[name="estado"]').val();
             let fecha = $('#fechaFiltro').val();
             let tipoAplicacion = $('[name="tipo_aplicacion"]').val();
+            let factura = $('#facturaFiltro').val();
 
             if (fecha && fecha.length === 10) {
                 let p = fecha.split('/');
@@ -215,7 +230,8 @@
                 cliente_id: clienteId || '',
                 estado: estado || '',
                 fecha: fecha || '',
-                tipo_aplicacion: tipoAplicacion || ''
+                tipo_aplicacion: tipoAplicacion || '',
+                factura: factura || ''
             });
 
             fetch('<?= base_url('payments') ?>?' + params.toString(), {
@@ -254,6 +270,9 @@
         $('#clienteSelect').on('change', cargarPagos);
         $('[name="estado"]').on('change', cargarPagos);
         $('[name="tipo_aplicacion"]').on('change', cargarPagos);
+        $('#facturaFiltro').on('input', function() {
+            cargarPagos();
+        });
 
         // ================= FECHA MASK =================
 
