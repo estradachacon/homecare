@@ -437,19 +437,29 @@
 
                             </div>
 
-                            <!-- Botón -->
-                            <div class="col-md-2 mt-2">
+<!-- Botón PDF -->
+<div class="col-md-2 mt-4">
+    <button type="submit"
+        formaction="<?= base_url('reports/ventas-tipo-pdf') ?>"
+        class="btn btn-success btn-block">
 
-                                <button type="submit"
-                                    formaction="<?= base_url('reports/ventas-tipo-pdf') ?>"
-                                    class="btn btn-success btn-block">
+        <i class="fas fa-file-pdf mr-2"></i>
+        Detalle PDF
 
-                                    <i class="fas fa-file-pdf mr-2"></i>
-                                    Detalle PDF
+    </button>
+</div>
 
-                                </button>
+<!-- Botón Excel -->
+<div class="col-md-2 mt-2">
+    <button type="submit"
+        formaction="<?= base_url('reports/ventas-tipo-excel') ?>"
+        class="btn btn-success btn-block btn-equal">
 
-                            </div>
+        <i class="fas fa-file-excel mr-2"></i>
+        Detalle Excel
+
+    </button>
+</div>
 
                         </div>
 

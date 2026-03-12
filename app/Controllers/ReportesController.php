@@ -829,6 +829,311 @@ class ReportesController extends Controller
             ->setBody($dompdf->output());
     }
 
+    public function ventasTipoExcel()
+    {
+        helper('dte');
+
+        $facturaModel = new FacturaHeadModel();
+        $db = \Config\Database::connect();
+
+        $siglas = dte_siglas();
+
+        $desde = $this->request->getGet('desde');
+        $hasta = $this->request->getGet('hasta');
+
+        $clasificado = $this->request->getGet('clasificado') ?? 'vendedor';
+
+        $tiposVenta = $this->request->getGet('tipo_venta');
+        $vendedores = $this->request->getGet('vendedores');
+
+        $mostrarItems = $this->request->getGet('mostrar_items');
+
+        $query = $facturaModel
+            ->select('
+            facturas_head.*,
+            clientes.nombre as cliente_nombre,
+            sellers.seller as vendedor_nombre,
+            tv.nombre_tipo_venta
+        ')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta tv', 'tv.id = facturas_head.tipo_venta', 'left')
+            ->where('facturas_head.fecha_emision >=', $desde)
+            ->where('facturas_head.fecha_emision <=', $hasta)
+            ->where('facturas_head.tipo_dte !=', '14');
+
+        if (!empty($tiposVenta)) {
+            $query->whereIn('facturas_head.tipo_venta', $tiposVenta);
+        }
+
+        if (!empty($vendedores)) {
+            $query->whereIn('facturas_head.vendedor_id', $vendedores);
+        }
+
+        $facturas = $query
+            ->orderBy('tv.nombre_tipo_venta', 'ASC')
+            ->orderBy('facturas_head.fecha_emision', 'ASC')
+            ->orderBy('facturas_head.numero_control', 'ASC')
+            ->findAll();
+
+        /*
+    ==========================
+    AGRUPAR DATA
+    ==========================
+    */
+
+        $reporte = [];
+
+        foreach ($facturas as $factura) {
+
+            $tipoVenta = $factura->nombre_tipo_venta ?? 'SIN TIPO';
+
+            $grupo = ($clasificado === 'cliente')
+                ? $factura->cliente_nombre
+                : ($factura->vendedor_nombre ?? 'Sin vendedor');
+
+            if (!isset($reporte[$tipoVenta])) {
+                $reporte[$tipoVenta] = [];
+            }
+
+            if (!isset($reporte[$tipoVenta][$grupo])) {
+                $reporte[$tipoVenta][$grupo] = [
+                    'documentos' => []
+                ];
+            }
+
+            $items = [];
+
+            if ($mostrarItems) {
+                $items = $db->table('factura_detalles')
+                    ->where('factura_id', $factura->id)
+                    ->get()
+                    ->getResult();
+            }
+
+            $reporte[$tipoVenta][$grupo]['documentos'][] = [
+                'factura' => $factura,
+                'items' => $items
+            ];
+        }
+
+        /*
+    ==========================
+    CREAR EXCEL
+    ==========================
+    */
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $row = 1;
+
+        $sheet->setCellValue("A$row", "REPORTE DE VENTAS POR TIPO DE VENTA");
+        $sheet->mergeCells("A$row:I$row");
+
+        $sheet->getStyle("A$row")->getFont()->setBold(true)->setSize(14);
+
+        $row += 2;
+
+        $sheet->setCellValue("A$row", "Desde:");
+        $sheet->setCellValue("B$row", date('d/m/Y', strtotime($desde)));
+
+        $sheet->setCellValue("D$row", "Hasta:");
+        $sheet->setCellValue("E$row", date('d/m/Y', strtotime($hasta)));
+
+        $row += 2;
+
+        /*
+    ==========================
+    GRAN TOTAL
+    ==========================
+    */
+
+        $gt_base = 0;
+        $gt_iva = 0;
+        $gt_valor = 0;
+        $gt_ret = 0;
+        $gt_total = 0;
+
+        foreach ($reporte as $tipoVenta => $grupos) {
+
+            $sheet->setCellValue("A$row", "TIPO DE VENTA: " . $tipoVenta);
+            $sheet->getStyle("A$row")->getFont()->setBold(true);
+            $row++;
+
+            foreach ($grupos as $grupo => $data) {
+
+                $sheet->setCellValue("A$row", strtoupper($clasificado) . ": " . $grupo);
+                $sheet->getStyle("A$row")->getFont()->setBold(true);
+                $row++;
+
+                $sheet->fromArray([
+                    'Fecha',
+                    'Tipo',
+                    'Número',
+                    'Cliente',
+                    'Valor S/IVA',
+                    'IVA',
+                    'Valor Venta',
+                    '1% Ret',
+                    'Total'
+                ], NULL, "A$row");
+
+                $sheet->getStyle("A$row:I$row")->getFont()->setBold(true);
+
+                $sheet->getStyle("A$row:I$row")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('1F4E79');
+
+                $sheet->getStyle("A$row:I$row")->getFont()->getColor()->setARGB('FFFFFF');
+
+                $row++;
+
+                /*
+            ==========================
+            TOTAL GRUPO
+            ==========================
+            */
+
+                $grp_base = 0;
+                $grp_iva = 0;
+                $grp_valor = 0;
+                $grp_ret = 0;
+                $grp_total = 0;
+
+                foreach ($data['documentos'] as $doc) {
+
+                    $factura = $doc['factura'];
+
+                    $base  = $factura->total_gravada ?? 0;
+                    $iva   = $factura->total_iva ?? 0;
+                    $valor = $factura->monto_total_operacion ?? 0;
+                    $ret   = $factura->iva_rete1 ?? 0;
+                    $total = $factura->total_pagar ?? 0;
+
+                    $grp_base += $base;
+                    $grp_iva += $iva;
+                    $grp_valor += $valor;
+                    $grp_ret += $ret;
+                    $grp_total += $total;
+
+                    $gt_base += $base;
+                    $gt_iva += $iva;
+                    $gt_valor += $valor;
+                    $gt_ret += $ret;
+                    $gt_total += $total;
+
+                    $sheet->setCellValue("A$row", date('d/m/Y', strtotime($factura->fecha_emision)));
+                    $sheet->setCellValue("B$row", $siglas[$factura->tipo_dte] ?? $factura->tipo_dte);
+                    $sheet->setCellValue("C$row", substr($factura->numero_control, -6));
+                    $sheet->setCellValue("D$row", $factura->cliente_nombre);
+
+                    $sheet->setCellValue("E$row", $base);
+                    $sheet->setCellValue("F$row", $iva);
+                    $sheet->setCellValue("G$row", $valor);
+                    $sheet->setCellValue("H$row", $ret);
+                    $sheet->setCellValue("I$row", $total);
+
+                    $sheet->getStyle("E$row:I$row")
+                        ->getNumberFormat()
+                        ->setFormatCode('"$"#,##0.00');
+
+                    $row++;
+
+                    /*
+                ITEMS CON VALORES
+                */
+
+                    if ($mostrarItems && !empty($doc['items'])) {
+
+                        foreach ($doc['items'] as $item) {
+
+                            $precio = $item->precio_unitario ?? 0;
+                            $cantidad = $item->cantidad ?? 1;
+
+                            $total_item = $precio * $cantidad;
+
+                            $base_item = $total_item / 1.13;
+                            $iva_item  = $total_item - $base_item;
+
+                            $sheet->setCellValue("B$row", "QTY: " . intval($cantidad));
+                            $sheet->setCellValue("C$row", $item->descripcion);
+
+                            $sheet->setCellValue("E$row", $base_item);
+                            $sheet->setCellValue("F$row", $iva_item);
+                            $sheet->setCellValue("G$row", $total_item);
+
+                            $sheet->getStyle("E$row:G$row")
+                                ->getNumberFormat()
+                                ->setFormatCode('"$"#,##0.00');
+
+                            $row++;
+                        }
+                    }
+                }
+
+                /*
+            ==========================
+            TOTAL GRUPO
+            ==========================
+            */
+
+                $sheet->setCellValue("A$row", "TOTAL " . strtoupper($clasificado));
+
+                $sheet->setCellValue("E$row", $grp_base);
+                $sheet->setCellValue("F$row", $grp_iva);
+                $sheet->setCellValue("G$row", $grp_valor);
+                $sheet->setCellValue("H$row", $grp_ret);
+                $sheet->setCellValue("I$row", $grp_total);
+
+                $sheet->getStyle("A$row:I$row")->getFont()->setBold(true);
+
+                $row += 2;
+            }
+        }
+
+        /*
+    ==========================
+    GRAN TOTAL
+    ==========================
+    */
+
+        $sheet->setCellValue("A$row", "GRAN TOTAL");
+
+        $sheet->setCellValue("E$row", $gt_base);
+        $sheet->setCellValue("F$row", $gt_iva);
+        $sheet->setCellValue("G$row", $gt_valor);
+        $sheet->setCellValue("H$row", $gt_ret);
+        $sheet->setCellValue("I$row", $gt_total);
+
+        $sheet->getStyle("A$row:I$row")->getFont()->setBold(true);
+
+        $sheet->getStyle("E$row:I$row")
+            ->getNumberFormat()
+            ->setFormatCode('"$"#,##0.00');
+
+        /*
+    ==========================
+    AJUSTAR COLUMNAS
+    ==========================
+    */
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = "reporte_ventas_tipo.xlsx";
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment;filename=\"$filename\"");
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
     public function ventasClienteExcel()
     {
         $facturaModel = new FacturaHeadModel();
