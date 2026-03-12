@@ -158,6 +158,7 @@
                         <?php $hayAnulaciones = false; ?>
 
                         <?php if (!empty($facturas)): ?>
+                            
                             <?php foreach ($facturas as $f): ?>
 
                                 <?php

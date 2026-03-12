@@ -337,18 +337,12 @@ class PaymentController extends BaseController
             ->findAll();
 
         $totalARevertir = 0;
-
         foreach ($detallesActivos as $detalle) {
 
-            $factura = $facturaHeadModel->find($detalle->factura_id);
-
-            if ($factura) {
-                $nuevoSaldo = $factura->saldo + $detalle->monto;
-
-                $facturaHeadModel->update($factura->id, [
-                    'saldo' => $nuevoSaldo
-                ]);
-            }
+            $db->table('facturas_head')
+                ->where('id', $detalle->factura_id)
+                ->set('saldo', 'saldo + ' . $detalle->monto, false)
+                ->update();
 
             $totalARevertir += $detalle->monto;
 
@@ -358,7 +352,6 @@ class PaymentController extends BaseController
                 'anulado_by' => session()->get('user_id')
             ]);
         }
-
         // =============================
         // 2️⃣ Reversión bancaria SOLO si hay monto activo
         // =============================

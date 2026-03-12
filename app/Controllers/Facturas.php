@@ -866,6 +866,7 @@ CCF YA VIENE SIN IVA
             ->select('pd.monto,
                 pd.observaciones,
                 ph.fecha_pago,
+                pd.anulado,
                 ph.forma_pago,
                 ph.id as pago_id')
             ->from('pagos_details as pd')

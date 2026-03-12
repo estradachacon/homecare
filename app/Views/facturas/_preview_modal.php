@@ -49,9 +49,9 @@ if ($esCreditoFiscal) {
         <?php foreach ($detalles as $d): ?>
             <tr>
                 <td><?= nl2br(esc($d->descripcion)) ?></td>
-                <td class="text-end"><?= number_format($d->cantidad,2) ?></td>
-                <td class="text-end">$<?= number_format($d->precio_unitario,2) ?></td>
-                <td class="text-end">$<?= number_format($d->cantidad * $d->precio_unitario,2) ?></td>
+                <td class="text-end"><?= number_format($d->cantidad, 2) ?></td>
+                <td class="text-end">$<?= number_format($d->precio_unitario, 2) ?></td>
+                <td class="text-end">$<?= number_format($d->cantidad * $d->precio_unitario, 2) ?></td>
             </tr>
         <?php endforeach ?>
     </tbody>
@@ -68,27 +68,27 @@ if ($esCreditoFiscal) {
 
             <tr>
                 <th class="text-end">Subtotal:</th>
-                <td class="text-end">$<?= number_format($subtotalProductos,2) ?></td>
+                <td class="text-end">$<?= number_format($subtotalProductos, 2) ?></td>
             </tr>
 
             <?php if ($esCreditoFiscal): ?>
                 <tr>
                     <th class="text-end">IVA:</th>
-                    <td class="text-end">$<?= number_format($ivaCalculado,2) ?></td>
+                    <td class="text-end">$<?= number_format($ivaCalculado, 2) ?></td>
                 </tr>
             <?php endif ?>
 
             <tr class="border-top">
                 <th class="text-end fs-6">Total:</th>
                 <td class="text-end fw-bold text-success fs-6">
-                    $<?= number_format($factura->total_pagar,2) ?>
+                    $<?= number_format($factura->total_pagar, 2) ?>
                 </td>
             </tr>
 
             <tr>
                 <th class="text-end">Saldo:</th>
                 <td class="text-end text-danger">
-                    $<?= number_format($factura->saldo,2) ?>
+                    $<?= number_format($factura->saldo, 2) ?>
                 </td>
             </tr>
 
@@ -99,65 +99,85 @@ if ($esCreditoFiscal) {
 </div>
 <?php if (!empty($pagos)): ?>
 
-<hr>
+    <hr>
 
-<h6 class="mt-4">Pagos aplicados</h6>
+    <h6 class="mt-4">Pagos aplicados</h6>
 
-<table class="table table-sm table-bordered">
+    <table class="table table-sm table-bordered">
 
-    <thead class="table-light">
-        <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Referencia</th>
-            <th class="text-end">Monto</th>
-        </tr>
-    </thead>
+        <thead class="table-light">
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Referencia</th>
+                <th class="text-end">Monto</th>
+            </tr>
+        </thead>
 
-    <tbody>
+        <tbody>
 
-        <?php 
-        $totalPagado = 0;
-        foreach ($pagos as $p): 
-            $monto = floatval($p->monto);
-            $totalPagado += $monto;
-        ?>
+            <?php
+            $totalPagado = 0;
 
-        <tr>
-            <td><?= date('d/m/Y', strtotime($p->fecha_pago)) ?></td>
-            <td><?= esc(ucfirst($p->forma_pago)) ?></td>
-            <td>
-                Pago #<?= esc($p->pago_id) ?>
-                <?php if (!empty($p->observaciones)): ?>
-                    <br>
-                    <small class="text-muted"><?= esc($p->observaciones) ?></small>
-                <?php endif; ?>
-            </td>
-            <td class="text-end">
-                $<?= number_format($monto, 2) ?>
-            </td>
-        </tr>
+            foreach ($pagos as $p):
+                $monto = floatval($p->monto);
 
-        <?php endforeach; ?>
+                if (empty($p->anulado)) {
+                    $totalPagado += $monto;
+                }
+            ?>
 
-    </tbody>
+                <tr>
+                    <td><?= date('d/m/Y', strtotime($p->fecha_pago)) ?></td>
+                    <td><?= esc(ucfirst($p->forma_pago)) ?></td>
+                    <td>
+                        <div class="d-flex justify-content-between">
 
-    <tfoot class="table-light">
-        <tr>
-            <th colspan="3" class="text-end">Total pagado:</th>
-            <th class="text-end text-primary">
-                $<?= number_format($totalPagado, 2) ?>
-            </th>
-        </tr>
+                            <span>
+                                Pago #<?= esc($p->pago_id) ?>
+                            </span>
 
-        <tr>
-            <th colspan="3" class="text-end">Saldo pendiente:</th>
-            <th class="text-end text-danger">
-                $<?= number_format($factura->total_pagar - $totalPagado, 2) ?>
-            </th>
-        </tr>
-    </tfoot>
+                            <?php if (!empty($p->anulado)): ?>
+                                <span class="badge bg-danger">
+                                    <i class="fa-solid fa-ban me-1"></i>Anulado
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-success">
+                                    <i class="fa-solid fa-check me-1"></i>Aplicado
+                                </span>
+                            <?php endif; ?>
 
-</table>
+                        </div>
+
+                        <?php if (!empty($p->observaciones)): ?>
+                            <small class="text-muted"><?= esc($p->observaciones) ?></small>
+                        <?php endif; ?>
+                    </td>
+                    <td class="text-end">
+                        $<?= number_format($monto, 2) ?>
+                    </td>
+                </tr>
+
+            <?php endforeach; ?>
+
+        </tbody>
+
+        <tfoot class="table-light">
+            <tr>
+                <th colspan="3" class="text-end">Total pagado:</th>
+                <th class="text-end text-primary">
+                    $<?= number_format($totalPagado, 2) ?>
+                </th>
+            </tr>
+
+            <tr>
+                <th colspan="3" class="text-end">Saldo pendiente:</th>
+                <th class="text-end text-danger">
+                    $<?= number_format($factura->total_pagar - $totalPagado, 2) ?>
+                </th>
+            </tr>
+        </tfoot>
+
+    </table>
 
 <?php endif; ?>
