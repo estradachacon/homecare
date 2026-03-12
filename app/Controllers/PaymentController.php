@@ -327,9 +327,7 @@ class PaymentController extends BaseController
             return redirect()->back()->with('error', 'El pago ya está anulado');
         }
 
-        // =============================
-        // 1️⃣ Obtener solo detalles activos
-        // =============================
+        // Obtener solo detalles activos
 
         $detallesActivos = $pagoDetailsModel
             ->where('pago_id', $id)
@@ -352,9 +350,7 @@ class PaymentController extends BaseController
                 'anulado_by' => session()->get('user_id')
             ]);
         }
-        // =============================
-        // 2️⃣ Reversión bancaria SOLO si hay monto activo
-        // =============================
+        // Reversión bancaria SOLO si hay monto activo
 
         if (!empty($pago->numero_cuenta_bancaria) && $totalARevertir > 0) {
 
@@ -379,14 +375,24 @@ class PaymentController extends BaseController
             ]);
         }
 
-        // =============================
-        // 3️⃣ Marcar pago como anulado
-        // =============================
+        // Marcar pago como anulado
 
         $pagoHeadModel->update($id, [
             'anulado' => 1
         ]);
+        
+        // Registrar bitácora
 
+        $session = session();
+
+        registrar_bitacora(
+            'Anulación de pago #' . esc($pago->id),
+            'Pagos',
+            'Se anuló el pago #' . esc($pago->id) .
+                ' por un monto total de $' . number_format($totalARevertir, 2) .
+                '. Se revirtieron los saldos aplicados a las facturas correspondientes.',
+            $session->get('user_id')
+        );
         $db->transComplete();
 
         if ($db->transStatus() === false) {

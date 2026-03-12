@@ -302,7 +302,8 @@ $gt_total = 0;
                         </tr>
 
                         <?php if ($i_grupo === $n_grupos): ?>
-                            <tr class="totales" style="background:#d9d9d9; border-top: 2px solid #333;">
+
+                            <tr class="totales" style="background:#d9d9d9; border-top:2px solid #333;">
                                 <td colspan="4">TOTAL TIPO DE VENTA</td>
                                 <td class="text-right">$ <?= number_format($tipo_base, 2) ?></td>
                                 <td class="text-right">$ <?= number_format($tipo_iva, 2) ?></td>
@@ -310,6 +311,19 @@ $gt_total = 0;
                                 <td class="text-right">$ <?= number_format($tipo_ret, 2) ?></td>
                                 <td class="text-right">$ <?= number_format($tipo_total, 2) ?></td>
                             </tr>
+                            <tr>
+                                <td colspan="9" style="border:none; height:8px;"></td>
+                            </tr>
+                            <!-- GRAN TOTAL -->
+                            <tr class="totales" style="background:#f8cbad; border-top:3px solid #000;">
+                                <td colspan="4">GRAN TOTAL</td>
+                                <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
+                                <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
+                                <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
+                                <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
+                                <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
+                            </tr>
+
                         <?php endif; ?>
                     </tfoot>
                 </table>
@@ -422,57 +436,6 @@ $gt_total = 0;
         <?php endif; ?>
 
     <?php endforeach; ?>
-
-    <table style="margin-top:20px;">
-        <colgroup>
-            <col style="width:9%"> <!-- Fecha -->
-            <col style="width:7%"> <!-- Tipo -->
-            <col style="width:9%"> <!-- Número -->
-            <col style="width:29%"> <!-- Cliente -->
-            <col style="width:11%"> <!-- S/IVA -->
-            <col style="width:11%"> <!-- IVA -->
-            <col style="width:11%"> <!-- Venta -->
-            <col style="width:6%"> <!-- Ret -->
-            <col style="width:7%"> <!-- Total -->
-        </colgroup>
-        <tr class="totales" style="background:#fce4d6;">
-            <td colspan="4">GRAN TOTAL</td>
-            <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
-        </tr>
-    </table>
-
-
-    <table>
-        <colgroup>
-            <col style="width:8%">
-            <col style="width:6%">
-            <col style="width:8%">
-            <col style="width:30%">
-            <col style="width:12%">
-            <col style="width:12%">
-            <col style="width:12%">
-            <col style="width:10%">
-            <col style="width:12%">
-        </colgroup>
-        <tr class="totales">
-
-            <td colspan="4">
-                GRAN TOTAL
-            </td>
-
-            <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
-            <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
-
-        </tr>
-
-    </table>
 
 </body>
 
