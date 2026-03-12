@@ -78,44 +78,80 @@
                     </div>
 
                 <?php endif; ?>
-                
+
                 <?php if (
                     tienePermiso('ingresar_pagos') ||
                     tienePermiso('ver_pagos')
                 ): ?>
-                <a class="nav-link collapsed" href="#"
-                    data-toggle="collapse"
-                    data-target="#cuentasCobrar"
-                    aria-expanded="false"
-                    aria-controls="cuentasCobrar">
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#cuentasCobrar"
+                        aria-expanded="false"
+                        aria-controls="cuentasCobrar">
 
-                    <div class="sb-nav-link-icon">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+
+                        Cuentas por cobrar
+
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+                    </a>
+
+                    <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ingresar_pagos')): ?>
+                                <a class="nav-link" href="/payments/new">
+                                    Ingresar pagos
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_pagos')): ?>
+                                <a class="nav-link" href="/payments">
+                                    Ver pagos
+                                </a>
+                            <?php endif; ?>
+                        </nav>
                     </div>
-
-                    Cuentas por cobrar
-
-                    <div class="sb-sidenav-collapse-arrow">
-                        <i class="fa-solid fa-angle-down"></i>
-                    </div>
-                </a>
-
-                <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <?php if (tienePermiso('ingresar_pagos')): ?>
-                            <a class="nav-link" href="/payments/new">
-                                Ingresar pagos
-                            </a>
-                        <?php endif; ?>
-                        <?php if (tienePermiso('ver_pagos')): ?>
-                            <a class="nav-link" href="/payments">
-                                Ver pagos
-                            </a>
-                        <?php endif; ?>
-                    </nav>
-                </div>
                 <?php endif; ?>
-                
+
+                <?php if (tienePermiso('cargar_compras')): ?>
+
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#cuentasPagar"
+                        aria-expanded="false"
+                        aria-controls="cuentasPagar">
+
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                        </div>
+
+                        Cuentas por pagar
+
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+
+                    </a>
+
+                    <div class="collapse" id="cuentasPagar" data-parent="#sidenavAccordion">
+
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('cargar_compras')): ?>
+                                <a class="nav-link" href="/compras/carga">
+                                    Cargar Facturas
+                                </a>
+                            <?php endif; ?>
+
+                        </nav>
+
+                    </div>
+
+                <?php endif; ?>
+
                 <?php if (
                     tienePermiso('ver_transacciones') ||
                     tienePermiso('ver_cajas') ||
@@ -179,34 +215,34 @@
                 <?php endif; ?>
 
                 <?php if (
-                    tienePermiso('ver_inventario') 
+                    tienePermiso('ver_inventario')
                 ): ?>
-                <a class="nav-link collapsed" href="#"
-                    data-toggle="collapse"
-                    data-target="#inventario"
-                    aria-expanded="false"
-                    aria-controls="inventario">
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#inventario"
+                        aria-expanded="false"
+                        aria-controls="inventario">
 
-                    <div class="sb-nav-link-icon">
-                        <i class="fa-solid fa-boxes-packing"></i>
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+
+                        Inventario
+
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+                    </a>
+
+                    <div class="collapse" id="inventario" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_inventario')): ?>
+                                <a class="nav-link" href="/inventory">
+                                    Inventario
+                                </a>
+                            <?php endif; ?>
+                        </nav>
                     </div>
-
-                    Inventario
-
-                    <div class="sb-sidenav-collapse-arrow">
-                        <i class="fa-solid fa-angle-down"></i>
-                    </div>
-                </a>
-
-                <div class="collapse" id="inventario" data-parent="#sidenavAccordion">
-                    <nav class="sb-sidenav-menu-nested nav">
-                        <?php if (tienePermiso('ver_inventario')): ?>
-                            <a class="nav-link" href="/inventory">
-                                Inventario
-                            </a>
-                        <?php endif; ?>
-                    </nav>
-                </div>
                 <?php endif; ?>
 
                 <?php if (

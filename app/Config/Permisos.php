@@ -37,6 +37,10 @@ class Permisos extends BaseConfig
             'anular_pagos',
         ],
         
+        'Cuentas por Pagar' => [
+            'cargar_compras',
+        ],
+
         'Finanzas' => [
             'ver_transacciones',
             'ver_cuentas',
