@@ -39,6 +39,8 @@ class Permisos extends BaseConfig
         
         'Cuentas por Pagar' => [
             'cargar_compras',
+            'ver_compras',
+            'crear_compra'
         ],
 
         'Finanzas' => [
@@ -51,6 +53,10 @@ class Permisos extends BaseConfig
 
         'Inventario' => [
             'ver_inventario',
+            'ver_proveedores',
+            'crear_proveedor',
+            'editar_proveedor',
+            'eliminar_proveedor',
         ],
 
         'Reportes' => [

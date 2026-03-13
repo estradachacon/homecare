@@ -75,7 +75,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para perfiles
     $routes->get('perfil', 'ProfileController::index');
     $routes->post('perfil/update', 'ProfileController::update');
-    
+
     // Select2 Colonias
     $routes->get('ajax/colonias/search', 'UbicacionesController::searchColonias');
 
@@ -85,7 +85,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('accounts/searchAjax', 'AccountController::searchAjax');
     $routes->get('accounts-list', 'AccountController::list');
     $routes->post('accounts-transfer', 'AccountController::processTransfer');
-    
+
     // Rutas para el módulo de transacciones
     $routes->get('transactions', 'TransactionsController::index');
     $routes->post('transactions/addSalida', 'TransactionsController::addSalida');
@@ -105,13 +105,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/saldos-antiguedad-detalle-pdf', 'ReportesController::saldosAntiguedadDetallePDF');
     // -- Reportes Vendedor
     $routes->get('reports/saldos-antiguedad-vendedor-pdf', 'ReportesController::saldosAntiguedadVendedorPDF');
-    $routes->get('reports/saldos-antiguedad-vendedor-detalle-pdf', 'ReportesController::saldosAntiguedadVendedorDetallePDF');  
+    $routes->get('reports/saldos-antiguedad-vendedor-detalle-pdf', 'ReportesController::saldosAntiguedadVendedorDetallePDF');
     // -- Reportes de Facturación
     $routes->get('reports/facturacion', 'ReportesController::facturacion');
     $routes->get('reports/facturacion-pdf', 'ReportesController::facturacionPDF');
     $routes->get('reports/facturacion-excel', 'ReportesController::facturacionExcel');
     $routes->get('reports/ventas-cliente-pdf', 'ReportesController::ventasClientePDF');
-    $routes->get('reports/ventas-cliente-excel', 'ReportesController::ventasClienteExcel'); 
+    $routes->get('reports/ventas-cliente-excel', 'ReportesController::ventasClienteExcel');
     $routes->get('reports/ventas-tipo-pdf', 'ReportesController::ventasTipoPDF');
     $routes->get('reports/ventas-tipo-excel', 'ReportesController::ventasTipoExcel');
     // -- Reportes Facturación/Vendedor (pruebas)
@@ -166,4 +166,18 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('productos/delete/(:num)', 'InventoryController::delete/$1');
     $routes->get('inventory/excel', 'InventoryController::excel');
     $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
+
+    // Rutas para mantenimiento de proveedores
+    $routes->get('proveedores', 'ProveedorController::index');
+    $routes->get('proveedores/new', 'ProveedorController::new');
+    $routes->post('proveedores/create', 'ProveedorController::create');
+    $routes->get('proveedores/edit/(:num)', 'ProveedorController::edit/$1');
+    $routes->post('proveedores/update/(:num)', 'ProveedorController::update/$1');
+    $routes->post('proveedores/delete', 'ProveedorController::delete');
+    $routes->get('proveedores-search', 'ProveedorController::search');
+    $routes->post('proveedores/createAjax', 'ProveedorController::createAjax');
+    $routes->get('proveedores/searchAjax', 'ProveedorController::searchAjax');
+
+    // Rutas para Mantenimiento de Compras
+    $routes->get('compras', 'ComprasController::index');
 });

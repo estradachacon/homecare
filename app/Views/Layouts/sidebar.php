@@ -142,10 +142,15 @@
 
                             <?php if (tienePermiso('cargar_compras')): ?>
                                 <a class="nav-link" href="/compras/carga">
-                                    Cargar Facturas
+                                    Ingresar compras
                                 </a>
                             <?php endif; ?>
 
+                            <?php if (tienePermiso('ver_compras')): ?>
+                                <a class="nav-link" href="/compras">
+                                    Ver compras
+                                </a>
+                            <?php endif; ?>
                         </nav>
 
                     </div>
@@ -239,6 +244,11 @@
                             <?php if (tienePermiso('ver_inventario')): ?>
                                 <a class="nav-link" href="/inventory">
                                     Inventario
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_proveedores')): ?>
+                                <a class="nav-link" href="/proveedores">
+                                    Proveedores
                                 </a>
                             <?php endif; ?>
                         </nav>
