@@ -7,7 +7,6 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class ComprasController extends BaseController
 {
-
     public function index()
     {
         $chk = requerirPermiso('ver_compras');
@@ -16,4 +15,11 @@ class ComprasController extends BaseController
         return view('compras/index');
     }
 
+        public function new()
+    {
+        $chk = requerirPermiso('ingresar_compras');
+        if ($chk !== true) return $chk;
+
+        return view('compras/new');
+    }
 }

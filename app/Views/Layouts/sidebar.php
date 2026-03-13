@@ -140,8 +140,8 @@
 
                         <nav class="sb-sidenav-menu-nested nav">
 
-                            <?php if (tienePermiso('cargar_compras')): ?>
-                                <a class="nav-link" href="/compras/carga">
+                            <?php if (tienePermiso('ingresar_compras')): ?>
+                                <a class="nav-link" href="/compras/new">
                                     Ingresar compras
                                 </a>
                             <?php endif; ?>

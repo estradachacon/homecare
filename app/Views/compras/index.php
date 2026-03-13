@@ -9,7 +9,7 @@
             <div class="card-header d-flex">
                 <h4 class="header-title">Listado de Compras</h4>
 
-                <?php if (tienePermiso('crear_compra')): ?>
+                <?php if (tienePermiso('ingresar_compras')): ?>
                     <a class="btn btn-primary btn-sm ml-auto"
                        href="<?= base_url('compras/new') ?>">
 

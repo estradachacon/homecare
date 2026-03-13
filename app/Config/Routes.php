@@ -180,4 +180,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     // Rutas para Mantenimiento de Compras
     $routes->get('compras', 'ComprasController::index');
+    $routes->get('compras/new', 'ComprasController::new');
 });

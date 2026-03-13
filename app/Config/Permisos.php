@@ -40,7 +40,7 @@ class Permisos extends BaseConfig
         'Cuentas por Pagar' => [
             'cargar_compras',
             'ver_compras',
-            'crear_compra'
+            'ingresar_compras'
         ],
 
         'Finanzas' => [
