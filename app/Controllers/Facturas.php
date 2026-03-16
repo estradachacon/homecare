@@ -855,7 +855,7 @@ CCF YA VIENE SIN IVA
         crear_notificacion(
             'Factura anulada',
             'Se anuló la factura Nº ' . substr($factura->numero_control, -6),
-            'ver_facturas',
+            'ver_notificacion_factura_anulada',
             base_url('facturas/' . $id),
             'warning'
         );

@@ -43,16 +43,19 @@ public function getNotificacionesUsuario($userId, $roleId, $limit = 10)
         return [];
     }
 
-    return $this->select('*')
-        ->whereIn('permiso', $acciones)
-        ->where("NOT EXISTS (
-            SELECT 1
-            FROM notifications_read nr
-            WHERE nr.notification_id = notifications.id
-            AND nr.user_id = {$userId}
-        )")
-        ->orderBy('created_at', 'DESC')
-        ->findAll($limit);
+    return $this->db->table('notifications')
+        ->select('notifications.*')
+        ->join(
+            'notifications_read nr',
+            'nr.notification_id = notifications.id AND nr.user_id = ' . (int)$userId,
+            'left'
+        )
+        ->whereIn('notifications.permiso', $acciones)
+        ->where('nr.id IS NULL')
+        ->orderBy('notifications.created_at', 'DESC')
+        ->limit($limit)
+        ->get()
+        ->getResult();
 }
 
     /*

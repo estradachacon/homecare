@@ -11,7 +11,7 @@ class Notifications extends BaseController
     {
         $session = session();
 
-        $userId = $session->get('user_id');
+        $userId = $session->get('id');
         $roleId = $session->get('role_id');
 
         $model = new NotificationModel();
