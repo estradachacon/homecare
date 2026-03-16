@@ -147,6 +147,54 @@
         .badge-text-lg {
             font-size: 1rem;
         }
+
+        /* Animación campanita */
+
+        .bell-alert {
+            color: #ffc107 !important;
+            animation: bellShake 1.0s ease-in-out 3;
+        }
+
+        @keyframes bellShake {
+
+            0% {
+                transform: rotate(0);
+            }
+
+            15% {
+                transform: rotate(-15deg);
+            }
+
+            30% {
+                transform: rotate(10deg);
+            }
+
+            45% {
+                transform: rotate(-10deg);
+            }
+
+            60% {
+                transform: rotate(6deg);
+            }
+
+            75% {
+                transform: rotate(-4deg);
+            }
+
+            100% {
+                transform: rotate(0);
+            }
+
+        }
+
+        /* efecto de brillo */
+
+        .bell-glow {
+            text-shadow:
+                0 0 5px rgba(255, 193, 7, 0.7),
+                0 0 10px rgba(255, 193, 7, 0.6),
+                0 0 20px rgba(255, 193, 7, 0.5);
+        }
     </style>
 </head>
 
@@ -168,6 +216,53 @@
                 </button>
             </div>
             <div class="d-flex align-items-center">
+                <!-- CAMPANITA DE NOTIFICACIONES -->
+                <li class="nav-item dropdown mr-3" style="list-style:none;">
+
+                    <a class="nav-link text-white position-relative"
+                        href="#"
+                        id="notifDropdown"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false">
+
+                        <i id="notifBell" class="fa-solid fa-bell fa-lg"></i>
+
+                        <span id="notifCount"
+                            class="badge badge-danger position-absolute"
+                            style="top:-5px; right:-10px; font-size:11px; display:none;">
+                        </span>
+
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-right shadow"
+                        style="width:320px; max-height:400px; overflow-y:auto;"
+                        aria-labelledby="notifDropdown">
+
+                        <div class="dropdown-header font-weight-bold">
+                            Notificaciones
+                        </div>
+
+                        <div id="notifList">
+
+                            <div class="dropdown-item text-muted text-center">
+                                Sin notificaciones
+                            </div>
+
+                        </div>
+
+                        <div class="dropdown-divider"></div>
+
+                        <a href="<?= base_url('notifications') ?>"
+                            class="dropdown-item text-center text-primary">
+
+                            Ver todas
+
+                        </a>
+
+                    </div>
+
+                </li>
                 <span class="badge badge-primary mr-3 p-3 badge-text-lg">
                     <?= esc($session->get('user_name') ?? 'N/A') ?>
                 </span>
@@ -245,7 +340,7 @@
     <!--End layoutSidenav-->
     <!-- Bootstrap 4  -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Datatable js -->
     <script src="https://cdn.datatables.net/2.3.4/js/dataTables.min.js"></script>
     <!-- Dropify -->
@@ -273,6 +368,97 @@
             document.documentElement.style.setProperty('--tab-active-bg', color);
             document.documentElement.style.setProperty('--tab-active-color', text_color);
         })(jQuery);
+    </script>
+    <script>
+        let notifActivas = 0;
+
+        function cargarNotificaciones() {
+
+            fetch("<?= base_url('notifications/ultimas') ?>")
+
+                .then(r => r.json())
+
+                .then(data => {
+
+                    let html = '';
+
+                    if (data.length === 0) {
+
+                        html = `<div class="dropdown-item text-muted text-center">
+                            Sin notificaciones
+                        </div>`;
+
+                        $('#notifCount').hide();
+
+                        $('#notifBell').removeClass('bell-alert bell-glow');
+
+                        notifActivas = 0;
+
+                    } else {
+
+                        $('#notifCount').text(data.length).show();
+
+                        // Animar solo si cambió el número
+                        if (data.length !== notifActivas) {
+
+                            $('#notifBell')
+                                .removeClass('bell-alert')
+                                .addClass('bell-alert bell-glow');
+
+                        }
+
+                        notifActivas = data.length;
+
+                        data.forEach(n => {
+
+                            html += `
+                                <a class="dropdown-item notif-item" 
+                                data-id="${n.id}" 
+                                href="${n.link ?? '#'}">
+
+                                    <div class="font-weight-bold">
+                                        ${n.titulo}
+                                    </div>
+
+                                    <small class="text-muted">
+                                        ${n.mensaje ?? ''}
+                                    </small>
+
+                                </a>
+                            `;
+
+                        });
+
+                    }
+
+                    $('#notifList').html(html);
+
+                })
+
+                .catch(err => {
+
+                    console.log("Error notificaciones:", err);
+
+                });
+
+        }
+
+        $(document).on('click', '.notif-item', function() {
+
+            let id = $(this).data('id');
+
+            $(this).remove(); // desaparece instantáneamente
+
+            fetch("<?= base_url('notifications/leer/') ?>" + id)
+                .then(() => cargarNotificaciones());
+
+        });
+
+        // cargar al iniciar
+        cargarNotificaciones();
+
+        // refrescar cada 30 segundos
+        setInterval(cargarNotificaciones, 15000);
     </script>
     <?= $this->include('Layouts/toast') ?>
 </body>

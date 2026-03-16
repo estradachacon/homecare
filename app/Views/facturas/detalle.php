@@ -241,9 +241,29 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                         style="background: #fdda11;">
                                         Activa
                                     </span>
-
+ 
                                 <?php endif; ?>
                             </div>
+
+                            <?php if (!empty($factura->quedan) && $factura->quedan->anulado == 0): ?>
+
+                                <div class="mt-2 d-flex align-items-center">
+
+                                    <small class="text-muted">
+                                        En Quedan
+                                    </small>
+
+                                    <a href="<?= base_url('quedans/' . $factura->quedan->id) ?>"
+                                        class="badge text-white px-3 py-1 ml-auto"
+                                        style="background:#6f42c1;">
+
+                                        <?= esc($factura->quedan->numero_quedan) ?>
+
+                                    </a>
+
+                                </div>
+
+                            <?php endif; ?>
 
                             <?php if (($factura->anulada ?? 0) == 0 && $saldoPendiente == 0 && !empty($factura->fecha_ultimo_pago)): ?>
 

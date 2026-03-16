@@ -12,6 +12,9 @@ class Quedans extends BaseController
 
     public function index()
     {
+        $chk = requerirPermiso('ver_quedans');
+        if ($chk !== true) return $chk;
+
         $model = new QuedanModel();
 
         $data['quedans'] = $model->getQuedansConCliente();
@@ -31,15 +34,19 @@ class Quedans extends BaseController
 
     public function facturasCliente($clienteId)
     {
-        $facturaModel = new FacturaHeadModel();
+        $db = \Config\Database::connect();
 
-        $facturas = $facturaModel
-            ->select('id, numero_control, fecha_emision, total_pagar, saldo')
-            ->where('receptor_id', $clienteId)
-            ->where('saldo >', 0)
-            ->where('anulada', 0)
-            ->orderBy('fecha_emision', 'ASC')
-            ->findAll();
+        $facturas = $db->table('facturas_head fh')
+            ->select('fh.id, fh.numero_control, fh.fecha_emision, fh.total_pagar, fh.saldo')
+            ->join('quedan_facturas qf', 'qf.factura_id = fh.id', 'left')
+            ->join('quedans q', 'q.id = qf.quedan_id AND q.anulado = 0', 'left')
+            ->where('fh.receptor_id', $clienteId)
+            ->where('fh.saldo >', 0)
+            ->where('fh.anulada', 0)
+            ->where('qf.factura_id IS NULL') // 👈 clave
+            ->orderBy('fh.fecha_emision', 'ASC')
+            ->get()
+            ->getResult();
 
         return $this->response->setJSON($facturas);
     }
@@ -87,9 +94,17 @@ class Quedans extends BaseController
             if (!isset($factura['id']) || !isset($factura['monto'])) {
                 continue;
             }
-
+            
             $facturaId = (int)$factura['id'];
             $monto = (float)$factura['monto'];
+
+            $existe = $detalleModel
+                ->where('factura_id', $facturaId)
+                ->first();
+
+            if ($existe) {
+                continue;
+            }
 
             $detalleModel->insert([
                 'quedan_id' => $quedanId,
@@ -182,7 +197,17 @@ class Quedans extends BaseController
             'Se anuló el quedan #' . $quedan->numero_quedan,
             $session->get('user_id')
         );
+        
+        $notifModel = new \App\Models\NotificationModel();
 
+        $notifModel->insert([
+            'titulo' => 'Nuevo paquete recibido',
+            'mensaje' => 'Un paquete fue ingresado al sistema',
+            'link' => base_url('packages'),
+            'tipo' => 'info',
+            'permiso' => 'ver_paquetes'
+        ]);
+        
         return $this->response->setJSON([
             'success' => true,
             'message' => 'El quedan fue anulado correctamente.'

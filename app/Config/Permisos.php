@@ -66,6 +66,10 @@ class Permisos extends BaseConfig
             'ver_reportes',
         ],
 
+        'Notificaciones' => [
+            'ver_notificacion_factura_anulada',
+        ],   
+
         'Ajustes del sistema' => [
             'ver_configuracion',
             'ver_sucursales',
@@ -83,6 +87,6 @@ class Permisos extends BaseConfig
             'eliminar_roles',
             'crear_roles',
             'asignar_permisos',
-        ],
+        ],     
     ];
 }

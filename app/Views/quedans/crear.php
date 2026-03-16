@@ -163,20 +163,24 @@
                     </table>
 
 
-                    <div class="row">
-
-                        <div class="col-md-4 ml-auto text-end">
-
-                            <h5>Total Quedan</h5>
-
-                            <h4 class="text-primary">
-                                $ <span id="totalQuedan">0.00</span>
-                            </h4>
-                            <input type="hidden" name="total_aplicado" id="totalAplicadoInput" value="0">
-                        </div>
-                        <div class="mt-2 text-muted small">
+                    <div class="row align-items-center mt-3">
+                        <div class="col-md-6 text-start small text-muted">
                             Facturas seleccionadas:
                             <strong id="cantidadSeleccionadas">0</strong>
+                        </div>
+                        <div class="col-md-6 text-right">
+
+                            <h6 class="mb-1 text-muted">Total Quedan</h6>
+
+                            <h4 class="text-primary mb-0">
+                                $ <span id="totalQuedan">0.00</span>
+                            </h4>
+
+                            <input type="hidden"
+                                name="total_aplicado"
+                                id="totalAplicadoInput"
+                                value="0">
+
                         </div>
 
                     </div>

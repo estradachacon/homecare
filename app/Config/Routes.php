@@ -45,7 +45,11 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
-
+    
+    //Rutas para las notificaciones
+    $routes->get('notifications/ultimas', 'Notifications::ultimas');
+    $routes->get('notifications/leer/(:num)', 'Notifications::marcarLeida/$1');
+    
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');

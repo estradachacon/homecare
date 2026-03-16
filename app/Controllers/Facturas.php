@@ -666,6 +666,17 @@ CCF YA VIENE SIN IVA
 
         $factura->fecha_ultimo_pago = $ultimoPago->fecha_pago ?? null;
 
+        // Verificar si la factura pertenece a un quedan activo
+        $quedanInfo = $db->table('quedan_facturas qf')
+            ->select('q.id, q.numero_quedan, q.fecha_pago, q.anulado')
+            ->join('quedans q', 'q.id = qf.quedan_id')
+            ->where('qf.factura_id', $id)
+            ->orderBy('q.id', 'DESC')
+            ->get()
+            ->getRow();
+
+        $factura->quedan = $quedanInfo;
+
         $facturaRelacionada = null;
 
         $notasCredito = $facturaHeadModel
@@ -785,21 +796,27 @@ CCF YA VIENE SIN IVA
             $pago = $pagosHeadModel->find($pagoId);
             if (!$pago) continue;
 
-            $accountId = $pago->numero_cuenta_bancaria; // es el id real
+            // 🔹 Si la cuenta viene null usar la cuenta 1
+            $accountId = $pago->numero_cuenta_bancaria ?? 1;
 
-            // 🔹 1. Obtener cuenta actual
+            // 🔹 Obtener cuenta
             $cuenta = $accountModel->find($accountId);
-            if (!$cuenta) continue;
+
+            // 🔹 Si tampoco existe la cuenta, usar la 1 como fallback
+            if (!$cuenta) {
+                $accountId = 1;
+                $cuenta = $accountModel->find($accountId);
+                if (!$cuenta) continue;
+            }
 
             $balanceActual = (float) $cuenta->balance;
-
-            $nuevoBalance = $balanceActual - $montoDevuelto;
+            $nuevoBalance  = $balanceActual - $montoDevuelto;
 
             $accountModel->update($accountId, [
                 'balance' => $nuevoBalance
             ]);
 
-            // 🔹 4. Registrar transacción
+            // 🔹 Registrar transacción
             $transactionModel->addSalida(
                 $accountId,
                 $montoDevuelto,
@@ -808,7 +825,7 @@ CCF YA VIENE SIN IVA
                 $pagoId
             );
 
-            // 🔹 5. Anular detalle
+            // 🔹 Anular detalle
             $pagosDetailsModel->update($detalle->id, [
                 'anulado'    => 1,
                 'anulado_at' => date('Y-m-d H:i:s'),
@@ -833,6 +850,14 @@ CCF YA VIENE SIN IVA
                 ' por monto $' . number_format($factura->total_pagar, 2) .
                 ' el ' . date('d/m/Y H:i'),
             $user_id
+        );
+
+        crear_notificacion(
+            'Factura anulada',
+            'Se anuló la factura Nº ' . substr($factura->numero_control, -6),
+            'ver_facturas',
+            base_url('facturas/' . $id),
+            'warning'
         );
 
         return $this->response->setJSON([
