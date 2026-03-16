@@ -339,7 +339,7 @@
                         fecha_pago: fecha,
                         tipo_pago: tipoPago,
                         recupero: descRecupero,
-                        cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : null,
+                        cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : 1,
                         observaciones: $('textarea').val() || '',
                         total: total,
                         facturas: facturas

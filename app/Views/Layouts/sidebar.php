@@ -112,6 +112,11 @@
                                     Ver pagos
                                 </a>
                             <?php endif; ?>
+                            <?php if (tienePermiso('ver_quedans')): ?>
+                                <a class="nav-link" href="/quedans">
+                                    Control de Quedans
+                                </a>
+                            <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>

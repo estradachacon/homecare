@@ -686,7 +686,46 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                         revertir_pagos: revertirPagos
                     })
                 })
-                .then(r => r.json())
+                .then(async response => {
+
+                    const text = await response.text();
+
+                    let data;
+
+                    try {
+                        data = JSON.parse(text);
+                    } catch (err) {
+
+                        console.error("Respuesta del servidor:", text);
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error del servidor',
+                            html: `
+                    <div style="text-align:left">
+                        <b>No se pudo interpretar la respuesta del servidor.</b>
+                        <hr>
+                        <pre style="
+                            max-height:300px;
+                            overflow:auto;
+                            font-size:12px;
+                            background:#f6f6f6;
+                            padding:10px;
+                            border-radius:5px
+                        ">
+                        ${text.substring(0,800)}
+                        </pre>
+                    </div>
+                `,
+                            width: 700
+                        });
+
+                        throw new Error("Respuesta no es JSON");
+                    }
+
+                    return data;
+
+                })
                 .then(data => {
 
                     Swal.fire({
@@ -701,8 +740,15 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                 })
                 .catch(error => {
-                    console.error(error);
-                    Swal.fire('Error', 'No se pudo procesar la anulación.', 'error');
+
+                    console.error("Error en anulación:", error);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error inesperado',
+                        text: error.message
+                    });
+
                 });
 
         }

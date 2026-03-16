@@ -181,4 +181,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para Mantenimiento de Compras
     $routes->get('compras', 'ComprasController::index');
     $routes->get('compras/new', 'ComprasController::new');
+
+    // Rutas para mantenimiento de Queda
+    $routes->get('quedans', 'Quedans::index');
+    $routes->get('quedans/crear', 'Quedans::crear');
+    $routes->post('quedans/guardar', 'Quedans::guardar');
+    $routes->get('quedans/facturas-cliente/(:num)', 'Quedans::facturasCliente/$1');
+    $routes->get('quedans/(:num)', 'Quedans::show/$1');
+    $routes->post('quedans/anular/(:num)', 'Quedans::anular/$1');
 });

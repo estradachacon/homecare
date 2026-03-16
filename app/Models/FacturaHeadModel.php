@@ -44,6 +44,8 @@ class FacturaHeadModel extends Model
         // Estado
         'saldo',
         'anulada',
+        'anulada_por',
+        'fecha_anulacion',
         'tipo_venta',
         'codigo_generacion_relacionado',
     ];

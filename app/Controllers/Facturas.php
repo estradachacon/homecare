@@ -481,8 +481,8 @@ class Facturas extends BaseController
                         ->first();
 
                     if (!$producto) {
-                        
-                    $tipoProducto = (int) $tipoItem; 
+
+                        $tipoProducto = (int) $tipoItem;
                         if (!$productoModel->insert([
                             'codigo' => $codigo,
                             'descripcion' => $tipoItem == 2 ? 'Servicio' : $descripcion,
@@ -735,7 +735,8 @@ CCF YA VIENE SIN IVA
             ]);
         }
 
-        $user_id = session()->get('user_id');
+        $session = session();
+        $user_id = $session->get('user_id');
 
         $facturaModel       = new FacturaHeadModel();
         $pagosDetailsModel  = new PagosDetailsModel();
@@ -762,13 +763,15 @@ CCF YA VIENE SIN IVA
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1️⃣ Anular factura
+        // Anular factura
         $facturaModel->update($id, [
-            'anulada' => 1,
-            'saldo'   => 0
+            'anulada'         => 1,
+            'saldo'           => 0,
+            'anulada_por'     => $user_id,
+            'fecha_anulacion' => date('Y-m-d H:i:s')
         ]);
 
-        // 2️⃣ Obtener detalles de pagos activos
+        // Obtener detalles de pagos activos
         $detalles = $pagosDetailsModel
             ->where('factura_id', $id)
             ->where('anulado', 0)
@@ -788,10 +791,10 @@ CCF YA VIENE SIN IVA
             $cuenta = $accountModel->find($accountId);
             if (!$cuenta) continue;
 
-            // 🔹 2. Restar el monto al balance actual
-            $nuevoBalance = $cuenta->balance - $montoDevuelto;
+            $balanceActual = (float) $cuenta->balance;
 
-            // 🔹 3. Actualizar balance en accounts
+            $nuevoBalance = $balanceActual - $montoDevuelto;
+
             $accountModel->update($accountId, [
                 'balance' => $nuevoBalance
             ]);
@@ -827,7 +830,8 @@ CCF YA VIENE SIN IVA
             'Anulación de factura',
             'Facturas',
             'Anuló factura Nº ' . substr($factura->numero_control, -6) .
-                ' por monto $' . number_format($factura->total_pagar, 2),
+                ' por monto $' . number_format($factura->total_pagar, 2) .
+                ' el ' . date('d/m/Y H:i'),
             $user_id
         );
 

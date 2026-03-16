@@ -35,6 +35,9 @@ class Permisos extends BaseConfig
             'ver_pagos',
             'crear_pagos',
             'anular_pagos',
+            'ver_quedans',
+            'crear_quedans',
+            'anular_quedans'
         ],
         
         'Cuentas por Pagar' => [
