@@ -17,7 +17,7 @@
                     <a href="<?= base_url('reports/saldos-antiguedad') ?>" class="col-md-3 card-options">
                         <div class="card border-success mb-3 card-option-container">
                             <div class="card-body text-info icon-card-options"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                            <div class="card-footer bg-transparent border-info card-footer-options">Saldos por antigüedad</div>
+                            <div class="card-footer bg-transparent border-info card-footer-options">Cuentas por cobrar</div>
                         </div>
                     </a>
                 </div>

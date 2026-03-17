@@ -43,7 +43,7 @@ class Quedans extends BaseController
             ->where('fh.receptor_id', $clienteId)
             ->where('fh.saldo >', 0)
             ->where('fh.anulada', 0)
-            ->where('qf.factura_id IS NULL') // 👈 clave
+            ->where('q.id IS NULL')
             ->orderBy('fh.fecha_emision', 'ASC')
             ->get()
             ->getResult();
@@ -82,7 +82,6 @@ class Quedans extends BaseController
             'cliente_id' => $clienteId,
             'fecha_emision' => $fechaEmision,
             'fecha_pago' => $fechaPago,
-            'estado' => 'pendiente',
             'total_aplicado' => 0
         ]);
 
@@ -94,13 +93,16 @@ class Quedans extends BaseController
             if (!isset($factura['id']) || !isset($factura['monto'])) {
                 continue;
             }
-            
+
             $facturaId = (int)$factura['id'];
             $monto = (float)$factura['monto'];
 
-            $existe = $detalleModel
-                ->where('factura_id', $facturaId)
-                ->first();
+            $existe = $db->table('quedan_facturas qf')
+                ->join('quedans q', 'q.id = qf.quedan_id')
+                ->where('qf.factura_id', $facturaId)
+                ->where('q.anulado', 0)
+                ->get()
+                ->getRow();
 
             if ($existe) {
                 continue;
@@ -185,7 +187,6 @@ class Quedans extends BaseController
         }
 
         $quedanModel->update($id, [
-            'estado' => 'anulado',
             'anulado' => 1,
             'anulado_por' => $session->get('user_id'),
             'fecha_anulacion' => date('Y-m-d H:i:s')
@@ -197,7 +198,7 @@ class Quedans extends BaseController
             'Se anuló el quedan #' . $quedan->numero_quedan,
             $session->get('user_id')
         );
-        
+
         $notifModel = new \App\Models\NotificationModel();
 
         $notifModel->insert([
@@ -207,7 +208,7 @@ class Quedans extends BaseController
             'tipo' => 'info',
             'permiso' => 'ver_paquetes'
         ]);
-        
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'El quedan fue anulado correctamente.'

@@ -1,0 +1,3 @@
+//para la consulta de vencimiento de quedans
+php spark db:seed TareasSistemaSeeder
+php spark sistema:revisar-vencimientos

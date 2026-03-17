@@ -240,6 +240,76 @@
 
         </div>
     </div>
+    <div class="col-md-12 mt-2">
+        <div class="card">
+            <div class="card-header">
+                <h4>Reporte de Quedans</h4>
+                <small class="text-muted">
+                    Consulta de quedans con su estado, fechas y montos.
+                </small>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <form method="get" target="_blank">
+
+                        <div class="row">
+
+                            <!-- Desde -->
+                            <div class="col-md-2">
+                                <label>Desde</label>
+                                <input
+                                    type="date"
+                                    name="desde"
+                                    class="form-control"
+                                    value="<?= esc($desde ?? date('Y-m-01')) ?>">
+                            </div>
+
+                            <!-- Hasta -->
+                            <div class="col-md-2">
+                                <label>Hasta</label>
+                                <input
+                                    type="date"
+                                    name="hasta"
+                                    class="form-control"
+                                    value="<?= esc($hasta ?? date('Y-m-d')) ?>">
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-4">
+                                <label>Cliente</label>
+                                <select name="cliente_id" class="form-control cliente-select"></select>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="col-md-2 mt-4">
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/quedans-pdf') ?>"
+                                    class="btn btn-success btn-block">
+
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    Detalle PDF
+                                </button>
+                            </div>
+                            <div class="col-md-2 mt-4">
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/quedans-excel') ?>"
+                                    class="btn btn-success btn-block btn-equal">
+
+                                    <i class="fas fa-file-excel mr-2"></i>
+                                    Detalle Excel
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
     $(document).ready(function() {

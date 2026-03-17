@@ -195,6 +195,69 @@
                 0 0 10px rgba(255, 193, 7, 0.6),
                 0 0 20px rgba(255, 193, 7, 0.5);
         }
+
+        /* ===========================
+   NOTIFICACIONES
+=========================== */
+
+        .notif-card {
+            display: flex;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f1f1;
+            transition: all .2s ease;
+
+            width: calc(100% - 10px);
+            /* deja margen */
+            margin: 0 auto;
+        }
+
+        .notif-card:hover {
+            background: #f8f9fa;
+            transform: translateX(4px);
+        }
+
+        .notif-icon {
+            font-size: 18px;
+            color: #ffc107;
+            margin-top: 3px;
+        }
+
+        .notif-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notif-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1d2744;
+        }
+
+        .notif-msg {
+            font-size: 12px;
+            color: #6c757d;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .dropdown-menu {
+            border-radius: 10px;
+        }
+
+        .dropdown-header {
+            font-size: 14px;
+            color: #1d2744;
+        }
+
+        .notif-dropdown {
+            width: 420px;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            /* evita barra lateral */
+            padding: 0;
+        }
     </style>
 </head>
 
@@ -235,12 +298,11 @@
 
                     </a>
 
-                    <div class="dropdown-menu dropdown-menu-right shadow"
-                        style="width:320px; max-height:400px; overflow-y:auto;"
+                    <div class="dropdown-menu dropdown-menu-right shadow notif-dropdown"
                         aria-labelledby="notifDropdown">
 
-                        <div class="dropdown-header font-weight-bold">
-                            Notificaciones
+                        <div class="dropdown-header d-flex align-items-center">
+                            <span><i class="fa-solid fa-bell text-primary"></i> Notificaciones</span>
                         </div>
 
                         <div id="notifList">
@@ -412,20 +474,21 @@
                         data.forEach(n => {
 
                             html += `
-                                <a class="dropdown-item notif-item" 
-                                data-id="${n.id}" 
-                                href="${n.link ?? '#'}">
+<a class="dropdown-item notif-item notif-card" 
+data-id="${n.id}" 
+href="${n.link ?? '#'}">
 
-                                    <div class="font-weight-bold">
-                                        ${n.titulo}
-                                    </div>
+    <div class="notif-icon">
+        <i class="fa-solid fa-circle-exclamation"></i>
+    </div>
 
-                                    <small class="text-muted">
-                                        ${n.mensaje ?? ''}
-                                    </small>
+    <div class="notif-content">
+        <div class="notif-title">${n.titulo}</div>
+        <div class="notif-msg">${n.mensaje ?? ''}</div>
+    </div>
 
-                                </a>
-                            `;
+</a>
+`;
 
                         });
 

@@ -68,6 +68,7 @@ class Permisos extends BaseConfig
 
         'Notificaciones' => [
             'ver_notificacion_factura_anulada',
+            'vencimiento_de_quedans',
         ],   
 
         'Ajustes del sistema' => [

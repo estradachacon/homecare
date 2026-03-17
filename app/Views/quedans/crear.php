@@ -314,6 +314,21 @@
 
         });
 
+
+        function formatearFechaSV(fecha) {
+
+            if (!fecha) return '';
+
+            let d = new Date(fecha);
+
+            let dia = String(d.getDate()).padStart(2, '0');
+            let mes = String(d.getMonth() + 1).padStart(2, '0');
+            let anio = d.getFullYear();
+
+            return `${dia}/${mes}/${anio}`;
+        }
+
+
         function renderTabla(data) {
 
             let html = '';
@@ -379,7 +394,7 @@
             <td>${f.numero_control}</td>
 
             <td class="text-center">
-                ${f.fecha_emision}
+                ${formatearFechaSV(f.fecha_emision)}
             </td>
 
             <td class="text-center ${dias>30?'text-danger fw-bold':''}">

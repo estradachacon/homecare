@@ -15,10 +15,11 @@ class QuedanFacturaModel extends Model
         'quedan_id',
         'factura_id',
         'monto_aplicado',
-        'created_at'
+        'created_at',
+        'updated_at'
     ];
 
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
 
     public function getFacturasPorQuedan($quedanId)
     {

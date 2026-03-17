@@ -16,7 +16,7 @@ class Notifications extends BaseController
 
         $model = new NotificationModel();
 
-        $notificaciones = $model->getNotificacionesUsuario($userId, $roleId);
+        $notificaciones = $model->getNoLeidasVisibles($userId, $roleId, 5);
 
         return $this->response->setJSON($notificaciones);
     }
@@ -39,15 +39,65 @@ class Notifications extends BaseController
     {
         $session = session();
 
+        $userId = $session->get('id');
+        $roleId = $session->get('role_id');
+
         $model = new NotificationModel();
 
-        $total = $model->contarNoLeidas(
-            $session->get('user_id'),
-            $session->get('role_id')
+        $total = count(
+            $model->getNoLeidasVisibles($userId, $roleId, 1000)
         );
 
         return $this->response->setJSON([
             'total' => $total
+        ]);
+    }
+
+    public function index()
+    {
+        $session = session();
+
+        $userId = $session->get('id');
+        $roleId = $session->get('role_id');
+
+        $notifModel = new NotificationModel();
+
+        $perPage = 10;
+
+        $notifications = $notifModel->getNotificacionesVisibles($userId, $roleId, null, null, $perPage);
+
+        return view('notifications/index', [
+            'notifications' => $notifications,
+            'pager' => $notifModel->pager,
+            'perPage' => $perPage
+        ]);
+    }
+
+    public function search()
+    {
+        $session = session();
+
+        $userId = $session->get('id');
+        $roleId = $session->get('role_id');
+
+        $from = $this->request->getGet('from');
+        $to   = $this->request->getGet('to');
+
+        $perPage = $this->request->getGet('perPage') ?? 10;
+
+        $notifModel = new NotificationModel();
+
+        $notifications = $notifModel->getNotificacionesVisibles(
+            $userId,
+            $roleId,
+            $from,
+            $to,
+            $perPage
+        );
+
+        return view('notifications/_table', [
+            'notifications' => $notifications,
+            'pager' => $notifModel->pager
         ]);
     }
 }

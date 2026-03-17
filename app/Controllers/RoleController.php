@@ -146,20 +146,50 @@ class RoleController extends BaseController
     {
         $chk = requerirPermiso('ver_roles');
         if ($chk !== true) return $chk;
+        $session = session();
+        $roleId = intval($roleId);
 
         $permisoRolModel = new PermisoRolModel();
 
         $permisos = $this->request->getPost('permisos') ?? [];
 
-        // Limpiar permisos anteriores
-        $permisoRolModel->where('role_id', $roleId)->delete();
+        // 1️⃣ Deshabilitar todos los permisos del rol
+        $permisoRolModel
+            ->where('role_id', $roleId)
+            ->set(['habilitado' => 0])
+            ->update();
 
+        // 2️⃣ Activar o crear los seleccionados
         foreach ($permisos as $accion) {
-            $permisoRolModel->insert([
-                'role_id'       => $roleId,
-                'nombre_accion' => $accion,
-                'habilitado'    => 1,
-            ]);
+
+            $permiso = $permisoRolModel
+                ->where('role_id', $roleId)
+                ->where('nombre_accion', $accion)
+                ->first();
+
+            if ($permiso) {
+
+                // Si ya existe, solo habilitar
+                $permisoRolModel->update($permiso['id'], [
+                    'habilitado' => 1,
+                    'desde' => date('Y-m-d H:i:s')
+                ]);
+            } else {
+
+                // Si no existe, crearlo
+                $permisoRolModel->insert([
+                    'role_id'       => $roleId,
+                    'nombre_accion' => $accion,
+                    'habilitado'    => 1,
+                    'desde'         => date('Y-m-d H:i:s')
+                ]);
+                registrar_bitacora(
+                    'Cambio de permisos',
+                    'Roles',
+                    'Usuario ',
+                    $session->get('user_id')
+                );
+            }
         }
 
         return redirect()->to('/roles')

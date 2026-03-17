@@ -51,4 +51,53 @@ class QuedanModel extends Model
             ->where('quedans.id', $id)
             ->first();
     }
+
+    public function getVencimientos()
+    {
+        return $this->select("
+        SUM(CASE WHEN fecha_pago = CURDATE() THEN 1 ELSE 0 END) AS vencen_hoy,
+        SUM(CASE WHEN fecha_pago BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS vencen_semana
+    ")
+            ->where('anulado', 0)
+            ->first();
+    }
+
+    public function getReporteQuedans($desde = null, $hasta = null, $clienteId = null)
+    {
+        $builder = $this->select('
+        quedans.*,
+        clientes.nombre as cliente_nombre
+    ')
+            ->join('clientes', 'clientes.id = quedans.cliente_id', 'left');
+
+        if ($desde) {
+            $builder->where('DATE(quedans.fecha_emision) >=', $desde);
+        }
+
+        if ($hasta) {
+            $builder->where('DATE(quedans.fecha_emision) <=', $hasta);
+        }
+
+        if ($clienteId) {
+            $builder->where('quedans.cliente_id', $clienteId);
+        }
+
+        return $builder->orderBy('quedans.fecha_emision', 'DESC')->findAll();
+    }
+    public function getFacturasPorQuedan($quedanId)
+    {
+        return $this->db->table('quedan_facturas qf')
+            ->select('
+            qf.monto_aplicado,
+            fh.numero_control,
+            fh.fecha_emision,
+            fh.total_pagar,
+            fh.saldo,
+            fh.tipo_dte
+        ')
+            ->join('facturas_head fh', 'fh.id = qf.factura_id')
+            ->where('qf.quedan_id', $quedanId)
+            ->get()
+            ->getResult();
+    }
 }

@@ -50,8 +50,9 @@ abstract class BaseController extends Controller
     {
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
+
         session()->remove('_permisos_refrescados');
-        
+
         // Preload any models, libraries, etc, here.
         date_default_timezone_set('America/El_Salvador');
 
@@ -67,6 +68,71 @@ abstract class BaseController extends Controller
             }
         } catch (\Exception $e) {
             log_message('error', 'Error comprobando time_zone en la BD: ' . $e->getMessage());
+        }
+
+        if (session()->get('id')) {
+            $this->revisarVencimientosQuedans();
+        }
+    }
+
+    protected function revisarVencimientosQuedans()
+    {
+        $db = \Config\Database::connect();
+
+        $tarea = $db->table('tareas_sistema')
+            ->where('nombre', 'notificacion_vencimiento_quedans')
+            ->get()
+            ->getRow();
+
+        if (!$tarea) return;
+
+        // Si ya se ejecutó hoy, salir
+        if ($tarea->ultima_ejecucion == date('Y-m-d')) {
+            return;
+        }
+
+        $result = $db->query("
+            SELECT
+            COALESCE(SUM(CASE WHEN fecha_pago < CURDATE() THEN 1 ELSE 0 END),0) AS vencidos,
+            COALESCE(SUM(CASE WHEN fecha_pago = CURDATE() THEN 1 ELSE 0 END),0) AS hoy,
+            COALESCE(SUM(CASE WHEN fecha_pago BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END),0) AS semana
+            FROM quedans
+            WHERE anulado = 0
+                ")->getRow();
+
+        if (!$result) return;
+
+        $mensaje = "";
+
+        if ($result->vencidos > 0) {
+            $mensaje .= $result->vencidos . " quedans vencidos. ";
+        }
+
+        if ($result->hoy > 0) {
+            $mensaje .= $result->hoy . " vencen hoy. ";
+        }
+
+        if ($result->semana > 0) {
+            $mensaje .= $result->semana . " vencen esta semana.";
+        }
+
+        if ($mensaje != "") {
+
+            $notifModel = new \App\Models\NotificationModel();
+
+            $notifModel->insert([
+                'titulo' => 'Vencimientos de quedans',
+                'mensaje' => $mensaje,
+                'link' => base_url('quedans'),
+                'tipo' => 'warning',
+                'permiso' => 'vencimiento_de_quedans'
+            ]);
+
+            $db->table('tareas_sistema')
+                ->where('nombre', 'notificacion_vencimiento_quedans')
+                ->update([
+                    'ultima_ejecucion' => date('Y-m-d')
+                ]);
         }
     }
 }

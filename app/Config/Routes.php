@@ -45,11 +45,14 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
         $routes->get('users', 'ReportController::users');
         $routes->post('generate', 'ReportController::generate');
     });
-    
+
     //Rutas para las notificaciones
     $routes->get('notifications/ultimas', 'Notifications::ultimas');
     $routes->get('notifications/leer/(:num)', 'Notifications::marcarLeida/$1');
-    
+    $routes->get('notifications', 'Notifications::index');
+    $routes->get('notifications', 'Notifications::index');
+    $routes->get('notifications-search', 'Notifications::search');
+
     // Mantenimientos de cajas
     $routes->presenter('cashiers', ['controller' => 'CashierController', 'only' => ['index', 'new', 'create', 'edit', 'update']]);
     $routes->post('cashiers/delete', 'CashierController::delete');
@@ -123,6 +126,11 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/ventas-vendedores-excel', 'ReportesController::ventasVendedoresExcel');
     // -- Reporte de estados de cuenta
     $routes->get('reports/estado-cuenta-cliente-pdf', 'ReportesController::estadoCuentaClientePdf');
+    // -- Reportes de quedans
+    $routes->get('reports/quedans', 'ReportesController::quedans');
+    $routes->get('reports/quedans-pdf', 'ReportesController::quedansPdf');
+    $routes->get('reports/quedans-detalle-pdf', 'ReportesController::quedansDetallePdf');
+    $routes->get('reports/quedans-excel', 'ReportesController::quedansExcel');
 
     // Rutas para el módulo de facturación
     $routes->get('facturas', 'Facturas::index');

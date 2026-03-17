@@ -6,13 +6,18 @@ use CodeIgniter\Controller;
 use App\Models\FacturaHeadModel;
 use App\Models\ClienteModel;
 use App\Models\SettingModel;
+use App\Models\QuedanModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Reader\Html as HtmlReader;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class ReportesController extends Controller
 {
@@ -420,7 +425,7 @@ class ReportesController extends Controller
             ->where('facturas_head.anulada', 0)
             ->where('facturas_head.tipo_dte !=', '14')
             ->where('facturas_head.fecha_emision <=', $fecha_corte);
-            
+
 
         if (!empty($cliente_id)) {
             $query->where('facturas_head.receptor_id', $cliente_id);
@@ -1797,5 +1802,223 @@ class ReportesController extends Controller
         ob_start();
         $writer->save('php://output');
         return ob_get_clean();
+    }
+
+
+    //Reportes de quedan
+    function estadoFactura($total, $saldo)
+    {
+        if ($saldo == 0) {
+            return 'Pagado';
+        }
+
+        if ($saldo < $total) {
+            return 'Pagado parcialmente';
+        }
+
+        return 'Activo';
+    }
+
+    public function quedansPdf()
+    {
+        $desde = $this->request->getGet('desde');
+        $hasta = $this->request->getGet('hasta');
+        $cliente = $this->request->getGet('cliente_id');
+
+        $model = new QuedanModel();
+
+        $data['quedans'] = $model->getReporteQuedans($desde, $hasta, $cliente);
+
+        // 🔥 HTML
+        $html = view('reports/quedans/quedans_pdf', $data);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+
+        $dompdf->render();
+
+        // 🔥 AQUI VA TU HEADER
+        $this->applyPdfHeader($dompdf);
+
+        // 🔥 OUTPUT
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
+
+    public function quedansExcel()
+    {
+        $quedanModel = new QuedanModel();
+        $detalleModel = new \App\Models\QuedanFacturaModel();
+
+        helper('dte');
+
+        $siglas = dte_siglas();
+
+        $quedans = $quedanModel->getReporteQuedans();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // 🔥 ENCABEZADOS
+        $sheet->setCellValue('A1', 'Quedan');
+        $sheet->setCellValue('B1', 'Cliente');
+        $sheet->setCellValue('C1', 'Documento');
+        $sheet->setCellValue('D1', 'Fecha');
+        $sheet->setCellValue('E1', 'Total');
+        $sheet->setCellValue('F1', 'Aplicado');
+        $sheet->setCellValue('G1', 'Saldo');
+        $sheet->setCellValue('H1', 'Estado');
+        $sheet->getStyle('A1:H1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F4E79']
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER
+            ]
+        ]);
+        $row = 2;
+        $granTotal = 0;
+
+        foreach ($quedans as $q) {
+
+            $detalles = $detalleModel->getFacturasPorQuedan($q->id);
+
+            foreach ($detalles as $d) {
+
+                // 🔥 FORMATO DOCUMENTO
+                $correlativo = str_pad(substr($d->numero_control ?? '', -6), 6, '0', STR_PAD_LEFT);
+                $partes = explode('-', $d->numero_control);
+                $tipoCodigo = $partes[1] ?? null;
+                $sigla = $siglas[$tipoCodigo] ?? 'DOC';
+
+                $documento = $sigla . ' ' . $correlativo;
+
+                // 🔥 ESTADO
+                if (($d->anulada ?? 0) == 1) {
+                    $estado = 'Anulada';
+                } elseif (($d->saldo ?? 0) == 0) {
+                    $estado = 'Pagado';
+                } elseif (($d->saldo ?? 0) < ($d->total_pagar ?? 0)) {
+                    $estado = 'Parcial';
+                } else {
+                    $estado = 'Activo';
+                }
+                $estadoCell = "H$row";
+
+                if ($estado == 'Activo') {
+                    $sheet->getStyle($estadoCell)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'FDECEA']
+                        ],
+                        'font' => ['color' => ['rgb' => 'C0392B']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    ]);
+                }
+
+                if ($estado == 'Parcial') {
+                    $sheet->getStyle($estadoCell)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'FFF4E5']
+                        ],
+                        'font' => ['color' => ['rgb' => 'E67E22']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    ]);
+                }
+
+                if ($estado == 'Pagado') {
+                    $sheet->getStyle($estadoCell)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'E8F8F5']
+                        ],
+                        'font' => ['color' => ['rgb' => '1E8449']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    ]);
+                }
+
+                if ($estado == 'Anulada') {
+                    $sheet->getStyle($estadoCell)->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'F2F2F2']
+                        ],
+                        'font' => ['color' => ['rgb' => '7F8C8D']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    ]);
+                }
+                // 🔥 SALDO QUEDAN
+                $saldo = ($d->anulada ?? 0) == 0 ? ($d->saldo ?? 0) : 0;
+
+                $granTotal += $saldo;
+
+                // 🔥 ESCRIBIR FILA
+                $sheet->setCellValue("A$row", $q->numero_quedan);
+                $sheet->setCellValue("B$row", $q->cliente_nombre);
+                $sheet->setCellValue("C$row", $documento);
+                $sheet->setCellValue("D$row", $d->fecha_emision);
+                $sheet->setCellValue("E$row", $d->total_pagar);
+                $sheet->setCellValue("F$row", $d->monto_aplicado);
+                $sheet->setCellValue("G$row", $saldo);
+                $sheet->setCellValue("H$row", $estado);
+                $sheet->getStyle("A1:H$row")->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '999999']
+                        ]
+                    ]
+                ]);
+                $row++;
+            }
+
+            // 🔥 FILA DE TOTAL POR QUEDAN
+            $sheet->setCellValue("F$row", 'Saldo Quedan:');
+            $sheet->setCellValue("G$row", "=SUM(G2:G" . ($row - 1) . ")");
+            $sheet->getStyle("F$row:G$row")->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E2EFDA']
+                ]
+            ]);
+            $row++;
+        }
+
+        // 🔥 GRAN TOTAL
+        $sheet->setCellValue("F$row", 'TOTAL GENERAL:');
+        $sheet->setCellValue("G$row", $granTotal);
+
+        // 🔥 FORMATO MONEDA
+        $sheet->getStyle("E2:G$row")
+            ->getNumberFormat()
+            ->setFormatCode('#,##0.00');
+        $sheet->getStyle("E2:G$row")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        // 🔥 AUTO SIZE
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // 🔥 DESCARGA
+        $writer = new Xlsx($spreadsheet);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="reporte_quedans.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
     }
 }

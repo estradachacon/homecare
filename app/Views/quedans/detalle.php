@@ -289,7 +289,7 @@ foreach ($detalles as $d) {
                                 <?php endforeach ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="text-center">
+                                    <td colspan="9" class="text-center">
                                         No hay facturas en este quedan
                                     </td>
                                 </tr>
