@@ -32,7 +32,7 @@
         <div class="card">
 
             <div class="card-header d-flex">
-                <h4 class="header-title">Configuración de Comisiones</h4>
+                <h4 class="header-title">Configuración de Comisiones por jerarquía</h4>
             </div>
 
             <div class="accordion" id="accordionComisiones">
@@ -42,7 +42,7 @@
                     <div class="card mb-2">
                         <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#margen">
                             <h5 class="mb-0">
-                                Comisión por Margen de Utilidad
+                                Nivel 1. Comisión por Margen de Utilidad
                                 <span class="badge badge-warning ml-2">Pendiente módulo de compras</span>
                             </h5>
                             <i class="fa fa-chevron-down ml-auto"></i>
@@ -87,7 +87,9 @@
 
                     <div class="card mb-2">
                         <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#reglas">
-                            <h5 class="mb-0">Reglas de Comisión por Producto</h5>
+                            <h5 class="mb-0">
+                                Nivel 2. Reglas de Comisión por Producto
+                            </h5>
                             <i class="fa fa-chevron-down ml-auto"></i>
                         </div>
 
@@ -178,7 +180,9 @@
                     <div class="card-header d-flex"
                         data-toggle="collapse"
                         data-target="#vendedores">
-                        <h5 class="mb-0">Comisión por Vendedor</h5>
+                        <h5 class="mb-0">
+                            Nivel 3. Comisión por Vendedor
+                        </h5>
                         <i class="fa fa-chevron-down ml-auto"></i>
                     </div>
 
@@ -248,7 +252,9 @@
                         <div class="card-header d-flex align-items-center"
                             data-toggle="collapse"
                             data-target="#general">
-                            <h5 class="mb-0">Porcentaje General</h5>
+                            <h5 class="mb-0">
+                                Nivel 4. Porcentaje General
+                            </h5>
                             <i class="fa fa-chevron-down ml-auto"></i>
                         </div>
 
@@ -288,6 +294,7 @@
         // 🔹 SELECT2 VENDEDORES
         $('#selectVendedor').select2({
             placeholder: 'Buscar vendedor...',
+            minimumInputLength: 2,
             ajax: {
                 url: '<?= base_url('sellers/searchAjax?select2=1') ?>',
                 dataType: 'json',
@@ -306,7 +313,7 @@
             width: '100%',
             dropdownParent: $('body'),
             placeholder: 'Buscar producto...',
-            minimumInputLength: 1,
+            minimumInputLength: 2,
             ajax: {
                 url: '<?= base_url('productos/searchAjax?select2=1') ?>',
                 dataType: 'json',

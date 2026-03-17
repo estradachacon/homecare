@@ -64,7 +64,7 @@ class Permisos extends BaseConfig
 
         'Comisiones' => [
             'ver_comisiones',
-            'calcular_comisiones',  
+            'generar_comisiones',
             'configurar_comisiones',
             'ver_reportes_comisiones',
         ],

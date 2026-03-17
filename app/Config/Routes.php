@@ -204,6 +204,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('quedans/anular/(:num)', 'Quedans::anular/$1');
 
     // Rutas para mantenimiento de Comisiones
+    $routes->get('comisiones/', 'Comisiones::index');
     $routes->get('comisiones/configuracion', 'Comisiones::config');
     $routes->post('comisiones/guardarGeneral', 'Comisiones::guardarGeneral');
     $routes->post('comisiones/guardarVendedores', 'Comisiones::guardarVendedores');

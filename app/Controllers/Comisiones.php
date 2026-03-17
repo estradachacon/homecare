@@ -10,6 +10,37 @@ use App\Models\SellerModel;
 
 class Comisiones extends BaseController
 {
+    public function index()
+    {
+        $chk = requerirPermiso('ver_comisiones');
+        if ($chk !== true) return $chk;
+
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('comisiones c');
+        $builder->select('
+        c.*,
+        s.seller AS vendedor_nombre
+    ');
+        $builder->join('sellers s', 's.id = c.vendedor_id', 'left');
+        $builder->orderBy('c.id', 'DESC');
+
+        $comisiones = $builder->get()->getResult();
+
+        return view('comisiones/index', [
+            'comisiones' => $comisiones
+        ]);
+    }
+    
+    private function getNombreVendedor($id)
+    {
+        $sellerModel = new SellerModel();
+
+        $seller = $sellerModel->find($id);
+
+        return $seller ? $seller->seller : "ID {$id}";
+    }
+
     public function config()
     {
         $configModel   = new ComisionConfigModel();
@@ -155,7 +186,8 @@ class Comisiones extends BaseController
                     'porcentaje'  => $nuevoPorcentaje
                 ]);
 
-                $cambios[] = "Nuevo vendedor ID {$id} con {$nuevoPorcentaje}%";
+                $nombre = $this->getNombreVendedor($id);
+                $cambios[] = "{$nombre} agregado con {$nuevoPorcentaje}%";
             } else {
 
                 $anterior = $mapActual[$id];
@@ -167,7 +199,8 @@ class Comisiones extends BaseController
                         ->set(['porcentaje' => $nuevoPorcentaje])
                         ->update();
 
-                    $cambios[] = "Vendedor ID {$id}: {$anterior}% → {$nuevoPorcentaje}%";
+                    $nombre = $this->getNombreVendedor($id);
+                    $cambios[] = "{$nombre}: {$anterior}% → {$nuevoPorcentaje}%";
                 }
             }
         }
@@ -183,7 +216,8 @@ class Comisiones extends BaseController
                     ->where('vendedor_id', $id)
                     ->delete();
 
-                $cambios[] = "Vendedor ID {$id} eliminado (tenía {$porcentaje}%)";
+                $nombre = $this->getNombreVendedor($id);
+                $cambios[] = "{$nombre} eliminado (tenía {$porcentaje}%)";
             }
         }
 
@@ -306,10 +340,12 @@ class Comisiones extends BaseController
 
         $model->where('vendedor_id', $id)->delete();
 
+        $nombre = $this->getNombreVendedor($id);
+
         registrar_bitacora(
             'Eliminación de vendedor',
             'Comisiones',
-            "Vendedor ID {$id} eliminado (tenía {$actual->porcentaje}%)",
+            "{$nombre} eliminado (tenía {$actual->porcentaje}%)",
             $session->get('user_id')
         );
 
@@ -340,10 +376,12 @@ class Comisiones extends BaseController
             'porcentaje'  => $porcentaje
         ]);
 
+        $nombre = $this->getNombreVendedor($id);
+
         registrar_bitacora(
             'Nuevo vendedor agregado',
             'Comisiones',
-            "Vendedor ID {$id} con {$porcentaje}%",
+            "{$nombre} con {$porcentaje}%",
             $session->get('user_id')
         );
 
@@ -363,7 +401,7 @@ class Comisiones extends BaseController
             return $this->response->setJSON(['status' => 'error']);
         }
 
-        // 🔥 evitar update innecesario
+        // evitar update innecesario
         if ((float)$actual->porcentaje === (float)$porcentaje) {
             return $this->response->setJSON(['status' => 'nochange']);
         }
@@ -372,10 +410,12 @@ class Comisiones extends BaseController
             ->set(['porcentaje' => $porcentaje])
             ->update();
 
+        $nombre = $this->getNombreVendedor($id);
+
         registrar_bitacora(
             'Actualización de comisión',
             'Comisiones',
-            "Vendedor ID {$id}: {$actual->porcentaje}% → {$porcentaje}%",
+            "{$nombre}: {$actual->porcentaje}% → {$porcentaje}%",
             $session->get('user_id')
         );
 
