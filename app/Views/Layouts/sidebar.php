@@ -261,6 +261,53 @@
                 <?php endif; ?>
 
                 <?php if (
+                    tienePermiso('ver_comisiones') ||
+                    tienePermiso('configurar_comisiones') ||
+                    tienePermiso('ver_reportes_comisiones')
+                ): ?>
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#comisiones"
+                        aria-expanded="false"
+                        aria-controls="comisiones">
+
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+
+                        Comisiones
+
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+                    </a>
+
+                    <div class="collapse" id="comisiones" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('ver_comisiones')): ?>
+                                <a class="nav-link" href="/comisiones">
+                                    Ver comisiones
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('configurar_comisiones')): ?>
+                                <a class="nav-link" href="/comisiones/configuracion">
+                                    Configuración
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_reportes_comisiones')): ?>
+                                <a class="nav-link" href="/comisiones/reportes">
+                                    Reportes
+                                </a>
+                            <?php endif; ?>
+
+                        </nav>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (
                     tienePermiso('ver_vendedores')
                 ): ?>
                     <a class="nav-link" href="/sellers">

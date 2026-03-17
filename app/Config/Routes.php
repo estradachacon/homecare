@@ -176,6 +176,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // Rutas para el módulo de inventarios
     $routes->get('inventory', 'InventoryController::index');
     $routes->post('productos/delete/(:num)', 'InventoryController::delete/$1');
+    $routes->get('productos/searchAjax', 'InventoryController::searchAjax');
     $routes->get('inventory/excel', 'InventoryController::excel');
     $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
 
@@ -201,4 +202,14 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('quedans/facturas-cliente/(:num)', 'Quedans::facturasCliente/$1');
     $routes->get('quedans/(:num)', 'Quedans::show/$1');
     $routes->post('quedans/anular/(:num)', 'Quedans::anular/$1');
+
+    // Rutas para mantenimiento de Comisiones
+    $routes->get('comisiones/configuracion', 'Comisiones::config');
+    $routes->post('comisiones/guardarGeneral', 'Comisiones::guardarGeneral');
+    $routes->post('comisiones/guardarVendedores', 'Comisiones::guardarVendedores');
+    $routes->post('comisiones/guardarReglas', 'Comisiones::guardarReglas');
+    $routes->post('comisiones/guardarMargen', 'Comisiones::guardarMargen');
+    $routes->post('comisiones/vendedor/add', 'Comisiones::addVendedor');
+    $routes->post('comisiones/vendedor/update', 'Comisiones::updateVendedor');
+    $routes->post('comisiones/vendedor/delete', 'Comisiones::deleteVendedor');
 });

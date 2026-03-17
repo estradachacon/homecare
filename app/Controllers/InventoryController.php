@@ -63,7 +63,7 @@ class InventoryController extends BaseController
         if ($tipo !== '' && $tipo !== null) {
             $productoModel->where('productos.tipo', $tipo);
         }
-        
+
         $productos = $productoModel->paginate($perPage);
         $pager = $productoModel->pager;
 
@@ -294,5 +294,39 @@ class InventoryController extends BaseController
         $writer = new Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
+    }
+    public function searchAjax()
+    {
+        $q = $this->request->getGet('q');
+
+        $model = new ProductoModel();
+
+        $builder = $model;
+
+        if ($q) {
+            $builder = $builder->groupStart()
+                ->like('descripcion', $q)
+                ->orLike('codigo', $q)
+                ->groupEnd();
+        }
+
+        $productos = $builder
+            ->where('activo', 1) // 🔥 solo activos (opcional pero recomendado)
+            ->orderBy('descripcion', 'ASC')
+            ->limit(20)
+            ->findAll();
+
+        $results = [];
+
+        foreach ($productos as $p) {
+            $results[] = [
+                'id'   => $p->id,
+                'text' => $p->descripcion . ' (' . $p->codigo . ')'
+            ];
+        }
+
+        return $this->response->setJSON([
+            'results' => $results
+        ]);
     }
 }

@@ -62,6 +62,13 @@ class Permisos extends BaseConfig
             'eliminar_proveedor',
         ],
 
+        'Comisiones' => [
+            'ver_comisiones',
+            'calcular_comisiones',  
+            'configurar_comisiones',
+            'ver_reportes_comisiones',
+        ],
+
         'Reportes' => [
             'ver_reportes',
         ],
