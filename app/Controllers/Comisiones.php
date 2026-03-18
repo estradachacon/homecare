@@ -454,12 +454,16 @@ class Comisiones extends BaseController
             fd.venta_gravada,
             
             c.nombre as cliente,
-            
-            tv.nombre_tipo_venta as tipo_venta
+            tv.nombre_tipo_venta as tipo_venta,
+            p.id as producto_id,
+            cr_producto.porcentaje as producto_porcentaje
+
         ')
             ->join('facturas_head fh', 'fh.id = fd.factura_id')
             ->join('clientes c', 'c.id = fh.receptor_id', 'left')
             ->join('tipo_venta tv', 'tv.id = fh.tipo_venta', 'left')
+            ->join('productos p', 'p.codigo = fd.codigo', 'left')
+            ->join('comisiones_reglas cr_producto', "cr_producto.tipo = 'producto' AND cr_producto.valor = p.id", 'left')      
 
             ->where('fh.vendedor_id', $seller)
             ->where('DATE(fh.fecha_emision) >=', $inicio)
@@ -484,19 +488,30 @@ class Comisiones extends BaseController
                 'precio_unitario' => $d->precio_unitario,
                 'venta_gravada'   => $d->venta_gravada,
                 'tipo_venta'      => $d->tipo_venta,
-            ];
+                'producto_porcentaje' => $d->producto_porcentaje !== null
+                    ? (float)$d->producto_porcentaje 
+                    : null,
+                        ];
         }
 
-        // 🔥 NUEVO: obtener porcentaje general
+        // NUEVO: obtener porcentaje general
         $configModel = new ComisionConfigModel();
         $config = $configModel->first();
 
+        $porcentajeDefault = $config->porcentaje_default ?? 0;
+
+        // NUEVO: porcentaje por vendedor
+        $vendedorModel = new ComisionVendedorModel();
+        $vendedor = $vendedorModel->getByVendedor($seller);
+
+        $porcentajeVendedor = $vendedor ? $vendedor->porcentaje : null;
         $porcentajeDefault = $config->porcentaje_default ?? null;
 
-        // 🔥 CAMBIO: ya no devuelves solo $result
+        // CAMBIO: ya no devuelves solo $result
         return $this->response->setJSON([
             'documentos' => $result,
-            'porcentaje_default' => $porcentajeDefault
+            'porcentaje_default' => $porcentajeDefault,
+            'porcentaje_vendedor' => $porcentajeVendedor
         ]);
     }
 }

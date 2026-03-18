@@ -3,13 +3,13 @@
 <style id="tabla-pro">
     #tabla_documentos table {
         font-size: 12px;
-        /* 🔽 texto más pequeño */
+        /* texto más pequeño */
     }
 
     #tabla_documentos th,
     #tabla_documentos td {
         padding: 4px 6px;
-        /* 🔽 menos espacio interno */
+        /* menos espacio interno */
         vertical-align: middle;
     }
 
@@ -51,6 +51,43 @@
         font-size: 11px;
         padding: 6px 4px;
         white-space: nowrap;
+    }
+
+    .popover-comision {
+        position: absolute;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px;
+        min-width: 160px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .popover-comision button {
+        width: 100%;
+        margin-bottom: 4px;
+        font-size: 12px;
+    }
+
+    .popover-comision button:last-child {
+        margin-bottom: 0;
+    }
+
+    .popover-comision {
+        animation: fadeIn 0.15s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 <div class="card shadow-sm">
@@ -240,7 +277,7 @@
                 return;
             }
 
-            // 🔥 ALERTA
+            // ALERTA
             Swal.fire({
                 title: 'Cambiar vendedor',
                 text: 'Se perderán los datos cargados. ¿Deseas continuar?',
@@ -252,14 +289,14 @@
 
                 if (result.isConfirmed) {
 
-                    // 🔥 limpiar todo
+                    // limpiar todo
                     limpiarTabla();
 
                     vendedorAnterior = nuevo;
 
                 } else {
 
-                    // 🔥 revertir selección
+                    // revertir selección
                     $('#seller_id').val(vendedorAnterior).trigger('change.select2');
 
                 }
@@ -268,7 +305,71 @@
 
         });
     });
+    document.addEventListener('click', function(e) {
 
+        // CERRAR SI HACE CLICK AFUERA
+        if (!e.target.closest('.popover-comision') && !e.target.classList.contains('badge-comision-btn')) {
+            document.querySelectorAll('.popover-comision').forEach(p => p.remove());
+        }
+
+        // ABRIR POPOVER
+        let btn = e.target.closest('.badge-comision-btn');
+
+        if (btn) {
+            let row = btn.closest('tr');
+
+            // eliminar otros abiertos
+            document.querySelectorAll('.popover-comision').forEach(p => p.remove());
+
+            let opciones = JSON.parse(row.dataset.opciones || '[]');
+
+            let pop = document.createElement('div');
+            pop.className = 'popover-comision';
+
+            opciones.forEach(op => {
+                let b = document.createElement('button');
+
+                b.className = 'btn btn-sm btn-outline-' + getColor(op.tipo);
+                b.innerText = op.tipo.toUpperCase() + ' - ' + op.porcentaje + '%';
+
+                b.onclick = function() {
+
+                    let input = row.querySelector('.porcentaje');
+                    input.value = op.porcentaje;
+
+                    btn.innerHTML = `
+                    ${op.tipo.toUpperCase()}<br>
+                    <small>${op.porcentaje}%</small>
+                `;
+
+                    btn.className = 'badge badge-' + getColor(op.tipo) + ' w-100 badge-comision-btn';
+                    btn.dataset.tipo = op.tipo;
+                    btn.dataset.base = op.porcentaje;
+
+                    let venta = parseFloat(
+                        row.querySelector('.venta').innerText.replace(/[^\d.-]/g, '')
+                    ) || 0;
+
+                    let comision = venta * (op.porcentaje / 100);
+                    row.querySelector('.comision').innerText = comision.toFixed(6);
+
+                    calcularTotales();
+
+                    pop.remove();
+                };
+
+                pop.appendChild(b);
+            });
+
+            document.body.appendChild(pop);
+
+            // POSICIÓN (debajo del botón)
+            let rect = btn.getBoundingClientRect();
+
+            pop.style.top = (rect.bottom + window.scrollY) + 'px';
+            pop.style.left = (rect.left + window.scrollX) + 'px';
+        }
+    });
     document.addEventListener('input', function(e) {
 
         if (e.target.classList.contains('porcentaje')) {
@@ -276,29 +377,62 @@
             let input = e.target;
             let row = input.closest('tr');
 
+
             let venta = parseFloat(
                 row.querySelector('.venta').innerText.replace(/[^\d.-]/g, '')
             ) || 0;
 
             let porcentaje = parseFloat(input.value) || 0;
-            let base = parseFloat(input.dataset.default) || 0;
-
             let comision = venta * (porcentaje / 100);
 
             row.querySelector('.comision').innerText = comision.toFixed(6);
 
-            // 🔥 BADGE DINÁMICO
-            let badge = row.querySelector('.badge-comision');
+            // BADGE DINÁMICO
+            let btn = row.querySelector('.badge-comision-btn');
+            let opciones = JSON.parse(row.dataset.opciones || '[]');
 
-            if (porcentaje > base) {
-                badge.innerText = 'Más que % general';
-                badge.className = 'badge badge-info text-white w-100 text-center py-2 badge-comision';
-            } else if (porcentaje < base) {
-                badge.innerText = 'Menos que % general';
-                badge.className = 'badge badge-danger text-white w-100 text-center py-2 badge-comision';
-            } else {
-                badge.innerText = '% General';
-                badge.className = 'badge badge-secondary text-white w-100 text-center py-2 badge-comision';
+            // ordenar de menor a mayor
+            opciones.sort((a, b) => a.porcentaje - b.porcentaje);
+
+            let menorIgual = null;
+            let mayor = null;
+
+            opciones.forEach(op => {
+                if (porcentaje >= op.porcentaje) {
+                    menorIgual = op;
+                }
+                if (porcentaje < op.porcentaje && !mayor) {
+                    mayor = op;
+                }
+            });
+
+            // LÓGICA FINAL
+            if (menorIgual && porcentaje === menorIgual.porcentaje) {
+
+                btn.innerHTML = `
+                    ${menorIgual.tipo.toUpperCase()}<br>
+                    <small>${porcentaje}%</small>
+                `;
+                btn.className = 'badge badge-' + getColor(menorIgual.tipo) + ' w-100 badge-comision-btn';
+
+                btn.dataset.tipo = menorIgual.tipo;
+                btn.dataset.base = menorIgual.porcentaje;
+
+            } else if (menorIgual) {
+
+                btn.innerHTML = `
+                    ↑ ${menorIgual.tipo.toUpperCase()}<br>
+                    <small>${porcentaje}%</small>
+                `;
+                btn.className = 'badge badge-info w-100 badge-comision-btn';
+
+            } else if (mayor) {
+
+                btn.innerHTML = `
+                    ↓ ${mayor.tipo.toUpperCase()}<br>
+                    <small>${porcentaje}%</small>
+                `;
+                btn.className = 'badge badge-danger w-100 badge-comision-btn';
             }
 
             calcularTotales();
@@ -372,17 +506,17 @@
             totalVentas += venta;
             totalComision += comision;
 
-            // 🔹 por tipo documento
+            // por tipo documento
             if (!resumen[tipo]) resumen[tipo] = 0;
             resumen[tipo] += venta;
 
-            // 🔹 por tipo venta
+            // por tipo venta
             if (!resumenTipoVenta[tipoVenta]) resumenTipoVenta[tipoVenta] = 0;
             resumenTipoVenta[tipoVenta] += venta;
 
         });
 
-        // 🔥 TABLA 1: tipo documento
+        // TABLA 1: tipo documento
         let html = "";
 
         for (let tipo in resumen) {
@@ -404,7 +538,7 @@
 
         document.getElementById('resumen_tipos').innerHTML = html;
 
-        // 🔥 TABLA 2: tipo venta
+        // TABLA 2: tipo venta
         let htmlTipoVenta = "";
 
         for (let tipo in resumenTipoVenta) {
@@ -426,7 +560,7 @@
 
         document.getElementById('resumen_tipo_venta').innerHTML = htmlTipoVenta;
 
-        // 🔥 TOTALES
+        // TOTALES
         document.getElementById('totalVentas').innerText = formatoNumero(totalVentas, 2);
         document.getElementById('totalComision').innerText = formatoNumero(totalComision, 6);
 
@@ -479,6 +613,19 @@
         return date.toISOString().split('T')[0];
     }
 
+    function getColor(tipo) {
+        switch (tipo) {
+            case 'producto':
+                return 'success';
+            case 'vendedor':
+                return 'primary';
+            case 'general':
+                return 'secondary';
+            default:
+                return 'dark';
+        }
+    }
+
     function generarComision() {
 
         let seller = $('#seller_id').val();
@@ -496,7 +643,7 @@
             return;
         }
 
-        // 🔥 CAMBIO AQUÍ
+        // CAMBIO AQUÍ
         Swal.fire({
             title: '¿Cargar documentos?',
             html: `
@@ -512,7 +659,7 @@
 
             if (!result.isConfirmed) return;
 
-            // 🔄 loader
+            // loader
             Swal.fire({
                 title: 'Cargando documentos...',
                 allowOutsideClick: false,
@@ -537,19 +684,24 @@
 
                     let data;
                     let porcentajeDefault;
+                    let porcentajeVendedor;
 
                     try {
                         let response = JSON.parse(text);
 
                         data = response.documentos;
                         porcentajeDefault = parseFloat(response.porcentaje_default) || 0;
+                        porcentajeVendedor = response.porcentaje_vendedor !== null ?
+                            parseFloat(response.porcentaje_vendedor) :
+                            null;
+
                     } catch (e) {
                         console.error("NO ES JSON:", text);
                         Swal.fire('Error', 'Respuesta inválida del servidor', 'error');
                         return;
                     }
 
-                    // 🔥 AQUÍ YA USAS data
+                    // AQUÍ YA USAS data
                     Swal.close();
 
                     let html = "";
@@ -560,75 +712,133 @@
 
                         let venta = parseFloat(row.venta_gravada || 0);
 
-                        let esNotaCredito = row.tipo === 'NCE';
+                        // PRIORIDAD: producto > vendedor > general
+                        let opciones = [];
 
+                        // GENERAL
+                        if (porcentajeDefault !== null) {
+                            opciones.push({
+                                tipo: 'general',
+                                porcentaje: porcentajeDefault
+                            });
+                        }
+
+                        // VENDEDOR
+                        if (porcentajeVendedor !== null) {
+                            opciones.push({
+                                tipo: 'vendedor',
+                                porcentaje: porcentajeVendedor
+                            });
+                        }
+
+                        // PRODUCTO (cuando lo tengas desde backend)
+                        if (row.producto_porcentaje) {
+                            opciones.push({
+                                tipo: 'producto',
+                                porcentaje: row.producto_porcentaje
+                            });
+                        }
+
+                        // ORDENAR POR PRIORIDAD
+                        const prioridad = {
+                            producto: 1,
+                            vendedor: 2,
+                            general: 3
+                        };
+
+                        opciones.sort((a, b) => prioridad[a.tipo] - prioridad[b.tipo]);
+
+                        let esNotaCredito = row.tipo === 'NCE';
+                        let seleccion = opciones[0];
+
+                        let porcentajeInicial = seleccion.porcentaje;
+                        let tipoInicial = seleccion.tipo;
                         if (esNotaCredito) {
                             venta = venta * -1;
                         }
 
+                        let opcionesHTML = '';
+
+                        opciones.forEach(op => {
+                            opcionesHTML += `
+                                <a class="dropdown-item opcion-comision"
+                                href="#"
+                                data-porcentaje="${op.porcentaje}"
+                                data-tipo="${op.tipo}">
+                                    ${op.tipo.toUpperCase()} (${op.porcentaje}%)
+                                </a>
+                            `;
+                        });
+
                         let clase = esNotaCredito ? 'table-danger' : '';
 
                         html += `
-        <tr class="${clase}" data-tipo-venta="${row.tipo_venta ?? 'N/A'}">
-    <td>${i + 1}</td>
+                            <tr class="${clase}" 
+                                data-tipo-venta="${row.tipo_venta ?? 'N/A'}"
+                                data-opciones='${JSON.stringify(opciones)}'>
+                                
+                                <td>${i + 1}</td>
 
-    <td>${formatoFechaSV(row.fecha_emision)}</td>
+                                <td>${formatoFechaSV(row.fecha_emision)}</td>
 
-    <td>${row.tipo}</td>
+                                <td>${row.tipo}</td>
 
-    <td>${ultimos6(row.numero_control)}</td>
+                                <td>${ultimos6(row.numero_control)}</td>
 
-    <td>${row.cliente ?? ''}</td>
+                                <td>${row.cliente ?? ''}</td>
 
-    <td style="white-space: nowrap;">
-        ${row.codigo}
-    </td>
+                                <td style="white-space: nowrap;">
+                                    ${row.codigo}
+                                </td>
 
-    <td>${row.descripcion}</td>
+                                <td>${row.descripcion}</td>
 
-    <td class="text-center">
-        ${entero(row.cantidad)}
-    </td>
+                                <td class="text-center">
+                                    ${entero(row.cantidad)}
+                                </td>
 
-<td class="text-end text-muted">
-    Pendiente
-</td>
+                            <td class="text-end text-muted">
+                                Pendiente
+                            </td>
 
-    <td class="text-end">
-        $ ${formatoNumero(row.precio_unitario, 6)}
-    </td>
+                                <td class="text-end">
+                                    $ ${formatoNumero(row.precio_unitario, 6)}
+                                </td>
 
-    <td class="text-end venta">
-        $ ${formatoNumero(venta, 6)}
-    </td>
+                                <td class="text-end venta">
+                                    $ ${formatoNumero(venta, 6)}
+                                </td>
 
-<td>
-    <div class="row g-2">
+                            <td>
+                                <div class="row g-2">
 
-        <div class="col-6">
-            <input 
-                type="number" 
-                class="form-control porcentaje" 
-                step="0.01" 
-                min="0"
-                value="${porcentajeDefault ?? ''}"
-                data-default="${porcentajeDefault ?? 0}"
-            >
-        </div>
+                                    <div class="col-6">
+                                        <input 
+                                            type="number" 
+                                            class="form-control porcentaje" 
+                                            step="0.01" 
+                                            min="0"
+                                            value="${porcentajeInicial}"
+                                            data-default="${porcentajeDefault}"
+                                        >
+                                    </div>
 
-        <div class="col-6 d-flex align-items-center">
-            <span class="badge badge-secondary text-white w-100 text-center py-2 badge-comision"
-                style="font-size: 14px;">
-                % General
-            </span>
-        </div>
+                                    <div class="col-6">
+                            <button class="badge badge-${getColor(tipoInicial)} w-100 badge-comision-btn"
+                                    data-tipo="${tipoInicial}"
+                                    data-base="${porcentajeInicial}"
+                                    style="font-size:11px; cursor:pointer;">
+                                ${tipoInicial.toUpperCase()}<br>
+                                <small>${porcentajeInicial}%</small>
+                            </button>
+                                    </div>
 
-    </div>
-</td>
+                                </div>
+                            </td>
 
-    <td class="comision text-end">0.000000</td>
-</tr>
-`;
+                                <td class="comision text-end">0.000000</td>
+                            </tr>
+                            `;
                     });
 
                     document.getElementById('tbody_docs').innerHTML = html;
