@@ -23,6 +23,35 @@
         font-size: 12px;
         height: auto;
     }
+
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        /* altura estándar Bootstrap */
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px !important;
+        /* centra texto */
+        padding-left: .75rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+    }
+
+    /* focus igual que form-control */
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+    }
+
+    .origen-comision {
+        font-size: 11px;
+        padding: 6px 4px;
+        white-space: nowrap;
+    }
 </style>
 <div class="card shadow-sm">
     <div class="card-header">
@@ -82,7 +111,7 @@
                         <th>Costo</th>
                         <th>Precio</th>
                         <th>Venta</th>
-                        <th>%</th>
+                        <th style="width: 225px;">%</th>
                         <th>Comisión</th>
                     </tr>
                 </thead>
@@ -240,21 +269,37 @@
         });
     });
 
-    document.addEventListener('change', function(e) {
+    document.addEventListener('input', function(e) {
 
         if (e.target.classList.contains('porcentaje')) {
 
-            let row = e.target.closest('tr');
+            let input = e.target;
+            let row = input.closest('tr');
 
             let venta = parseFloat(
-                row.querySelector('.venta').innerText.replace('$', '')
-            );
+                row.querySelector('.venta').innerText.replace(/[^\d.-]/g, '')
+            ) || 0;
 
-            let porcentaje = parseFloat(e.target.value);
+            let porcentaje = parseFloat(input.value) || 0;
+            let base = parseFloat(input.dataset.default) || 0;
 
             let comision = venta * (porcentaje / 100);
 
             row.querySelector('.comision').innerText = comision.toFixed(6);
+
+            // 🔥 BADGE DINÁMICO
+            let badge = row.querySelector('.badge-comision');
+
+            if (porcentaje > base) {
+                badge.innerText = 'Más que % general';
+                badge.className = 'badge badge-info text-white w-100 text-center py-2 badge-comision';
+            } else if (porcentaje < base) {
+                badge.innerText = 'Menos que % general';
+                badge.className = 'badge badge-danger text-white w-100 text-center py-2 badge-comision';
+            } else {
+                badge.innerText = '% General';
+                badge.className = 'badge badge-secondary text-white w-100 text-center py-2 badge-comision';
+            }
 
             calcularTotales();
         }
@@ -295,6 +340,21 @@
 
         let resumen = {};
         let resumenTipoVenta = {};
+
+        // cálculo automático inicial
+        document.querySelectorAll('.porcentaje').forEach(input => {
+            let row = input.closest('tr');
+
+            let venta = parseFloat(
+                row.querySelector('.venta').innerText.replace(/[^\d.-]/g, '')
+            ) || 0;
+
+            let porcentaje = parseFloat(input.value) || 0;
+
+            let comision = venta * (porcentaje / 100);
+
+            row.querySelector('.comision').innerText = comision.toFixed(6);
+        });
 
         document.querySelectorAll('#tbody_docs tr').forEach(row => {
 
@@ -476,9 +536,13 @@
                     console.log("RESPUESTA CRUDA:", text);
 
                     let data;
+                    let porcentajeDefault;
 
                     try {
-                        data = JSON.parse(text);
+                        let response = JSON.parse(text);
+
+                        data = response.documentos;
+                        porcentajeDefault = parseFloat(response.porcentaje_default) || 0;
                     } catch (e) {
                         console.error("NO ES JSON:", text);
                         Swal.fire('Error', 'Respuesta inválida del servidor', 'error');
@@ -538,15 +602,29 @@
         $ ${formatoNumero(venta, 6)}
     </td>
 
-    <td>
-        <select class="form-control porcentaje">
-            <option value="0">0%</option>
-            <option value="1">1%</option>
-            <option value="2">2%</option>
-            <option value="5">5%</option>
-            <option value="7">7%</option>
-        </select>
-    </td>
+<td>
+    <div class="row g-2">
+
+        <div class="col-6">
+            <input 
+                type="number" 
+                class="form-control porcentaje" 
+                step="0.01" 
+                min="0"
+                value="${porcentajeDefault ?? ''}"
+                data-default="${porcentajeDefault ?? 0}"
+            >
+        </div>
+
+        <div class="col-6 d-flex align-items-center">
+            <span class="badge badge-secondary text-white w-100 text-center py-2 badge-comision"
+                style="font-size: 14px;">
+                % General
+            </span>
+        </div>
+
+    </div>
+</td>
 
     <td class="comision text-end">0.000000</td>
 </tr>

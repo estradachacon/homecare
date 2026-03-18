@@ -467,17 +467,15 @@ class Comisiones extends BaseController
             ->where('fh.anulada', 0)
             ->orderBy('fh.fecha_emision', 'ASC')
             ->orderBy('fh.numero_control', 'ASC')
-
             ->get()
             ->getResult();
 
         $result = [];
 
         foreach ($docs as $d) {
-
             $result[] = [
                 'fecha_emision'   => $d->fecha_emision,
-                'tipo'            => $tipos[$d->tipo_dte] ?? $d->tipo_dte, // 🔥 AQUÍ
+                'tipo'            => $tipos[$d->tipo_dte] ?? $d->tipo_dte,
                 'numero_control'  => $d->numero_control,
                 'cliente'         => $d->cliente,
                 'codigo'          => $d->codigo,
@@ -489,6 +487,16 @@ class Comisiones extends BaseController
             ];
         }
 
-        return $this->response->setJSON($result);
+        // 🔥 NUEVO: obtener porcentaje general
+        $configModel = new ComisionConfigModel();
+        $config = $configModel->first();
+
+        $porcentajeDefault = $config->porcentaje_default ?? null;
+
+        // 🔥 CAMBIO: ya no devuelves solo $result
+        return $this->response->setJSON([
+            'documentos' => $result,
+            'porcentaje_default' => $porcentajeDefault
+        ]);
     }
 }
