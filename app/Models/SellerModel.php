@@ -22,7 +22,7 @@ class SellerModel extends Model
 public function searchSellers($term)
 {
     if (!$term || trim($term) === '') {
-        return []; // 👈 Select2 suele pedir esto antes de escribir
+        return []; // Select2 suele pedir esto antes de escribir
     }
 
     return $this->like('seller', $term)

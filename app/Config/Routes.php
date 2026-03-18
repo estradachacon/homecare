@@ -213,4 +213,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('comisiones/vendedor/add', 'Comisiones::addVendedor');
     $routes->post('comisiones/vendedor/update', 'Comisiones::updateVendedor');
     $routes->post('comisiones/vendedor/delete', 'Comisiones::deleteVendedor');
+    $routes->get('comisiones/generar', 'Comisiones::generar');
+    $routes->post('comisiones/getDocumentos', 'Comisiones::getDocumentos');
 });

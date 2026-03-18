@@ -31,7 +31,7 @@ class Comisiones extends BaseController
             'comisiones' => $comisiones
         ]);
     }
-    
+
     private function getNombreVendedor($id)
     {
         $sellerModel = new SellerModel();
@@ -420,5 +420,75 @@ class Comisiones extends BaseController
         );
 
         return $this->response->setJSON(['status' => 'ok']);
+    }
+    public function generar()
+    {
+        $chk = requerirPermiso('generar_comisiones');
+        if ($chk !== true) return $chk;
+
+        return view('comisiones/new');
+    }
+    public function getDocumentos()
+    {
+        helper('dte');
+        $tipos = dte_siglas();
+
+        $seller = $this->request->getPost('seller_id');
+        $inicio = $this->request->getPost('fecha_inicio');
+        $fin = $this->request->getPost('fecha_fin');
+
+        $db = \Config\Database::connect();
+
+        $docs = $db->table('factura_detalles fd')
+            ->select('
+            fh.fecha_emision,
+            fh.tipo_dte,
+            fh.numero_control,
+            fh.total_pagar,
+            fh.vendedor_id,
+
+            fd.codigo,
+            fd.descripcion,
+            fd.cantidad,
+            fd.precio_unitario,
+            fd.venta_gravada,
+            
+            c.nombre as cliente,
+            
+            tv.nombre_tipo_venta as tipo_venta
+        ')
+            ->join('facturas_head fh', 'fh.id = fd.factura_id')
+            ->join('clientes c', 'c.id = fh.receptor_id', 'left')
+            ->join('tipo_venta tv', 'tv.id = fh.tipo_venta', 'left')
+
+            ->where('fh.vendedor_id', $seller)
+            ->where('DATE(fh.fecha_emision) >=', $inicio)
+            ->where('DATE(fh.fecha_emision) <=', $fin)
+            ->where('fh.anulada', 0)
+            ->orderBy('fh.fecha_emision', 'ASC')
+            ->orderBy('fh.numero_control', 'ASC')
+
+            ->get()
+            ->getResult();
+
+        $result = [];
+
+        foreach ($docs as $d) {
+
+            $result[] = [
+                'fecha_emision'   => $d->fecha_emision,
+                'tipo'            => $tipos[$d->tipo_dte] ?? $d->tipo_dte, // 🔥 AQUÍ
+                'numero_control'  => $d->numero_control,
+                'cliente'         => $d->cliente,
+                'codigo'          => $d->codigo,
+                'descripcion'     => $d->descripcion,
+                'cantidad'        => $d->cantidad,
+                'precio_unitario' => $d->precio_unitario,
+                'venta_gravada'   => $d->venta_gravada,
+                'tipo_venta'      => $d->tipo_venta,
+            ];
+        }
+
+        return $this->response->setJSON($result);
     }
 }
