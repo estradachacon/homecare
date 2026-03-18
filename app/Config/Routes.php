@@ -205,6 +205,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     // Rutas para mantenimiento de Comisiones
     $routes->get('comisiones/', 'Comisiones::index');
+    $routes->get('comisiones/(:num)', 'Comisiones::ver/$1');
     $routes->get('comisiones/configuracion', 'Comisiones::config');
     $routes->post('comisiones/guardarGeneral', 'Comisiones::guardarGeneral');
     $routes->post('comisiones/guardarVendedores', 'Comisiones::guardarVendedores');
@@ -215,4 +216,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('comisiones/vendedor/delete', 'Comisiones::deleteVendedor');
     $routes->get('comisiones/generar', 'Comisiones::generar');
     $routes->post('comisiones/getDocumentos', 'Comisiones::getDocumentos');
+    $routes->post('comisiones/guardar', 'Comisiones::guardar');
 });

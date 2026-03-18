@@ -67,15 +67,15 @@
                                     <td><?= number_format($c->porcentaje_promedio, 2) ?>%</td>
 
                                     <td>
-                                        <?php if ($c->estado === 'pagado'): ?>
-                                            <span class="badge badge-success">Pagado</span>
+                                        <?php if ($c->estado === 'generado'): ?>
+                                            <span class="badge badge-success">Generado</span>
                                         <?php else: ?>
                                             <span class="badge badge-warning">Pendiente</span>
                                         <?php endif; ?>
                                     </td>
 
                                     <td>
-                                        <a href="<?= base_url('comisiones/ver/' . $c->id) ?>"
+                                        <a href="<?= base_url('comisiones/' . $c->id) ?>"
                                             class="btn btn-sm btn-info">
                                             Ver
                                         </a>

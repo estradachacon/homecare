@@ -20,7 +20,8 @@ class ComisionDetalleModel extends Model
         'total_linea',
         'comision_aplicada',
         'monto_comision',
-        'tipo_venta'
+        'tipo_venta',
+        'origen_comision'
     ];
 
     protected $useTimestamps = false;

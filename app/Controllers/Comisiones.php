@@ -446,13 +446,14 @@ class Comisiones extends BaseController
             fh.numero_control,
             fh.total_pagar,
             fh.vendedor_id,
+            fh.id as factura_id,
 
             fd.codigo,
             fd.descripcion,
             fd.cantidad,
             fd.precio_unitario,
             fd.venta_gravada,
-            
+                        
             c.nombre as cliente,
             tv.nombre_tipo_venta as tipo_venta,
             p.id as producto_id,
@@ -463,7 +464,7 @@ class Comisiones extends BaseController
             ->join('clientes c', 'c.id = fh.receptor_id', 'left')
             ->join('tipo_venta tv', 'tv.id = fh.tipo_venta', 'left')
             ->join('productos p', 'p.codigo = fd.codigo', 'left')
-            ->join('comisiones_reglas cr_producto', "cr_producto.tipo = 'producto' AND cr_producto.valor = p.id", 'left')      
+            ->join('comisiones_reglas cr_producto', "cr_producto.tipo = 'producto' AND cr_producto.valor = p.id", 'left')
 
             ->where('fh.vendedor_id', $seller)
             ->where('DATE(fh.fecha_emision) >=', $inicio)
@@ -477,6 +478,12 @@ class Comisiones extends BaseController
         $result = [];
 
         foreach ($docs as $d) {
+            $precioUnitario = 0;
+
+            if ((float)$d->cantidad > 0) {
+                $precioUnitario = (float)$d->venta_gravada / (float)$d->cantidad;
+            }
+
             $result[] = [
                 'fecha_emision'   => $d->fecha_emision,
                 'tipo'            => $tipos[$d->tipo_dte] ?? $d->tipo_dte,
@@ -485,13 +492,19 @@ class Comisiones extends BaseController
                 'codigo'          => $d->codigo,
                 'descripcion'     => $d->descripcion,
                 'cantidad'        => $d->cantidad,
-                'precio_unitario' => $d->precio_unitario,
+
+                // 🔥 AQUÍ EL CAMBIO
+                'precio_unitario' => round($precioUnitario, 6),
+
                 'venta_gravada'   => $d->venta_gravada,
                 'tipo_venta'      => $d->tipo_venta,
+                'factura_id'      => $d->factura_id,
+                'producto_id'     => $d->producto_id,
+
                 'producto_porcentaje' => $d->producto_porcentaje !== null
-                    ? (float)$d->producto_porcentaje 
+                    ? (float)$d->producto_porcentaje
                     : null,
-                        ];
+            ];
         }
 
         // NUEVO: obtener porcentaje general
@@ -512,6 +525,126 @@ class Comisiones extends BaseController
             'documentos' => $result,
             'porcentaje_default' => $porcentajeDefault,
             'porcentaje_vendedor' => $porcentajeVendedor
+        ]);
+    }
+    public function guardar()
+    {
+        try {
+
+            $data = $this->request->getJSON(true);
+
+            if (!$data) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se recibieron datos'
+                ]);
+            }
+
+            $comision = $data['comision'] ?? null;
+            $detalles = $data['detalles'] ?? [];
+
+            if (!$comision || empty($detalles)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Datos incompletos'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // MODELOS
+            $comisionModel = new \App\Models\ComisionModel();
+            $detalleModel  = new \App\Models\ComisionDetalleModel();
+
+            // INSERT ENCABEZADO
+            $comisionId = $comisionModel->insert([
+                'vendedor_id'        => $comision['vendedor_id'],
+                'fecha_inicio'       => $comision['fecha_inicio'],
+                'fecha_fin'          => $comision['fecha_fin'],
+                'total_ventas'       => $comision['total_ventas'],
+                'total_comision'     => $comision['total_comision'],
+                'porcentaje_promedio' => $comision['porcentaje_promedio'],
+                'estado'             => 'generado'
+            ]);
+
+            if (!$comisionId) {
+                throw new \Exception('No se pudo guardar la comisión');
+            }
+
+            // PREPARAR DETALLES
+            $batch = [];
+
+            foreach ($detalles as $d) {
+
+                // 🔥 VALIDACIÓN CLAVE
+                if (empty($d['factura_id']) || empty($d['producto_id'])) {
+                    throw new \Exception('Detalle inválido: faltan IDs');
+                }
+
+                $batch[] = [
+                    'comision_id'        => $comisionId,
+                    'factura_id'         => (int)$d['factura_id'],
+                    'producto_id'        => (int)$d['producto_id'],
+                    'cantidad'           => $d['cantidad'],
+                    'precio_sin_iva'     => $d['precio_sin_iva'],
+                    'total_linea'        => $d['total_linea'],
+                    'comision_aplicada'  => $d['comision_aplicada'],
+                    'monto_comision'     => $d['monto_comision'],
+                    'tipo_venta'         => $d['tipo_venta'],
+                    'origen_comision'    => $d['origen_comision']
+                ];
+            }
+
+            // INSERT MASIVO
+            $detalleModel->insertBatch($batch);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Error en la transacción');
+            }
+
+            // RESPUESTA OK
+            return $this->response->setJSON([
+                'success' => true,
+                'comision_id' => $comisionId
+            ]);
+        } catch (\Throwable $e) {
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    public function ver($id)
+    {
+        $comisionModel = new \App\Models\ComisionModel();
+        $detalleModel  = new \App\Models\ComisionDetalleModel();
+
+        $comision = $comisionModel->find($id);
+
+        if (!$comision) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Comisión no encontrada");
+        }
+
+        $detalles = $detalleModel
+            ->select('
+            comision_detalles.*,
+            fh.numero_control,
+            fh.fecha_emision,
+            fh.tipo_dte,
+            p.descripcion as producto
+        ')
+            ->join('facturas_head fh', 'fh.id = comision_detalles.factura_id', 'left')
+            ->join('productos p', 'p.id = comision_detalles.producto_id', 'left')
+            ->where('comision_id', $id)
+            ->findAll();
+
+        return view('comisiones/ver', [
+            'comision' => $comision,
+            'detalles' => $detalles
         ]);
     }
 }

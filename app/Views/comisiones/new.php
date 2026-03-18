@@ -146,7 +146,7 @@
                         <th>Descripción</th>
                         <th>Cant.</th>
                         <th>Costo</th>
-                        <th>Precio</th>
+                        <th>Precio S/IVA</th>
                         <th>Venta</th>
                         <th style="width: 225px;">%</th>
                         <th>Comisión</th>
@@ -572,6 +572,171 @@
             porcentajeComision.toFixed(2);
     }
 
+    function confirmarGeneracion() {
+
+        let payload = construirPayloadComision();
+
+        console.log("🚀 PAYLOAD COMISION:", payload);
+
+        // 🔥 VALIDACIÓN RÁPIDA
+        if (!payload.detalles.length) {
+            Swal.fire('Error', 'No hay datos para guardar', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: '¿Guardar comisión?',
+            html: `
+            <b>Total ventas:</b> $${payload.comision.total_ventas.toFixed(2)}<br>
+            <b>Total comisión:</b> $${payload.comision.total_comision.toFixed(2)}<br>
+            <b>Registros:</b> ${payload.detalles.length}
+        `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745'
+        }).then((result) => {
+
+            if (!result.isConfirmed) return;
+
+            // LOADING BONITO
+            Swal.fire({
+                title: 'Guardando comisión...',
+                html: 'Por favor espera',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // FETCH AL BACKEND
+            fetch("<?= base_url('comisiones/guardar') ?>", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(response => {
+
+                    Swal.close();
+
+                    if (response.success) {
+
+                        // ÉXITO PRO
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Comisión guardada',
+                            html: `
+                        <b>ID:</b> ${response.comision_id}<br>
+                        <b>Total:</b> $${payload.comision.total_comision.toFixed(2)}
+                    `,
+                            timer: 2500,
+                            showConfirmButton: false
+                        });
+
+                        // OPCIONAL: limpiar pantalla
+                        limpiarTabla();
+
+                    } else {
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al guardar',
+                            text: response.message || 'Ocurrió un error'
+                        });
+
+                    }
+
+                })
+                .catch(err => {
+
+                    console.error(err);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo guardar la comisión'
+                    });
+
+                });
+
+        });
+    }
+
+    function construirPayloadComision() {
+
+        let detalles = [];
+        let totalVentas = 0;
+        let totalComision = 0;
+
+        document.querySelectorAll('#tbody_docs tr').forEach(row => {
+
+            let facturaId = row.dataset.facturaId;
+            let productoId = row.dataset.productoId;
+
+            let cantidad = parseFloat(
+                row.children[7].innerText
+            ) || 0;
+
+            let precio = parseFloat(
+                row.children[9].innerText.replace(/[^\d.-]/g, '')
+            ) || 0;
+
+            let total = parseFloat(
+                row.querySelector('.venta').innerText.replace(/[^\d.-]/g, '')
+            ) || 0;
+
+            let porcentaje = parseFloat(
+                row.querySelector('.porcentaje').value
+            ) || 0;
+
+            let monto = parseFloat(
+                row.querySelector('.comision').innerText
+            ) || 0;
+
+            let tipoVenta = row.dataset.tipoVenta || null;
+
+            let btn = row.querySelector('.badge-comision-btn');
+            let origen = btn.dataset.tipo || 'manual';
+
+            totalVentas += total;
+            totalComision += monto;
+
+            detalles.push({
+                factura_id: facturaId,
+                producto_id: productoId,
+                cantidad: cantidad,
+                precio_sin_iva: precio,
+                total_linea: total,
+                comision_aplicada: porcentaje,
+                monto_comision: monto,
+                tipo_venta: tipoVenta,
+                origen_comision: origen
+            });
+
+        });
+
+        let porcentajePromedio = totalVentas !== 0 ?
+            (totalComision / totalVentas) * 100 :
+            0;
+
+        return {
+            comision: {
+                vendedor_id: $('#seller_id').val(),
+                fecha_inicio: $('#fecha_inicio').val(),
+                fecha_fin: $('#fecha_fin').val(),
+
+                total_ventas: parseFloat(totalVentas.toFixed(2)),
+                total_comision: parseFloat(totalComision.toFixed(6)),
+                porcentaje_promedio: parseFloat(porcentajePromedio.toFixed(2))
+            },
+            detalles: detalles
+        };
+    }
+
     function formatoFechaSV(fecha) {
         let d = new Date(fecha);
 
@@ -773,9 +938,11 @@
                         let clase = esNotaCredito ? 'table-danger' : '';
 
                         html += `
-                            <tr class="${clase}" 
-                                data-tipo-venta="${row.tipo_venta ?? 'N/A'}"
-                                data-opciones='${JSON.stringify(opciones)}'>
+                                <tr class="${clase}" 
+                                    data-factura-id="${row.factura_id}"
+                                    data-producto-id="${row.producto_id}"
+                                    data-tipo-venta="${row.tipo_venta ?? 'N/A'}"
+                                    data-opciones='${JSON.stringify(opciones)}'>
                                 
                                 <td>${i + 1}</td>
 
