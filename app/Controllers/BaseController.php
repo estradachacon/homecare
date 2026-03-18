@@ -71,8 +71,14 @@ abstract class BaseController extends Controller
         }
 
         if (session()->get('id')) {
-            $this->revisarVencimientosQuedans();
+            $this->runSystemTasks();
         }
+    }
+
+    protected function runSystemTasks()
+    {
+        $this->revisarVencimientosQuedans();
+        $this->ejecutarBackup();
     }
 
     protected function revisarVencimientosQuedans()
@@ -87,7 +93,10 @@ abstract class BaseController extends Controller
         if (!$tarea) return;
 
         // Si ya se ejecutó hoy, salir
-        if ($tarea->ultima_ejecucion == date('Y-m-d')) {
+        if (
+            $tarea->ultima_ejecucion &&
+            date('Y-m-d', strtotime($tarea->ultima_ejecucion)) == date('Y-m-d')
+        ) {
             return;
         }
 
@@ -131,8 +140,60 @@ abstract class BaseController extends Controller
             $db->table('tareas_sistema')
                 ->where('nombre', 'notificacion_vencimiento_quedans')
                 ->update([
-                    'ultima_ejecucion' => date('Y-m-d')
+                    'ultima_ejecucion' => date('Y-m-d H:i:s')
                 ]);
+        }
+    }
+    protected function ejecutarBackup()
+    {
+        $db = \Config\Database::connect();
+
+        $tarea = $db->table('tareas_sistema')
+            ->where('nombre', 'backup_sistema')
+            ->get()
+            ->getRow();
+
+        $now = new \DateTime();
+
+        if ($tarea && $tarea->ultima_ejecucion) {
+            $lastRun = new \DateTime($tarea->ultima_ejecucion);
+            $diff = $now->getTimestamp() - $lastRun->getTimestamp();
+
+            if ($diff < 300) {
+                return; 
+            }
+        }
+
+        // 🔒 evitar ejecuciones múltiples
+        $lockFile = WRITEPATH . 'backup.lock';
+
+        if (file_exists($lockFile)) {
+            return;
+        }
+
+        file_put_contents($lockFile, 'running');
+
+        try {
+            command('backup:run');
+
+            if ($tarea) {
+                $db->table('tareas_sistema')
+                    ->where('nombre', 'backup_sistema')
+                    ->update([
+                        'ultima_ejecucion' => date('Y-m-d H:i:s')
+                    ]);
+            } else {
+                $db->table('tareas_sistema')->insert([
+                    'nombre' => 'backup_sistema',
+                    'ultima_ejecucion' => date('Y-m-d H:i:s')
+                ]);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Error en backup: ' . $e->getMessage());
+        } finally {
+            if (file_exists($lockFile)) {
+                unlink($lockFile);
+            }
         }
     }
 }
