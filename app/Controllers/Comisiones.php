@@ -15,20 +15,53 @@ class Comisiones extends BaseController
         $chk = requerirPermiso('ver_comisiones');
         if ($chk !== true) return $chk;
 
-        $db = \Config\Database::connect();
+        $model = new \App\Models\ComisionModel();
 
-        $builder = $db->table('comisiones c');
-        $builder->select('
-        c.*,
-        s.seller AS vendedor_nombre
-    ');
-        $builder->join('sellers s', 's.id = c.vendedor_id', 'left');
-        $builder->orderBy('c.id', 'DESC');
+        // FILTROS
+        $seller = $this->request->getGet('seller_id');
+        $estado = $this->request->getGet('estado');
+        $inicio = $this->request->getGet('fecha_inicio');
+        $fin = $this->request->getGet('fecha_fin');
 
-        $comisiones = $builder->get()->getResult();
+        // QUERY BASE
+        $model->select('comisiones.*, sellers.seller as vendedor_nombre')
+            ->join('sellers', 'sellers.id = comisiones.vendedor_id', 'left');
+
+        if ($seller) {
+            $model->where('comisiones.vendedor_id', $seller);
+        }
+
+        if ($estado) {
+            $model->where('comisiones.estado', $estado);
+        }
+
+        if ($inicio) {
+            $model->where('DATE(comisiones.fecha_inicio) >=', $inicio);
+        }
+
+        if ($fin) {
+            $model->where('DATE(comisiones.fecha_fin) <=', $fin);
+        }
+
+        // PAGINACIÓN (CLAVE)
+        $comisiones = $model->orderBy('comisiones.id', 'DESC')
+            ->paginate(10);
+
+        $pager = $model->pager;
+
+        // 🔹 AJAX
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'tbody' => view('comisiones/partials/_tabla', [
+                    'comisiones' => $comisiones
+                ]),
+                'pager' => $pager->links('default', 'bootstrap_full')
+            ]);
+        }
 
         return view('comisiones/index', [
-            'comisiones' => $comisiones
+            'comisiones' => $comisiones,
+            'pager'      => $pager
         ]);
     }
 
@@ -95,22 +128,44 @@ class Comisiones extends BaseController
         }
 
         // 🔹 REGLAS
+        // 🔹 REGLAS
         $reglas = $reglaModel->findAll();
 
         $productoModel = new \App\Models\ProductoModel();
+        $tipoVentaModel = new \App\Models\TipoVentaModel();
+        $sellerModel = new SellerModel();
 
         foreach ($reglas as $r) {
-            if ($r->tipo === 'producto') {
-                $producto = $productoModel->find($r->valor);
-                $r->valor_texto = $producto
-                    ? $producto->descripcion . ' (' . $producto->codigo . ')'
-                    : 'Producto eliminado';
+
+            // 🔹 PRODUCTO (valor = producto_id)
+            $producto = $productoModel->find($r->valor);
+
+            $r->producto_nombre = $producto
+                ? $producto->descripcion . ' (' . $producto->codigo . ')'
+                : 'Producto eliminado';
+
+            // 🔹 TIPO DE VENTA
+            if (!empty($r->tipo_venta_id)) {
+                $tipo = $tipoVentaModel->find($r->tipo_venta_id);
+                $r->tipo_venta_nombre = $tipo
+                    ? $tipo->nombre_tipo_venta
+                    : 'Tipo eliminado';
             } else {
-                $r->valor_texto = $r->valor;
+                $r->tipo_venta_nombre = 'Todos';
+            }
+
+            // 🔹 VENDEDOR
+            if (!empty($r->vendedor_id)) {
+                $seller = $sellerModel->find($r->vendedor_id);
+                $r->vendedor_nombre = $seller
+                    ? $seller->seller
+                    : 'Vendedor eliminado';
+            } else {
+                $r->vendedor_nombre = 'Todos';
             }
         }
 
-        // 🔹 MÁRGENES
+        // MÁRGENES
         $margenes = $margenModel->orderBy('margen_min', 'ASC')->findAll();
 
         return view('comisiones/mantenimientos/config', [
@@ -241,28 +296,32 @@ class Comisiones extends BaseController
         $session = session();
         $model = new ComisionReglaModel();
 
-        $tipos        = $this->request->getPost('tipo') ?? [];
-        $valores      = $this->request->getPost('valor') ?? [];
-        $porcentajes  = $this->request->getPost('porcentaje') ?? [];
+        $productos   = $this->request->getPost('producto_id') ?? [];
+        $tipos       = $this->request->getPost('tipo_venta_id') ?? [];
+        $vendedores  = $this->request->getPost('vendedor_id') ?? [];
+        $porcentajes = $this->request->getPost('porcentaje') ?? [];
 
         $db = \Config\Database::connect();
         $db->transStart();
 
+        // 🔥 limpiar todo (como ya hacías)
         $model->truncate();
 
         $count = 0;
 
-        foreach ($tipos as $i => $tipo) {
+        foreach ($productos as $i => $producto_id) {
 
-            $valor      = $valores[$i] ?? null;
+            if (!$producto_id) continue;
+
+            $tipoVenta = $tipos[$i] ?? null;
+            $vendedor  = $vendedores[$i] ?? null;
             $porcentaje = $porcentajes[$i] ?? 0;
 
-            if (!$tipo || !$valor) continue;
-
             $model->insert([
-                'tipo'       => $tipo,
-                'valor'      => $valor,
-                'porcentaje' => $porcentaje
+                'valor'         => $producto_id,
+                'tipo_venta_id' => $tipoVenta ?: null,
+                'vendedor_id'   => $vendedor ?: null,
+                'porcentaje'    => $porcentaje
             ]);
 
             $count++;
@@ -464,12 +523,15 @@ class Comisiones extends BaseController
             ->join('clientes c', 'c.id = fh.receptor_id', 'left')
             ->join('tipo_venta tv', 'tv.id = fh.tipo_venta', 'left')
             ->join('productos p', 'p.codigo = fd.codigo', 'left')
-            ->join('comisiones_reglas cr_producto', "cr_producto.tipo = 'producto' AND cr_producto.valor = p.id", 'left')
+            ->join('comisiones_reglas cr_producto', "cr_producto.valor = p.id   AND (cr_producto.tipo_venta_id = fh.tipo_venta OR cr_producto.tipo_venta_id IS NULL)
+                                                                                AND (cr_producto.vendedor_id = fh.vendedor_id OR cr_producto.vendedor_id IS NULL)", 'left')
+            ->join('comision_detalles cd', 'cd.factura_id = fh.id AND cd.producto_id = p.id', 'left')
 
             ->where('fh.vendedor_id', $seller)
             ->where('DATE(fh.fecha_emision) >=', $inicio)
             ->where('DATE(fh.fecha_emision) <=', $fin)
             ->where('fh.anulada', 0)
+            ->where('cd.id IS NULL')
             ->orderBy('fh.fecha_emision', 'ASC')
             ->orderBy('fh.numero_control', 'ASC')
             ->get()

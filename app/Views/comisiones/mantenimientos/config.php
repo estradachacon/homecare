@@ -96,20 +96,21 @@
                         <div id="reglas" class="collapse" data-parent="#accordionComisiones">
                             <div class="card-body">
 
-                                <!-- 🔥 TU BLOQUE ORIGINAL COMPLETO -->
                                 <div class="row align-items-end mb-3">
 
-                                    <div class="col-md-4">
-                                        <label>Tipo</label>
-                                        <select id="tipoRegla" class="form-control">
-                                            <option value="producto">Producto</option>
-                                            <option value="categoria">Categoría</option>
-                                        </select>
+                                    <div class="col-md-3">
+                                        <label>Producto</label>
+                                        <select id="selectProducto" class="form-control"></select>
                                     </div>
 
-                                    <div class="col-md-4">
-                                        <label>Valor</label>
-                                        <select id="selectProducto" class="form-control"></select>
+                                    <div class="col-md-3">
+                                        <label>Tipo de venta</label>
+                                        <select id="selectTipoVenta" class="form-control"></select>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label>Vendedor</label>
+                                        <select id="selectVendedorRegla" class="form-control"></select>
                                     </div>
 
                                     <div class="col-md-2">
@@ -117,9 +118,9 @@
                                         <input type="number" step="0.01" id="porcentajeRegla" class="form-control">
                                     </div>
 
-                                    <div class="col-md-2">
+                                    <div class="col-md-1">
                                         <button type="button" class="btn btn-primary w-100" onclick="agregarRegla()">
-                                            Agregar
+                                            +
                                         </button>
                                     </div>
 
@@ -129,8 +130,9 @@
                                     <table class="table table-sm table-bordered" id="tablaReglas">
                                         <thead>
                                             <tr>
-                                                <th>Tipo</th>
-                                                <th>Valor</th>
+                                                <th>Producto</th>
+                                                <th>Tipo Venta</th>
+                                                <th>Vendedor</th>
                                                 <th>%</th>
                                                 <th></th>
                                             </tr>
@@ -139,13 +141,20 @@
                                             <?php foreach ($reglas as $r): ?>
                                                 <tr>
                                                     <td>
-                                                        <?= $r->tipo ?>
-                                                        <input type="hidden" name="tipo[]" value="<?= $r->tipo ?>">
+                                                        <?= $r->producto_nombre ?? $r->valor ?>
+                                                        <input type="hidden" name="producto_id[]" value="<?= $r->valor ?>">
                                                     </td>
+
                                                     <td>
-                                                        <?= $r->valor_texto ?? $r->valor ?>
-                                                        <input type="hidden" name="valor[]" value="<?= $r->valor ?>">
+                                                        <?= $r->tipo_venta_nombre ?? 'Todos' ?>
+                                                        <input type="hidden" name="tipo_venta_id[]" value="<?= $r->tipo_venta_id ?>">
                                                     </td>
+
+                                                    <td>
+                                                        <?= $r->vendedor_nombre ?? 'Todos' ?>
+                                                        <input type="hidden" name="vendedor_id[]" value="<?= $r->vendedor_id ?>">
+                                                    </td>
+
                                                     <td>
                                                         <input type="number"
                                                             name="porcentaje[]"
@@ -153,6 +162,7 @@
                                                             step="0.01"
                                                             class="form-control form-control-sm">
                                                     </td>
+
                                                     <td>
                                                         <button type="button" class="btn btn-danger btn-sm btn-remove-regla">X</button>
                                                     </td>
@@ -291,7 +301,41 @@
 <script>
     $(document).ready(function() {
 
-        // 🔹 SELECT2 VENDEDORES
+        // SELECT2 TIPO DE VENTA
+        $('#selectTipoVenta').select2({
+            placeholder: 'Buscar tipo de venta...',
+            minimumInputLength: 1,
+            ajax: {
+                url: '<?= base_url('tipo_venta/searchAjax?select2=1') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: data => ({
+                    results: data.results
+                })
+            }
+        });
+
+        // SELECT2 VENDEDOR (para reglas)
+        $('#selectVendedorRegla').select2({
+            placeholder: 'Buscar vendedor...',
+            minimumInputLength: 2,
+            ajax: {
+                url: '<?= base_url('sellers/searchAjax?select2=1') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: data => ({
+                    results: data.results
+                })
+            }
+        });
+
+        // SELECT2 VENDEDORES
         $('#selectVendedor').select2({
             placeholder: 'Buscar vendedor...',
             minimumInputLength: 2,
@@ -457,7 +501,7 @@
         }, 'json');
 
     });
-    // 🔹 ELIMINAR VENDEDOR
+    // ELIMINAR VENDEDOR
     $(document).on('click', '.btn-remove-vendedor', function() {
 
         let fila = $(this).closest('tr');
@@ -498,15 +542,26 @@
 
     });
 
-    // 🔹 AGREGAR REGLA
+    // AGREGAR REGLA
     function agregarRegla() {
 
-        let tipo = $('#tipoRegla').val();
         let producto = $('#selectProducto').select2('data')[0];
+        let tipoVenta = $('#selectTipoVenta').select2('data')[0];
+        let vendedor = $('#selectVendedorRegla').select2('data')[0];
         let porcentaje = $('#porcentajeRegla').val();
 
         if (!producto) {
             Swal.fire('Selecciona un producto');
+            return;
+        }
+
+        if (!tipoVenta) {
+            Swal.fire('Selecciona un tipo de venta');
+            return;
+        }
+
+        if (!vendedor) {
+            Swal.fire('Selecciona un vendedor');
             return;
         }
 
@@ -518,16 +573,24 @@
         let fila = `
     <tr>
         <td>
-            ${tipo}
-            <input type="hidden" name="tipo[]" value="${tipo}">
-        </td>
-        <td>
             ${producto.text}
-            <input type="hidden" name="valor[]" value="${producto.id}">
+            <input type="hidden" name="producto_id[]" value="${producto.id}">
         </td>
+
+        <td>
+            ${tipoVenta ? tipoVenta.text : 'Todos'}
+            <input type="hidden" name="tipo_venta_id[]" value="${tipoVenta ? tipoVenta.id : ''}">
+        </td>
+
+        <td>
+            ${vendedor ? vendedor.text : 'Todos'}
+            <input type="hidden" name="vendedor_id[]" value="${vendedor ? vendedor.id : ''}">
+        </td>
+
         <td>
             <input type="number" name="porcentaje[]" value="${porcentaje}" step="0.01" class="form-control form-control-sm">
         </td>
+
         <td>
             <button type="button" class="btn btn-danger btn-sm btn-remove-regla">X</button>
         </td>
@@ -535,12 +598,15 @@
 
         $('#tablaReglas tbody').append(fila);
 
+        // limpiar
         $('#selectProducto').val(null).trigger('change');
+        $('#selectTipoVenta').val(null).trigger('change');
+        $('#selectVendedorRegla').val(null).trigger('change');
         $('#porcentajeRegla').val('');
     }
 
 
-    // 🔹 ELIMINAR REGLA (solo visual)
+    // ELIMINAR REGLA (solo visual)
     $(document).on('click', '.btn-remove-regla', function() {
         $(this).closest('tr').remove();
     });

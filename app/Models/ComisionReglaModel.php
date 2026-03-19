@@ -12,7 +12,8 @@ class ComisionReglaModel extends Model
     protected $returnType = 'object';
 
     protected $allowedFields = [
-        'tipo',
+        'tipo_venta_id',
+        'vendedor_id',
         'valor',
         'porcentaje'
     ];

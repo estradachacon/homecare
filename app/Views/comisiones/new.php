@@ -89,6 +89,17 @@
             transform: translateY(0);
         }
     }
+
+    .badge-tipo-venta {
+        font-size: 10px;
+        padding: 1px 4px;
+        display: inline-block;
+        margin-top: 2px;
+        line-height: 1.5;
+        background-color: #6c757d;
+        /* gris Bootstrap */
+        color: #fff;
+    }
 </style>
 <div class="card shadow-sm">
     <div class="card-header">
@@ -125,6 +136,21 @@
 
         </div>
 
+    </div>
+</div>
+<div id="empty_state" style="display:none;">
+    <div class="card">
+        <div class="card-body text-center py-5">
+
+            <i class="fa fa-inbox fa-3x text-muted mb-3"></i>
+
+            <h5 class="text-muted">No hay documentos disponibles</h5>
+
+            <p class="text-muted mb-0">
+                No se encontraron documentos pendientes de comisión para este rango de fechas.
+            </p>
+
+        </div>
     </div>
 </div>
 <div class="mt-4" id="tabla_documentos" style="display:none;">
@@ -456,6 +482,7 @@
         document.getElementById('totalVentas').innerText = '0.00';
         document.getElementById('totalComision').innerText = '0.000000';
         document.getElementById('porcentajeComision').innerText = '0.00';
+        document.getElementById('empty_state').style.display = 'none';
 
         // limpiar resumen
         document.getElementById('resumen_tipos').innerHTML = `
@@ -870,7 +897,22 @@
                     Swal.close();
 
                     let html = "";
+                    if (!data || data.length === 0) {
 
+                        // ocultar tabla
+                        document.getElementById('tabla_documentos').style.display = 'none';
+
+                        // mostrar mensaje
+                        document.getElementById('empty_state').style.display = 'block';
+
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Sin resultados',
+                            text: 'No hay documentos pendientes de comisión'
+                        });
+
+                        return;
+                    }
                     data.forEach((row, i) => {
 
                         console.log("TIPO VENTA:", row.tipo_venta);
@@ -950,7 +992,14 @@
 
                                 <td>${row.tipo}</td>
 
-                                <td>${ultimos6(row.numero_control)}</td>
+                                <td>
+                                    <div>${ultimos6(row.numero_control)}</div>
+                                    <div>
+                                        <span class="badge badge-tipo-venta">
+                                            ${row.tipo_venta ?? 'Sin tipo'}
+                                        </span>
+                                    </div>
+                                </td>
 
                                 <td>${row.cliente ?? ''}</td>
 
@@ -1009,6 +1058,7 @@
                     });
 
                     document.getElementById('tbody_docs').innerHTML = html;
+                    document.getElementById('empty_state').style.display = 'none';
                     document.getElementById('tabla_documentos').style.display = 'block';
                     calcularTotales();
 
