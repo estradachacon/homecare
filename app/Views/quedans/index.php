@@ -57,23 +57,27 @@
                             <select name="cliente_id" id="clienteFiltro" class="form-control"></select>
                         </div>
 
-                        <div class="col-md-2">
-                            <small class="text-muted">Estado</small>
-                            <select name="estado" class="form-control">
-                                <option value="">Todos</option>
-                                <option value="0">Activos</option>
-                                <option value="1">Anulados</option>
-                            </select>
-                        </div>
+                    <div class="col-md-2">
+                        <small class="text-muted">Estado</small>
+                        <select name="estado_calc" class="form-control">
+                            <option value="">Todos</option>
+                                <option value="pagado" <?= ($_GET['estado_calc'] ?? '') == 'pagado' ? 'selected' : '' ?>>Pagado</option>
+                                <option value="pendiente" <?= ($_GET['estado_calc'] ?? '') == 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
+                                <option value="vencido" <?= ($_GET['estado_calc'] ?? '') == 'vencido' ? 'selected' : '' ?>>Vencido</option>
+                                <option value="anulado" <?= ($_GET['estado_calc'] ?? '') == 'anulado' ? 'selected' : '' ?>>Anulado</option>
+                        </select>
+                    </div>
 
                         <div class="col-md-3">
                             <small class="text-muted">Fecha inicio</small>
-                            <input type="date" name="fecha_inicio" class="form-control">
+                            <input type="date" name="fecha_inicio" class="form-control"
+                                value="<?= esc($_GET['fecha_inicio'] ?? '') ?>">
                         </div>
 
                         <div class="col-md-3">
                             <small class="text-muted">Fecha fin</small>
-                            <input type="date" name="fecha_fin" class="form-control">
+                            <input type="date" name="fecha_inicio" class="form-control"
+                                value="<?= esc($_GET['fecha_inicio'] ?? '') ?>">
                         </div>
 
                     </div>
@@ -225,6 +229,23 @@
 </div>
 <script>
     $(document).ready(function() {
+
+    let clienteId = "<?= $_GET['cliente_id'] ?? '' ?>";
+
+    if (clienteId) {
+        fetch("<?= base_url('clientes/buscar') ?>?q=")
+            .then(r => r.json())
+            .then(data => {
+
+                let cliente = data.find(c => c.id == clienteId);
+
+                if (cliente) {
+                    let option = new Option(cliente.text, cliente.id, true, true);
+                    $('#clienteFiltro').append(option).trigger('change');
+                }
+            });
+    }
+
 
         $('#clienteFiltro').select2({
             placeholder: 'Buscar cliente...',

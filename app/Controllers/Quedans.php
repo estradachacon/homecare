@@ -22,6 +22,7 @@ class Quedans extends BaseController
         $inicio  = $this->request->getGet('fecha_inicio');
         $fin     = $this->request->getGet('fecha_fin');
         $estado  = $this->request->getGet('estado');
+        $estadoCalc = $this->request->getGet('estado_calc');
 
         // 🔹 QUERY BASE
         $model->select('quedans.*, clientes.nombre as cliente_nombre')
@@ -45,9 +46,7 @@ class Quedans extends BaseController
 
         // 🔥 PAGINACIÓN
         $quedans = $model->orderBy('quedans.id', 'DESC')
-            ->paginate(10, 'default');
-
-        $pager = $model->pager;
+            ->findAll(); // 🔥 traes todos primero
 
         $quedanFacturaModel = new QuedanFacturaModel();
         $pagosModel = new \App\Models\PagosDetailsModel();
@@ -90,6 +89,23 @@ class Quedans extends BaseController
                 $q->estado_calculado = 'pendiente';
             }
         }
+        if ($estadoCalc) {
+
+            $quedans = array_filter($quedans, function ($q) use ($estadoCalc) {
+                return $q->estado_calculado === $estadoCalc;
+            });
+        }
+
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $perPage = 10;
+
+        $total = count($quedans);
+
+        $quedans = array_slice($quedans, ($page - 1) * $perPage, $perPage);
+
+        $pager = \Config\Services::pager();
+
+        $pager->makeLinks($page, $perPage, $total, 'bootstrap_full');
 
         return view('quedans/index', [
             'quedans' => $quedans,
