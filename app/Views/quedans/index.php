@@ -27,17 +27,61 @@
             </div>
 
             <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="row g-2">
 
+                        <div class="col-md-4">
+                            <small class="text-muted">Cliente</small>
+                            <select name="cliente_id" id="clienteFiltro" class="form-control"></select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <small class="text-muted">Estado</small>
+                            <select name="estado" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="0">Activos</option>
+                                <option value="1">Anulados</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <small class="text-muted">Fecha inicio</small>
+                            <input type="date" name="fecha_inicio" class="form-control">
+                        </div>
+
+                        <div class="col-md-3">
+                            <small class="text-muted">Fecha fin</small>
+                            <input type="date" name="fecha_fin" class="form-control">
+                        </div>
+
+                    </div>
+
+                    <div class="mt-2">
+                        <button class="btn btn-primary btn-sm">Filtrar</button>
+                        <a href="<?= base_url('quedans') ?>" class="btn btn-secondary btn-sm">Limpiar</a>
+                    </div>
+                </form>
                 <table class="table table-striped table-bordered table-hover">
 
                     <thead>
+                        <colgroup>
+                            <col style="width: 5%;"> <!-- ID -->
+                            <col style="width: 15%;"> <!-- Quedan -->
+                            <col style="width: 25%;"> <!-- Cliente -->
+                            <col style="width: 12%;"> <!-- Fecha emisión -->
+                            <col style="width: 12%;"> <!-- Fecha pago -->
+                            <col style="width: 10%;"> <!-- Total -->
+                            <col style="width: 10%;"> <!-- Estado -->
+                            <col style="width: 6%;"> <!-- Menú -->
+                        </colgroup>
                         <tr>
-
+                            <th>ID</th>
                             <th class="col-1">Quedan</th>
-                            <th class="col-3">Cliente</th>
-                            <th class="col-2">Fecha emisión</th>
-                            <th class="col-2">Fecha pago</th>
-                            <th class="col-2">Total</th>
+                            <th class="col-5">Cliente</th>
+                            <th class="col-1">Fecha emisión</th>
+                            <th class="col-1">Fecha pago</th>
+                            <th class="col-1">Total</th>
+                            <th class="col-1">Estado</th>
                             <th class="col-1">Menú</th>
 
                         </tr>
@@ -50,7 +94,9 @@
                             <?php foreach ($quedans as $q): ?>
 
                                 <tr class="<?= $q->anulado ? 'table-danger text-muted' : '' ?>">
-
+                                    <td>
+                                        <?= $q->id ?>
+                                    </td>
                                     <td>
 
                                         <strong>
@@ -95,7 +141,29 @@
                                         $ <?= number_format($total, 2) ?>
 
                                     </td>
+                                    <td class="text-center">
+                                        <?php switch ($q->estado_calculado):
 
+                                            case 'anulado': ?>
+                                                <span class="badge bg-danger badge-estado">Anulado</span>
+                                                <?php break; ?>
+
+                                            <?php
+                                            case 'pagado': ?>
+                                                <span class="badge bg-success badge-estado">Pagado</span>
+                                                <?php break; ?>
+
+                                            <?php
+                                            case 'vencido': ?>
+                                                <span class="badge bg-danger badge-estado">Vencido</span>
+                                                <?php break; ?>
+
+                                            <?php
+                                            default: ?>
+                                                <span class="badge bg-warning text-dark badge-estado">Pendiente</span>
+
+                                        <?php endswitch; ?>
+                                    </td>
                                     <td class="text-center">
 
                                         <a href="<?= base_url('quedans/' . $q->id) ?>"
@@ -114,7 +182,7 @@
                         <?php else: ?>
 
                             <tr>
-                                <td colspan="7" class="text-center">
+                                <td colspan="8" class="text-center">
                                     No hay quedan registrados
                                 </td>
                             </tr>
@@ -124,12 +192,36 @@
                     </tbody>
 
                 </table>
-
+                <div class="mt-3">
+                    <?= $pager->links('default', 'bootstrap_full') ?>
+                </div>
             </div>
 
         </div>
 
     </div>
 </div>
+<script>
+    $(document).ready(function() {
 
+        $('#clienteFiltro').select2({
+            placeholder: 'Buscar cliente...',
+            minimumInputLength: 2,
+            ajax: {
+                url: "<?= base_url('clientes/buscar') ?>",
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: function(data) {
+                    return {
+                        results: data
+                    };
+                }
+            }
+        });
+
+    });
+</script>
 <?= $this->endSection() ?>

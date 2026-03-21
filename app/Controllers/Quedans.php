@@ -17,11 +17,85 @@ class Quedans extends BaseController
 
         $model = new QuedanModel();
 
-        $data['quedans'] = $model->getQuedansConCliente();
+        // 🔹 FILTROS
+        $cliente = $this->request->getGet('cliente_id');
+        $inicio  = $this->request->getGet('fecha_inicio');
+        $fin     = $this->request->getGet('fecha_fin');
+        $estado  = $this->request->getGet('estado');
 
-        return view('quedans/index', $data);
+        // 🔹 QUERY BASE
+        $model->select('quedans.*, clientes.nombre as cliente_nombre')
+            ->join('clientes', 'clientes.id = quedans.cliente_id', 'left');
+
+        if ($cliente) {
+            $model->where('quedans.cliente_id', $cliente);
+        }
+
+        if ($inicio) {
+            $model->where('DATE(quedans.fecha_emision) >=', $inicio);
+        }
+
+        if ($fin) {
+            $model->where('DATE(quedans.fecha_emision) <=', $fin);
+        }
+
+        if ($estado !== null && $estado !== '') {
+            $model->where('quedans.anulado', $estado);
+        }
+
+        // 🔥 PAGINACIÓN
+        $quedans = $model->orderBy('quedans.id', 'DESC')
+            ->paginate(10, 'default');
+
+        $pager = $model->pager;
+
+        $quedanFacturaModel = new QuedanFacturaModel();
+        $pagosModel = new \App\Models\PagosDetailsModel();
+
+        foreach ($quedans as $q) {
+
+            $facturas = $quedanFacturaModel->getFacturasPorQuedan($q->id);
+
+            $pagado = true;
+
+            foreach ($facturas as $f) {
+
+                if ($f->anulada) continue;
+
+                $totalPagado = $pagosModel
+                    ->selectSum('monto')
+                    ->where('factura_id', $f->factura_id)
+                    ->where('anulado', 0)
+                    ->first()
+                    ->monto ?? 0;
+
+                $saldo = $f->total_pagar - $totalPagado;
+
+                if ($saldo > 0) {
+                    $pagado = false;
+                    break;
+                }
+            }
+
+            $hoy = date('Y-m-d');
+
+            // 🔥 ESTADO FINAL
+            if ($q->anulado) {
+                $q->estado_calculado = 'anulado';
+            } elseif ($pagado) {
+                $q->estado_calculado = 'pagado';
+            } elseif ($q->fecha_pago < $hoy) {
+                $q->estado_calculado = 'vencido';
+            } else {
+                $q->estado_calculado = 'pendiente';
+            }
+        }
+
+        return view('quedans/index', [
+            'quedans' => $quedans,
+            'pager'   => $pager
+        ]);
     }
-
 
     public function crear()
     {

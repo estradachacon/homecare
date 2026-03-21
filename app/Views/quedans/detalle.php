@@ -4,16 +4,33 @@
 <?php
 
 $total = 0;
-
-$total = 0;
 $totalSaldo = 0;
 $totalFacturas = count($detalles);
 $hoy = time();
 
 foreach ($detalles as $d) {
+
     $total += $d->monto_aplicado;
+
+    // 🔥 calcular saldo correctamente
+    if (!($d->anulada ?? 0)) {
+        $totalSaldo += $d->saldo;
+    }
 }
 
+$fechaFactura = strtotime($d->fecha_emision);
+
+$esAnulada = ($d->anulada ?? 0) == 1;
+$esPagada  = ($d->saldo == 0 && !$esAnulada);
+
+// 🔥 ahora sí ya existe $esPagada
+if ($esPagada) {
+    $fechaFin = strtotime($quedan->fecha_pago);
+} else {
+    $fechaFin = $hoy;
+}
+
+$dias = floor(($fechaFin - $fechaFactura) / 86400);
 ?>
 
 <div class="row">
@@ -196,18 +213,7 @@ foreach ($detalles as $d) {
 
                             <?php if (!empty($detalles)): ?>
 
-                                <?php foreach ($detalles as $d):
-
-                                    $fechaFactura = strtotime($d->fecha_emision);
-                                    $dias = floor(($hoy - $fechaFactura) / 86400);
-
-                                    $esAnulada = ($d->anulada ?? 0) == 1;
-                                    $esPagada  = ($d->saldo == 0 && !$esAnulada);
-                                    if (!$esAnulada) {
-                                        $totalSaldo += $d->saldo;
-                                    }
-
-                                ?>
+                                <?php foreach ($detalles as $d): ?>
 
                                     <tr class="<?= $esAnulada ? 'table-danger text-muted' : '' ?>">
 
@@ -266,7 +272,7 @@ foreach ($detalles as $d) {
 
                                             <?php elseif ($esPagada): ?>
 
-                                                <span class="badge bg-success">
+                                                <span class="badge bg-success text-white">
                                                     Pagada
                                                 </span>
 
