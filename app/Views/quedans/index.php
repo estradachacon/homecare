@@ -8,6 +8,28 @@
         border-radius: 10px;
         font-weight: 500;
     }
+        .select2-container .select2-selection--single {
+        height: 40px !important;
+        /* altura estándar Bootstrap */
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px !important;
+        /* centra texto */
+        padding-left: .75rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+    }
+
+    /* focus igual que form-control */
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+    }
 </style>
 
 <div class="row">

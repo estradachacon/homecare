@@ -44,10 +44,12 @@ class QuedanModel extends Model
     public function getQuedan($id)
     {
         return $this->select('
-                quedans.*,
-                clientes.nombre as cliente_nombre
-            ')
+            quedans.*,
+            clientes.nombre as cliente_nombre,
+            u.user_name as usuario_anulo
+        ')
             ->join('clientes', 'clientes.id = quedans.cliente_id', 'left')
+            ->join('users u', 'u.id = quedans.anulado_por', 'left')
             ->where('quedans.id', $id)
             ->first();
     }

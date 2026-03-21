@@ -12,25 +12,10 @@ foreach ($detalles as $d) {
 
     $total += $d->monto_aplicado;
 
-    // 🔥 calcular saldo correctamente
     if (!($d->anulada ?? 0)) {
         $totalSaldo += $d->saldo;
     }
 }
-
-$fechaFactura = strtotime($d->fecha_emision);
-
-$esAnulada = ($d->anulada ?? 0) == 1;
-$esPagada  = ($d->saldo == 0 && !$esAnulada);
-
-// 🔥 ahora sí ya existe $esPagada
-if ($esPagada) {
-    $fechaFin = strtotime($quedan->fecha_pago);
-} else {
-    $fechaFin = $hoy;
-}
-
-$dias = floor(($fechaFin - $fechaFactura) / 86400);
 ?>
 
 <div class="row">
@@ -118,7 +103,6 @@ $dias = floor(($fechaFin - $fechaFactura) / 86400);
                                 $estaVencido = ($hoy > $fechaPago);
 
                                 ?>
-
                                 <?php if ($quedan->anulado): ?>
 
                                     <span class="badge text-white px-3 py-1 ml-auto"
@@ -155,7 +139,7 @@ $dias = floor(($fechaFin - $fechaFactura) / 86400);
                             <div class="mt-2 d-flex align-items-center">
 
                                 <small class="text-muted">
-                                    Fecha pago
+                                    Fecha promesa de pago:
                                 </small>
 
                                 <span class="ml-auto fw-semibold">
@@ -168,7 +152,7 @@ $dias = floor(($fechaFin - $fechaFactura) / 86400);
                             <div class="mt-2 d-flex align-items-center">
 
                                 <small class="text-muted">
-                                    Total aplicado
+                                    Total aplicado en Quedan
                                 </small>
 
                                 <span class="fw-bold fs-5 text-success ml-auto">
@@ -176,7 +160,35 @@ $dias = floor(($fechaFin - $fechaFactura) / 86400);
                                 </span>
 
                             </div>
+                            <?php if ($quedan->anulado): ?>
 
+                                <div class="mt-3 border-top pt-2">
+
+                                    <div class="d-flex align-items-center">
+                                        <small class="text-muted">
+                                            Anulado por:
+                                        </small>
+
+                                        <span class="ml-auto fw-semibold">
+                                            <?= esc($quedan->usuario_anulo ?? 'N/D') ?>
+                                        </span>
+                                    </div>
+
+                                    <?php if (!empty($quedan->fecha_anulacion)): ?>
+                                        <div class="d-flex align-items-center mt-1">
+                                            <small class="text-muted">
+                                                Fecha anulación:
+                                            </small>
+
+                                            <span class="ml-auto">
+                                                <?= date('d/m/Y H:i', strtotime($quedan->fecha_anulacion)) ?>
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                </div>
+
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -214,7 +226,24 @@ $dias = floor(($fechaFin - $fechaFactura) / 86400);
                             <?php if (!empty($detalles)): ?>
 
                                 <?php foreach ($detalles as $d): ?>
+                                    <?php
 
+                                    $fechaFactura = strtotime($d->fecha_emision);
+
+                                    $esAnulada = ($d->anulada ?? 0) == 1;
+                                    $esPagada  = ($d->saldo == 0 && !$esAnulada);
+
+                                    // 🔥 lógica SIN romper nada
+                                    if ($esAnulada && !empty($quedan->fecha_anulacion)) {
+                                        $fechaFin = strtotime($quedan->fecha_anulacion);
+                                    } elseif ($esPagada) {
+                                        $fechaFin = strtotime($quedan->fecha_pago);
+                                    } else {
+                                        $fechaFin = $hoy;
+                                    }
+
+                                    $dias = max(0, floor(($fechaFin - $fechaFactura) / 86400));
+                                    ?>
                                     <tr class="<?= $esAnulada ? 'table-danger text-muted' : '' ?>">
 
                                         <td>

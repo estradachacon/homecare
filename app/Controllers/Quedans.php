@@ -262,7 +262,7 @@ class Quedans extends BaseController
 
         $quedanModel->update($id, [
             'anulado' => 1,
-            'anulado_por' => $session->get('user_id'),
+            'anulado_por' => $session->get('id'),
             'fecha_anulacion' => date('Y-m-d H:i:s')
         ]);
 
