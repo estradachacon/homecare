@@ -318,7 +318,7 @@ class DteCatalogos extends BaseConfig
         '03' => 'Años'
     ];
 
-    // CAT-019 Código de Actividad Económica	  //	LINEA 1513	
+    // CAT-019 Código de Actividad Económica	  	
     public $codActividad = [
 
         // AGRICULTURA
@@ -424,7 +424,7 @@ class DteCatalogos extends BaseConfig
         3 => 'Servicio'
     ];
 
-    // CAT-027 Recinto fiscal	
+    // CAT-027 Recinto fiscal	   //	LINEA 1513
     public $recintoFiscal = [
 
         '01' => 'Terrestre San Bartolo',
