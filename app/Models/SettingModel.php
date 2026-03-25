@@ -15,6 +15,7 @@ class SettingModel extends Model
         'company_address',
         'logo',
         'favicon',
-        'primary_color'
+        'primary_color',
+        'allow_invoice_without_stock'
     ];
 }

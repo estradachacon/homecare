@@ -49,6 +49,7 @@ class SettingsController extends BaseController
             'company_name'    => $this->request->getPost('company_name'),
             'company_address' => $this->request->getPost('company_address'),
             'primary_color'   => $this->request->getPost('primary_color'),
+            'allow_invoice_without_stock' => $this->request->getPost('allow_invoice_without_stock') ? 1 : 0,
         ];
 
         // 🔹 Logo
