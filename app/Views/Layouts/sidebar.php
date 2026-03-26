@@ -65,7 +65,7 @@
                     <div class="collapse" id="ventas" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('cargar_facturas')): ?>
-                                <a class="nav-link" href="/facturas/carga">Cargar Facturas</a>
+                                <a class="nav-link" href="/facturas/carga">Cargar Facturas con JSON</a>
                             <?php endif; ?>
 
                             <?php if (tienePermiso('ver_facturas')): ?>
@@ -119,47 +119,6 @@
                             <?php endif; ?>
                         </nav>
                     </div>
-                <?php endif; ?>
-
-                <?php if (tienePermiso('cargar_compras')): ?>
-
-                    <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#cuentasPagar"
-                        aria-expanded="false"
-                        aria-controls="cuentasPagar">
-
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-money-bill-transfer"></i>
-                        </div>
-
-                        Cuentas por pagar
-
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
-
-                    </a>
-
-                    <div class="collapse" id="cuentasPagar" data-parent="#sidenavAccordion">
-
-                        <nav class="sb-sidenav-menu-nested nav">
-
-                            <?php if (tienePermiso('ingresar_compras')): ?>
-                                <a class="nav-link" href="/compras/new">
-                                    Ingresar compras
-                                </a>
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_compras')): ?>
-                                <a class="nav-link" href="/compras">
-                                    Ver compras
-                                </a>
-                            <?php endif; ?>
-                        </nav>
-
-                    </div>
-
                 <?php endif; ?>
 
                 <?php if (
@@ -249,6 +208,11 @@
                             <?php if (tienePermiso('ver_inventario')): ?>
                                 <a class="nav-link" href="/inventory">
                                     Inventario
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_compras')): ?>
+                                <a class="nav-link" href="/purchases">
+                                    Ver compras
                                 </a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_proveedores')): ?>

@@ -474,21 +474,21 @@
                         data.forEach(n => {
 
                             html += `
-<a class="dropdown-item notif-item notif-card" 
-data-id="${n.id}" 
-href="${n.link ?? '#'}">
+                            <a class="dropdown-item notif-item notif-card" 
+                            data-id="${n.id}" 
+                            href="${n.link ?? '#'}">
 
-    <div class="notif-icon">
-        <i class="fa-solid fa-circle-exclamation"></i>
-    </div>
+                                <div class="notif-icon">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                </div>
 
-    <div class="notif-content">
-        <div class="notif-title">${n.titulo}</div>
-        <div class="notif-msg">${n.mensaje ?? ''}</div>
-    </div>
+                                <div class="notif-content">
+                                    <div class="notif-title">${n.titulo}</div>
+                                    <div class="notif-msg">${n.mensaje ?? ''}</div>
+                                </div>
 
-</a>
-`;
+                            </a>
+                            `;
 
                         });
 

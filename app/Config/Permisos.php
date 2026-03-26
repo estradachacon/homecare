@@ -39,12 +39,6 @@ class Permisos extends BaseConfig
             'crear_quedans',
             'anular_quedans'
         ],
-        
-        'Cuentas por Pagar' => [
-            'cargar_compras',
-            'ver_compras',
-            'ingresar_compras'
-        ],
 
         'Finanzas' => [
             'ver_transacciones',
@@ -60,6 +54,9 @@ class Permisos extends BaseConfig
             'crear_proveedor',
             'editar_proveedor',
             'eliminar_proveedor',
+            'ver_compras',
+            'cargar_compras_json',
+            'ingresar_compras',
         ],
 
         'Comisiones' => [

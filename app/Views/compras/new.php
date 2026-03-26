@@ -10,7 +10,7 @@
 
         <div class="card-body">
 
-            <div class="row mb-3">
+            <div class="row mb-1">
 
                 <div class="col-md-3">
                     <label class="form-label">Fecha de compra</label>

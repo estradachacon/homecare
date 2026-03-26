@@ -192,8 +192,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('proveedores/searchAjax', 'ProveedorController::searchAjax');
 
     // Rutas para Mantenimiento de Compras
-    $routes->get('compras', 'ComprasController::index');
-    $routes->get('compras/new', 'ComprasController::new');
+    $routes->get('purchases', 'ComprasController::index');
+    $routes->get('purchases/new', 'ComprasController::new');
+    $routes->get('purchases/load', 'ComprasController::carga');
+    $routes->post('purchases/processload', 'ComprasController::procesarCarga');
 
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');

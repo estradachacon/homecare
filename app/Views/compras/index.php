@@ -11,10 +11,14 @@
 
                 <?php if (tienePermiso('ingresar_compras')): ?>
                     <a class="btn btn-primary btn-sm ml-auto"
-                       href="<?= base_url('compras/new') ?>">
-
+                       href="<?= base_url('purchases/new') ?>">
                         <i class="fa-solid fa-plus"></i> Nueva compra
-
+                    </a>
+                <?php endif; ?>
+                <?php if (tienePermiso('cargar_compras_json')): ?>
+                    <a class="btn btn-primary btn-sm ml-auto"
+                       href="<?= base_url('purchases/load') ?>">
+                        <i class="fa-solid fa-plus"></i> Cargar json
                     </a>
                 <?php endif; ?>
             </div>
