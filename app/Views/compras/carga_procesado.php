@@ -215,50 +215,50 @@
             }
         });
 
-function handleFiles(files) {
+        function handleFiles(files) {
 
-    let archivosArray = Array.from(files);
+            let archivosArray = Array.from(files);
 
-    if (archivosSeleccionados.length + archivosArray.length > MAX_ARCHIVOS) {
-        Swal.fire('Límite excedido', 'Máximo 35 archivos', 'warning');
-        return;
-    }
+            if (archivosSeleccionados.length + archivosArray.length > MAX_ARCHIVOS) {
+                Swal.fire('Límite excedido', 'Máximo 35 archivos', 'warning');
+                return;
+            }
 
-    archivosArray.forEach(file => {
+            archivosArray.forEach(file => {
 
-        if (!file.name.toLowerCase().endsWith('.json')) return;
+                if (!file.name.toLowerCase().endsWith('.json')) return;
 
-        const reader = new FileReader();
+                const reader = new FileReader();
 
-        reader.onload = function(e) {
+                reader.onload = function(e) {
 
-            try {
-                const json = JSON.parse(e.target.result);
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        
+                        // =============================
+                        // 🔥 VALIDAR QUE SEA COMPRA (RECEPTOR = MI EMPRESA)
+                        // =============================
 
-                // =============================
-                // 🔥 VALIDAR QUE SEA COMPRA (RECEPTOR = MI EMPRESA)
-                // =============================
+                        const receptor = json.receptor ?? {};
 
-                const receptor = json.receptor ?? {};
+                        const limpiar = (val) => (val || '').toString().replace(/[^0-9]/g, '');
 
-                const limpiar = (val) => (val || '').toString().replace(/[^0-9]/g, '');
+                        const nrcJson = limpiar(receptor.nrc);
+                        const nitJson = limpiar(receptor.nit);
 
-                const nrcJson = limpiar(receptor.nrc);
-                const nitJson = limpiar(receptor.nit);
+                        const nrcSistema = limpiar(EMISOR_NRC);
+                        const nitSistema = limpiar(EMISOR_NIT);
 
-                const nrcSistema = limpiar(EMISOR_NRC);
-                const nitSistema = limpiar(EMISOR_NIT);
+                        const esMiEmpresa =
+                            (nrcJson && nrcJson === nrcSistema) ||
+                            (nitJson && nitJson === nitSistema);
 
-                const esMiEmpresa =
-                    (nrcJson && nrcJson === nrcSistema) ||
-                    (nitJson && nitJson === nitSistema);
+                        if (!esMiEmpresa) {
 
-                if (!esMiEmpresa) {
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Documento inválido',
-                        html: `
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Documento inválido',
+                                html: `
                             <div style="text-align:left;">
                                 <b>El documento no está emitido a tu empresa</b><br><br>
 
@@ -270,60 +270,98 @@ function handleFiles(files) {
                                 <small>NIT: ${EMISOR_NIT}</small>
                             </div>
                         `
-                    });
+                            });
 
-                    return;
-                }
+                            return;
+                        }
 
-                // =============================
-                // DATOS PRINCIPALES
-                // =============================
+                        // =============================
+                        // DATOS PRINCIPALES
+                        // =============================
 
-                const codigo = json.identificacion?.codigoGeneracion ?? null;
-                const numeroControl = json.identificacion?.numeroControl ?? null;
+                        const codigo = json.identificacion?.codigoGeneracion ?? null;
+                        const numeroControl = json.identificacion?.numeroControl ?? null;
 
-                if (!codigo || !numeroControl) return;
+                        if (!codigo || !numeroControl) return;
 
-                const existe = archivosSeleccionados.some(f => f.codigoGeneracion === codigo);
+                        const existe = archivosSeleccionados.some(f => f.codigoGeneracion === codigo);
 
-                if (existe) {
-                    Swal.fire('Duplicado', file.name, 'warning');
-                    return;
-                }
+                        if (existe) {
+                            Swal.fire('Duplicado', file.name, 'warning');
+                            return;
+                        }
 
-                const factura = {
-                    file: file,
-                    codigoGeneracion: codigo,
-                    numeroControl: numeroControl,
-                    correlativo: numeroControl.slice(-6),
-                    tipoDoc: json.identificacion?.tipoDte ?? '',
-                    fecha: json.identificacion?.fecEmi ?? '',
-                    proveedor: json.emisor?.nombre ?? 'N/D',
-                    total: json.resumen?.montoTotalOperacion ?? 0,
-                    productos: json.cuerpoDocumento ?? []
+                        const factura = {
+                            file: file,
+                            codigoGeneracion: codigo,
+                            numeroControl: numeroControl,
+                            correlativo: numeroControl.slice(-6),
+                            tipoDoc: json.identificacion?.tipoDte ?? '',
+                            fecha: json.identificacion?.fecEmi ?? '',
+                            proveedor: json.emisor?.nombre ?? 'N/D',
+                            total: json.resumen?.montoTotalOperacion ?? 0,
+                            productos: json.cuerpoDocumento ?? []
+                        };
+                        
+                        validarProductosFactura(factura);
+                        archivosSeleccionados.push(factura);
+                        renderTable();
+
+                    } catch (err) {
+                        console.error(err);
+                    }
                 };
 
-                archivosSeleccionados.push(factura);
-                renderTable();
+                reader.readAsText(file);
+            });
+        }
 
-            } catch (err) {
-                console.error(err);
-            }
-        };
+        function validarProductosFactura(factura) {
+            fetch("<?= base_url('purchases/validar-productos') ?>", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        productos: factura.productos
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
 
-        reader.readAsText(file);
-    });
-}
+                    if (data && data.no_existen && data.no_existen.length > 0) {
+
+                        factura.productosNuevos = true;
+                        factura.listaNuevos = data.no_existen;
+
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Producto nuevo detectado',
+                            html: `
+                    <b>Esta factura contiene productos no registrados:</b><br><br>
+                    <small>${data.no_existen.join('<br>')}</small>
+                `
+                        });
+
+                    } else {
+                        factura.productosNuevos = false;
+                    }
+
+                    renderTable(); // 🔥 volver a pintar
+
+                })
+                .catch(err => console.error(err));
+        }
 
         function renderTable() {
 
-    tableBody.innerHTML = '';
+            tableBody.innerHTML = '';
 
-    archivosSeleccionados.forEach((f, index) => {
+            archivosSeleccionados.forEach((f, index) => {
 
-        const detailId = "detail_" + index;
+                const detailId = "detail_" + index;
 
-        const productosHtml = f.productos.length ? `
+                const productosHtml = f.productos.length ? `
             <ul class="list-group list-group-flush">
                 ${f.productos.map(p => `
                     <li class="list-group-item d-flex justify-content-between align-items-start">
@@ -343,8 +381,8 @@ function handleFiles(files) {
             </ul>
         ` : '<small class="text-muted">Sin productos</small>';
 
-        const row = `
-            <tr class="main-row" data-target="${detailId}" style="cursor:pointer;">
+                const row = `
+            <tr class="main-row ${f.productosNuevos ? 'table-warning' : ''}" data-target="${detailId}" style="cursor:pointer;">
                 <td>
                     ${index + 1}
                     <button class="btn btn-sm btn-outline-danger ms-2 remove" data-index="${index}">
@@ -355,6 +393,12 @@ function handleFiles(files) {
                 <td>
                     <strong>${f.proveedor}</strong><br>
                     <small>${f.file.name}</small>
+
+                    ${f.productosNuevos ? `
+                        <span class="badge bg-warning text-dark mt-1">
+                            Producto nuevo
+                        </span>
+                    ` : ''}
                 </td>
                 <td>${formatFecha(f.fecha)}</td>
                 <td class="text-end">$ ${parseFloat(f.total).toFixed(2)}</td>
@@ -369,36 +413,36 @@ function handleFiles(files) {
             </tr>
         `;
 
-        tableBody.innerHTML += row;
-    });
+                tableBody.innerHTML += row;
+            });
 
-    // 🔥 click para expandir
-    document.querySelectorAll('.main-row').forEach(row => {
-        row.addEventListener('click', function(e) {
+            // 🔥 click para expandir
+            document.querySelectorAll('.main-row').forEach(row => {
+                row.addEventListener('click', function(e) {
 
-            // evitar conflicto con botón eliminar
-            if (e.target.closest('.remove')) return;
+                    // evitar conflicto con botón eliminar
+                    if (e.target.closest('.remove')) return;
 
-            const target = document.getElementById(this.dataset.target);
+                    const target = document.getElementById(this.dataset.target);
 
-            target.style.display =
-                target.style.display === "none"
-                ? "table-row"
-                : "none";
-        });
-    });
+                    target.style.display =
+                        target.style.display === "none" ?
+                        "table-row" :
+                        "none";
+                });
+            });
 
-    // 🔥 eliminar
-    document.querySelectorAll('.remove').forEach(btn => {
-        btn.onclick = function(e) {
-            e.stopPropagation();
-            archivosSeleccionados.splice(this.dataset.index, 1);
-            renderTable();
-        };
-    });
+            // 🔥 eliminar
+            document.querySelectorAll('.remove').forEach(btn => {
+                btn.onclick = function(e) {
+                    e.stopPropagation();
+                    archivosSeleccionados.splice(this.dataset.index, 1);
+                    renderTable();
+                };
+            });
 
-    btnProcesar.disabled = archivosSeleccionados.length === 0;
-}
+            btnProcesar.disabled = archivosSeleccionados.length === 0;
+        }
 
         function procesar() {
 

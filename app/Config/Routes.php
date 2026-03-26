@@ -196,6 +196,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('purchases/new', 'ComprasController::new');
     $routes->get('purchases/load', 'ComprasController::carga');
     $routes->post('purchases/processload', 'ComprasController::procesarCarga');
+    $routes->post('purchases/validar-productos', 'ComprasController::validarProductos');
 
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');
