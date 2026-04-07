@@ -220,4 +220,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('comisiones/generar', 'Comisiones::generar');
     $routes->post('comisiones/getDocumentos', 'Comisiones::getDocumentos');
     $routes->post('comisiones/guardar', 'Comisiones::guardar');
+    
+    //Rutas para pruebas locales de autenticacion y emisión
+    $routes->get('test-hacienda', 'TestController::hacienda');
 });
