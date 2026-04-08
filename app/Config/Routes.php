@@ -178,6 +178,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('inventory', 'InventoryController::index');
     $routes->post('productos/delete/(:num)', 'InventoryController::delete/$1');
     $routes->get('productos/searchAjax', 'InventoryController::searchAjax');
+    $routes->get('productos/(:num)', 'InventoryController::show/$1');
     $routes->get('inventory/excel', 'InventoryController::excel');
     $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
 
@@ -198,6 +199,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('purchases/load', 'ComprasController::carga');
     $routes->post('purchases/processload', 'ComprasController::procesarCarga');
     $routes->post('purchases/validar-productos', 'ComprasController::validarProductos');
+    $routes->get('purchases/(:num)', 'ComprasController::show/$1');
+    $routes->post('purchases/delete/(:num)', 'ComprasController::delete/$1');
+    $routes->post('purchases/validar-documento', 'ComprasController::validarDocumento');
 
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');

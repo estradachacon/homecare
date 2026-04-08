@@ -32,11 +32,12 @@
 
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Fecha</th>
+                            <th class="col-md-1"># DTE</th>
+                            <th class="col-md-1">Tipo DTE</th>
                             <th>Proveedor</th>
-                            <th>Total</th>
-                            <th>Acciones</th>
+                            <th class="col-md-2">Fecha DTE</th>
+                            <th class="col-md-2">Total</th>
+                            <th class="col-md-1">Acciones</th>
                         </tr>
                     </thead>
 
@@ -44,26 +45,49 @@
 
                         <?php if (!empty($compras)): ?>
                             <?php foreach ($compras as $compra): ?>
-                                <tr>
-                                    <td><?= $compra->id ?></td>
+                                <?php
+                                $correlativo = !empty($compra->numero_control)
+                                    ? substr($compra->numero_control, -6)
+                                    : 'N/D';
 
+                                // tipo de DTE (ej: 01, 03, etc)
+                                $tipoDte = $compra->tipo_dte ?? 'N/D';
+
+                                // opcional: traducirlo bonito
+                                $tipos = [
+                                    '01' => 'Factura',
+                                    '03' => 'CCF',
+                                    '05' => 'Crédito Fiscal',
+                                ];
+
+                                $tipoTexto = $tipos[$tipoDte] ?? $tipoDte;
+                                ?>
+
+                                <tr>
+                                    <!-- Número de factura -->
                                     <td>
+                                            <?= $correlativo ?>
+                                    </td>
+
+                                    <!-- Tipo -->
+                                    <td><?= $tipoTexto ?></td>
+
+                                    <!-- Cliente (en compras es proveedor) -->
+                                    <td><?= $compra->proveedor_nombre ?? 'Sin proveedor' ?></td>
+
+                                    <!-- Fecha -->
+                                    <td class="text-center">
                                         <?= date('d/m/Y', strtotime($compra->fecha_emision)) ?>
                                     </td>
 
-                                    <td><?= $compra->proveedor_nombre ?? 'Sin proveedor' ?></td>
+                                    <!-- Total -->
+                                    <td class="text-center">$<?= number_format($compra->total_pagar, 2) ?></td>
 
-                                    <td>$<?= number_format($compra->total_pagar, 2) ?></td>
-
+                                    <!-- Acciones -->
                                     <td>
-                                        <a href="<?= base_url('purchases/show/' . $compra->id) ?>"
+                                        <a href="<?= base_url('purchases/' . $compra->id) ?>"
                                             class="btn btn-info btn-sm">
                                             <i class="fa fa-eye"></i>
-                                        </a>
-
-                                        <a href="<?= base_url('purchases/edit/' . $compra->id) ?>"
-                                            class="btn btn-warning btn-sm">
-                                            <i class="fa fa-edit"></i>
                                         </a>
                                     </td>
                                 </tr>

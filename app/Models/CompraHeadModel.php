@@ -20,6 +20,7 @@ class CompraHeadModel extends Model
         'codigo_generacion',
         'fecha_emision',
         'sello_recibido',
+        'tipo_dte',
 
         // Relación
         'proveedor_id',

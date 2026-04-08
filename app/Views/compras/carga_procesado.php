@@ -234,7 +234,7 @@
 
                     try {
                         const json = JSON.parse(e.target.result);
-                        
+
                         // =============================
                         // 🔥 VALIDAR QUE SEA COMPRA (RECEPTOR = MI EMPRESA)
                         // =============================
@@ -243,15 +243,20 @@
 
                         const limpiar = (val) => (val || '').toString().replace(/[^0-9]/g, '');
 
-                        const nrcJson = limpiar(receptor.nrc);
-                        const nitJson = limpiar(receptor.nit);
+                        const docJson = limpiar(
+                            receptor.nit ||
+                            receptor.numDocumento ||
+                            receptor.nrc
+                        );
 
-                        const nrcSistema = limpiar(EMISOR_NRC);
-                        const nitSistema = limpiar(EMISOR_NIT);
+                        const docSistema = limpiar(EMISOR_NIT);
 
-                        const esMiEmpresa =
-                            (nrcJson && nrcJson === nrcSistema) ||
-                            (nitJson && nitJson === nitSistema);
+                        const esMiEmpresa = docJson === docSistema;
+                        const docMostrar =
+                            receptor.nit ||
+                            receptor.numDocumento ||
+                            receptor.nrc ||
+                            'N/D';
 
                         if (!esMiEmpresa) {
 
@@ -262,8 +267,7 @@
                             <div style="text-align:left;">
                                 <b>El documento no está emitido a tu empresa</b><br><br>
 
-                                <small><b>NRC documento:</b> ${receptor.nrc ?? 'N/D'}</small><br>
-                                <small><b>NIT documento:</b> ${receptor.nit ?? 'N/D'}</small><br><br>
+                                <small><b>Documento:</b> ${docMostrar}</small><br><br>
 
                                 <small><b>Tu empresa:</b></small><br>
                                 <small>NRC: ${EMISOR_NRC}</small><br>
@@ -302,10 +306,42 @@
                             total: json.resumen?.montoTotalOperacion ?? 0,
                             productos: json.cuerpoDocumento ?? []
                         };
-                        
-                        validarProductosFactura(factura);
+
+                        factura.duplicadoBD = false;
+
+                        // VALIDAR EN BD
+                        fetch("<?= base_url('purchases/validar-documento') ?>", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    codigo: factura.codigoGeneracion
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+
+                                if (data.existe) {
+
+                                    factura.duplicadoBD = true;
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Documento duplicado',
+                                        text: `Esta factura ya existe en el sistema`,
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+
+                                }
+
+                                renderTable(); // 🔥 refrescar visual
+                            })
+                            .catch(err => console.error(err));
+
                         archivosSeleccionados.push(factura);
-                        renderTable();
+                        validarProductosFactura(factura);
 
                     } catch (err) {
                         console.error(err);
@@ -317,6 +353,7 @@
         }
 
         function validarProductosFactura(factura) {
+
             fetch("<?= base_url('purchases/validar-productos') ?>", {
                     method: "POST",
                     headers: {
@@ -329,6 +366,53 @@
                 .then(res => res.json())
                 .then(data => {
 
+                    // MAPEAR PRODUCTOS ENCONTRADOS
+                    if (data && data.encontrados) {
+
+                        data.encontrados.forEach(match => {
+
+                            factura.productos.forEach(p => {
+
+                                const desc1 = (p.descripcion || '').trim().toLowerCase();
+                                const desc2 = (match.descripcion || '').trim().toLowerCase();
+
+                                if (desc1 === desc2) {
+                                    p.producto_id = match.producto_id;
+                                }
+
+                            });
+
+                        });
+                    }
+
+                    // NORMALIZAR COSTOS (AQUÍ ESTÁ EL CAMBIO IMPORTANTE)
+                    factura.productos = factura.productos.map(p => {
+
+                        const venta = parseFloat(p.ventaGravada || 0);
+                        const iva = parseFloat(p.ivaItem || 0);
+                        const cantidad = parseFloat(p.cantidad || 1);
+
+                        let costo;
+
+                        // 👉 CCF (03) → sumar IVA
+                        if (factura.tipoDoc === '03') {
+                            costo = venta + iva;
+                        }
+                        // 👉 FACTURA NORMAL → ya incluye IVA
+                        else {
+                            costo = venta;
+                        }
+
+                        return {
+                            ...p,
+                            costo: costo,
+                            iva: iva,
+                            precio_unitario: cantidad > 0 ? (costo / cantidad) : 0
+                        };
+
+                    });
+
+                    // PRODUCTOS NUEVOS
                     if (data && data.no_existen && data.no_existen.length > 0) {
 
                         factura.productosNuevos = true;
@@ -347,7 +431,10 @@
                         factura.productosNuevos = false;
                     }
 
-                    renderTable(); // 🔥 volver a pintar
+                    // =============================
+                    // 🔥 REFRESCAR TABLA
+                    // =============================
+                    renderTable();
 
                 })
                 .catch(err => console.error(err));
@@ -362,56 +449,63 @@
                 const detailId = "detail_" + index;
 
                 const productosHtml = f.productos.length ? `
-            <ul class="list-group list-group-flush">
-                ${f.productos.map(p => `
-                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${(p.descripcion || '').replace(/\n/g, '<br>')}</strong>
-                            <br>
-                            <small class="text-muted">
-                                Cantidad: ${p.cantidad} | 
-                                Precio: $${parseFloat(p.precioUni || 0).toFixed(2)}
-                            </small>
-                        </div>
-                        <span class="badge bg-light text-dark">
-                            $${(parseFloat(p.cantidad || 0) * parseFloat(p.precioUni || 0)).toFixed(2)}
-                        </span>
-                    </li>
-                `).join('')}
-            </ul>
-        ` : '<small class="text-muted">Sin productos</small>';
+                    <ul class="list-group list-group-flush">
+                        ${f.productos.map(p => {
+
+                            const totalLinea = parseFloat(p.costo || 0);
+                            const cantidad = parseFloat(p.cantidad || 1);
+                            const precioUnitarioReal = parseFloat(p.precio_unitario || 0);
+
+                            return `
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>${(p.descripcion || '').replace(/\n/g, '<br>')}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Cantidad: ${p.cantidad} | 
+                                            Precio: $${precioUnitarioReal.toFixed(2)}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-light text-dark">
+                                        $${totalLinea.toFixed(2)}
+                                    </span>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                ` : '<small class="text-muted">Sin productos</small>';
 
                 const row = `
-            <tr class="main-row ${f.productosNuevos ? 'table-warning' : ''}" data-target="${detailId}" style="cursor:pointer;">
-                <td>
-                    ${index + 1}
-                    <button class="btn btn-sm btn-outline-danger ms-2 remove" data-index="${index}">
-                        ×
-                    </button>
-                </td>
-                <td class="text-center">${f.correlativo}</td>
-                <td>
-                    <strong>${f.proveedor}</strong><br>
-                    <small>${f.file.name}</small>
+                    <tr class="main-row ${f.productosNuevos ? 'table-warning' : ''} ${f.duplicadoBD ? 'table-danger' : ''}" data-target="${detailId}" style="cursor:pointer;">
+                        <td>
+                            ${index + 1}
+                            <button class="btn btn-sm btn-outline-danger ms-2 remove" data-index="${index}">
+                                ×
+                            </button>
+                        </td>
+                        <td class="text-center">${f.correlativo}</td>
+                        <td>
+                            <strong>${f.proveedor}</strong><br>
+                            <small>${f.file.name}</small>
 
-                    ${f.productosNuevos ? `
-                        <span class="badge bg-warning text-dark mt-1">
-                            Producto nuevo
-                        </span>
-                    ` : ''}
-                </td>
-                <td>${formatFecha(f.fecha)}</td>
-                <td class="text-end">$ ${parseFloat(f.total).toFixed(2)}</td>
-            </tr>
+                            ${f.productosNuevos ? `
+                                <span class="badge bg-warning text-dark mt-1">
+                                    Producto nuevo
+                                </span>
+                            ` : ''}
+                        </td>
+                        <td>${formatFecha(f.fecha)}</td>
+                        <td class="text-end">$ ${parseFloat(f.total).toFixed(2)}</td>
+                    </tr>
 
-            <tr id="${detailId}" style="display:none;">
-                <td colspan="5">
-                    <div class="p-2 bg-light rounded">
-                        ${productosHtml}
-                    </div>
-                </td>
-            </tr>
-        `;
+                    <tr id="${detailId}" style="display:none;">
+                        <td colspan="5">
+                            <div class="p-2 bg-light rounded">
+                                ${productosHtml}
+                            </div>
+                        </td>
+                    </tr>
+                `;
 
                 tableBody.innerHTML += row;
             });
@@ -476,7 +570,6 @@
                         );
 
                         archivosSeleccionados = [];
-                        renderTable();
 
                     } else {
                         Swal.fire('Error', data.message, 'error');
@@ -497,6 +590,42 @@
                 return;
             }
 
+            // VALIDAR OBSERVACIONES
+            let duplicados = archivosSeleccionados.filter(f => f.duplicadoBD);
+
+            if (duplicados.length > 0) {
+
+                let html = '<div style="text-align:left;">';
+
+                if (duplicados.length > 0) {
+
+                    html += `<b class="text-danger">Documentos duplicados:</b><br>`;
+
+                    duplicados.forEach(f => {
+                        html += `• ${f.numeroControl}<br>`;
+                    });
+
+                    html += '<br>';
+                }
+
+                html += `
+                    <hr>
+                    <small class="text-muted">
+                        Debes corregir estos documentos antes de continuar.
+                    </small>
+                </div>`;
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Observaciones detectadas',
+                    html: html,
+                    confirmButtonText: 'Entendido'
+                });
+
+                return; // BLOQUEA ENVÍO
+            }
+
+            // TODO OK → PROCESAR
             Swal.fire({
                 title: '¿Procesar?',
                 text: `Se procesarán ${archivosSeleccionados.length} archivos`,
@@ -505,6 +634,7 @@
             }).then(r => {
                 if (r.isConfirmed) procesar();
             });
+
         });
 
         function formatFecha(fecha) {

@@ -241,7 +241,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                         style="background: #fdda11;">
                                         Activa
                                     </span>
- 
+
                                 <?php endif; ?>
                             </div>
 

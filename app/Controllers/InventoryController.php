@@ -329,4 +329,42 @@ class InventoryController extends BaseController
             'results' => $results
         ]);
     }
+    public function show($id)
+    {
+        $productoModel = new ProductoModel();
+        $movModel = new ProductoMovimientoModel();
+
+        // 🔍 TRAER PRODUCTO
+        $producto = $productoModel->find($id);
+
+        if (!$producto) {
+            return redirect()->to(base_url('productos'))
+                ->with('error', 'Producto no encontrado');
+        }
+
+        // 🔥 TRAER MOVIMIENTOS (KARDEX)
+        $movimientos = $movModel
+            ->where('producto_id', $id)
+            ->orderBy('created_at', 'ASC') // 🔥 importante para kardex
+            ->findAll();
+
+        // 🔥 CALCULAR STOCK
+        $stockData = $movModel
+            ->select('
+            SUM(CASE WHEN tipo_movimiento = "ENTRADA" THEN cantidad ELSE 0 END) -
+            SUM(CASE WHEN tipo_movimiento = "SALIDA" THEN cantidad ELSE 0 END)
+            as stock
+        ')
+            ->where('producto_id', $id)
+            ->first();
+
+        $stock = (float)($stockData->stock ?? 0);
+
+        // 🔥 DATA PARA VIEW
+        return view('inventario/show', [
+            'producto'     => $producto,
+            'movimientos'  => $movimientos,
+            'stock'        => $stock
+        ]);
+    }
 }
