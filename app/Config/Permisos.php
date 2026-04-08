@@ -7,6 +7,9 @@ use CodeIgniter\Config\BaseConfig;
 class Permisos extends BaseConfig
 {
     public array $modulos = [
+        'Facturación' => [
+            'emitir_dte',
+        ],
 
         'Ventas' => [
             'cargar_facturas',

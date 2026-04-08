@@ -64,6 +64,10 @@
 
                     <div class="collapse" id="ventas" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('emitir_dte')): ?>
+                                <a class="nav-link" href="/factura/crear">Emisión de DTE</a>
+                            <?php endif; ?>
+
                             <?php if (tienePermiso('cargar_facturas')): ?>
                                 <a class="nav-link" href="/facturas/carga">Cargar Facturas con JSON</a>
                             <?php endif; ?>

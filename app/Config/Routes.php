@@ -154,6 +154,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes', 'ClienteController::index');
     $routes->get('clientes/(:num)', 'ClienteController::show/$1');
     $routes->get('clientes/buscar', 'ClienteController::buscar');
+    $routes->get('clientes/buscarparaDTE', 'ClienteController::buscarparaDTE');
 
     // Rutas para mantenimiento de tipos de venta
     $routes->get('tipo_venta', 'TipoVentaController::index');
@@ -223,4 +224,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     
     //Rutas para pruebas locales de autenticacion y emisión
     $routes->get('test-hacienda', 'TestController::hacienda');
+
+    //Emision de DTE legal
+    $routes->get('factura/crear', 'DteController::new');
 });
