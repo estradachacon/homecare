@@ -219,6 +219,11 @@
                                     Ver compras
                                 </a>
                             <?php endif; ?>
+                            <?php if (tienePermiso('ver_pagos_a_compras')): ?>
+                                <a class="nav-link" href="/compraspagos">
+                                    Ver Pagos a compras
+                                </a>
+                            <?php endif; ?>
                             <?php if (tienePermiso('ver_proveedores')): ?>
                                 <a class="nav-link" href="/proveedores">
                                     Proveedores

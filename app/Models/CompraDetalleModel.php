@@ -21,6 +21,7 @@ class CompraDetalleModel extends Model
         'descripcion',
         'cantidad',
         'unidad_medida',
+        'venta_gravada',
         'precio_unitario',
         'monto_descuento',
         'iva_item',

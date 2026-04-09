@@ -9,6 +9,7 @@ use App\Models\CompraHeadModel;
 use App\Models\CompraDetalleModel;
 use App\Models\ProductoModel;
 use App\Models\ProductoMovimientoModel;
+use App\Models\PagosComprasDetallesModel;
 
 class ComprasController extends BaseController
 {
@@ -20,17 +21,74 @@ class ComprasController extends BaseController
 
         $model = new CompraHeadModel();
 
-        $compras = $model
+        $perPage = (int)($this->request->getGet('per_page') ?? 25);
+        if (!in_array($perPage, [10, 15, 25, 50, 100, 99999])) $perPage = 25;
+
+        $query = $model
             ->select('compras_head.*, proveedores.nombre AS proveedor_nombre')
-            ->join('proveedores', 'proveedores.id = compras_head.proveedor_id', 'left')
-            ->orderBy('fecha_emision', 'DESC')
-            ->findAll();
+            ->join('proveedores', 'proveedores.id = compras_head.proveedor_id', 'left');
+
+        // FILTROS
+        if ($proveedorId = $this->request->getGet('proveedor_id')) {
+            $query->where('compras_head.proveedor_id', $proveedorId);
+        }
+
+        if ($tipoDte = $this->request->getGet('tipo_dte')) {
+            $query->where('compras_head.tipo_dte', $tipoDte);
+        }
+
+        if ($fecha = $this->request->getGet('fecha')) {
+            $query->where('DATE(compras_head.fecha_emision)', $fecha);
+        }
+
+        if ($numero = $this->request->getGet('numero_compra')) {
+            $query->like('compras_head.numero_control', $numero, 'after'); // 'before' = %1036
+        }
+
+        if ($estado = $this->request->getGet('estado')) {
+            switch ($estado) {
+                case 'activa':
+                    $query->where('compras_head.anulada', 0)
+                        ->where('compras_head.saldo >', 0)
+                        ->where('compras_head.saldo = compras_head.total_pagar');
+                    break;
+                case 'parcial':
+                    $query->where('compras_head.anulada', 0)
+                        ->where('compras_head.saldo >', 0)
+                        ->where('compras_head.saldo < compras_head.total_pagar');
+                    break;
+                case 'pagada':
+                    $query->where('compras_head.anulada', 0)
+                        ->where('compras_head.saldo', 0);
+                    break;
+                case 'anulada':
+                    $query->where('compras_head.anulada', 1);
+                    break;
+            }
+        }
+
+        $query->orderBy('compras_head.fecha_emision', 'DESC');
+
+        $compras = $query->paginate($perPage);
+        $pager   = $model->pager;
+
+        // RESPUESTA AJAX
+        if ($this->request->getHeaderLine('X-Requested-With') === 'XMLHttpRequest') {
+
+            $tbody = view('compras/_tbody', ['compras' => $compras]);
+            $pagerHtml = $pager->links('default', 'bootstrap_full');
+
+            return $this->response->setJSON([
+                'tbody' => $tbody,
+                'pager' => $pagerHtml,
+            ]);
+        }
 
         return view('compras/index', [
-            'compras' => $compras
+            'compras' => $compras,
+            'pager'   => $pager,
         ]);
     }
-
     public function new()
     {
         $chk = requerirPermiso('ingresar_compras');
@@ -214,6 +272,18 @@ class ComprasController extends BaseController
             // DETALLES
             if (!empty($json['cuerpoDocumento'])) {
 
+                // 🔥 IVA total del resumen (para distribuir proporcionalmente si ivaItem no viene por línea)
+                $ivaTotal = 0;
+                if (!empty($json['resumen']['tributos'])) {
+                    foreach ($json['resumen']['tributos'] as $t) {
+                        if (($t['codigo'] ?? null) == '20') {
+                            $ivaTotal = (float)$t['valor'];
+                        }
+                    }
+                }
+
+                $totalGravadaDoc = (float)($json['resumen']['totalGravada'] ?? 0);
+
                 foreach ($json['cuerpoDocumento'] as $item) {
 
                     $codigo = trim($item['codigo'] ?? '');
@@ -233,36 +303,64 @@ class ComprasController extends BaseController
 
                     // CREAR SI NO EXISTE
                     if (!$producto) {
-
                         $productoId = $productoModel->insert([
-                            'codigo' => $codigo ?: null,
+                            'codigo'      => $codigo ?: null,
                             'descripcion' => $descripcion ?: 'SIN DESCRIPCIÓN',
-                            'activo' => 1,
-                            'tipo' => 'AUTO'
+                            'activo'      => 1,
+                            'tipo'        => 'AUTO'
                         ]);
-
                         $producto = $productoModel->find($productoId);
                     }
 
-                    // DETALLE
+                    // VALIDAR PRODUCTO ANTES DE CONTINUAR
+                    if (empty($producto) || empty($producto->id)) {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Producto inválido',
+                            'data'    => ['codigo' => $codigo, 'descripcion' => $descripcion]
+                        ]);
+                    }
+
+                    // ✅ PRECIO FIEL AL JSON (para compras_detalles)
+                    $precioUniJson    = (float)($item['precioUni']    ?? 0);  // como viene en el doc
+                    $ventaGravada     = (float)($item['ventaGravada'] ?? 0);
+                    $montoDescu       = (float)($item['montoDescu']   ?? 0);
+                    $cantidadNueva    = (float)($item['cantidad']     ?? 1);
+
+                    // ✅ IVA proporcional (para movimiento e inventario)
+                    $ivaItem = (float)($item['ivaItem'] ?? 0);
+                    if ($ivaItem == 0 && $tipoDte === '03' && $totalGravadaDoc > 0) {
+                        $ivaItem = round($ivaTotal * ($ventaGravada / $totalGravadaDoc), 2);
+                    }
+
+                    // ✅ COSTO REAL (para productos_movimientos y costo_promedio)
+                    if ($tipoDte === '03') {
+                        $costoConIva      = $ventaGravada + $ivaItem;
+                        $costoUnitarioMov = $cantidadNueva > 0 ? $costoConIva / $cantidadNueva : 0;
+                    } else {
+                        $costoConIva      = $ventaGravada;
+                        $costoUnitarioMov = $cantidadNueva > 0 ? $costoConIva / $cantidadNueva : 0;
+                    }
+
+                    // INSERT DETALLE → fiel al documento físico
                     $detalle = [
                         'compra_id'       => $compraId,
-                        'num_item'        => $item['numItem'] ?? null,
-                        'tipo_item'       => $item['tipoItem'] ?? null,
+                        'num_item'        => $item['numItem']      ?? null,
+                        'tipo_item'       => $item['tipoItem']     ?? null,
                         'codigo'          => $codigo,
                         'descripcion'     => $descripcion,
-                        'cantidad'        => $item['cantidad'] ?? 0,
-                        'unidad_medida'   => $item['uniMedida'] ?? null,
-                        'precio_unitario' => $precioUnitarioReal,
-                        'monto_descuento' => $item['montoDescu'] ?? 0,
-                        'iva_item'        => $item['ivaItem'] ?? 0,
-                        'producto_id'     => $producto->id ?? null
+                        'cantidad'        => (float)($item['cantidad']     ?? 0),
+                        'unidad_medida'   => $item['uniMedida']    ?? null,
+                        'precio_unitario' => (float)($item['precioUni']    ?? 0),  // 👈 tal cual el JSON
+                        'venta_gravada'   => (float)($item['ventaGravada'] ?? 0),  // 👈 tal cual el JSON
+                        'monto_descuento' => (float)($item['montoDescu']   ?? 0),  // 👈 tal cual el JSON
+                        'iva_item'        => (float)($item['ivaItem']      ?? 0),  // 👈 tal cual el JSON
+                        'producto_id'     => $producto->id
                     ];
 
                     if (!$compraDetalleModel->insert($detalle)) {
-
                         $db->transRollback();
-
                         return $this->response->setJSON([
                             'success' => false,
                             'message' => 'Error insertando detalle',
@@ -271,73 +369,40 @@ class ComprasController extends BaseController
                         ]);
                     }
 
-                    // VALIDAR PRODUCTO
-                    if (empty($producto) || empty($producto->id)) {
-
-                        $db->transRollback();
-
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Producto inválido',
-                            'data' => $detalle
-                        ]);
-                    }
-
-                    // COSTO PROMEDIO (ANTES DEL MOVIMIENTO)
+                    // COSTO PROMEDIO PONDERADO
                     $stock = $movModel
                         ->select('
-                                SUM(CASE WHEN tipo_movimiento = "ENTRADA" THEN cantidad ELSE 0 END) -
-                                SUM(CASE WHEN tipo_movimiento = "SALIDA" THEN cantidad ELSE 0 END)
-                                as stock
-                            ')
+                            SUM(CASE WHEN tipo_movimiento = "ENTRADA" THEN cantidad ELSE 0 END) -
+                            SUM(CASE WHEN tipo_movimiento = "SALIDA"  THEN cantidad ELSE 0 END)
+                            as stock
+                        ')
                         ->where('producto_id', $producto->id)
                         ->first();
 
                     $stockActual = (float)($stock->stock ?? 0);
-
                     $costoActual = (float)($producto->costo_promedio ?? 0);
 
-                    $cantidadNueva = (float)($item['cantidad'] ?? 0);
-
-                    $venta = (float)($item['ventaGravada'] ?? 0);
-                    $ivaItem = (float)($item['ivaItem'] ?? 0);
-                    $cantidadNueva = (float)($item['cantidad'] ?? 0);
-
-                    if ($tipoDte === '03') {
-                        $costoNuevo = $venta + $ivaItem;
-                    } else {
-                        $costoNuevo = $venta;
-                    }
-
-                    $precioUnitarioReal = $cantidadNueva > 0
-                        ? $costoNuevo / $cantidadNueva
-                        : 0;
-
-                    if ($stockActual > 0) {
-
-                        $nuevoCosto = (
-                            ($stockActual * $costoActual) +
-                            ($cantidadNueva * $costoNuevo)
-                        ) / ($stockActual + $cantidadNueva);
-                    } else {
-
-                        $nuevoCosto = $costoNuevo;
-                    }
-
-                    // INSERT MOVIMIENTO
+                    // INSERT MOVIMIENTO → costo real con IVA
                     $movData = [
                         'producto_id'     => $producto->id,
                         'tipo_movimiento' => 'ENTRADA',
                         'cantidad'        => $cantidadNueva,
-                        'costo_unitario'  => $costoNuevo,
-                        'referencia_tipo' => 'COMPRA',
+                        'costo_unitario'  => $costoUnitarioMov,   // 👈 precio real pagado
+                        'referencia_tipo' => 'compra',
                         'referencia_id'   => $compraId,
                     ];
 
+                    // Costo promedio también usa costoUnitarioMov
+                    if ($stockActual > 0) {
+                        $nuevoCosto = (
+                            ($stockActual * $costoActual) +
+                            ($cantidadNueva * $costoUnitarioMov)
+                        ) / ($stockActual + $cantidadNueva);
+                    } else {
+                        $nuevoCosto = $costoUnitarioMov;
+                    }
                     if (!$movModel->insert($movData)) {
-
                         $db->transRollback();
-
                         return $this->response->setJSON([
                             'success' => false,
                             'message' => 'Error insertando movimiento',
@@ -346,9 +411,9 @@ class ComprasController extends BaseController
                         ]);
                     }
 
-                    // ACTUALIZAR PRODUCTO
+                    // ACTUALIZAR COSTO PROMEDIO DEL PRODUCTO
                     $productoModel->update($producto->id, [
-                        'costo_promedio'        => $nuevoCosto
+                        'costo_promedio' => $nuevoCosto
                     ]);
                 }
             }
@@ -584,6 +649,38 @@ class ComprasController extends BaseController
         return $this->response->setJSON([
             'ok' => true,
             'existe' => $existe ? true : false
+        ]);
+    }
+    public function preview($id)
+    {
+        $compraModel = new CompraHeadModel();
+        $detalleModel = new CompraDetalleModel();
+        $pagosModel = new PagosComprasDetallesModel();
+
+        // 🔥 JOIN con proveedores
+        $compra = $compraModel
+            ->select('compras_head.*, proveedores.nombre as proveedor_nombre')
+            ->join('proveedores', 'proveedores.id = compras_head.proveedor_id')
+            ->where('compras_head.id', $id)
+            ->first();
+
+        if (!$compra) {
+            return 'Compra no encontrada';
+        }
+
+        $detalles = $detalleModel->getByCompra($id);
+
+        // Pagos aplicados
+        $pagos = $pagosModel
+            ->select('pagos_compras_detalles.*, pagos_compras_head.fecha_pago, pagos_compras_head.forma_pago')
+            ->join('pagos_compras_head', 'pagos_compras_head.id = pagos_compras_detalles.pago_id')
+            ->where('pagos_compras_detalles.compra_id', $id)
+            ->findAll();
+
+        return view('compras/_preview_modal', [
+            'factura' => $compra,
+            'detalles' => $detalles,
+            'pagos' => $pagos
         ]);
     }
 }

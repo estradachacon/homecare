@@ -304,7 +304,15 @@
                             fecha: json.identificacion?.fecEmi ?? '',
                             proveedor: json.emisor?.nombre ?? 'N/D',
                             total: json.resumen?.montoTotalOperacion ?? 0,
-                            productos: json.cuerpoDocumento ?? []
+                            productos: json.cuerpoDocumento ?? [],
+
+                            ivaTotal: (() => {
+                                const t = (json.resumen?.tributos ?? []).find(t => t.codigo === '20');
+                                return t ? parseFloat(t.valor) : 0;
+                            })(),
+                            totalGravada: parseFloat(json.resumen?.totalGravada ?? 0),
+                            costosNormalizados: false,
+                            duplicadoBD: false
                         };
 
                         factura.duplicadoBD = false;
@@ -321,22 +329,17 @@
                             })
                             .then(res => res.json())
                             .then(data => {
-
                                 if (data.existe) {
-
                                     factura.duplicadoBD = true;
-
                                     Swal.fire({
                                         icon: 'warning',
                                         title: 'Documento duplicado',
-                                        text: `Esta factura ya existe en el sistema`,
+                                        text: 'Esta factura ya existe en el sistema',
                                         timer: 2000,
                                         showConfirmButton: false
                                     });
-
                                 }
-
-                                renderTable(); // 🔥 refrescar visual
+                                if (factura.costosNormalizados) renderTable();
                             })
                             .catch(err => console.error(err));
 
@@ -367,77 +370,68 @@
                 .then(data => {
 
                     // MAPEAR PRODUCTOS ENCONTRADOS
-                    if (data && data.encontrados) {
-
+                    if (data?.encontrados) {
                         data.encontrados.forEach(match => {
-
                             factura.productos.forEach(p => {
-
-                                const desc1 = (p.descripcion || '').trim().toLowerCase();
-                                const desc2 = (match.descripcion || '').trim().toLowerCase();
-
-                                if (desc1 === desc2) {
+                                if ((p.descripcion || '').trim().toLowerCase() === (match.descripcion || '').trim().toLowerCase()) {
                                     p.producto_id = match.producto_id;
                                 }
-
                             });
-
                         });
                     }
 
-                    // NORMALIZAR COSTOS (AQUÍ ESTÁ EL CAMBIO IMPORTANTE)
+                    // IVA total para distribución proporcional
+                    // (lo calculamos aquí igual que en el controlador)
+                    const ivaTotal = factura.ivaTotal ?? 0;
+                    const totalGravada = factura.totalGravada ?? 0;
+
+                    // NORMALIZAR COSTOS
                     factura.productos = factura.productos.map(p => {
 
-                        const venta = parseFloat(p.ventaGravada || 0);
-                        const iva = parseFloat(p.ivaItem || 0);
-                        const cantidad = parseFloat(p.cantidad || 1);
+                        const venta = parseFloat(p.ventaGravada ?? 0);
+                        const cantidad = parseFloat(p.cantidad ?? 1);
+
+                        // ivaItem por línea, o distribuir proporcional si no viene
+                        let ivaItem = parseFloat(p.ivaItem ?? 0);
+                        if (ivaItem === 0 && factura.tipoDoc === '03' && totalGravada > 0) {
+                            ivaItem = Math.round((ivaTotal * (venta / totalGravada)) * 100) / 100;
+                        }
 
                         let costo;
-
-                        // 👉 CCF (03) → sumar IVA
                         if (factura.tipoDoc === '03') {
-                            costo = venta + iva;
-                        }
-                        // 👉 FACTURA NORMAL → ya incluye IVA
-                        else {
+                            costo = venta + ivaItem;
+                        } else {
                             costo = venta;
                         }
+
+                        const precioUnitario = cantidad > 0 ? costo / cantidad : 0;
 
                         return {
                             ...p,
                             costo: costo,
-                            iva: iva,
-                            precio_unitario: cantidad > 0 ? (costo / cantidad) : 0
+                            iva: ivaItem,
+                            precio_unitario: precioUnitario
                         };
-
                     });
 
                     // PRODUCTOS NUEVOS
-                    if (data && data.no_existen && data.no_existen.length > 0) {
-
+                    if (data?.no_existen?.length > 0) {
                         factura.productosNuevos = true;
                         factura.listaNuevos = data.no_existen;
-
                         Swal.fire({
                             icon: 'warning',
                             title: 'Producto nuevo detectado',
-                            html: `
-                    <b>Esta factura contiene productos no registrados:</b><br><br>
-                    <small>${data.no_existen.join('<br>')}</small>
-                `
+                            html: `<b>Productos no registrados:</b><br><br><small>${data.no_existen.join('<br>')}</small>`
                         });
-
                     } else {
                         factura.productosNuevos = false;
                     }
 
-                    // =============================
-                    // 🔥 REFRESCAR TABLA
-                    // =============================
+                    // SOLO renderizar cuando los costos YA están normalizados
+                    factura.costosNormalizados = true;
                     renderTable();
-
                 })
-                .catch(err => console.error(err));
+                .catch(err => console.error('Error validando productos:', err));
         }
 
         function renderTable() {
@@ -452,9 +446,9 @@
                     <ul class="list-group list-group-flush">
                         ${f.productos.map(p => {
 
-                            const totalLinea = parseFloat(p.costo || 0);
                             const cantidad = parseFloat(p.cantidad || 1);
-                            const precioUnitarioReal = parseFloat(p.precio_unitario || 0);
+                            const totalLinea        = parseFloat(p.costo         ?? 0) || 0;
+                            const precioUnitarioReal = parseFloat(p.precio_unitario ?? 0) || 0;
 
                             return `
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
@@ -540,47 +534,125 @@
 
         function procesar() {
 
+            // =============================
+            // 🔥 RESUMEN ANTES DE ENVIAR
+            // =============================
+            const totalArchivos = archivosSeleccionados.length;
+            const totalProductos = archivosSeleccionados.reduce((acc, f) => acc + f.productos.length, 0);
+            const totalMonto = archivosSeleccionados.reduce((acc, f) => acc + parseFloat(f.total || 0), 0);
+            const conNuevos = archivosSeleccionados.filter(f => f.productosNuevos).length;
+
+            let resumenHtml = `
+        <div style="text-align:left; font-size:14px;">
+            <table class="table table-sm table-borderless mb-2">
+                <tbody>
+                    <tr>
+                        <td class="text-muted">Facturas a procesar:</td>
+                        <td><b>${totalArchivos}</b></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Total de productos:</td>
+                        <td><b>${totalProductos}</b></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Monto total:</td>
+                        <td><b>$ ${totalMonto.toFixed(2)}</b></td>
+                    </tr>
+                    ${conNuevos > 0 ? `
+                    <tr>
+                        <td class="text-muted">Con productos nuevos:</td>
+                        <td><b class="text-warning">${conNuevos} factura(s)</b></td>
+                    </tr>` : ''}
+                </tbody>
+            </table>
+            <hr class="my-2">
+            <div class="mt-2">
+                ${archivosSeleccionados.map(f => `
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">${f.correlativo} — ${f.proveedor}</small>
+                        <small><b>$ ${parseFloat(f.total).toFixed(2)}</b></small>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
             Swal.fire({
-                title: 'Procesando...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
+                title: 'Resumen de carga',
+                html: resumenHtml,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar y procesar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#198754',
+            }).then(result => {
 
-            const formData = new FormData();
+                if (!result.isConfirmed) return;
 
-            archivosSeleccionados.forEach(f => {
-                formData.append('archivos[]', f.file);
-            });
-
-            fetch("<?= base_url('purchases/processload') ?>", {
-                    method: "POST",
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-
-                    Swal.close();
-
-                    if (data.success) {
-
-                        Swal.fire(
-                            'Éxito',
-                            `${data.total} compra(s) procesadas correctamente`,
-                            'success'
-                        );
-
-                        archivosSeleccionados = [];
-
-                    } else {
-                        Swal.fire('Error', data.message, 'error');
-                    }
-
-                })
-                .catch(err => {
-                    Swal.close();
-                    Swal.fire('Error', 'Error en servidor', 'error');
-                    console.error(err);
+                // =============================
+                // 🔥 PROCESAR
+                // =============================
+                Swal.fire({
+                    title: 'Procesando...',
+                    html: `<small class="text-muted">Cargando ${totalArchivos} archivo(s)...</small>`,
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
                 });
+
+                const formData = new FormData();
+                archivosSeleccionados.forEach(f => {
+                    formData.append('archivos[]', f.file);
+                });
+
+                fetch("<?= base_url('purchases/processload') ?>", {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+
+                        Swal.close();
+
+                        if (data.success) {
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Procesado correctamente!',
+                                html: `
+                            <div style="text-align:left; font-size:14px;">
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-muted">Compras registradas:</td>
+                                            <td><b>${data.total}</b></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Monto total:</td>
+                                            <td><b>$ ${totalMonto.toFixed(2)}</b></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        `,
+                                confirmButtonColor: '#198754',
+                            }).then(() => {
+                                // ✅ LIMPIAR TODO AL CERRAR EL ÉXITO
+                                archivosSeleccionados = [];
+                                inputFiles.value = ''; // resetear input file
+                                renderTable(); // limpiar tabla visual
+                            });
+
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+
+                    })
+                    .catch(err => {
+                        Swal.close();
+                        Swal.fire('Error', 'Error en servidor', 'error');
+                        console.error(err);
+                    });
+            });
         }
 
         btnProcesar.addEventListener('click', () => {

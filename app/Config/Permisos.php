@@ -60,6 +60,8 @@ class Permisos extends BaseConfig
             'ver_compras',
             'cargar_compras_json',
             'ingresar_compras',
+            'ver_pagos_a_compras',
+            'registrar_pagos_a_compras',
         ],
 
         'Comisiones' => [

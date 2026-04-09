@@ -202,6 +202,15 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('purchases/(:num)', 'ComprasController::show/$1');
     $routes->post('purchases/delete/(:num)', 'ComprasController::delete/$1');
     $routes->post('purchases/validar-documento', 'ComprasController::validarDocumento');
+    $routes->get('compras/preview/(:num)', 'ComprasController::preview/$1');
+
+    // Rutas para mantenimiento de los pagos a compras
+    $routes->get('compraspagos', 'ComprasPagosController::index');
+    $routes->get('compraspagos/new',    'ComprasPagosController::new');
+    $routes->post('compraspagos/store', 'ComprasPagosController::store');
+    $routes->get('compraspagos/(:num)', 'ComprasPagosController::show/$1');
+    $routes->get('compraspagos/comprasPendientes/(:num)', 'ComprasPagosController::comprasPendientes/$1');
+
 
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');
