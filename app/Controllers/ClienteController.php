@@ -53,6 +53,47 @@ class ClienteController extends BaseController
             'facturas' => $facturas
         ]);
     }
+     public function buscar()
+    {
+        $q = $this->request->getGet('q');
+
+        $clientes = (new ClienteModel())
+            ->groupStart()
+            ->like('nombre', $q ?? '')
+            ->orLike('numero_documento', $q ?? '')
+            ->orLike('nrc', $q ?? '')
+            ->groupEnd()
+            ->limit(10)
+            ->findAll();
+
+        $data = [];
+
+        foreach ($clientes as $c) {
+
+            $data[] = [
+                // 🔹 requerido por select2
+                'id'   => $c->id,
+                'text' => $c->nombre,
+
+                // 🔥 datos extras para DTE
+                'tipo_documento'   => $c->tipo_documento,
+                'numero_documento' => $c->numero_documento,
+                'nrc'              => $c->nrc,
+                'nombre'           => $c->nombre,
+                'telefono'         => $c->telefono,
+                'correo'           => $c->correo,
+
+                // dirección formateada
+                'direccion' => trim(
+                    ($c->departamento ?? '') . ' ' .
+                        ($c->municipio ?? '') . ' ' .
+                        ($c->direccion ?? '')
+                )
+            ];
+        }
+
+        return $this->response->setJSON($data);
+    }
     public function buscarparaDTE()
     {
         $q = $this->request->getGet('q');
