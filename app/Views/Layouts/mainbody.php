@@ -258,6 +258,16 @@
             /* evita barra lateral */
             padding: 0;
         }
+
+        #sidebarToggle i {
+            font-size: 1.5rem;
+            transition: 0.25s ease;
+        }
+
+        #sidebarToggle:hover i {
+            transform: scale(1.1);
+            opacity: 0.75;
+        }
     </style>
 </head>
 
@@ -267,15 +277,12 @@
         style="background-color: <?= setting('primary_color') ?? '#1d2744' ?>;">
         <div class="container-fluid d-flex justify-content-between">
             <div class="d-flex align-items-center">
-                <a class="navbar-brand mb-0 h5 mr-3" href="/dashboard">
+                <a class="navbar-brand mb-0 h5 me-3" href="/dashboard">
                     <?= esc(setting('company_name') ?? 'Sistema') ?>
                 </a>
+
                 <button class="btn btn-link btn-sm text-white" id="sidebarToggle">
-                    <div class="lines">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
+                    <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
             <div class="d-flex align-items-center">
