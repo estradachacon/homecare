@@ -14,7 +14,7 @@
     <style>
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #007bff, #004085);
+            background: linear-gradient(135deg, #a3c9f17d, #023974);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -127,15 +127,27 @@
 
 <body>
     <header>
-        <!-- CONTENT -->
         <div class="content-wrapper">
+
+            <!-- LOGO ENCIMA DEL FORMULARIO -->
+            <div class="text-center mb-4">
+                <?php if (!empty($logoUrl)): ?>
+                    <img src="<?= $logoUrl ?>"
+                         alt="Logo"
+                         style="max-height: 200px; max-width: 260px; object-fit: contain;
+                                filter: drop-shadow(0 2px 8px rgba(0,0,0,.3));">
+                <?php else: ?>
+                    <h3 class="text-white fw-bold mb-0">
+                        <?= esc($companyName) ?>
+                    </h3>
+                <?php endif; ?>
+            </div>
+
             <?= $this->renderSection('content') ?>
         </div>
-        
-        <!-- SCRIPTS -->
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Mostrar alertas de flashdata
             <?php if (session()->getFlashdata('alert')): ?>
                 <?php $alert = session()->getFlashdata('alert'); ?>
                 Swal.fire({
@@ -150,6 +162,7 @@
                 });
             <?php endif; ?>
         </script>
+    </header>
 </body>
 
 </html>
