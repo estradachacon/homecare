@@ -371,6 +371,127 @@
                         <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
                     </a>
                 <?php endif; ?>
+
+                <?php if (
+                    tienePermiso('ver_contabilidad') ||
+                    tienePermiso('ver_plan_cuentas') ||
+                    tienePermiso('ver_asientos') ||
+                    tienePermiso('ver_listados_contables') ||
+                    tienePermiso('ver_reportes_contables') ||
+                    tienePermiso('ejecutar_cierre_mes') ||
+                    tienePermiso('ver_mantenimientos_contables') ||
+                    tienePermiso('configurar_contabilidad')
+                ): ?>
+                    <div class="sb-sidenav-menu-heading">Contabilidad</div>
+
+                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contabilidad"
+                        aria-expanded="false" aria-controls="contabilidad">
+                        <div class="sb-nav-link-icon"><i class="fa-solid fa-book-open-reader"></i></div>
+                        Contabilidad
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+
+                    <div class="collapse" id="contabilidad" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+
+                            <?php if (tienePermiso('ver_contabilidad')): ?>
+                                <a class="nav-link" href="/contabilidad">
+                                    <i class="fa-solid fa-gauge-high me-1"></i> Dashboard
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_plan_cuentas')): ?>
+                                <a class="nav-link" href="/contabilidad/plan-cuentas">
+                                    <i class="fa-solid fa-sitemap me-1"></i> Plan de Cuentas
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_periodos_contables')): ?>
+                                <a class="nav-link" href="/contabilidad/periodos">
+                                    <i class="fa-solid fa-calendar-days me-1"></i> Períodos
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_asientos')): ?>
+                                <a class="nav-link" href="/contabilidad/asientos">
+                                    <i class="fa-solid fa-file-pen me-1"></i> Asientos Contables
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_listados_contables')): ?>
+                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contListados"
+                                    aria-expanded="false" aria-controls="contListados">
+                                    Listados
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                </a>
+                                <div class="collapse" id="contListados">
+                                    <nav class="sb-sidenav-menu-nested nav">
+                                        <a class="nav-link" href="/contabilidad/listados/relacion-cuentas">Relación de Cuentas</a>
+                                        <a class="nav-link" href="/contabilidad/listados/costos">Costos</a>
+                                        <a class="nav-link" href="/contabilidad/listados/gastos">Gastos</a>
+                                        <a class="nav-link" href="/contabilidad/listados/comparativos">Comparativos</a>
+                                        <a class="nav-link" href="/contabilidad/listados/catalogos">Catálogos</a>
+                                    </nav>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_reportes_contables')): ?>
+                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contReportes"
+                                    aria-expanded="false" aria-controls="contReportes">
+                                    Reportes
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                </a>
+                                <div class="collapse" id="contReportes">
+                                    <nav class="sb-sidenav-menu-nested nav">
+                                        <a class="nav-link" href="/contabilidad/reportes/diario">Libro Diario</a>
+                                        <a class="nav-link" href="/contabilidad/reportes/mayor">Libro Mayor</a>
+                                        <a class="nav-link" href="/contabilidad/reportes/auxiliar">Auxiliar de Cuentas</a>
+                                    </nav>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ver_mantenimientos_contables')): ?>
+                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contMant"
+                                    aria-expanded="false" aria-controls="contMant">
+                                    Mantenimientos
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                </a>
+                                <div class="collapse" id="contMant">
+                                    <nav class="sb-sidenav-menu-nested nav">
+                                        <a class="nav-link" href="/contabilidad/mantenimientos/acumulados">Saldos Actuales</a>
+                                        <a class="nav-link" href="/contabilidad/mantenimientos/acumulados-historicos">Saldos Históricos</a>
+                                        <a class="nav-link" href="/contabilidad/mantenimientos/transacciones-hist">Transacciones Históricas</a>
+                                    </nav>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('ejecutar_cierre_mes') || tienePermiso('ejecutar_cierre_anual')): ?>
+                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contProcesos"
+                                    aria-expanded="false" aria-controls="contProcesos">
+                                    Procesos
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                </a>
+                                <div class="collapse" id="contProcesos">
+                                    <nav class="sb-sidenav-menu-nested nav">
+                                        <?php if (tienePermiso('ejecutar_cierre_mes')): ?>
+                                            <a class="nav-link" href="/contabilidad/procesos/cierre-mes">Cierre de Mes</a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('ejecutar_cierre_anual')): ?>
+                                            <a class="nav-link" href="/contabilidad/procesos/cierre-anual">Cierre Anual</a>
+                                        <?php endif; ?>
+                                    </nav>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (tienePermiso('configurar_contabilidad')): ?>
+                                <a class="nav-link" href="/contabilidad/configuracion">
+                                    <i class="fa-solid fa-cog me-1"></i> Configuración
+                                </a>
+                            <?php endif; ?>
+
+                        </nav>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </nav>

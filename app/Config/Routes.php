@@ -240,4 +240,56 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
 
     //Emision de DTE legal
     $routes->get('factura/crear', 'DteController::new');
+
+    // ─── MÓDULO DE CONTABILIDAD ────────────────────────────────────
+    $routes->get('contabilidad', 'ContabilidadController::index');
+
+    // Plan de Cuentas
+    $routes->get('contabilidad/plan-cuentas',            'ContPlanCuentasController::index');
+    $routes->post('contabilidad/plan-cuentas/store',     'ContPlanCuentasController::store');
+    $routes->post('contabilidad/plan-cuentas/update/(:num)', 'ContPlanCuentasController::update/$1');
+    $routes->post('contabilidad/plan-cuentas/delete',    'ContPlanCuentasController::delete');
+    $routes->get('contabilidad/plan-cuentas/search',     'ContPlanCuentasController::searchAjax');
+    $routes->get('contabilidad/plan-cuentas/get/(:num)', 'ContPlanCuentasController::getById/$1');
+
+    // Períodos
+    $routes->get('contabilidad/periodos',                    'ContPeriodosController::index');
+    $routes->post('contabilidad/periodos/store',             'ContPeriodosController::store');
+    $routes->post('contabilidad/periodos/cerrar/(:num)',      'ContPeriodosController::cerrar/$1');
+    $routes->post('contabilidad/periodos/reabrir/(:num)',     'ContPeriodosController::reabrir/$1');
+
+    // Asientos Contables
+    $routes->get('contabilidad/asientos',                    'ContAsientosController::index');
+    $routes->get('contabilidad/asientos/nuevo',              'ContAsientosController::nuevo');
+    $routes->post('contabilidad/asientos/store',             'ContAsientosController::store');
+    $routes->get('contabilidad/asientos/(:num)',             'ContAsientosController::show/$1');
+    $routes->post('contabilidad/asientos/aprobar/(:num)',    'ContAsientosController::aprobar/$1');
+    $routes->post('contabilidad/asientos/anular/(:num)',     'ContAsientosController::anular/$1');
+
+    // Listados
+    $routes->get('contabilidad/listados/relacion-cuentas',   'ContReportesController::relacionCuentas');
+    $routes->get('contabilidad/listados/costos',             'ContReportesController::costos');
+    $routes->get('contabilidad/listados/gastos',             'ContReportesController::gastos');
+    $routes->get('contabilidad/listados/comparativos',       'ContReportesController::comparativos');
+    $routes->get('contabilidad/listados/catalogos',          'ContReportesController::catalogos');
+
+    // Reportes
+    $routes->get('contabilidad/reportes/diario',             'ContReportesController::diario');
+    $routes->get('contabilidad/reportes/mayor',              'ContReportesController::mayor');
+    $routes->get('contabilidad/reportes/auxiliar',           'ContReportesController::auxiliar');
+
+    // Procesos
+    $routes->get('contabilidad/procesos/cierre-mes',                 'ContProcesosController::cierreMes');
+    $routes->post('contabilidad/procesos/cierre-mes/ejecutar',       'ContProcesosController::ejecutarCierreMes');
+    $routes->get('contabilidad/procesos/cierre-anual',               'ContProcesosController::cierreAnual');
+    $routes->post('contabilidad/procesos/cierre-anual/ejecutar',     'ContProcesosController::ejecutarCierreAnual');
+
+    // Mantenimientos
+    $routes->get('contabilidad/mantenimientos/acumulados',           'ContReportesController::acumuladosActuales');
+    $routes->get('contabilidad/mantenimientos/acumulados-historicos','ContReportesController::acumuladosHistoricos');
+    $routes->get('contabilidad/mantenimientos/transacciones-hist',   'ContReportesController::transaccionesHistoricas');
+
+    // Configuración
+    $routes->get('contabilidad/configuracion',               'ContConfiguracionController::index');
+    $routes->post('contabilidad/configuracion/guardar',      'ContConfiguracionController::guardar');
 });

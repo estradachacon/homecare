@@ -97,6 +97,27 @@ class Permisos extends BaseConfig
             'eliminar_roles',
             'crear_roles',
             'asignar_permisos',
-        ],     
+        ],
+
+        'Contabilidad' => [
+            'ver_contabilidad',
+            'ver_plan_cuentas',
+            'crear_cuenta_contable',
+            'editar_cuenta_contable',
+            'eliminar_cuenta_contable',
+            'ver_periodos_contables',
+            'crear_periodo_contable',
+            'cerrar_periodo_contable',
+            'ver_asientos',
+            'crear_asiento',
+            'aprobar_asiento',
+            'anular_asiento',
+            'ver_listados_contables',
+            'ver_reportes_contables',
+            'ejecutar_cierre_mes',
+            'ejecutar_cierre_anual',
+            'ver_mantenimientos_contables',
+            'configurar_contabilidad',
+        ],
     ];
 }
