@@ -334,7 +334,6 @@ class InventoryController extends BaseController
         $productoModel = new ProductoModel();
         $movModel = new ProductoMovimientoModel();
 
-        // 🔍 TRAER PRODUCTO
         $producto = $productoModel->find($id);
 
         if (!$producto) {
@@ -342,29 +341,126 @@ class InventoryController extends BaseController
                 ->with('error', 'Producto no encontrado');
         }
 
-        // 🔥 TRAER MOVIMIENTOS (KARDEX)
-        $movimientos = $movModel
-            ->where('producto_id', $id)
-            ->orderBy('created_at', 'ASC') // 🔥 importante para kardex
+        $anio = $this->request->getGet('anio') ?? date('Y');
+
+        // 🔥 QUERY BASE
+        $movQuery = $movModel
+            ->select("
+            productos_movimientos.*,
+
+            facturas_head.numero_control,
+            facturas_head.tipo_dte,
+            facturas_head.fecha_emision    AS factura_fecha,
+            clientes.nombre                AS cliente_nombre,
+
+            compras_head.numero_control    AS compra_numero_control,
+            compras_head.tipo_dte          AS compra_tipo_dte,
+            compras_head.fecha_emision     AS compra_fecha,
+            proveedores.nombre             AS proveedor_nombre,
+
+            COALESCE(
+                facturas_head.fecha_emision,
+                compras_head.fecha_emision,
+                DATE(productos_movimientos.created_at)
+            ) AS fecha_documento,
+
+            COALESCE(
+                facturas_head.numero_control,
+                compras_head.numero_control
+            ) AS numero_documento
+        ")
+            ->join(
+                'facturas_head',
+                "facturas_head.id = productos_movimientos.referencia_id 
+            AND productos_movimientos.referencia_tipo = 'factura'",
+                'left'
+            )
+            ->join(
+                'clientes',
+                'clientes.id = facturas_head.receptor_id',
+                'left'
+            )
+            ->join(
+                'compras_head',
+                "compras_head.id = productos_movimientos.referencia_id 
+            AND productos_movimientos.referencia_tipo = 'compra'",
+                'left'
+            )
+            ->join(
+                'proveedores',
+                'proveedores.id = compras_head.proveedor_id',
+                'left'
+            )
+            ->where('productos_movimientos.producto_id', $id);
+
+        // 🔥 FILTRO POR AÑO
+        if (!empty($anio)) {
+            $movQuery->groupStart()
+                ->where("YEAR(facturas_head.fecha_emision)", $anio)
+                ->orWhere("YEAR(compras_head.fecha_emision)", $anio)
+                ->orWhere(
+                    "facturas_head.fecha_emision IS NULL 
+                AND compras_head.fecha_emision IS NULL 
+                AND YEAR(productos_movimientos.created_at) = {$anio}",
+                    null,
+                    false
+                )
+                ->groupEnd();
+        }
+
+        $movimientos = $movQuery
+            ->orderBy('fecha_documento', 'ASC')
+            ->orderBy('productos_movimientos.cantidad', 'DESC')
+            ->orderBy('numero_documento', 'ASC')
+            ->orderBy('productos_movimientos.id', 'ASC')
             ->findAll();
 
-        // 🔥 CALCULAR STOCK
+        // 🔥 STOCK TOTAL (el que se muestra en el header, sin filtro de año)
         $stockData = $movModel
-            ->select('
-            SUM(CASE WHEN tipo_movimiento = "ENTRADA" THEN cantidad ELSE 0 END) -
-            SUM(CASE WHEN tipo_movimiento = "SALIDA" THEN cantidad ELSE 0 END)
-            as stock
-        ')
+            ->select('SUM(cantidad) as stock')
             ->where('producto_id', $id)
             ->first();
 
         $stock = (float)($stockData->stock ?? 0);
 
-        // 🔥 DATA PARA VIEW
+        // 🔥 STOCK APERTURA (suma de todo LO ANTERIOR al año filtrado)
+        $stockApertura = 0;
+
+        if (!empty($anio)) {
+            $aperturaData = $movModel
+                ->select('SUM(productos_movimientos.cantidad) as stock')
+                ->join(
+                    'facturas_head',
+                    "facturas_head.id = productos_movimientos.referencia_id 
+                AND productos_movimientos.referencia_tipo = 'factura'",
+                    'left'
+                )
+                ->join(
+                    'compras_head',
+                    "compras_head.id = productos_movimientos.referencia_id 
+                AND productos_movimientos.referencia_tipo = 'compra'",
+                    'left'
+                )
+                ->where('productos_movimientos.producto_id', $id)
+                ->where(
+                    "YEAR(COALESCE(
+                    facturas_head.fecha_emision,
+                    compras_head.fecha_emision,
+                    productos_movimientos.created_at
+                )) <",
+                    $anio
+                )
+                ->first();
+
+            $stockApertura = (float)($aperturaData->stock ?? 0);
+        }
+
         return view('inventario/show', [
-            'producto'     => $producto,
-            'movimientos'  => $movimientos,
-            'stock'        => $stock
+            'producto'      => $producto,
+            'movimientos'   => $movimientos,
+            'stock'         => $stock,
+            'anio'          => $anio,
+            'stockApertura' => $stockApertura  // 🔥 nuevo
         ]);
     }
 }

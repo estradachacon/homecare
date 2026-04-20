@@ -45,7 +45,7 @@
                 <h4 class="header-title mb-0">Listado de Compras</h4>
                 <div class="ml-auto d-flex gap-2">
                     <?php if (tienePermiso('ingresar_compras')): ?>
-                        <a class="btn btn-primary btn-sm" href="<?= base_url('purchases/new') ?>">
+                        <a class="btn btn-primary btn-sm mr-2" href="<?= base_url('purchases/new') ?>">
                             <i class="fa-solid fa-plus"></i> Nueva compra
                         </a>
                     <?php endif; ?>
