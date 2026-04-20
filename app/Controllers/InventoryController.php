@@ -321,7 +321,8 @@ class InventoryController extends BaseController
         foreach ($productos as $p) {
             $results[] = [
                 'id'   => $p->id,
-                'text' => $p->descripcion . ' (' . $p->codigo . ')'
+                'text' => $p->descripcion . ' (' . $p->codigo . ')',
+                'tipo'=> $p->tipo
             ];
         }
 

@@ -213,6 +213,16 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('compraspagos/comprasPendientes/(:num)', 'ComprasPagosController::comprasPendientes/$1');
 
 
+    // ─── EMISIÓN DTE ─────────────────────────────────────────────────────────
+    $routes->get('emision-dte',                        'DteController::index');
+    $routes->get('emision-dte/nuevo',                  'DteController::new');
+    $routes->post('emision-dte/store',                 'DteController::store');
+    $routes->get('emision-dte/proximo-numero/(:any)',   'DteController::proximoNumero/$1');
+    $routes->get('emision-dte/(:num)',                 'DteController::show/$1');
+    $routes->get('emision-dte/(:num)/estado',          'DteController::consultarEstado/$1');
+    $routes->get('emision-dte/(:num)/nc',              'DteController::nuevaNc/$1');
+    $routes->post('emision-dte/nc/store',              'DteController::storeNc');
+
     // ─── MÓDULO DE CONSIGNACIONES ─────────────────────────────────────────────
     $routes->get('consignaciones',                               'ConsignacionesController::index');
     $routes->get('consignaciones/crear',                         'ConsignacionesController::crear');
