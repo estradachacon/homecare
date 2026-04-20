@@ -17,9 +17,9 @@
             <td class="text-center">
                 <?php
                 $formas = [
-                    'efectivo'     => ['label' => 'Efectivo',      'class' => 'bg-success'],
-                    'transferencia'=> ['label' => 'Transferencia', 'class' => 'bg-primary'],
-                    'cheque'       => ['label' => 'Cheque',        'class' => 'bg-info'],
+                    'efectivo'     => ['label' => 'Efectivo',      'class' => 'text-white bg-success'],
+                    'transferencia'=> ['label' => 'Transferencia', 'class' => 'text-white bg-primary'],
+                    'cheque'       => ['label' => 'Cheque',        'class' => 'text-white bg-info'],
                     'tarjeta'      => ['label' => 'Tarjeta',       'class' => 'bg-warning text-dark'],
                 ];
                 $forma = $formas[$pago->forma_pago] ?? ['label' => $pago->forma_pago ?? 'N/D', 'class' => 'bg-secondary'];

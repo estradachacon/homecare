@@ -378,71 +378,77 @@
             actualizarTotal();
         });
 
-        $('#totalPago').val(
-            new Intl.NumberFormat('es-SV', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(total)
-        );
-        
         $('#btnGuardarPago').on('click', function(e) {
 
             e.preventDefault();
 
-            const proveedor = $('#proveedorSelect').val();
-            const fecha = $('#fechaPago').val();
-            const tipoPago = $('#tipoPago').val();
+            const proveedor  = $('#proveedorSelect').val();
+            const provNombre = $('#proveedorSelect option:selected').text();
+            const fecha      = $('#fechaPago').val();
+            const tipoPago   = $('#tipoPago').val();
             const referencia = $('#referencia').val();
-            const cuenta = $('#cuentaTransferencia').val();
+            const cuenta     = $('#cuentaTransferencia').val();
+
+            // Validaciones previas
+            if (!proveedor) {
+                Swal.fire('Atención', 'Seleccione un proveedor.', 'warning');
+                return;
+            }
+            if (!fecha) {
+                Swal.fire('Atención', 'Ingrese la fecha del pago.', 'warning');
+                return;
+            }
+            if (!tipoPago) {
+                Swal.fire('Atención', 'Seleccione el tipo de pago.', 'warning');
+                return;
+            }
 
             let compras = [];
-            let total = 0;
+            let total   = 0;
 
             $('.compra-row').each(function() {
-
                 let monto = parseFloat($(this).find('.aplicarMonto').val()) || 0;
-
                 if (monto > 0) {
-
                     compras.push({
                         compra_id: $(this).find('.aplicarMonto').data('id'),
                         monto: monto
                     });
-
                     total += monto;
                 }
             });
 
+            if (compras.length === 0) {
+                Swal.fire('Sin compras', 'Debe aplicar monto a al menos una compra.', 'warning');
+                return;
+            }
+
             if (tipoPago === 'efectivo' && !referencia) {
-                Swal.fire('Efectivo', 'Ingrese referencia', 'warning');
+                Swal.fire('Efectivo', 'Ingrese la referencia del pago.', 'warning');
                 return;
             }
 
             if (tipoPago === 'transferencia' && !cuenta) {
-                Swal.fire('Transferencia', 'Seleccione cuenta bancaria', 'warning');
+                Swal.fire('Transferencia', 'Seleccione la cuenta bancaria destino.', 'warning');
                 return;
             }
 
             let detalle = `
-                <p><strong>Compras:</strong> ${compras.length}</p>
-                <p><strong>Total:</strong> $${total.toFixed(2)}</p>
-                <p><strong>Tipo:</strong> ${tipoPago}</p>
-            `;
-
-            if (tipoPago === 'transferencia') {
-                detalle += `<p><strong>Cuenta:</strong> ${cuenta}</p>`;
-            }
-
-            if (tipoPago === 'efectivo') {
-                detalle += `<p><strong>Referencia:</strong> ${referencia}</p>`;
-            }
+                <div class="text-start" style="font-size:14px;">
+                    <p><strong>Proveedor:</strong> ${provNombre}</p>
+                    <p><strong>Fecha:</strong> ${fecha}</p>
+                    <p><strong>Compras:</strong> ${compras.length}</p>
+                    <p><strong>Tipo de pago:</strong> ${tipoPago}</p>
+                    ${referencia ? `<p><strong>Referencia:</strong> ${referencia}</p>` : ''}
+                    <hr>
+                    <p class="fs-5"><strong>Total a pagar: $${total.toFixed(2)}</strong></p>
+                </div>`;
 
             Swal.fire({
-                title: 'Confirmar pago',
-                html: `<div class="text-start">${detalle}</div>`,
+                title: 'Confirmar pago a proveedor',
+                html: detalle,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Guardar',
+                confirmButtonText: 'Guardar pago',
                 cancelButtonText: 'Cancelar',
                 buttonsStyling: false,
                 customClass: {
@@ -453,31 +459,47 @@
 
                 if (!result.isConfirmed) return;
 
+                $('#btnGuardarPago').prop('disabled', true).html(
+                    '<i class="fa-solid fa-spinner fa-spin me-1"></i> Guardando...'
+                );
+
                 const payload = {
-                    proveedor_id: proveedor,
-                    fecha_pago: fecha,
-                    forma_pago: tipoPago,
-                    referencia: referencia,
-                    numero_cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : null,
-                    observaciones: $('#observaciones').val(),
-                    total: total,
-                    compras: compras
+                    proveedor_id:            proveedor,
+                    fecha_pago:              fecha,
+                    forma_pago:              tipoPago,
+                    referencia:              referencia,
+                    numero_cuenta_bancaria:  tipoPago === 'transferencia' ? cuenta : null,
+                    observaciones:           $('#observaciones').val(),
+                    total:                   total,
+                    compras:                 compras
                 };
 
                 fetch('<?= base_url("compraspagos/store") ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(r => r.json())
-                    .then(() => {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Pago registrado'
-                        }).then(() => location.reload());
-                    });
+                            icon:  'success',
+                            title: 'Pago registrado',
+                            text:  data.numero + ' — $' + parseFloat(data.total ?? total).toFixed(2),
+                            timer: 1800,
+                            showConfirmButton: false,
+                        }).then(() => {
+                            window.location.href = '<?= base_url('compraspagos') ?>/' + data.pago_id;
+                        });
+                    } else {
+                        Swal.fire('Error', data.message ?? 'No se pudo guardar el pago.', 'error');
+                        $('#btnGuardarPago').prop('disabled', false).html('Guardar pago');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Error', 'Error de conexión al guardar el pago.', 'error');
+                    $('#btnGuardarPago').prop('disabled', false).html('Guardar pago');
+                });
 
             });
 

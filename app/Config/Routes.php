@@ -209,6 +209,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('compraspagos/new',    'ComprasPagosController::new');
     $routes->post('compraspagos/store', 'ComprasPagosController::store');
     $routes->get('compraspagos/(:num)', 'ComprasPagosController::show/$1');
+    $routes->get('compraspagos/anular/(:num)',            'ComprasPagosController::anular/$1');
     $routes->get('compraspagos/comprasPendientes/(:num)', 'ComprasPagosController::comprasPendientes/$1');
 
 
