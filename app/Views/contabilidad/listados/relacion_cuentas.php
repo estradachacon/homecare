@@ -4,7 +4,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-list-ul me-2"></i>Relación de Cuentas</h4>
                 <div class="ms-auto d-flex gap-2">
                     <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir</button>
@@ -13,9 +13,11 @@
             <div class="card-body">
                 <div class="row g-2 mb-3">
                     <div class="col-md-3">
+                        <label>Buscar</label>
                         <input type="text" id="buscar" class="form-control form-control-sm" placeholder="Buscar código o nombre...">
                     </div>
                     <div class="col-md-2">
+                        <label>Tipo</label>
                         <select id="filtroTipo" class="form-select form-select-sm">
                             <option value="">Todos los tipos</option>
                             <option>ACTIVO</option><option>PASIVO</option><option>CAPITAL</option>
@@ -23,6 +25,7 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label>Con movimientos</label>
                         <select id="filtroMovim" class="form-select form-select-sm">
                             <option value="">Con y sin movimientos</option>
                             <option value="1">Solo con movimientos</option>
@@ -45,7 +48,7 @@
                     </thead>
                     <tbody>
                         <?php
-                        $tipoBadge = ['ACTIVO'=>'primary','PASIVO'=>'danger','CAPITAL'=>'warning','INGRESO'=>'success','COSTO'=>'secondary','GASTO'=>'dark'];
+                        $tipoBadge = ['ACTIVO'=>'primary text-white','PASIVO'=>'danger text-white','CAPITAL'=>'warning','INGRESO'=>'success text-white','COSTO'=>'secondary text-white','GASTO'=>'dark text-white'];
                         foreach ($cuentas as $c): ?>
                         <tr data-codigo="<?= strtolower($c->codigo) ?>" data-nombre="<?= strtolower($c->nombre) ?>"
                             data-tipo="<?= $c->tipo ?>" data-movim="<?= $c->acepta_movimientos ?>">

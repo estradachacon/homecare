@@ -1,10 +1,28 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    /* Texto tipo placeholder en selects */
+select.form-select {
+    font-size: 0.85rem;
+}
 
+select.form-select option {
+    font-size: 0.85rem;
+}
+
+/* Arreglar selects pequeños */
+.form-select-sm {
+    height: 32px;              /* ajusta altura real */
+    line-height: 1.2;          /* evita que el texto se corte */
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.85rem;
+}
+</style>
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-file-pen me-2"></i>Asientos Contables</h4>
                 <div class="ms-auto">
                     <?php if (tienePermiso('crear_asiento')): ?>

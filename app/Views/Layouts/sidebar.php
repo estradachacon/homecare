@@ -395,6 +395,46 @@
                 <?php endif; ?>
 
                 <?php if (
+                    tienePermiso('ver_consignaciones') ||
+                    tienePermiso('crear_consignaciones') ||
+                    tienePermiso('ver_precios_consignaciones')
+                ): ?>
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#consignaciones"
+                        aria-expanded="false"
+                        aria-controls="consignaciones">
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                        </div>
+                        Consignaciones
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+                    </a>
+
+                    <div class="collapse" id="consignaciones" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_consignaciones')): ?>
+                                <a class="nav-link" href="/consignaciones">
+                                    Notas de Envío
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('crear_consignaciones')): ?>
+                                <a class="nav-link" href="/consignaciones/crear">
+                                    Nueva Nota
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_precios_consignaciones')): ?>
+                                <a class="nav-link" href="/consignaciones/precios">
+                                    Precios por Vendedor
+                                </a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (
                     tienePermiso('ver_vendedores')
                 ): ?>
                     <a class="nav-link" href="/sellers">

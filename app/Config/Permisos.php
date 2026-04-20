@@ -32,6 +32,15 @@ class Permisos extends BaseConfig
             'eliminar_vendedor',
             'editar_vendedor_en_detalle'
         ],
+
+        'Consignaciones' => [
+            'ver_consignaciones',
+            'crear_consignaciones',
+            'cerrar_consignaciones',
+            'anular_consignaciones',
+            'ver_precios_consignaciones',
+            'gestionar_precios_consignaciones',
+        ],
         
         'Cuentas por cobrar' => [
             'ingresar_pagos',

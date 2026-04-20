@@ -212,6 +212,22 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('compraspagos/comprasPendientes/(:num)', 'ComprasPagosController::comprasPendientes/$1');
 
 
+    // ─── MÓDULO DE CONSIGNACIONES ─────────────────────────────────────────────
+    $routes->get('consignaciones',                               'ConsignacionesController::index');
+    $routes->get('consignaciones/crear',                         'ConsignacionesController::crear');
+    $routes->post('consignaciones/guardar',                      'ConsignacionesController::guardar');
+    $routes->get('consignaciones/(:num)',                        'ConsignacionesController::show/$1');
+    $routes->get('consignaciones/(:num)/imprimir',               'ConsignacionesController::imprimir/$1');
+    $routes->get('consignaciones/(:num)/cerrar',                 'ConsignacionesController::cerrar/$1');
+    $routes->post('consignaciones/(:num)/procesar-cierre',       'ConsignacionesController::procesarCierre/$1');
+    $routes->post('consignaciones/(:num)/anular',                'ConsignacionesController::anular/$1');
+    $routes->get('consignaciones/precio-ajax',                   'ConsignacionesController::getPrecioAjax');
+    $routes->get('consignaciones/facturas-vendedor/(:num)',       'ConsignacionesController::facturasVendedor/$1');
+    // Precios
+    $routes->get('consignaciones/precios',                       'ConsignacionesController::precios');
+    $routes->post('consignaciones/precios/guardar',              'ConsignacionesController::guardarPrecio');
+    $routes->post('consignaciones/precios/(:num)/eliminar',      'ConsignacionesController::eliminarPrecio/$1');
+
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');
     $routes->get('quedans/crear', 'Quedans::crear');

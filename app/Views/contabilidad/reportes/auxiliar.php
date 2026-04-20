@@ -11,7 +11,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-table-list me-2"></i>Libro Auxiliar de Cuentas</h4>
                 <div class="ms-auto"><button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimir</button></div>
             </div>

@@ -4,7 +4,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-book me-2"></i>Catálogo de Cuentas</h4>
                 <div class="ms-auto"><button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i></button></div>
             </div>
@@ -43,7 +43,7 @@
                     </thead>
                     <tbody>
                         <?php
-                        $tb=['ACTIVO'=>'primary','PASIVO'=>'danger','CAPITAL'=>'warning','INGRESO'=>'success','COSTO'=>'secondary','GASTO'=>'dark'];
+                        $tb=['ACTIVO'=>'primary text-white','PASIVO'=>'danger text-white','CAPITAL'=>'warning','INGRESO'=>'success text-white','COSTO'=>'secondary text-white','GASTO'=>'dark text-white'];
                         foreach ($cuentas as $c): ?>
                         <tr>
                             <td><code class="<?= $c->nivel<=2?'fw-bold':'' ?>"><?= esc($c->codigo) ?></code></td>
