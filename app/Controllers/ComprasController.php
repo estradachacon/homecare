@@ -42,7 +42,7 @@ class ComprasController extends BaseController
         }
 
         if ($numero = $this->request->getGet('numero_compra')) {
-            $query->like('compras_head.numero_control', $numero, 'after'); // 'before' = %1036
+            $query->like('compras_head.numero_control', $numero, 'before'); // 'before' = %1036
         }
 
         if ($estado = $this->request->getGet('estado')) {
@@ -67,7 +67,8 @@ class ComprasController extends BaseController
             }
         }
 
-        $query->orderBy('compras_head.fecha_emision', 'DESC');
+        $query->orderBy('compras_head.fecha_emision', 'DESC')
+            ->orderBy('compras_head.id', 'DESC');
 
         $compras = $query->paginate($perPage);
         $pager   = $model->pager;

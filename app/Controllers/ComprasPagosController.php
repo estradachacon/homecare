@@ -52,7 +52,7 @@ class ComprasPagosController extends BaseController
             $query->like('pagos_compras_head.numero_pago', $numero, 'before');
         }
 
-        $query->orderBy('pagos_compras_head.fecha_pago', 'DESC');
+        $query->orderBy('pagos_compras_head.fecha_pago', 'ASC');
 
         $pagos = $query->paginate($perPage);
         $pager = $this->pagosHeadModel->pager;
@@ -162,6 +162,7 @@ class ComprasPagosController extends BaseController
 
         $data = $this->request->getJSON(true);
         $session = session();
+        $cuentaCajaId = 1; 
 
         if (empty($data['proveedor_id']) || empty($data['fecha_pago']) || empty($data['forma_pago'])) {
             return $this->response->setStatusCode(400)
@@ -180,9 +181,13 @@ class ComprasPagosController extends BaseController
         $maxId      = $db->table('pagos_compras_head')->selectMax('id')->get()->getRow()->id ?? 0;
         $numeroPago = 'PC-' . str_pad((int)$maxId + 1, 5, '0', STR_PAD_LEFT);
 
-        $cuentaId = ($data['forma_pago'] === 'transferencia' && !empty($data['numero_cuenta_bancaria']))
-            ? (int)$data['numero_cuenta_bancaria']
-            : null;
+        if ($data['forma_pago'] === 'transferencia' && !empty($data['numero_cuenta_bancaria'])) {
+            $cuentaId = (int)$data['numero_cuenta_bancaria'];
+        } elseif ($data['forma_pago'] === 'efectivo') {
+            $cuentaId = 1; // 👈 caja
+        } else {
+            $cuentaId = null;
+        }
 
         $pagoId = $this->pagosHeadModel->insert([
             'numero_pago'            => $numeroPago,
