@@ -58,7 +58,7 @@
                             <td class="text-center"><small class="<?= $c->naturaleza==='DEUDORA'?'text-info':'text-secondary' ?>"><?= $c->naturaleza ?></small></td>
                             <td class="text-center text-muted small"><?= $c->nivel ?></td>
                             <td class="text-center"><?= $c->acepta_movimientos ? '<span class="badge bg-success"><i class="fa-solid fa-check"></i></span>' : '<span class="badge bg-light text-muted border">Grupo</span>' ?></td>
-                            <td class="text-center"><span class="badge <?= $c->activo?'bg-success':'bg-secondary' ?>"><?= $c->activo?'Activa':'Inactiva' ?></span></td>
+                            <td class="text-center"><span class="badge <?= $c->activo?'bg-success text-white':'bg-secondary' ?>"><?= $c->activo?'Activa':'Inactiva' ?></span></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

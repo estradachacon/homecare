@@ -40,7 +40,7 @@
                         <input type="date" name="fecha_hasta" class="form-control form-control-sm" value="<?= $fechaHasta ?>">
                     </div>
                     <div class="col-md-1 d-flex align-items-end">
-                        <button class="btn btn-primary btn-sm w-100">Generar</button>
+                        <button class="btn btn-primary btn-sm w-100 mb-3">Generar</button>
                     </div>
                 </form>
 
@@ -49,8 +49,8 @@
                 <div class="mb-4 border rounded">
                     <div class="p-2 bg-light d-flex justify-content-between border-bottom">
                         <strong>AST-<?= str_pad($a->numero_asiento,5,'0',STR_PAD_LEFT) ?></strong>
-                        <span class="text-muted small"><?= date('d/m/Y', strtotime($a->fecha)) ?> — <?= esc($a->descripcion) ?></span>
-                        <span class="badge bg-secondary"><?= $a->tipo ?></span>
+                        <span class="text-muted"><?= date('d/m/Y', strtotime($a->fecha)) ?> — <?= esc($a->descripcion) ?></span>
+                        <span class="badge bg-secondary text-white"><?= $a->tipo ?></span>
                     </div>
                     <table class="table table-sm mb-0">
                         <thead class="table-light" style="font-size:0.78rem">

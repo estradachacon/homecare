@@ -98,11 +98,22 @@ $stockApertura = $stockApertura ?? 0;
                                 <span class="badge text-dark px-3 py-1" style="background:#e65220;">Inactivo</span>
                             <?php endif; ?>
 
+                            <?php
+                            $tipo = $producto->tipo ?? null;
+
+                            if ($tipo == 1) {
+                                $tipoTexto = 'Bienes';
+                            } elseif ($tipo == 2) {
+                                $tipoTexto = 'Servicios';
+                            } else {
+                                $tipoTexto = 'N/D';
+                            }
+                            ?>
+
                             <div class="mt-2 d-flex align-items-center">
                                 <small class="text-muted">Tipo</small>
-                                <span class="ml-auto fw-semibold"><?= esc($producto->tipo ?? 'N/D') ?></span>
+                                <span class="ml-auto fw-semibold"><?= esc($tipoTexto) ?></span>
                             </div>
-
                         </div>
                     </div>
 
