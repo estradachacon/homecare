@@ -44,9 +44,9 @@
                         <div class="col-md-2">
                             <select name="estado" class="form-control form-control-sm">
                                 <option value="">Todos los estados</option>
-                                <option value="abierta"  <?= ($filtros['estado'] === 'abierta')  ? 'selected' : '' ?>>Abierta</option>
-                                <option value="cerrada"  <?= ($filtros['estado'] === 'cerrada')  ? 'selected' : '' ?>>Cerrada</option>
-                                <option value="anulada"  <?= ($filtros['estado'] === 'anulada')  ? 'selected' : '' ?>>Anulada</option>
+                                <option value="abierta" <?= ($filtros['estado'] === 'abierta')  ? 'selected' : '' ?>>Abierta</option>
+                                <option value="cerrada" <?= ($filtros['estado'] === 'cerrada')  ? 'selected' : '' ?>>Cerrada</option>
+                                <option value="anulada" <?= ($filtros['estado'] === 'anulada')  ? 'selected' : '' ?>>Anulada</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -102,11 +102,11 @@
                                         <td class="text-end">$<?= number_format($c->subtotal, 2) ?></td>
                                         <td class="text-center">
                                             <?php if ($c->estado === 'abierta'): ?>
-                                                <span class="badge bg-success">Abierta</span>
+                                                <span class="badge badge-success px-3 py-2" style="font-size: 0.9rem;">Abierta</span>
                                             <?php elseif ($c->estado === 'cerrada'): ?>
-                                                <span class="badge bg-secondary">Cerrada</span>
+                                                <span class="badge badge-secondary px-3 py-2" style="font-size: 0.9rem;">Cerrada</span>
                                             <?php else: ?>
-                                                <span class="badge bg-danger">Anulada</span>
+                                                <span class="badge badge-danger px-3 py-2" style="font-size: 0.9rem;">Anulada</span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center">
@@ -138,41 +138,41 @@
 </div>
 
 <script>
-$(document).ready(function () {
-    $(document).on('click', '.btn-anular', function () {
-        const id     = $(this).data('id');
-        const numero = $(this).data('numero');
+    $(document).ready(function() {
+        $(document).on('click', '.btn-anular', function() {
+            const id = $(this).data('id');
+            const numero = $(this).data('numero');
 
-        Swal.fire({
-            title: '¿Anular nota?',
-            html: `¿Está seguro de anular la nota <strong>${numero}</strong>?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, anular',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc3545',
-        }).then(result => {
-            if (!result.isConfirmed) return;
+            Swal.fire({
+                title: '¿Anular nota?',
+                html: `¿Está seguro de anular la nota <strong>${numero}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, anular',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+            }).then(result => {
+                if (!result.isConfirmed) return;
 
-            fetch(`<?= base_url('consignaciones') ?>/${id}/anular`, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Anulada', data.message, 'success').then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
+                fetch(`<?= base_url('consignaciones') ?>/${id}/anular`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Anulada', data.message, 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    });
             });
         });
     });
-});
 </script>
 
 <?= $this->endSection() ?>

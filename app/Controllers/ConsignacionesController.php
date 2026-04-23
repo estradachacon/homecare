@@ -103,7 +103,7 @@ class ConsignacionesController extends BaseController
             'concepto'        => $this->request->getPost('concepto'),
             'fecha'           => $fecha,
             'hora'            => $hora,
-            'fecha_generacion'=> date('Y-m-d H:i:s'),
+            'fecha_generacion' => date('Y-m-d H:i:s'),
             'subtotal'        => $subtotal,
             'observaciones'   => $this->request->getPost('observaciones'),
             'estado'          => 'abierta',
@@ -153,6 +153,7 @@ class ConsignacionesController extends BaseController
         $headModel  = new ConsignacionHeadModel();
         $detModel   = new ConsignacionDetalleModel();
         $cierreModel = new ConsignacionCierreModel();
+        $cierreFacturaModel = new ConsignacionCierreFacturaModel();
 
         $consignacion = $headModel->getConVendedor($id);
         if (!$consignacion) {
@@ -162,10 +163,48 @@ class ConsignacionesController extends BaseController
         $detalles = $detModel->getPorConsignacion($id);
         $cierre   = $cierreModel->getPorConsignacion($id);
 
+        $cierreDetalleModel = new ConsignacionCierreDetalleModel();
+        $facturasPorDetalle = [];
+        $mapCierreDetalle = [];
+
+        if ($cierre) {
+
+            $cierreDetalles = $cierreDetalleModel
+                ->where('cierre_id', $cierre->id)
+                ->findAll();
+
+            foreach ($cierreDetalles as $cd) {
+                $mapCierreDetalle[$cd->detalle_id] = $cd;
+            }
+
+            foreach ($detalles as $d) {
+                if (isset($mapCierreDetalle[$d->id])) {
+                    $cd = $mapCierreDetalle[$d->id];
+
+                    $facturasPorDetalle[$d->id] =
+                        $cierreFacturaModel
+                        ->select('facturas_head.numero_control')
+                        ->join('facturas_head', 'facturas_head.id = consignaciones_cierres_facturas.factura_id', 'left')
+                        ->where('consignaciones_cierres_facturas.detalle_id', $cd->id)
+                        ->where('consignaciones_cierres_facturas.cierre_id', $cierre->id)
+                        ->findAll();
+                } else {
+                    $facturasPorDetalle[$d->id] = [];
+                }
+            }
+        } else {
+            // 👇 si no hay cierre, todos vacíos
+            foreach ($detalles as $d) {
+                $facturasPorDetalle[$d->id] = [];
+            }
+        }
+
         return view('consignaciones/detalle', [
             'consignacion' => $consignacion,
             'detalles'     => $detalles,
             'cierre'       => $cierre,
+            'facturasPorDetalle' => $facturasPorDetalle,
+            'mapCierreDetalle' => $mapCierreDetalle,
         ]);
     }
 

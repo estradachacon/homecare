@@ -1,6 +1,13 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
-
+<style>
+    .badge-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+</style>
 <div class="row">
     <div class="col-md-12">
 
@@ -31,7 +38,7 @@
                 </div>
 
                 <!-- 🎯 Acciones -->
-                <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="align-items-center gap-2">
 
                     <!-- Grupo secundario -->
                     <div class="btn-group btn-group-sm">
@@ -125,7 +132,76 @@
                                     <td class="text-end">$<?= number_format($d->precio_unitario, 2) ?></td>
                                     <td class="text-end">$<?= number_format($d->subtotal, 2) ?></td>
                                 </tr>
+
+                                <?php if (!empty($facturasPorDetalle[$d->id])): ?>
+                                    <tr>
+                                        <td colspan="5" class="bg-light">
+                                            <small class="text-muted">Facturas:</small><br>
+
+                                            <?php foreach ($facturasPorDetalle[$d->id] as $f): ?>
+                                                <span class="badge badge-info mr-1">
+                                                    <?= esc($f->numero_control) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php if (isset($mapCierreDetalle[$d->id])):
+                                    $cd = $mapCierreDetalle[$d->id];
+                                ?>
+
+                                    <?php if (
+                                        $cd->cantidad_devuelta > 0 ||
+                                        $cd->cantidad_stock_vendedor > 0 ||
+                                        $cd->doc_devolucion ||
+                                        $cd->comentario_devolucion
+                                    ): ?>
+                                        <tr>
+                                            <td colspan="5" class="bg-light">
+
+                                                <small class="text-muted">Resultado del cierre:</small><br>
+
+                                                <?php if ($cd->cantidad_devuelta > 0): ?>
+                                                    <span class="badge badge-warning mr-1">
+                                                        Devuelto: <?= number_format($cd->cantidad_devuelta, 2) ?>
+                                                    </span>
+                                                <?php endif; ?>
+
+                                                <?php if ($cd->cantidad_stock_vendedor > 0): ?>
+                                                    <span class="badge badge-info mr-1">
+                                                        Stock vendedor: <?= number_format($cd->cantidad_stock_vendedor, 2) ?>
+                                                    </span>
+                                                <?php endif; ?>
+
+                                                <?php if ($cd->doc_devolucion): ?>
+                                                    <div class="mt-1">
+                                                        <strong>Doc devolución:</strong>
+                                                        <?= esc($cd->doc_devolucion) ?>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($cd->comentario_devolucion): ?>
+                                                    <div>
+                                                        <strong>Comentario:</strong>
+                                                        <?= esc($cd->comentario_devolucion) ?>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($cd->foto_devolucion): ?>
+                                                    <div class="mt-2">
+                                                        <img src="<?= base_url('uploads/devoluciones/' . $cd->foto_devolucion) ?>"
+                                                            style="max-height: 80px; border-radius: 5px;">
+                                                    </div>
+                                                <?php endif; ?>
+
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+
+                                <?php endif; ?>
                             <?php endforeach; ?>
+
                         </tbody>
                         <tfoot>
                             <tr>
@@ -170,40 +246,39 @@
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
-        document.getElementById('btnAnular')?.addEventListener('click', function() {
-            Swal.fire({
-                title: '¿Anular nota?',
-                html: '¿Desea anular la nota <strong><?= esc($consignacion->numero) ?></strong>? Esta acción no se puede deshacer.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, anular',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#dc3545',
-            }).then(result => {
-                if (!result.isConfirmed) return;
+    <script>
+        <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
+            document.getElementById('btnAnular')?.addEventListener('click', function() {
+                Swal.fire({
+                    title: '¿Anular nota?',
+                    html: '¿Desea anular la nota <strong><?= esc($consignacion->numero) ?></strong>? Esta acción no se puede deshacer.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, anular',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc3545',
+                }).then(result => {
+                    if (!result.isConfirmed) return;
 
-                fetch('<?= base_url('consignaciones/' . $consignacion->id . '/anular') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('Anulada', data.message, 'success').then(() => location.reload());
-                        } else {
-                            Swal.fire('Error', data.message, 'error');
-                        }
-                    });
+                    fetch('<?= base_url('consignaciones/' . $consignacion->id . '/anular') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            },
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Anulada', data.message, 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        });
+                });
             });
-        });
-    <?php endif; ?>
-</script>
+        <?php endif; ?>
+    </script>
 
-<?= $this->endSection() ?>
+    <?= $this->endSection() ?>
