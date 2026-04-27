@@ -582,12 +582,14 @@ CCF YA VIENE SIN IVA
 
                     if ($cantidad > 0 && $tipoItem == 1) {
 
+                        $esNC = ($tipoDte === '05');
+
                         $movimientoModel->insert([
-                            'producto_id' => $productoId,
-                            'tipo_movimiento' => 'venta',
-                            'cantidad' => -abs($cantidad),
+                            'producto_id'     => $productoId,
+                            'tipo_movimiento' => $esNC ? 'devolucion' : 'venta',
+                            'cantidad'        => $esNC ? abs($cantidad) : -abs($cantidad),
                             'referencia_tipo' => 'factura',
-                            'referencia_id' => $facturaId
+                            'referencia_id'   => $facturaId
                         ]);
                     }
                 }
