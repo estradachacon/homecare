@@ -17,7 +17,7 @@ class ConsignacionDetalleLoteModel extends Model
 
     public function getPorDetalle(int $detalleId): array
     {
-        return $this->select('consignacion_detalle_lotes.*, consignacion_lotes.numero_lote, consignacion_lotes.fecha_vencimiento')
+        return $this->select('consignacion_detalle_lotes.*, consignacion_lotes.numero_lote, consignacion_lotes.fecha_vencimiento, consignacion_lotes.manufactura')
             ->join('consignacion_lotes', 'consignacion_lotes.id = consignacion_detalle_lotes.lote_id', 'left')
             ->where('detalle_id', $detalleId)
             ->findAll();

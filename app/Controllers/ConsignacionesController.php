@@ -229,6 +229,9 @@ class ConsignacionesController extends BaseController
         $chk = requerirPermiso('ver_consignaciones');
         if ($chk !== true) return $chk;
 
+        $session = session();
+        $user    = $session->get('id') ? $session->get() : null;
+
         $headModel = new ConsignacionHeadModel();
         $detModel  = new ConsignacionDetalleModel();
 
@@ -237,9 +240,18 @@ class ConsignacionesController extends BaseController
             return redirect()->to('/consignaciones')->with('error', 'Nota no encontrada.');
         }
 
+        $detalles         = $detModel->getPorConsignacion($id);
+        $detalleLoteModel = new ConsignacionDetalleLoteModel();
+        $lotesPorDetalle  = [];
+        foreach ($detalles as $d) {
+            $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
+        }
+
         return view('consignaciones/print', [
-            'consignacion' => $consignacion,
-            'detalles'     => $detModel->getPorConsignacion($id),
+            'consignacion'    => $consignacion,
+            'detalles'        => $detalles,
+            'lotesPorDetalle' => $lotesPorDetalle,
+            'user'            => $user,
         ]);
     }
 
