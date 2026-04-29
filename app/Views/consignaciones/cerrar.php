@@ -15,6 +15,30 @@
 <div class="row">
     <div class="col-md-12">
 
+        <?php
+            $apEst = $consignacion->aprobacion_estado ?? 'pendiente';
+        ?>
+
+        <?php if ($apEst !== 'aprobada'): ?>
+            <div class="alert alert-warning d-flex align-items-start gap-3">
+                <i class="fa-solid fa-triangle-exclamation fa-lg mt-1"></i>
+                <div>
+                    <strong>Aprobación pendiente</strong><br>
+                    <?php if ($apEst === 'rechazada'): ?>
+                        Esta nota fue <strong>rechazada</strong>. Motivo: <?= esc($consignacion->rechazo_motivo ?? '—') ?><br>
+                        Debe ser aprobada por el validador físico antes de poder cerrarse.
+                    <?php else: ?>
+                        Esta nota aún no ha sido aprobada por el validador físico.
+                        El cierre está bloqueado hasta que sea aprobada.
+                    <?php endif; ?>
+                    <br>
+                    <a href="<?= base_url('consignaciones/' . $consignacion->id) ?>" class="btn btn-sm btn-secondary mt-2">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Volver al detalle
+                    </a>
+                </div>
+            </div>
+        <?php else: ?>
+
         <div class="alert alert-info">
             <i class="fa-solid fa-info-circle"></i>
             Para cada producto indique cómo se distribuye la cantidad consignada:
@@ -274,5 +298,7 @@ $(document).ready(function () {
     });
 });
 </script>
+
+<?php endif; // aprobacion_estado === 'aprobada' ?>
 
 <?= $this->endSection() ?>

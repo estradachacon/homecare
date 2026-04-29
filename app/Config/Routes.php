@@ -155,6 +155,17 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes/(:num)', 'ClienteController::show/$1');
     $routes->get('clientes/buscar', 'ClienteController::buscar');
     $routes->get('clientes/buscarparaDTE', 'ClienteController::buscarparaDTE');
+    $routes->get('clientes/edit/(:num)', 'ClienteController::edit/$1');
+    $routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
+    $routes->get('clientes/cuentas-contables-select2', 'ClienteController::cuentasContablesSelect2');
+    $routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
+    $routes->post('clientes/cuentas-contables-crear', 'ClienteController::crearCuentaContableAjax');
+    $routes->get('clientes/municipios-por-departamento', 'ClienteController::municipiosPorDepartamento');
+    $routes->get('clientes/exportar-excel/(:num)', 'ClienteController::exportarExcel/$1');
+    $routes->get('clientes/searchAjax', 'ClienteController::searchAjax');
+
+    $routes->get('doctores/searchAjax', 'Doctores::searchAjax');
+    $routes->post('doctores/storeAjax', 'Doctores::storeAjax');
 
     // Rutas para mantenimiento de tipos de venta
     $routes->get('tipo_venta', 'TipoVentaController::index');
@@ -232,8 +243,19 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('consignaciones/(:num)/cerrar',                 'ConsignacionesController::cerrar/$1');
     $routes->post('consignaciones/(:num)/procesar-cierre',       'ConsignacionesController::procesarCierre/$1');
     $routes->post('consignaciones/(:num)/anular',                'ConsignacionesController::anular/$1');
+    $routes->get('consignaciones/(:num)/editar',                 'ConsignacionesController::editar/$1');
+    $routes->post('consignaciones/(:num)/actualizar',            'ConsignacionesController::actualizar/$1');
+    $routes->post('consignaciones/(:num)/aprobar',               'ConsignacionesController::aprobar/$1');
+    $routes->post('consignaciones/(:num)/rechazar',              'ConsignacionesController::rechazar/$1');
     $routes->get('consignaciones/precio-ajax',                   'ConsignacionesController::getPrecioAjax');
     $routes->get('consignaciones/facturas-vendedor/(:num)',       'ConsignacionesController::facturasVendedor/$1');
+    // Lotes
+    $routes->get('consignaciones/lotes',                         'ConsignacionesController::lotes');
+    $routes->post('consignaciones/lotes/guardar',                'ConsignacionesController::guardarLote');
+    $routes->post('consignaciones/lotes/(:num)/eliminar',        'ConsignacionesController::eliminarLote/$1');
+    $routes->get('consignaciones/lotes-por-producto',            'ConsignacionesController::lotesPorProducto');
+    $routes->get('consignaciones/detalle-lotes/(:num)',          'ConsignacionesController::detalleLotes/$1');
+    $routes->post('consignaciones/detalle-lotes/(:num)/guardar', 'ConsignacionesController::guardarDetalleLotes/$1');
     // Precios
     $routes->get('consignaciones/precios',                       'ConsignacionesController::precios');
     $routes->post('consignaciones/precios/guardar',              'ConsignacionesController::guardarPrecio');

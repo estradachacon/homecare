@@ -9,6 +9,8 @@ use App\Models\ConsignacionPrecioModel;
 use App\Models\ConsignacionCierreModel;
 use App\Models\ConsignacionCierreDetalleModel;
 use App\Models\ConsignacionCierreFacturaModel;
+use App\Models\ConsignacionLoteModel;
+use App\Models\ConsignacionDetalleLoteModel;
 use App\Models\SellerModel;
 
 class ConsignacionesController extends BaseController
@@ -105,6 +107,8 @@ class ConsignacionesController extends BaseController
             'hora'            => $hora,
             'fecha_generacion' => date('Y-m-d H:i:s'),
             'subtotal'        => $subtotal,
+            'doctor'     => $this->request->getPost('doctor') ?: null,
+            'cliente_id' => $this->request->getPost('cliente_id') ?: null,
             'observaciones'   => $this->request->getPost('observaciones'),
             'estado'          => 'abierta',
             'created_by'      => $session->get('id'),
@@ -199,12 +203,20 @@ class ConsignacionesController extends BaseController
             }
         }
 
+        // Lotes asignados por línea
+        $detalleLoteModel = new ConsignacionDetalleLoteModel();
+        $lotesPorDetalle  = [];
+        foreach ($detalles as $d) {
+            $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
+        }
+
         return view('consignaciones/detalle', [
-            'consignacion' => $consignacion,
-            'detalles'     => $detalles,
-            'cierre'       => $cierre,
-            'facturasPorDetalle' => $facturasPorDetalle,
-            'mapCierreDetalle' => $mapCierreDetalle,
+            'consignacion'      => $consignacion,
+            'detalles'          => $detalles,
+            'cierre'            => $cierre,
+            'facturasPorDetalle'=> $facturasPorDetalle,
+            'mapCierreDetalle'  => $mapCierreDetalle,
+            'lotesPorDetalle'   => $lotesPorDetalle,
         ]);
     }
 
@@ -253,6 +265,7 @@ class ConsignacionesController extends BaseController
         $detalles = $detModel->getPorConsignacion($id);
 
         return view('consignaciones/cerrar', [
+            'aprobada' => ($consignacion->aprobacion_estado ?? '') === 'aprobada',
             'consignacion' => $consignacion,
             'detalles'     => $detalles,
         ]);
@@ -458,6 +471,336 @@ class ConsignacionesController extends BaseController
         );
 
         return $this->response->setJSON(['success' => true, 'message' => 'Nota anulada correctamente.']);
+    }
+
+    // ─────────────────────────────────────────────
+    //  EDITAR NOTA (sólo cuando está abierta)
+    // ─────────────────────────────────────────────
+
+    public function editar(int $id)
+    {
+        $chk = requerirPermiso('crear_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $headModel   = new ConsignacionHeadModel();
+        $detModel    = new ConsignacionDetalleModel();
+        $sellerModel = new SellerModel();
+
+        $consignacion = $headModel->getConVendedor($id);
+        if (!$consignacion || $consignacion->estado !== 'abierta') {
+            return redirect()->to('/consignaciones/' . $id)
+                ->with('error', 'Solo se pueden editar notas con estado Abierta.');
+        }
+
+        return view('consignaciones/editar', [
+            'consignacion' => $consignacion,
+            'detalles'     => $detModel->getPorConsignacion($id),
+            'vendedores'   => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    public function actualizar(int $id)
+    {
+        $chk = requerirPermiso('crear_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db      = \Config\Database::connect();
+        $session = session();
+
+        $headModel = new ConsignacionHeadModel();
+        $detModel  = new ConsignacionDetalleModel();
+
+        $consignacion = $headModel->find($id);
+        if (!$consignacion || $consignacion->estado !== 'abierta') {
+            return redirect()->to('/consignaciones/' . $id)
+                ->with('error', 'No se puede editar esta nota.');
+        }
+
+        $productos = $this->request->getPost('productos') ?? [];
+        if (empty($productos)) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Debe agregar al menos un producto.');
+        }
+
+        $subtotal = 0;
+        foreach ($productos as $p) {
+            $subtotal += (float)($p['subtotal'] ?? 0);
+        }
+
+        $db->transStart();
+
+        $headModel->update($id, [
+            'vendedor_id'   => $this->request->getPost('vendedor_id'),
+            'nombre'        => $this->request->getPost('nombre'),
+            'concepto'      => $this->request->getPost('concepto'),
+            'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
+            'hora'          => $this->request->getPost('hora')  ?: date('H:i'),
+            'subtotal'      => $subtotal,
+            'observaciones' => $this->request->getPost('observaciones'),
+        ]);
+
+        // Reemplazar líneas: eliminar las existentes y reinsertar
+        $db->table('consignaciones_detalles')->where('consignacion_id', $id)->delete();
+
+        foreach ($productos as $p) {
+            if (empty($p['producto_id']) || empty($p['cantidad'])) continue;
+            $cant   = (float)$p['cantidad'];
+            $precio = (float)$p['precio_unitario'];
+            $detModel->insert([
+                'consignacion_id' => $id,
+                'producto_id'     => (int)$p['producto_id'],
+                'cantidad'        => $cant,
+                'precio_unitario' => $precio,
+                'subtotal'        => round($cant * $precio, 2),
+            ]);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Error al actualizar la nota de envío.');
+        }
+
+        registrar_bitacora(
+            'Editar nota de envío',
+            'Consignaciones',
+            'Se editó la nota de envío ' . $consignacion->numero . '.',
+            $session->get('id')
+        );
+
+        return redirect()->to('/consignaciones/' . $id)
+            ->with('success', 'Nota de envío actualizada correctamente.');
+    }
+
+    // ─────────────────────────────────────────────
+    //  APROBACIÓN
+    // ─────────────────────────────────────────────
+
+    public function aprobar(int $id)
+    {
+        $chk = requerirPermiso('aprobar_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        $session   = session();
+        $headModel = new ConsignacionHeadModel();
+        $nota      = $headModel->find($id);
+
+        if (!$nota) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nota no encontrada.']);
+        }
+        if ($nota->estado !== 'abierta') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Solo se pueden aprobar notas abiertas.']);
+        }
+
+        $headModel->update($id, [
+            'aprobacion_estado' => 'aprobada',
+            'aprobado_por'      => $session->get('id'),
+            'aprobado_at'       => date('Y-m-d H:i:s'),
+            'rechazo_motivo'    => null,
+        ]);
+
+        registrar_bitacora('Aprobar consignación', 'Consignaciones', 'Aprobó nota ' . $nota->numero . '.', $session->get('id'));
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Nota aprobada.']);
+    }
+
+    public function rechazar(int $id)
+    {
+        $chk = requerirPermiso('aprobar_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        $session = session();
+        $body    = $this->request->getJSON(true) ?? [];
+        $motivo  = trim($body['motivo'] ?? '');
+
+        if ($motivo === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Debe indicar un motivo de rechazo.']);
+        }
+
+        $headModel = new ConsignacionHeadModel();
+        $nota      = $headModel->find($id);
+
+        if (!$nota) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nota no encontrada.']);
+        }
+
+        $headModel->update($id, [
+            'aprobacion_estado' => 'rechazada',
+            'aprobado_por'      => $session->get('id'),
+            'aprobado_at'       => date('Y-m-d H:i:s'),
+            'rechazo_motivo'    => $motivo,
+        ]);
+
+        registrar_bitacora('Rechazar consignación', 'Consignaciones', 'Rechazó nota ' . $nota->numero . '. Motivo: ' . $motivo, $session->get('id'));
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Nota rechazada.']);
+    }
+
+    // ─────────────────────────────────────────────
+    //  LOTES: CATÁLOGO
+    // ─────────────────────────────────────────────
+
+    public function lotes()
+    {
+        $chk = requerirPermiso('gestionar_lotes_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $loteModel = new ConsignacionLoteModel();
+        $filtros   = [
+            'producto_id' => $this->request->getGet('producto_id'),
+            'activo'      => $this->request->getGet('activo') ?? '',
+        ];
+
+        $lotes = $loteModel->listarConProducto($filtros)->paginate(20);
+        $pager = $loteModel->pager;
+
+        return view('consignaciones/lotes/index', [
+            'lotes'   => $lotes,
+            'pager'   => $pager,
+            'filtros' => $filtros,
+        ]);
+    }
+
+    public function guardarLote()
+    {
+        $chk = requerirPermiso('gestionar_lotes_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        $loteModel  = new ConsignacionLoteModel();
+        $productoId = (int)$this->request->getPost('producto_id');
+        $numero     = trim($this->request->getPost('numero_lote') ?? '');
+        $editId     = (int)$this->request->getPost('id');
+
+        if (!$productoId || $numero === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Producto y número de lote son obligatorios.']);
+        }
+
+        $data = [
+            'producto_id'       => $productoId,
+            'numero_lote'       => $numero,
+            'fecha_vencimiento' => $this->request->getPost('fecha_vencimiento') ?: null,
+            'manufactura'       => $this->request->getPost('manufactura') ?: null,
+            'descripcion'       => $this->request->getPost('descripcion') ?: null,
+            'activo'            => 1,
+        ];
+
+        if ($editId) {
+            $loteModel->update($editId, $data);
+        } else {
+            $loteModel->insert($data);
+        }
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    public function eliminarLote(int $id)
+    {
+        $chk = requerirPermiso('gestionar_lotes_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        (new ConsignacionLoteModel())->update($id, ['activo' => 0]);
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    // AJAX: lotes disponibles para un producto
+    public function lotesPorProducto()
+    {
+        $productoId = (int)$this->request->getGet('producto_id');
+        $lotes      = (new ConsignacionLoteModel())->getPorProducto($productoId);
+
+        $results = array_map(function ($l) {
+            $text = $l->numero_lote;
+
+            if (!empty($l->fecha_vencimiento)) {
+                $text .= ' (vence: ' . $l->fecha_vencimiento . ')';
+            }
+
+            if (!empty($l->manufactura)) {
+                $text .= ' (manuf: ' . $l->manufactura . ')';
+            }
+
+            return [
+                'id'   => $l->id,
+                'text' => $text,
+            ];
+        }, $lotes);
+
+        return $this->response->setJSON(['results' => $results]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  LOTES POR DETALLE (asignación)
+    // ─────────────────────────────────────────────
+
+    public function detalleLotes(int $detalleId)
+    {
+        $lotes = (new ConsignacionDetalleLoteModel())->getPorDetalle($detalleId);
+        return $this->response->setJSON(['success' => true, 'lotes' => $lotes]);
+    }
+
+    public function guardarDetalleLotes(int $detalleId)
+    {
+        $chk = requerirPermiso('crear_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        $db = \Config\Database::connect();
+
+        $detRow = $db->table('consignaciones_detalles cd')
+            ->select('cd.cantidad, ch.estado')
+            ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
+            ->where('cd.id', $detalleId)
+            ->get()
+            ->getRow();
+
+        if (!$detRow || $detRow->estado !== 'abierta') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Solo se pueden asignar lotes a notas abiertas.'
+            ]);
+        }
+
+        $body  = $this->request->getJSON(true) ?? [];
+        $lotes = $body['lotes'] ?? [];
+
+        $totalAsignado = 0;
+
+        foreach ($lotes as $lote) {
+            $cantidad = (float)($lote['cantidad'] ?? 0);
+
+            if (empty($lote['lote_id']) || $cantidad <= 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Todos los lotes deben tener lote y cantidad válida.'
+                ]);
+            }
+
+            $totalAsignado += $cantidad;
+        }
+
+        $cantidadDetalle = (float)$detRow->cantidad;
+
+        if (abs($totalAsignado - $cantidadDetalle) > 0.001) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'La cantidad asignada en lotes debe ser exactamente ' . number_format($cantidadDetalle, 2) . '. Actualmente asignó ' . number_format($totalAsignado, 2) . '.'
+            ]);
+        }
+
+        (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
+
+        return $this->response->setJSON(['success' => true]);
     }
 
     // ─────────────────────────────────────────────

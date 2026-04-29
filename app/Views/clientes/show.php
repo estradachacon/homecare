@@ -32,7 +32,16 @@
                             <?= esc($cliente->telefono ?? 'N/D') ?>
                         </div>
                     </div>
-
+                    <div class="col-md-4">
+                        <small class="text-muted">Cuenta Contable</small>
+                        <div class="fw-semibold">
+                            <?php if (!empty($cliente->cuenta_codigo)): ?>
+                                <?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>
+                            <?php else: ?>
+                                N/D
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -46,7 +55,37 @@
             </div>
 
             <div class="card-body">
+                <form method="get" class="mb-3">
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <label>Desde</label>
+                            <input type="date" name="desde" class="form-control"
+                                value="<?= esc($desde ?? '') ?>">
+                        </div>
 
+                        <div class="col-md-3">
+                            <label>Hasta</label>
+                            <input type="date" name="hasta" class="form-control"
+                                value="<?= esc($hasta ?? '') ?>">
+                        </div>
+
+                        <div class="col-md-3">
+                            <button class="btn btn-primary">
+                                <i class="fa-solid fa-filter"></i> Filtrar
+                            </button>
+
+                            <a href="<?= base_url('clientes/show/' . $cliente->id) ?>" class="btn btn-light">
+                                Limpiar
+                            </a>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <a href="<?= base_url('clientes/exportar-excel/' . $cliente->id . '?desde=' . ($desde ?? '') . '&hasta=' . ($hasta ?? '')) ?>"
+                                class="btn btn-success">
+                                <i class="fa-solid fa-file-excel"></i> Exportar Excel
+                            </a>
+                        </div>
+                    </div>
+                </form>
                 <div class="table-responsive">
 
                     <table class="table table-bordered table-hover align-middle">
@@ -126,6 +165,9 @@
 
                     </table>
 
+                </div>
+                <div id="pagerContainer" class="d-flex mt-3">
+                    <?= $pager->only(['desde', 'hasta'])->links('default', 'bootstrap_full') ?>
                 </div>
             </div>
         </div>

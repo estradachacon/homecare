@@ -2,10 +2,24 @@
 <?= $this->section('content') ?>
 
 <style>
-    .select2-container .select2-selection--single { height: 38px !important; border: 1px solid #ced4da; border-radius: .375rem; }
-    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px !important; padding-left: .75rem; }
-    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px !important; }
-    #tablaProductos td { vertical-align: middle; }
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px !important;
+        padding-left: .75rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+    }
+
+    #tablaProductos td {
+        vertical-align: middle;
+    }
 </style>
 
 <div class="row">
@@ -25,15 +39,15 @@
 
             <div class="card-body">
                 <form id="formCrear" method="POST" action="<?= base_url('consignaciones/guardar') ?>">
-                    <?= csrf_field() ?>
 
-                    <!-- Fila 1 -->
+                    <!-- FILA 1 -->
                     <div class="row mb-3">
                         <div class="col-md-2">
                             <label class="form-label text-muted small">Número</label>
                             <input type="text" name="numero" class="form-control"
                                 value="<?= esc($numero_sugerido) ?>" readonly required>
                         </div>
+
                         <div class="col-md-4">
                             <label class="form-label text-muted small">Vendedor / Representante <span class="text-danger">*</span></label>
                             <select name="vendedor_id" id="selectVendedor" class="form-control" required>
@@ -43,28 +57,57 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
                         <div class="col-md-3">
                             <label class="form-label text-muted small">Fecha <span class="text-danger">*</span></label>
                             <input type="date" name="fecha" class="form-control" value="<?= date('Y-m-d') ?>" required>
                         </div>
+
                         <div class="col-md-3">
                             <label class="form-label text-muted small">Hora</label>
                             <input type="time" name="hora" class="form-control" value="<?= date('H:i') ?>">
                         </div>
                     </div>
 
-                    <!-- Fila 2 -->
+                    <!-- FILA 2 -->
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-muted small">Nombre / Referencia</label>
-                            <input type="text" name="nombre" class="form-control" placeholder="Ej: Paciente García, Clínica Médica...">
+                            <label class="form-label text-muted small">Paciente</label>
+                            <input type="text" name="nombre" class="form-control" placeholder="Ej: Paciente García">
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label text-muted small">Concepto</label>
-                            <input type="text" name="concepto" class="form-control" placeholder="Descripción del propósito de la consignación">
+                            <label class="form-label text-muted small">Doctor</label>
+
+                            <div class="d-flex">
+                                <select name="doctor_id" id="selectDoctor" class="form-control flex-grow-1">
+                                    <option value=""></option>
+                                </select>
+
+                                <button type="button"
+                                    class="btn btn-success ml-2"
+                                    data-toggle="modal"
+                                    data-target="#modalDoctor">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- FILA 3 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Cliente a facturar</label>
+                            <select name="cliente_id" id="selectCliente" class="form-control">
+                                <option value=""></option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Concepto</label>
+                            <input type="text" name="concepto" class="form-control" placeholder="Propósito">
+                        </div>
+                    </div>
                     <hr>
 
                     <!-- Tabla de productos -->
@@ -147,110 +190,250 @@
         </td>
     </tr>
 </template>
+<div class="modal fade" id="modalDoctor" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formDoctor">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Doctor</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
 
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre del doctor</label>
+                        <input type="text" name="nombre" id="doctorNombre" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" name="especialidad" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Correo</label>
+                        <input type="email" name="correo" class="form-control">
+                    </div>
+
+                    <div id="doctorError" class="alert alert-danger d-none"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarDoctor">
+                        <i class="fa-solid fa-save"></i> Guardar doctor
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
-let filaIdx = 0;
-const vendedorSelect = document.getElementById('selectVendedor');
+    let filaIdx = 0;
+    const vendedorSelect = document.getElementById('selectVendedor');
 
-function calcularSubtotal(fila) {
-    const cant   = parseFloat(fila.querySelector('.input-cantidad').value)  || 0;
-    const precio = parseFloat(fila.querySelector('.input-precio').value)    || 0;
-    const sub    = cant * precio;
-    fila.querySelector('.input-subtotal').value   = sub.toFixed(2);
-    fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
-    recalcularTotal();
-}
-
-function recalcularTotal() {
-    let total = 0;
-    document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
-    document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
-}
-
-function initSelectProducto(select, idx) {
-    $(select).select2({
-        language: 'es',
-        placeholder: 'Buscar producto...',
-        allowClear: true,
-        ajax: {
-            url: '<?= base_url('productos/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term }),
-            processResults: data => ({
-                results: data.results
-            }),
-            cache: true,
-        },
-    }).on('select2:select', function (e) {
-        const productoId = e.params.data.id;
-        const vendedorId = vendedorSelect.value;
-        if (!vendedorId || !productoId) return;
-
-        fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.precio !== null) {
-                    const fila = $(select).closest('tr')[0];
-                    fila.querySelector('.input-precio').value = parseFloat(data.precio).toFixed(2);
-                    calcularSubtotal(fila);
-                }
-            });
-    });
-}
-
-document.getElementById('btnAgregarProducto').addEventListener('click', function () {
-    const tpl  = document.getElementById('tplFilaProducto').content.cloneNode(true);
-    const fila = tpl.querySelector('tr');
-    const idx  = filaIdx++;
-
-    fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
-    document.getElementById('filaVacia')?.remove();
-    document.getElementById('cuerpoProductos').appendChild(fila);
-
-    const select = document.getElementById('cuerpoProductos').lastElementChild.querySelector('.select-producto');
-    initSelectProducto(select, idx);
-
-    fila.querySelector('.input-cantidad').addEventListener('input', () => calcularSubtotal(fila));
-    fila.querySelector('.input-precio').addEventListener('input',   () => calcularSubtotal(fila));
-    fila.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
-        fila.remove();
+    function calcularSubtotal(fila) {
+        const cant = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
+        const precio = parseFloat(fila.querySelector('.input-precio').value) || 0;
+        const sub = cant * precio;
+        fila.querySelector('.input-subtotal').value = sub.toFixed(2);
+        fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
         recalcularTotal();
-        if (document.querySelectorAll('.fila-producto').length === 0) {
-            const tr = document.createElement('tr');
-            tr.id = 'filaVacia';
-            tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
-            document.getElementById('cuerpoProductos').appendChild(tr);
-        }
-    });
-});
-
-document.getElementById('formCrear').addEventListener('submit', function (e) {
-    const filas = document.querySelectorAll('.fila-producto');
-    if (filas.length === 0) {
-        e.preventDefault();
-        Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
-        return;
     }
 
-    const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
-    const numero   = document.querySelector('[name="numero"]').value;
-    const total    = document.getElementById('totalGeneral').textContent;
+    function recalcularTotal() {
+        let total = 0;
+        document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
+        document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
+    }
 
-    e.preventDefault();
+    function initSelectProducto(select, idx) {
+        $(select).select2({
+            language: 'es',
+            placeholder: 'Buscar producto...',
+            allowClear: true,
+            ajax: {
+                url: '<?= base_url('productos/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: data => ({
+                    results: data.results
+                }),
+                cache: true,
+            },
+        }).on('select2:select', function(e) {
+            const productoId = e.params.data.id;
+            const vendedorId = vendedorSelect.value;
+            if (!vendedorId || !productoId) return;
 
-    Swal.fire({
-        title: 'Confirmar Nota de Envío',
-        html: `<b>Número:</b> ${numero}<br><b>Vendedor:</b> ${vendedor}<br><br><b>Total: ${total}</b>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Guardar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#28a745',
-    }).then(r => {
-        if (r.isConfirmed) document.getElementById('formCrear').submit();
+            fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.precio !== null) {
+                        const fila = $(select).closest('tr')[0];
+                        fila.querySelector('.input-precio').value = parseFloat(data.precio).toFixed(2);
+                        calcularSubtotal(fila);
+                    }
+                });
+        });
+    }
+
+    document.getElementById('btnAgregarProducto').addEventListener('click', function() {
+        const tpl = document.getElementById('tplFilaProducto').content.cloneNode(true);
+        const fila = tpl.querySelector('tr');
+        const idx = filaIdx++;
+
+        fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
+        document.getElementById('filaVacia')?.remove();
+        document.getElementById('cuerpoProductos').appendChild(fila);
+
+        const select = document.getElementById('cuerpoProductos').lastElementChild.querySelector('.select-producto');
+        initSelectProducto(select, idx);
+
+        fila.querySelector('.input-cantidad').addEventListener('input', () => calcularSubtotal(fila));
+        fila.querySelector('.input-precio').addEventListener('input', () => calcularSubtotal(fila));
+        fila.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            fila.remove();
+            recalcularTotal();
+            if (document.querySelectorAll('.fila-producto').length === 0) {
+                const tr = document.createElement('tr');
+                tr.id = 'filaVacia';
+                tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
+                document.getElementById('cuerpoProductos').appendChild(tr);
+            }
+        });
     });
-});
+    $(function() {
+        $('#selectDoctor').select2({
+            language: 'es',
+            placeholder: 'Buscar doctor...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('doctores/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term || ''
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $('#formDoctor').on('submit', function(e) {
+            e.preventDefault();
+
+            const form = $(this);
+            const btn = $('#btnGuardarDoctor');
+            const errorBox = $('#doctorError');
+
+            errorBox.addClass('d-none').text('');
+            btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+            $.ajax({
+                url: '<?= base_url('doctores/storeAjax') ?>',
+                type: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                success: function(res) {
+                    if (!res.success) {
+                        errorBox.removeClass('d-none').text(res.message || 'No se pudo crear el doctor.');
+                        return;
+                    }
+
+                    const option = new Option(res.doctor.text, res.doctor.id, true, true);
+
+                    $('#selectDoctor')
+                        .append(option)
+                        .trigger('change');
+
+                    $('#modalDoctor').modal('hide');
+                    form[0].reset();
+                },
+                error: function() {
+                    errorBox.removeClass('d-none').text('Error al comunicarse con el servidor.');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar doctor');
+                }
+            });
+        });
+    });
+    $(document).ready(function() {
+
+        if (typeof $.fn.select2 === 'undefined') {
+            console.error('Select2 no está cargado');
+            return;
+        }
+
+        $('#selectCliente').select2({
+            language: 'es',
+            placeholder: 'Buscar cliente...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('clientes/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term || ''
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results
+                    };
+                },
+                cache: true
+            }
+        });
+
+    });
+
+    document.getElementById('formCrear').addEventListener('submit', function(e) {
+        const filas = document.querySelectorAll('.fila-producto');
+        if (filas.length === 0) {
+            e.preventDefault();
+            Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
+            return;
+        }
+
+        const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
+        const numero = document.querySelector('[name="numero"]').value;
+        const total = document.getElementById('totalGeneral').textContent;
+
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Confirmar Nota de Envío',
+            html: `<b>Número:</b> ${numero}<br><b>Vendedor:</b> ${vendedor}<br><br><b>Total: ${total}</b>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745',
+        }).then(r => {
+            if (r.isConfirmed) document.getElementById('formCrear').submit();
+        });
+    });
 </script>
 
 <?= $this->endSection() ?>

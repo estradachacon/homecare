@@ -15,16 +15,27 @@
     }
 
     .modal-content {
-    border-radius: 10px;
-}
+        border-radius: 10px;
+    }
 
-.modal-header {
-    border-bottom: 1px solid #eee;
-}
+    .modal-header {
+        border-bottom: 1px solid #eee;
+    }
 
-.modal-footer {
-    border-top: 1px solid #eee;
-}
+    .modal-footer {
+        border-top: 1px solid #eee;
+    }
+
+    .toggle-cuenta {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 8px;
+    }
+
+    .toggle-cuenta i {
+        transition: transform .15s ease;
+    }
 </style>
 <div class="row mb-3">
     <div class="col-md-12">
@@ -69,16 +80,41 @@
                                     <th style="width:100px">Acciones</th>
                                 </tr>
                             </thead>
+                            <?php
+                            $padresConHijos = [];
 
+                            foreach ($cuentas as $cuentaTmp) {
+                                if (!empty($cuentaTmp->cuenta_padre_id)) {
+                                    $padresConHijos[$cuentaTmp->cuenta_padre_id] = true;
+                                }
+                            }
+                            ?>
                             <tbody>
                                 <?php foreach ($cuentas as $c): ?>
-                                    <tr class="cuenta-row" data-buscar="<?= strtolower($c->codigo . ' ' . $c->nombre) ?>">
+                                    <tr class="cuenta-row"
+                                        data-id="<?= $c->id ?>"
+                                        data-padre="<?= esc($c->cuenta_padre_id ?? '') ?>"
+                                        data-nivel="<?= esc($c->nivel) ?>"
+                                        data-buscar="<?= strtolower($c->codigo . ' ' . $c->nombre) ?>"
+                                        style="<?= !empty($c->cuenta_padre_id) ? 'display:none;' : '' ?>">
 
                                         <td>
-                                            <code class="fw-semibold text-primary"
-                                                style="padding-left:<?= ($c->nivel - 1) * 18 ?>px">
-                                                <?= esc($c->codigo) ?>
-                                            </code>
+                                            <div class="d-flex align-items-center" style="padding-left:<?= ($c->nivel - 1) * 18 ?>px">
+
+                                                <?php if (isset($padresConHijos[$c->id])): ?>
+                                                    <button type="button"
+                                                        class="btn btn-sm btn-light border mr-1 toggle-cuenta"
+                                                        data-id="<?= $c->id ?>">
+                                                        <i class="fa-solid fa-chevron-right"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span style="width:34px; display:inline-block;"></span>
+                                                <?php endif; ?>
+
+                                                <code class="fw-semibold text-primary">
+                                                    <?= esc($c->codigo) ?>
+                                                </code>
+                                            </div>
                                         </td>
 
                                         <td class="<?= $c->nivel <= 2 ? 'fw-bold' : ($c->nivel == 3 ? 'fw-semibold' : '') ?>">
@@ -257,6 +293,7 @@
         fetch(`<?= base_url('contabilidad/plan-cuentas/get/') ?>${id}`)
             .then(r => r.json()).then(data => {
                 const c = data.cuenta;
+
                 $('#modalCuentaTitulo').text('Editar Cuenta');
                 $('#cuentaId').val(c.id);
                 $('#cCodigo').val(c.codigo).prop('disabled', true);
@@ -267,8 +304,10 @@
                 $('#cAceptaMovimientos').val(c.acepta_movimientos);
                 $('#cActivo').val(c.activo);
                 $('#erroresCuenta').addClass('d-none').html('');
+
                 cargarSelectPadre(c.cuenta_padre_id);
-                new bootstrap.Modal(document.getElementById('modalCuenta')).show();
+
+                $('#modalCuenta').modal('show');
             });
     }
 
@@ -329,12 +368,101 @@
     }
 
     // Búsqueda en tabla
-    document.getElementById('buscarCuenta').addEventListener('input', function() {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('.cuenta-row').forEach(r => {
-            r.style.display = r.dataset.buscar.includes(q) ? '' : 'none';
+    function ocultarDescendientes(parentId) {
+        document.querySelectorAll(`.cuenta-row[data-padre="${parentId}"]`).forEach(hijo => {
+            hijo.style.display = 'none';
+            hijo.classList.remove('is-open');
+
+            const btn = hijo.querySelector('.toggle-cuenta i');
+            if (btn) {
+                btn.classList.remove('fa-chevron-down');
+                btn.classList.add('fa-chevron-right');
+            }
+
+            ocultarDescendientes(hijo.dataset.id);
+        });
+    }
+
+    function mostrarHijos(parentId) {
+        document.querySelectorAll(`.cuenta-row[data-padre="${parentId}"]`).forEach(hijo => {
+            hijo.style.display = '';
+        });
+    }
+
+    document.querySelectorAll('.toggle-cuenta').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const row = document.querySelector(`.cuenta-row[data-id="${id}"]`);
+            const icon = this.querySelector('i');
+
+            const abierto = row.classList.contains('is-open');
+
+            if (abierto) {
+                row.classList.remove('is-open');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+                ocultarDescendientes(id);
+            } else {
+                row.classList.add('is-open');
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+                mostrarHijos(id);
+            }
         });
     });
+
+    // Búsqueda en tabla
+    document.getElementById('buscarCuenta').addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+
+        document.querySelectorAll('.cuenta-row').forEach(r => {
+            r.classList.remove('is-open');
+            r.style.display = 'none';
+
+            const icon = r.querySelector('.toggle-cuenta i');
+            if (icon) {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        });
+
+        if (q === '') {
+            document.querySelectorAll('.cuenta-row').forEach(r => {
+                if (!r.dataset.padre) {
+                    r.style.display = '';
+                }
+            });
+            return;
+        }
+
+        document.querySelectorAll('.cuenta-row').forEach(r => {
+            if (r.dataset.buscar.includes(q)) {
+                r.style.display = '';
+                mostrarPadres(r);
+            }
+        });
+    });
+
+    function mostrarPadres(row) {
+        const padreId = row.dataset.padre;
+
+        if (!padreId) return;
+
+        const padre = document.querySelector(`.cuenta-row[data-id="${padreId}"]`);
+
+        if (padre) {
+            padre.style.display = '';
+            padre.classList.add('is-open');
+
+            const icon = padre.querySelector('.toggle-cuenta i');
+            if (icon) {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            }
+
+            mostrarPadres(padre);
+        }
+    }
 </script>
 
 <?= $this->endSection() ?>

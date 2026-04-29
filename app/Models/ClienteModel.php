@@ -23,6 +23,7 @@ class ClienteModel extends Model
         'departamento',
         'municipio',
         'direccion',
+        'cuenta_contable_id',
     ];
 
     protected $useTimestamps = true;

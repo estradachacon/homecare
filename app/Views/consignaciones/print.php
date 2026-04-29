@@ -37,6 +37,15 @@
         .firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
         .firma-box { border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px; }
 
+        .estado-badge { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: .5px; border: 1px solid currentColor; }
+        .estado-abierta  { color: #155724; background: #d4edda; border-color: #c3e6cb; }
+        .estado-cerrada  { color: #383d41; background: #e2e3e5; border-color: #d6d8db; }
+        .estado-anulada  { color: #721c24; background: #f8d7da; border-color: #f5c6cb; }
+        .aprobacion-badge { display: inline-block; margin-left: 8px; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; border: 1px solid currentColor; }
+        .aprobacion-aprobada  { color: #155724; background: #d4edda; border-color: #c3e6cb; }
+        .aprobacion-rechazada { color: #721c24; background: #f8d7da; border-color: #f5c6cb; }
+        .aprobacion-pendiente { color: #856404; background: #fff3cd; border-color: #ffeeba; }
+
         @media print {
             body { padding: 10px; }
             .no-print { display: none; }
@@ -68,6 +77,26 @@
     <div class="doc-title">
         <h3>Nota de Envío</h3>
         <div class="numero"><?= esc($consignacion->numero) ?></div>
+    </div>
+
+    <!-- Estado -->
+    <div style="text-align:center; margin-bottom:8px;">
+        <?php
+            $est = $consignacion->estado ?? 'abierta';
+            $estLabel = match($est) {
+                'cerrada' => ['estado-cerrada', 'Cerrada'],
+                'anulada' => ['estado-anulada', 'Anulada'],
+                default   => ['estado-abierta', 'Activa'],
+            };
+            $apEst = $consignacion->aprobacion_estado ?? 'pendiente';
+            $apLabel = match($apEst) {
+                'aprobada'  => ['aprobacion-aprobada', 'Aprobada'],
+                'rechazada' => ['aprobacion-rechazada', 'Rechazada'],
+                default     => ['aprobacion-pendiente', 'Pend. Aprobación'],
+            };
+        ?>
+        <span class="estado-badge <?= $estLabel[0] ?>"><?= $estLabel[1] ?></span>
+        <span class="aprobacion-badge <?= $apLabel[0] ?>"><?= $apLabel[1] ?></span>
     </div>
 
     <!-- Fecha de generación interna -->

@@ -456,12 +456,20 @@ class InventoryController extends BaseController
             $stockApertura = (float)($aperturaData->stock ?? 0);
         }
 
+        // Lotes del catálogo para este producto
+        $lotes = (new \App\Models\ConsignacionLoteModel())
+            ->where('producto_id', $id)
+            ->orderBy('activo', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->findAll();
+
         return view('inventario/show', [
             'producto'      => $producto,
             'movimientos'   => $movimientos,
             'stock'         => $stock,
             'anio'          => $anio,
-            'stockApertura' => $stockApertura  // 🔥 nuevo
+            'stockApertura' => $stockApertura,
+            'lotes'         => $lotes,
         ]);
     }
 }
