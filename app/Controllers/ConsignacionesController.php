@@ -492,21 +492,10 @@ class ConsignacionesController extends BaseController
                 ->with('error', 'Solo se pueden editar notas con estado Abierta.');
         }
 
-        $doctor  = null;
-        $cliente = null;
-        if (!empty($consignacion->doctor_id)) {
-            $doctor = (new \App\Models\DoctorModel())->find($consignacion->doctor_id);
-        }
-        if (!empty($consignacion->cliente_id)) {
-            $cliente = (new \App\Models\ClienteModel())->find($consignacion->cliente_id);
-        }
-
         return view('consignaciones/editar', [
             'consignacion' => $consignacion,
             'detalles'     => $detModel->getPorConsignacion($id),
             'vendedores'   => $sellerModel->orderBy('seller', 'ASC')->findAll(),
-            'doctor'       => $doctor,
-            'cliente'      => $cliente,
         ]);
     }
 
@@ -543,8 +532,6 @@ class ConsignacionesController extends BaseController
         $headModel->update($id, [
             'vendedor_id'   => $this->request->getPost('vendedor_id'),
             'nombre'        => $this->request->getPost('nombre'),
-            'doctor_id'     => $this->request->getPost('doctor_id')  ?: null,
-            'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
             'concepto'      => $this->request->getPost('concepto'),
             'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
             'hora'          => $this->request->getPost('hora')  ?: date('H:i'),
@@ -761,60 +748,70 @@ class ConsignacionesController extends BaseController
         return $this->response->setJSON(['success' => true, 'lotes' => $lotes]);
     }
 
-    public function guardarDetalleLotes(int $detalleId)
-    {
-        $chk = requerirPermiso('crear_consignaciones');
-        if ($chk !== true) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
-        }
-
-        $db = \Config\Database::connect();
-
-        $detRow = $db->table('consignaciones_detalles cd')
-            ->select('cd.cantidad, ch.estado')
-            ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
-            ->where('cd.id', $detalleId)
-            ->get()
-            ->getRow();
-
-        if (!$detRow || $detRow->estado !== 'abierta') {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Solo se pueden asignar lotes a notas abiertas.'
-            ]);
-        }
-
-        $body  = $this->request->getJSON(true) ?? [];
-        $lotes = $body['lotes'] ?? [];
-
-        $totalAsignado = 0;
-
-        foreach ($lotes as $lote) {
-            $cantidad = (float)($lote['cantidad'] ?? 0);
-
-            if (empty($lote['lote_id']) || $cantidad <= 0) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Todos los lotes deben tener lote y cantidad válida.'
-                ]);
-            }
-
-            $totalAsignado += $cantidad;
-        }
-
-        $cantidadDetalle = (float)$detRow->cantidad;
-
-        if (abs($totalAsignado - $cantidadDetalle) > 0.001) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'La cantidad asignada en lotes debe ser exactamente ' . number_format($cantidadDetalle, 2) . '. Actualmente asignó ' . number_format($totalAsignado, 2) . '.'
-            ]);
-        }
-
-        (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
-
-        return $this->response->setJSON(['success' => true]);
+public function guardarDetalleLotes(int $detalleId)
+{
+    $chk = requerirPermiso('crear_consignaciones');
+    if ($chk !== true) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
     }
+
+    $db = \Config\Database::connect();
+
+    $detRow = $db->table('consignaciones_detalles cd')
+        ->select('cd.cantidad, ch.estado')
+        ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
+        ->where('cd.id', $detalleId)
+        ->get()
+        ->getRow();
+
+    if (!$detRow || $detRow->estado !== 'abierta') {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Solo se pueden asignar lotes a notas abiertas.'
+        ]);
+    }
+
+    $body  = $this->request->getJSON(true) ?? [];
+    $lotes = $body['lotes'] ?? [];
+
+    $totalAsignado = 0;
+
+    foreach ($lotes as $lote) {
+        $cantidad = (float)($lote['cantidad'] ?? 0);
+
+        if (empty($lote['lote_id']) || $cantidad <= 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Todos los lotes deben tener lote y cantidad válida.'
+            ]);
+        }
+
+        $totalAsignado += $cantidad;
+    }
+
+    $cantidadDetalle = (float)$detRow->cantidad;
+
+    if (abs($totalAsignado - $cantidadDetalle) > 0.001) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'La cantidad asignada en lotes debe ser exactamente ' .
+                number_format($cantidadDetalle, 2) .
+                '. Actualmente asignó ' .
+                number_format($totalAsignado, 2) . '.'
+        ]);
+    }
+
+    (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
+
+    return $this->response->setJSON([
+        'success' => true,
+        'message' => 'Lotes guardados correctamente.',
+        'detalle_id' => $detalleId,
+        'lotes' => $lotes,
+        'total_lotes' => count($lotes),
+        'total_asignado' => $totalAsignado
+    ]);
+}
 
     // ─────────────────────────────────────────────
     //  PRECIOS: LISTADO

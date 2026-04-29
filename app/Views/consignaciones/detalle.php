@@ -22,6 +22,48 @@
         align-items: center;
         margin-bottom: 4px;
     }
+
+    .table-productos-compacta td,
+    .table-productos-compacta th {
+        padding: .35rem .45rem !important;
+        vertical-align: middle !important;
+        font-size: 16px;
+    }
+
+    .table-productos-compacta .td-descripcion {
+        max-width: 360px;
+        white-space: normal;
+        line-height: 1.2;
+    }
+
+    .table-productos-compacta .td-lotes {
+        width: 90px !important;
+        white-space: nowrap;
+    }
+
+    .table-productos-compacta .btn-xs {
+        padding: .12rem .35rem;
+        font-size: 16px;
+        line-height: 1.2;
+    }
+
+    .lotes-wrap {
+        gap: 6px;
+    }
+
+    .lote-chip {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        background: #fff;
+        padding: 4px 7px;
+        font-size: 11px;
+        line-height: 1.15;
+        min-width: 135px;
+    }
+
+    .lote-chip span {
+        display: block;
+    }
 </style>
 <div class="row">
     <div class="col-md-12">
@@ -130,13 +172,13 @@
                 <?php endif; ?>
 
                 <!-- Info principal -->
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-md-3">
                         <p class="mb-1 text-muted small">Vendedor / Representante</p>
                         <p class="font-weight-bold"><?= esc($consignacion->vendedor_nombre) ?></p>
                     </div>
                     <div class="col-md-3">
-                        <p class="mb-1 text-muted small">Nombre / Referencia</p>
+                        <p class="mb-1 text-muted small">Paciente</p>
                         <p class="font-weight-bold"><?= esc($consignacion->nombre ?: '—') ?></p>
                     </div>
                     <div class="col-md-3">
@@ -149,7 +191,28 @@
                     </div>
                 </div>
 
-                <?php if ($consignacion->concepto): ?>
+                <?php if (!empty($consignacion->doctor_nombre) || !empty($consignacion->cliente_nombre)): ?>
+                    <div class="row mb-3">
+                        <?php if (!empty($consignacion->doctor_nombre)): ?>
+                            <div class="col-md-4">
+                                <p class="mb-1 text-muted small">Doctor</p>
+                                <p class="font-weight-bold"><?= esc($consignacion->doctor_nombre) ?></p>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($consignacion->cliente_nombre)): ?>
+                            <div class="col-md-4">
+                                <p class="mb-1 text-muted small">Cliente a facturar</p>
+                                <p class="font-weight-bold"><?= esc($consignacion->cliente_nombre) ?></p>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($consignacion->concepto)): ?>
+                            <div class="col-md-4">
+                                <p class="mb-1 text-muted small">Concepto</p>
+                                <p class="font-weight-bold"><?= esc($consignacion->concepto) ?></p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php elseif ($consignacion->concepto): ?>
                     <div class="mb-3">
                         <p class="mb-1 text-muted small">Concepto</p>
                         <p><?= esc($consignacion->concepto) ?></p>
@@ -159,7 +222,7 @@
                 <!-- Tabla productos -->
                 <h6>Productos consignados</h6>
                 <div class="table-responsive mb-3">
-                    <table class="table table-bordered table-sm">
+                    <table class="table table-bordered table-sm table-productos-compacta">
                         <thead class="thead-light">
                             <tr>
                                 <th>Código</th>
@@ -177,7 +240,7 @@
                             ?>
                                 <tr id="fila-det-<?= $d->id ?>">
                                     <td><?= esc($d->producto_codigo) ?></td>
-                                    <td><?= esc($d->producto_nombre) ?></td>
+                                    <td class="td-descripcion"><?= esc($d->producto_nombre) ?></td>
                                     <td class="text-center"><?= number_format($d->cantidad, 2) ?></td>
                                     <td class="text-right">$<?= number_format($d->precio_unitario, 2) ?></td>
                                     <td class="text-right">$<?= number_format($d->subtotal, 2) ?></td>
@@ -209,18 +272,18 @@
                                                 <em class="text-muted">Sin lotes asignados.</em>
                                             <?php else: ?>
                                                 <div class="d-flex flex-wrap gap-2">
-                                                <?php foreach ($lotesDetalle as $lote): ?>
-                                                    <div class="border rounded px-2 py-1 bg-white" style="font-size:11px; min-width:160px;">
-                                                        <div class="fw-bold text-primary"><?= esc($lote->numero_lote) ?></div>
-                                                        <?php if (!empty($lote->fecha_vencimiento)): ?>
-                                                            <div class="text-muted">Vence: <?= esc($lote->fecha_vencimiento) ?></div>
-                                                        <?php endif; ?>
-                                                        <?php if (!empty($lote->manufactura)): ?>
-                                                            <div class="text-muted">Mfr: <?= esc($lote->manufactura) ?></div>
-                                                        <?php endif; ?>
-                                                        <div>Cant: <strong><?= number_format($lote->cantidad, 2) ?></strong></div>
-                                                    </div>
-                                                <?php endforeach; ?>
+                                                    <?php foreach ($lotesDetalle as $lote): ?>
+                                                        <div class="border rounded px-2 py-1 bg-white" style="font-size:11px; min-width:160px;">
+                                                            <div class="fw-bold text-primary"><?= esc($lote->numero_lote) ?></div>
+                                                            <?php if (!empty($lote->fecha_vencimiento)): ?>
+                                                                <div class="text-muted">Vence: <?= esc($lote->fecha_vencimiento) ?></div>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($lote->manufactura)): ?>
+                                                                <div class="text-muted">Mfr: <?= esc($lote->manufactura) ?></div>
+                                                            <?php endif; ?>
+                                                            <div>Cant: <strong><?= number_format($lote->cantidad, 2) ?></strong></div>
+                                                        </div>
+                                                    <?php endforeach; ?>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
@@ -496,7 +559,7 @@
         <?php endif; ?>
 
         // ── Toggle panel lotes (siempre activo) ──────────────────
-        $(document).on('click', '.btn-toggle-lotes', function () {
+        $(document).on('click', '.btn-toggle-lotes', function() {
             const targetId = $(this).data('target');
             $('#' + targetId).toggle();
         });
@@ -529,17 +592,17 @@
             function agregarFilaLote(lote) {
                 const idx = loteSelectIdx++;
                 const html = `<tr class="fila-lote-modal">
-            <td>
-                <select class="form-control form-control-sm sel-lote" name="lotes[${idx}][lote_id]"></select>
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm input-lote-cant"
-                    name="lotes[${idx}][cantidad]" min="0.01" step="0.01" value="${lote ? lote.cantidad : 1}">
-            </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-xs btn-outline-danger btn-rm-lote"><i class="fa-solid fa-times"></i></button>
-            </td>
-        </tr>`;
+                    <td>
+                        <select class="form-control form-control-sm sel-lote" name="lotes[${idx}][lote_id]"></select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control form-control-sm input-lote-cant"
+                            name="lotes[${idx}][cantidad]" min="0.01" step="0.01" value="${lote ? lote.cantidad : 1}">
+                    </td>
+                    <td class="text-center td-lotes">
+                        <button type="button" class="btn btn-xs btn-outline-danger btn-rm-lote"><i class="fa-solid fa-times"></i></button>
+                    </td>
+                </tr>`;
                 const $tr = $(html);
                 $('#bodyLotesModal').append($tr);
 
@@ -709,6 +772,43 @@
             $(document).on('input', '.input-lote-cant', function() {
                 actualizarResumenLotes();
             });
+
+            function actualizarLotesEnPantalla(detId, lotes) {
+                const total = lotes.length;
+
+                const $fila = $('#fila-det-' + detId);
+                const $btnToggle = $fila.find('.btn-toggle-lotes');
+
+                $btnToggle
+                    .removeClass('btn-outline-secondary btn-info')
+                    .addClass(total > 0 ? 'btn-info' : 'btn-outline-secondary')
+                    .html(`<i class="fa-solid fa-boxes-stacked mr-1"></i>${total}`)
+                    .attr('title', total > 0 ? 'Ver lotes asignados' : 'Sin lotes asignados');
+
+                let html = '';
+
+                if (total === 0) {
+                    html = `<em class="text-muted">Sin lotes asignados.</em>`;
+                } else {
+                    html = `<div class="d-flex flex-wrap lotes-wrap">`;
+
+                    lotes.forEach(lote => {
+                        html += `
+                <div class="lote-chip">
+                    <strong class="text-primary">${lote.numero_lote}</strong>
+                    ${lote.fecha_vencimiento ? `<span>Vence: ${lote.fecha_vencimiento}</span>` : ''}
+                    ${lote.manufactura ? `<span>Mfr: ${lote.manufactura}</span>` : ''}
+                    <span>Cant: <b>${parseFloat(lote.cantidad).toFixed(2)}</b></span>
+                </div>
+            `;
+                    });
+
+                    html += `</div>`;
+                }
+
+                $('#lotes-panel-' + detId + ' .lotes-panel').html(html);
+                $('#lotes-panel-' + detId).show();
+            }
             $('#btnGuardarLotesModal').on('click', function() {
                 const detId = $('#modalDetalleId').val();
                 const lotes = [];
@@ -721,8 +821,13 @@
                         ok = false;
                         return;
                     }
+                    const loteText = $(this).find('.sel-lote option:selected').text();
+
                     lotes.push({
                         lote_id: parseInt(loteId),
+                        numero_lote: loteText,
+                        fecha_vencimiento: '',
+                        manufactura: '',
                         cantidad: cant
                     });
                 });
@@ -754,11 +859,14 @@
                     }),
                 }).then(r => r.json()).then(d => {
                     if (d.success) {
+                        actualizarLotesEnPantalla(detId, lotes);
+
                         $('#modalLotes').modal('hide');
+
                         Swal.fire({
                             icon: 'success',
                             title: 'Lotes guardados',
-                            timer: 1500,
+                            timer: 1000,
                             showConfirmButton: false
                         });
                     } else {

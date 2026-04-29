@@ -331,24 +331,67 @@ cuerpoProductos.addEventListener('click', function (e) {
 });
 
 // Inicializar Select2 en filas existentes
-document.querySelectorAll('.fila-producto').forEach(fila => {
-    initSelectProducto(fila.querySelector('.select-producto'));
-});
+window.addEventListener('load', function () {
 
-recalcularTotal();
+    if (typeof $ === 'undefined') {
+        console.error('jQuery no está cargado');
+        return;
+    }
 
-// Agregar nueva fila
-document.getElementById('btnAgregarProducto').addEventListener('click', function () {
-    const tpl  = document.getElementById('tplFilaProducto').content.cloneNode(true);
-    const fila = tpl.querySelector('tr');
-    const idx  = filaIdx++;
+    if (!$.fn.select2) {
+        console.error('Select2 no está cargado');
+        return;
+    }
 
-    fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
-    document.getElementById('filaVacia')?.remove();
-    cuerpoProductos.appendChild(fila);
+    document.querySelectorAll('.fila-producto').forEach(fila => {
+        initSelectProducto(fila.querySelector('.select-producto'));
+    });
 
-    const insertedFila = cuerpoProductos.lastElementChild;
-    initSelectProducto(insertedFila.querySelector('.select-producto'));
+    recalcularTotal();
+
+    document.getElementById('btnAgregarProducto').addEventListener('click', function () {
+        const tpl  = document.getElementById('tplFilaProducto').content.cloneNode(true);
+        const fila = tpl.querySelector('tr');
+        const idx  = filaIdx++;
+
+        fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
+        document.getElementById('filaVacia')?.remove();
+        cuerpoProductos.appendChild(fila);
+
+        const insertedFila = cuerpoProductos.lastElementChild;
+        initSelectProducto(insertedFila.querySelector('.select-producto'));
+    });
+
+    $('#selectDoctor').select2({
+        language: 'es',
+        placeholder: 'Buscar doctor...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '<?= base_url('doctores/searchAjax') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => ({ results: data.results || [] }),
+            cache: true
+        }
+    });
+
+    $('#selectCliente').select2({
+        language: 'es',
+        placeholder: 'Buscar cliente...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '<?= base_url('clientes/searchAjax') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => ({ results: data.results || [] }),
+            cache: true
+        }
+    });
+
 });
 
 // Confirmación antes de guardar
@@ -377,72 +420,6 @@ document.getElementById('formEditar').addEventListener('submit', function (e) {
     });
 });
 
-$(function () {
-    // Select2 Doctor
-    $('#selectDoctor').select2({
-        language: 'es',
-        placeholder: 'Buscar doctor...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('doctores/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results }),
-            cache: true,
-        },
-    });
-
-    // Select2 Cliente
-    $('#selectCliente').select2({
-        language: 'es',
-        placeholder: 'Buscar cliente...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('clientes/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results }),
-            cache: true,
-        },
-    });
-
-    // Guardar nuevo doctor desde modal
-    $('#formDoctor').on('submit', function (e) {
-        e.preventDefault();
-        const btn      = $('#btnGuardarDoctor');
-        const errorBox = $('#doctorError');
-
-        errorBox.addClass('d-none').text('');
-        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
-
-        $.ajax({
-            url: '<?= base_url('doctores/storeAjax') ?>',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function (res) {
-                if (!res.success) {
-                    errorBox.removeClass('d-none').text(res.message || 'No se pudo crear el doctor.');
-                    return;
-                }
-                const option = new Option(res.doctor.text, res.doctor.id, true, true);
-                $('#selectDoctor').append(option).trigger('change');
-                $('#modalDoctor').modal('hide');
-                document.getElementById('formDoctor').reset();
-            },
-            error: function () {
-                errorBox.removeClass('d-none').text('Error al comunicarse con el servidor.');
-            },
-            complete: function () {
-                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar doctor');
-            },
-        });
-    });
-});
 </script>
 
 <?= $this->endSection() ?>

@@ -43,8 +43,10 @@ class ConsignacionHeadModel extends Model
 
     public function getConVendedor(int $id)
     {
-        return $this->select('consignaciones_head.*, sellers.seller as vendedor_nombre')
-            ->join('sellers', 'sellers.id = consignaciones_head.vendedor_id', 'left')
+        return $this->select('consignaciones_head.*, sellers.seller as vendedor_nombre, doctores.nombre as doctor_nombre, clientes.nombre as cliente_nombre')
+            ->join('sellers',  'sellers.id = consignaciones_head.vendedor_id', 'left')
+            ->join('doctores', 'doctores.id = consignaciones_head.doctor_id',  'left')
+            ->join('clientes', 'clientes.id = consignaciones_head.cliente_id', 'left')
             ->where('consignaciones_head.id', $id)
             ->first();
     }
