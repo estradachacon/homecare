@@ -321,7 +321,7 @@
                                                 <?php endif; ?>
                                                 <?php if ($cd->foto_devolucion): ?>
                                                     <div class="mt-2">
-                                                        <img src="<?= base_url('uploads/devoluciones/' . $cd->foto_devolucion) ?>"
+                                                        <img src="<?= base_url('upload/devoluciones/' . $cd->foto_devolucion) ?>"
                                                             style="max-height:80px; border-radius:5px;">
                                                     </div>
                                                 <?php endif; ?>
