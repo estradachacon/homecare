@@ -61,9 +61,36 @@
                     <!-- Fila 2 -->
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-muted small">Nombre / Referencia</label>
+                            <label class="form-label text-muted small">Paciente</label>
                             <input type="text" name="nombre" class="form-control"
-                                value="<?= esc($consignacion->nombre) ?>" placeholder="Ej: Paciente García, Clínica Médica...">
+                                value="<?= esc($consignacion->nombre) ?>" placeholder="Ej: Paciente García">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Doctor</label>
+                            <div class="d-flex">
+                                <select name="doctor_id" id="selectDoctor" class="form-control flex-grow-1">
+                                    <?php if (!empty($doctor)): ?>
+                                        <option value="<?= $doctor->id ?>" selected><?= esc($doctor->nombre) ?></option>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-success ml-2"
+                                    data-toggle="modal" data-target="#modalDoctor">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fila 3 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Cliente a facturar</label>
+                            <select name="cliente_id" id="selectCliente" class="form-control">
+                                <?php if (!empty($cliente)): ?>
+                                    <option value="<?= $cliente->id ?>" selected><?= esc($cliente->nombre) ?></option>
+                                <?php endif; ?>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small">Concepto</label>
@@ -190,15 +217,55 @@
     </tr>
 </template>
 
+<!-- Modal Nuevo Doctor -->
+<div class="modal fade" id="modalDoctor" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formDoctor">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Doctor</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre del doctor</label>
+                        <input type="text" name="nombre" id="doctorNombre" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" name="especialidad" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Correo</label>
+                        <input type="email" name="correo" class="form-control">
+                    </div>
+                    <div id="doctorError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarDoctor">
+                        <i class="fa-solid fa-save"></i> Guardar doctor
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 let filaIdx = <?= count($detalles) ?>;
 const vendedorSelect = document.getElementById('selectVendedor');
+const cuerpoProductos = document.getElementById('cuerpoProductos');
 
 function calcularSubtotal(fila) {
     const cant   = parseFloat(fila.querySelector('.input-cantidad').value)  || 0;
     const precio = parseFloat(fila.querySelector('.input-precio').value)    || 0;
     const sub    = cant * precio;
-    fila.querySelector('.input-subtotal').value    = sub.toFixed(2);
+    fila.querySelector('.input-subtotal').value       = sub.toFixed(2);
     fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
     recalcularTotal();
 }
@@ -207,21 +274,6 @@ function recalcularTotal() {
     let total = 0;
     document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
     document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
-}
-
-function bindFila(fila) {
-    fila.querySelector('.input-cantidad').addEventListener('input', () => calcularSubtotal(fila));
-    fila.querySelector('.input-precio').addEventListener('input',   () => calcularSubtotal(fila));
-    fila.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
-        fila.remove();
-        recalcularTotal();
-        if (document.querySelectorAll('.fila-producto').length === 0) {
-            const tr = document.createElement('tr');
-            tr.id = 'filaVacia';
-            tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
-            document.getElementById('cuerpoProductos').appendChild(tr);
-        }
-    });
 }
 
 function initSelectProducto(select) {
@@ -254,14 +306,38 @@ function initSelectProducto(select) {
     });
 }
 
-// Init existing rows
+// Event delegation: cálculo de subtotales
+cuerpoProductos.addEventListener('input', function (e) {
+    if (e.target.classList.contains('input-cantidad') || e.target.classList.contains('input-precio')) {
+        const fila = e.target.closest('.fila-producto');
+        if (fila) calcularSubtotal(fila);
+    }
+});
+
+// Event delegation: eliminar fila
+cuerpoProductos.addEventListener('click', function (e) {
+    const btn = e.target.closest('.btn-eliminar-fila');
+    if (!btn) return;
+    const fila = btn.closest('.fila-producto');
+    if (!fila) return;
+    fila.remove();
+    recalcularTotal();
+    if (!cuerpoProductos.querySelector('.fila-producto')) {
+        const tr = document.createElement('tr');
+        tr.id = 'filaVacia';
+        tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
+        cuerpoProductos.appendChild(tr);
+    }
+});
+
+// Inicializar Select2 en filas existentes
 document.querySelectorAll('.fila-producto').forEach(fila => {
     initSelectProducto(fila.querySelector('.select-producto'));
-    bindFila(fila);
 });
 
 recalcularTotal();
 
+// Agregar nueva fila
 document.getElementById('btnAgregarProducto').addEventListener('click', function () {
     const tpl  = document.getElementById('tplFilaProducto').content.cloneNode(true);
     const fila = tpl.querySelector('tr');
@@ -269,16 +345,15 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
 
     fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
     document.getElementById('filaVacia')?.remove();
-    document.getElementById('cuerpoProductos').appendChild(fila);
+    cuerpoProductos.appendChild(fila);
 
-    const insertedFila = document.getElementById('cuerpoProductos').lastElementChild;
+    const insertedFila = cuerpoProductos.lastElementChild;
     initSelectProducto(insertedFila.querySelector('.select-producto'));
-    bindFila(insertedFila);
 });
 
+// Confirmación antes de guardar
 document.getElementById('formEditar').addEventListener('submit', function (e) {
-    const filas = document.querySelectorAll('.fila-producto');
-    if (filas.length === 0) {
+    if (!cuerpoProductos.querySelector('.fila-producto')) {
         e.preventDefault();
         Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
         return;
@@ -299,6 +374,73 @@ document.getElementById('formEditar').addEventListener('submit', function (e) {
         confirmButtonColor: '#28a745',
     }).then(r => {
         if (r.isConfirmed) document.getElementById('formEditar').submit();
+    });
+});
+
+$(function () {
+    // Select2 Doctor
+    $('#selectDoctor').select2({
+        language: 'es',
+        placeholder: 'Buscar doctor...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '<?= base_url('doctores/searchAjax') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => ({ results: data.results }),
+            cache: true,
+        },
+    });
+
+    // Select2 Cliente
+    $('#selectCliente').select2({
+        language: 'es',
+        placeholder: 'Buscar cliente...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '<?= base_url('clientes/searchAjax') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => ({ results: data.results }),
+            cache: true,
+        },
+    });
+
+    // Guardar nuevo doctor desde modal
+    $('#formDoctor').on('submit', function (e) {
+        e.preventDefault();
+        const btn      = $('#btnGuardarDoctor');
+        const errorBox = $('#doctorError');
+
+        errorBox.addClass('d-none').text('');
+        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+        $.ajax({
+            url: '<?= base_url('doctores/storeAjax') ?>',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function (res) {
+                if (!res.success) {
+                    errorBox.removeClass('d-none').text(res.message || 'No se pudo crear el doctor.');
+                    return;
+                }
+                const option = new Option(res.doctor.text, res.doctor.id, true, true);
+                $('#selectDoctor').append(option).trigger('change');
+                $('#modalDoctor').modal('hide');
+                document.getElementById('formDoctor').reset();
+            },
+            error: function () {
+                errorBox.removeClass('d-none').text('Error al comunicarse con el servidor.');
+            },
+            complete: function () {
+                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar doctor');
+            },
+        });
     });
 });
 </script>

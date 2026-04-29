@@ -16,8 +16,8 @@ class ConsignacionHeadModel extends Model
         'fecha', 'hora', 'fecha_generacion',
         'subtotal', 'observaciones', 'estado',
         'anulada', 'anulada_por', 'fecha_anulacion', 'created_by',
-        'doctor_id',
-        'cliente_id',
+        'doctor_id', 'cliente_id',
+        'aprobacion_estado', 'aprobado_por', 'aprobado_at', 'rechazo_motivo',
     ];
 
     public function listar(array $filtros = [])

@@ -492,10 +492,21 @@ class ConsignacionesController extends BaseController
                 ->with('error', 'Solo se pueden editar notas con estado Abierta.');
         }
 
+        $doctor  = null;
+        $cliente = null;
+        if (!empty($consignacion->doctor_id)) {
+            $doctor = (new \App\Models\DoctorModel())->find($consignacion->doctor_id);
+        }
+        if (!empty($consignacion->cliente_id)) {
+            $cliente = (new \App\Models\ClienteModel())->find($consignacion->cliente_id);
+        }
+
         return view('consignaciones/editar', [
             'consignacion' => $consignacion,
             'detalles'     => $detModel->getPorConsignacion($id),
             'vendedores'   => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'doctor'       => $doctor,
+            'cliente'      => $cliente,
         ]);
     }
 
@@ -532,6 +543,8 @@ class ConsignacionesController extends BaseController
         $headModel->update($id, [
             'vendedor_id'   => $this->request->getPost('vendedor_id'),
             'nombre'        => $this->request->getPost('nombre'),
+            'doctor_id'     => $this->request->getPost('doctor_id')  ?: null,
+            'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
             'concepto'      => $this->request->getPost('concepto'),
             'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
             'hora'          => $this->request->getPost('hora')  ?: date('H:i'),
