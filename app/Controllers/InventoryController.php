@@ -322,7 +322,7 @@ class InventoryController extends BaseController
             $results[] = [
                 'id'   => $p->id,
                 'text' => $p->descripcion . ' (' . $p->codigo . ')',
-                'tipo'=> $p->tipo
+                'tipo' => $p->tipo
             ];
         }
 
@@ -344,7 +344,13 @@ class InventoryController extends BaseController
 
         $anio = $this->request->getGet('anio') ?? date('Y');
 
-        // 🔥 QUERY BASE
+        $filtros = [
+            'desde'     => $this->request->getGet('desde'),
+            'hasta'     => $this->request->getGet('hasta'),
+            'documento' => trim($this->request->getGet('documento') ?? ''),
+            'tipo'      => $this->request->getGet('tipo'),
+        ];
+
         $movQuery = $movModel
             ->select("
             productos_movimientos.*,
@@ -455,7 +461,64 @@ class InventoryController extends BaseController
 
             $stockApertura = (float)($aperturaData->stock ?? 0);
         }
+        // 🔥 CALCULAR SALDO REAL DEL KARDEX DEL AÑO
+        $saldoKardex = $stockApertura;
+        $costoKardex = 0;
 
+        foreach ($movimientos as $m) {
+            $saldoKardex += (float) $m->cantidad;
+
+            if ((float) $m->cantidad > 0) {
+                $costoKardex = (float) $m->costo_unitario;
+            }
+
+            $m->saldo_kardex = $saldoKardex;
+            $m->costo_kardex = $costoKardex;
+        }
+        $stockCierre = $saldoKardex;
+
+        // 🔥 FILTROS VISUALES, NO AFECTAN SALDOS
+        $movimientos = array_values(array_filter($movimientos, function ($m) use ($filtros) {
+            $fecha = !empty($m->fecha_documento)
+                ? date('Y-m-d', strtotime($m->fecha_documento))
+                : date('Y-m-d', strtotime($m->created_at));
+
+            if (!empty($filtros['desde']) && $fecha < $filtros['desde']) {
+                return false;
+            }
+
+            if (!empty($filtros['hasta']) && $fecha > $filtros['hasta']) {
+                return false;
+            }
+
+            if (($filtros['tipo'] ?? '') === 'entrada' && (float) $m->cantidad <= 0) {
+                return false;
+            }
+
+            if (($filtros['tipo'] ?? '') === 'salida' && (float) $m->cantidad >= 0) {
+                return false;
+            }
+
+            if (!empty($filtros['documento'])) {
+                $buscar = mb_strtolower($filtros['documento']);
+
+                $texto = mb_strtolower(
+                    ($m->numero_documento ?? '') . ' ' .
+                        ($m->numero_control ?? '') . ' ' .
+                        ($m->compra_numero_control ?? '') . ' ' .
+                        ($m->cliente_nombre ?? '') . ' ' .
+                        ($m->proveedor_nombre ?? '') . ' ' .
+                        ($m->referencia_tipo ?? '') . ' ' .
+                        ($m->referencia_id ?? '')
+                );
+
+                if (!str_contains($texto, $buscar)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
         // Lotes del catálogo para este producto
         $lotes = (new \App\Models\ConsignacionLoteModel())
             ->where('producto_id', $id)
@@ -469,7 +532,9 @@ class InventoryController extends BaseController
             'stock'         => $stock,
             'anio'          => $anio,
             'stockApertura' => $stockApertura,
+            'stockCierre' => $stockCierre,
             'lotes'         => $lotes,
+            'filtros' => $filtros,
         ]);
     }
 }

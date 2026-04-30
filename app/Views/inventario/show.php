@@ -152,129 +152,236 @@ $lotes         = $lotes ?? [];
                 <div class="tab-content border border-top-0 rounded-bottom p-3" id="productoTabsContent">
 
                     <!-- ── TAB KARDEX ─────────────────────────────────── -->
-                    <div class="tab-pane fade show active" id="pane-kardex" role="tabpanel">
+<div class="tab-pane fade show active" id="pane-kardex" role="tabpanel">
 
-                        <?php $anioActual = date('Y'); ?>
-                        <div class="d-flex justify-content-end mb-2">
-                            <form method="GET" class="d-flex align-items-center">
-                                <label class="me-2 mb-0 text-muted mr-2">Año:</label>
-                                <select name="anio" class="form-select form-select-sm" onchange="this.form.submit()">
-                                    <option value="" <?= empty($anio) ? 'selected' : '' ?>>Todos</option>
-                                    <?php for ($y = $anioActual; $y >= $anioActual - 5; $y--): ?>
-                                        <option value="<?= $y ?>" <?= $y == $anio ? 'selected' : '' ?>><?= $y ?></option>
-                                    <?php endfor; ?>
-                                </select>
-                            </form>
-                        </div>
+    <?php
+    $anioActual   = date('Y');
+    $filtros      = $filtros ?? [];
+    $stockCierre  = $stockCierre ?? $stock;
+    ?>
 
-                        <div class="tabla-movimientos">
-                            <table class="table table-bordered table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Tipo</th>
-                                        <th>Referencia</th>
-                                        <th class="text-end">Cantidad</th>
-                                        <th class="text-end">Costo Prom.</th>
-                                        <th class="text-end">Stock</th>
-                                        <th>Fecha</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (!empty($movimientos)):
-                                        $stock_acumulado = $stockApertura;
-                                        $costo_actual    = 0;
-                                        $siglas          = dte_siglas();
+    <form method="GET" class="row mb-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label text-muted mb-1">Año</label>
+            <select name="anio" class="form-control form-control-sm">
+                <option value="" <?= empty($anio) ? 'selected' : '' ?>>Todos</option>
+                <?php for ($y = $anioActual; $y >= $anioActual - 5; $y--): ?>
+                    <option value="<?= $y ?>" <?= (string)$y === (string)$anio ? 'selected' : '' ?>>
+                        <?= $y ?>
+                    </option>
+                <?php endfor; ?>
+            </select>
+        </div>
 
-                                        function numeroCorto($numero) {
-                                            return substr($numero, -6);
-                                        }
+        <div class="col-md-2">
+            <label class="form-label text-muted mb-1">Desde</label>
+            <input type="date"
+                   name="desde"
+                   class="form-control form-control-sm"
+                   value="<?= esc($filtros['desde'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-muted mb-1">Hasta</label>
+            <input type="date"
+                   name="hasta"
+                   class="form-control form-control-sm"
+                   value="<?= esc($filtros['hasta'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label text-muted mb-1">Documento / Cliente / Proveedor</label>
+            <input type="text"
+                   name="documento"
+                   class="form-control form-control-sm"
+                   placeholder="Buscar..."
+                   value="<?= esc($filtros['documento'] ?? '') ?>">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-muted mb-1">Movimiento</label>
+            <select name="tipo" class="form-control form-control-sm">
+                <option value="">Todos</option>
+                <option value="entrada" <?= ($filtros['tipo'] ?? '') === 'entrada' ? 'selected' : '' ?>>
+                    Entradas
+                </option>
+                <option value="salida" <?= ($filtros['tipo'] ?? '') === 'salida' ? 'selected' : '' ?>>
+                    Salidas
+                </option>
+            </select>
+        </div>
+
+        <div class="col-md-1 d-flex">
+            <button class="btn btn-sm btn-primary mr-1" title="Filtrar">
+                <i class="fa-solid fa-filter"></i>
+            </button>
+
+            <a href="<?= current_url() ?>" class="btn btn-sm btn-light border" title="Limpiar">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+        </div>
+    </form>
+
+    <div class="tabla-movimientos">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Tipo</th>
+                    <th>Referencia</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Costo Prom.</th>
+                    <th class="text-end">Stock</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <?php
+                $siglas = dte_siglas();
+
+                if (!function_exists('numeroCorto')) {
+                    function numeroCorto($numero) {
+                        return substr($numero, -6);
+                    }
+                }
+                ?>
+
+                <?php if (!empty($anio)): ?>
+                    <tr class="fila-apertura">
+                        <td class="text-muted">—</td>
+                        <td>
+                            <span class="badge bg-info text-white">APERTURA</span>
+                        </td>
+                        <td colspan="2" class="fst-italic">
+                            Saldo anterior al <?= esc($anio) ?>
+                        </td>
+                        <td class="text-end text-muted">—</td>
+                        <td class="text-end fw-bold <?= $stockApertura >= 0 ? 'text-success' : 'text-danger' ?>">
+                            <?= number_format($stockApertura, 2) ?>
+                        </td>
+                        <td class="text-muted">31/12/<?= ((int)$anio - 1) ?></td>
+                    </tr>
+                <?php endif; ?>
+
+                <?php if (!empty($movimientos)): ?>
+                    <?php foreach ($movimientos as $m): ?>
+                        <?php
+                        $stock_actual_mov = $m->saldo_kardex ?? 0;
+                        $costo_mov        = $m->costo_kardex ?? 0;
+
+                        if ($m->tipo_movimiento === 'compra') {
+                            $tipoLabel = 'ENTRADA';
+                        } elseif ($m->tipo_movimiento === 'venta') {
+                            $tipoLabel = 'SALIDA';
+                        } elseif ($m->tipo_movimiento === 'ajuste') {
+                            $tipoLabel = $m->cantidad >= 0 ? 'ENTRADA' : 'SALIDA';
+                        } else {
+                            $tipoLabel = strtoupper($m->tipo_movimiento);
+                        }
+                        ?>
+
+                        <tr>
+                            <td><?= esc($m->id) ?></td>
+
+                            <td>
+                                <span class="badge <?= $m->cantidad > 0 ? 'bg-success' : 'bg-danger' ?> text-white">
+                                    <?= esc($tipoLabel) ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <?php if ($m->referencia_tipo === 'factura' && !empty($m->numero_control)): ?>
+                                    <?php
+                                    $sigla  = $siglas[$m->tipo_dte] ?? $m->tipo_dte;
+                                    $numero = numeroCorto($m->numero_control);
                                     ?>
-                                        <?php if (!empty($anio)): ?>
-                                        <tr class="fila-apertura">
-                                            <td class="text-muted">—</td>
-                                            <td><span class="badge bg-info text-white">APERTURA</span></td>
-                                            <td colspan="2" class="fst-italic">Saldo anterior al <?= $anio ?></td>
-                                            <td class="text-end text-muted">—</td>
-                                            <td class="text-end fw-bold <?= $stockApertura >= 0 ? 'text-success' : 'text-danger' ?>">
-                                                <?= number_format($stockApertura, 2) ?>
-                                            </td>
-                                            <td class="text-muted">31/12/<?= $anio - 1 ?></td>
-                                        </tr>
-                                        <?php endif; ?>
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <span class="fw-semibold text-primary">
+                                                <?= esc($sigla) ?> - <?= esc($numero) ?>
+                                            </span>
+                                            <span class="text-muted">
+                                                || <?= esc($m->cliente_nombre ?? 'Cliente') ?>
+                                            </span>
+                                        </div>
+                                        <a href="<?= base_url('facturas/' . $m->referencia_id) ?>"
+                                           class="btn btn-sm btn-light border ms-2"
+                                           title="Ver factura">👁</a>
+                                    </div>
 
-                                        <?php foreach ($movimientos as $m):
-                                            $stock_acumulado += $m->cantidad;
-                                            if ($m->cantidad > 0) $costo_actual = $m->costo_unitario;
-                                            $stock_actual_mov = $stock_acumulado;
-                                            $costo_mov        = $costo_actual;
-                                        ?>
-                                        <tr>
-                                            <td><?= $m->id ?></td>
-                                            <td>
-                                                <?php
-                                                    if ($m->tipo_movimiento === 'compra')       $tipoLabel = 'ENTRADA';
-                                                    elseif ($m->tipo_movimiento === 'venta')    $tipoLabel = 'SALIDA';
-                                                    elseif ($m->tipo_movimiento === 'ajuste')   $tipoLabel = $m->cantidad >= 0 ? 'ENTRADA' : 'SALIDA';
-                                                    else                                         $tipoLabel = strtoupper($m->tipo_movimiento);
-                                                ?>
-                                                <span class="badge <?= $m->cantidad > 0 ? 'bg-success' : 'bg-danger' ?> text-white">
-                                                    <?= $tipoLabel ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php if ($m->referencia_tipo === 'factura' && !empty($m->numero_control)): ?>
-                                                    <?php $sigla = $siglas[$m->tipo_dte] ?? $m->tipo_dte; $numero = numeroCorto($m->numero_control); ?>
-                                                    <div class="d-flex justify-content-between">
-                                                        <div>
-                                                            <span class="fw-semibold text-primary"><?= $sigla ?> - <?= $numero ?></span>
-                                                            <span class="text-muted">|| <?= esc($m->cliente_nombre ?? 'Cliente') ?></span>
-                                                        </div>
-                                                        <a href="<?= base_url('facturas/' . $m->referencia_id) ?>" class="btn btn-sm btn-light border ms-2" title="Ver factura">👁</a>
-                                                    </div>
-                                                <?php elseif ($m->referencia_tipo === 'compra' && !empty($m->compra_numero_control)): ?>
-                                                    <?php $sigla = $siglas[$m->compra_tipo_dte] ?? 'COMP'; $numero = numeroCorto($m->compra_numero_control); ?>
-                                                    <div class="d-flex justify-content-between">
-                                                        <div>
-                                                            <span class="fw-semibold text-success"><?= $sigla ?> - <?= $numero ?></span>
-                                                            <span class="text-muted">|| <?= esc($m->proveedor_nombre ?? 'Proveedor') ?></span>
-                                                        </div>
-                                                        <a href="<?= base_url('purchases/' . $m->referencia_id) ?>" class="btn btn-sm btn-light border ms-2" title="Ver compra">👁</a>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <?= esc($m->referencia_tipo) ?> #<?= $m->referencia_id ?>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-end <?= $m->cantidad > 0 ? 'text-success' : 'text-danger' ?>"><?= number_format($m->cantidad, 2) ?></td>
-                                            <td class="text-end text-primary">$<?= number_format($costo_mov, 4) ?></td>
-                                            <td class="text-end fw-bold <?= $stock_actual_mov >= 0 ? 'text-success' : 'text-danger' ?>"><?= number_format($stock_actual_mov, 2) ?></td>
-                                            <td>
-                                                <?= !empty($m->fecha_documento)
-                                                    ? date('d/m/Y', strtotime($m->fecha_documento))
-                                                    : date('d/m/Y', strtotime($m->created_at)) ?>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
+                                <?php elseif ($m->referencia_tipo === 'compra' && !empty($m->compra_numero_control)): ?>
+                                    <?php
+                                    $sigla  = $siglas[$m->compra_tipo_dte] ?? 'COMP';
+                                    $numero = numeroCorto($m->compra_numero_control);
+                                    ?>
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <span class="fw-semibold text-success">
+                                                <?= esc($sigla) ?> - <?= esc($numero) ?>
+                                            </span>
+                                            <span class="text-muted">
+                                                || <?= esc($m->proveedor_nombre ?? 'Proveedor') ?>
+                                            </span>
+                                        </div>
+                                        <a href="<?= base_url('purchases/' . $m->referencia_id) ?>"
+                                           class="btn btn-sm btn-light border ms-2"
+                                           title="Ver compra">👁</a>
+                                    </div>
 
-                                        <?php if (!empty($anio)): ?>
-                                        <tr class="fila-cierre">
-                                            <td>—</td>
-                                            <td><span class="badge bg-light text-dark">CIERRE</span></td>
-                                            <td colspan="2" class="fst-italic">Saldo al cierre del <?= $anio ?></td>
-                                            <td class="text-end">—</td>
-                                            <td class="text-end fw-bold <?= $stock_acumulado >= 0 ? 'text-success' : 'text-danger' ?>"><?= number_format($stock_acumulado, 2) ?></td>
-                                            <td>31/12/<?= $anio ?></td>
-                                        </tr>
-                                        <?php endif; ?>
+                                <?php else: ?>
+                                    <?= esc($m->referencia_tipo) ?> #<?= esc($m->referencia_id) ?>
+                                <?php endif; ?>
+                            </td>
 
-                                    <?php else: ?>
-                                        <tr><td colspan="7" class="text-center text-muted">Sin movimientos</td></tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                            <td class="text-end <?= $m->cantidad > 0 ? 'text-success' : 'text-danger' ?>">
+                                <?= number_format($m->cantidad, 2) ?>
+                            </td>
 
-                    </div><!-- /pane-kardex -->
+                            <td class="text-end text-primary">
+                                $<?= number_format($costo_mov, 4) ?>
+                            </td>
+
+                            <td class="text-end fw-bold <?= $stock_actual_mov >= 0 ? 'text-success' : 'text-danger' ?>">
+                                <?= number_format($stock_actual_mov, 2) ?>
+                            </td>
+
+                            <td>
+                                <?= !empty($m->fecha_documento)
+                                    ? date('d/m/Y', strtotime($m->fecha_documento))
+                                    : date('d/m/Y', strtotime($m->created_at)) ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            Sin movimientos para los filtros aplicados
+                        </td>
+                    </tr>
+                <?php endif; ?>
+
+                <?php if (!empty($anio)): ?>
+                    <tr class="fila-cierre">
+                        <td>—</td>
+                        <td>
+                            <span class="badge bg-light text-dark">CIERRE</span>
+                        </td>
+                        <td colspan="2" class="fst-italic">
+                            Saldo al cierre del <?= esc($anio) ?>
+                        </td>
+                        <td class="text-end">—</td>
+                        <td class="text-end fw-bold <?= $stockCierre >= 0 ? 'text-success' : 'text-danger' ?>">
+                            <?= number_format($stockCierre, 2) ?>
+                        </td>
+                        <td>31/12/<?= esc($anio) ?></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+</div><!-- /pane-kardex -->
 
                     <!-- ── TAB LOTES ──────────────────────────────────── -->
                     <div class="tab-pane fade" id="pane-lotes" role="tabpanel">
