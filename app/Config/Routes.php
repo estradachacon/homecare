@@ -260,6 +260,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('consignaciones/precios',                       'ConsignacionesController::precios');
     $routes->post('consignaciones/precios/guardar',              'ConsignacionesController::guardarPrecio');
     $routes->post('consignaciones/precios/(:num)/eliminar',      'ConsignacionesController::eliminarPrecio/$1');
+    // Reportes
+    $routes->get('consignaciones/reportes',                      'ConsignacionesController::reportes');
+    $routes->get('consignaciones/reportes/notas',                'ConsignacionesController::reporteNotas');
+    $routes->get('consignaciones/reportes/productos',            'ConsignacionesController::reporteProductos');
+    $routes->get('consignaciones/reportes/pacientes',            'ConsignacionesController::reportePacientes');
+    $routes->get('consignaciones/reportes/doctores',             'ConsignacionesController::reporteDoctores');
+    $routes->get('consignaciones/reportes/clientes',             'ConsignacionesController::reporteClientes');
 
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');

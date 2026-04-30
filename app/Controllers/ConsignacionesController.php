@@ -1110,15 +1110,20 @@ class ConsignacionesController extends BaseController
     public function facturasVendedor(int $vendedorId)
     {
         $db = \Config\Database::connect();
+        $q  = trim($this->request->getGet('q') ?? '');
 
-        $facturas = $db->table('facturas_head')
+        $builder = $db->table('facturas_head')
             ->select('id, numero_control, fecha_emision, total_pagar')
             ->where('vendedor_id', $vendedorId)
             ->where('anulada', 0)
             ->orderBy('fecha_emision', 'DESC')
-            ->limit(200)
-            ->get()
-            ->getResult();
+            ->limit(100);
+
+        if ($q !== '') {
+            $builder->like('numero_control', $q);
+        }
+
+        $facturas = $builder->get()->getResult();
 
         $results = [];
         foreach ($facturas as $f) {
@@ -1129,5 +1134,226 @@ class ConsignacionesController extends BaseController
         }
 
         return $this->response->setJSON(['results' => $results]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  REPORTES
+    // ─────────────────────────────────────────────
+
+    public function reportes()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        return view('consignaciones/reportes/index');
+    }
+
+    public function reporteNotas()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $filtros = [
+            'fecha_inicio'      => $this->request->getGet('fecha_inicio')      ?: date('Y-m-01'),
+            'fecha_fin'         => $this->request->getGet('fecha_fin')         ?: date('Y-m-d'),
+            'vendedor_id'       => $this->request->getGet('vendedor_id')       ?: '',
+            'estado'            => $this->request->getGet('estado')            ?: '',
+            'aprobacion_estado' => $this->request->getGet('aprobacion_estado') ?: '',
+        ];
+
+        $q = $db->table('consignaciones_head ch')
+            ->select('ch.*, s.seller AS vendedor_nombre, d.nombre AS doctor_nombre, c.nombre AS cliente_nombre')
+            ->join('sellers s',  's.id = ch.vendedor_id', 'left')
+            ->join('doctores d', 'd.id = ch.doctor_id',  'left')
+            ->join('clientes c', 'c.id = ch.cliente_id', 'left')
+            ->where('ch.fecha >=', $filtros['fecha_inicio'])
+            ->where('ch.fecha <=', $filtros['fecha_fin']);
+
+        if ($filtros['vendedor_id'])       $q->where('ch.vendedor_id', $filtros['vendedor_id']);
+        if ($filtros['estado'])            $q->where('ch.estado', $filtros['estado']);
+        if ($filtros['aprobacion_estado']) $q->where('ch.aprobacion_estado', $filtros['aprobacion_estado']);
+
+        $notas = $q->orderBy('ch.fecha', 'DESC')->orderBy('ch.id', 'DESC')->get()->getResult();
+
+        return view('consignaciones/reportes/notas', [
+            'notas'      => $notas,
+            'filtros'    => $filtros,
+            'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    public function reporteProductos()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'vendedor_id'  => $this->request->getGet('vendedor_id')  ?: '',
+            'estado'       => $this->request->getGet('estado')       ?: '',
+        ];
+
+        $sql    = "
+            SELECT p.codigo AS producto_codigo,
+                   p.descripcion AS producto_nombre,
+                   COUNT(DISTINCT ch.id) AS total_notas,
+                   SUM(cd.cantidad) AS total_enviado,
+                   SUM(cd.subtotal) AS valor_enviado,
+                   COALESCE(SUM(ccd.cantidad_facturada), 0)      AS total_facturado,
+                   COALESCE(SUM(ccd.cantidad_devuelta), 0)       AS total_devuelto,
+                   COALESCE(SUM(ccd.cantidad_stock_vendedor), 0) AS total_stock
+            FROM consignaciones_detalles cd
+            INNER JOIN productos p ON p.id = cd.producto_id
+            INNER JOIN consignaciones_head ch ON ch.id = cd.consignacion_id
+            LEFT JOIN consignaciones_cierres cc ON cc.consignacion_id = ch.id
+            LEFT JOIN consignaciones_cierres_detalles ccd
+                   ON ccd.detalle_id = cd.id AND ccd.cierre_id = cc.id
+            WHERE ch.fecha >= ? AND ch.fecha <= ?";
+        $binds  = [$filtros['fecha_inicio'], $filtros['fecha_fin']];
+
+        if ($filtros['vendedor_id']) { $sql .= ' AND ch.vendedor_id = ?'; $binds[] = $filtros['vendedor_id']; }
+        if ($filtros['estado'])      { $sql .= ' AND ch.estado = ?';      $binds[] = $filtros['estado']; }
+
+        $sql .= ' GROUP BY p.id, p.codigo, p.descripcion ORDER BY total_enviado DESC';
+
+        $productos = $db->query($sql, $binds)->getResult();
+
+        return view('consignaciones/reportes/productos', [
+            'productos'  => $productos,
+            'filtros'    => $filtros,
+            'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    public function reportePacientes()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'vendedor_id'  => $this->request->getGet('vendedor_id')  ?: '',
+        ];
+
+        $sql   = "
+            SELECT ch.nombre AS paciente,
+                   d.nombre AS doctor_nombre,
+                   s.seller AS vendedor_nombre,
+                   COUNT(DISTINCT ch.id) AS total_notas,
+                   SUM(cd.cantidad)      AS total_productos,
+                   SUM(ch.subtotal)      AS total_valor,
+                   MIN(ch.fecha)         AS primera_fecha,
+                   MAX(ch.fecha)         AS ultima_fecha
+            FROM consignaciones_head ch
+            INNER JOIN consignaciones_detalles cd ON cd.consignacion_id = ch.id
+            LEFT JOIN sellers s  ON s.id = ch.vendedor_id
+            LEFT JOIN doctores d ON d.id = ch.doctor_id
+            WHERE ch.nombre IS NOT NULL AND ch.nombre != ''
+              AND ch.fecha >= ? AND ch.fecha <= ?";
+        $binds = [$filtros['fecha_inicio'], $filtros['fecha_fin']];
+
+        if ($filtros['vendedor_id']) { $sql .= ' AND ch.vendedor_id = ?'; $binds[] = $filtros['vendedor_id']; }
+
+        $sql .= ' GROUP BY ch.nombre, d.nombre, s.seller ORDER BY total_notas DESC, ch.nombre ASC';
+
+        $pacientes = $db->query($sql, $binds)->getResult();
+
+        return view('consignaciones/reportes/pacientes', [
+            'pacientes'  => $pacientes,
+            'filtros'    => $filtros,
+            'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    public function reporteDoctores()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'vendedor_id'  => $this->request->getGet('vendedor_id')  ?: '',
+        ];
+
+        $sql   = "
+            SELECT d.nombre AS doctor_nombre,
+                   COUNT(DISTINCT ch.id)     AS total_notas,
+                   COUNT(DISTINCT ch.nombre) AS total_pacientes,
+                   SUM(ch.subtotal)          AS total_valor,
+                   MIN(ch.fecha)             AS primera_fecha,
+                   MAX(ch.fecha)             AS ultima_fecha
+            FROM consignaciones_head ch
+            INNER JOIN doctores d ON d.id = ch.doctor_id
+            WHERE ch.fecha >= ? AND ch.fecha <= ?";
+        $binds = [$filtros['fecha_inicio'], $filtros['fecha_fin']];
+
+        if ($filtros['vendedor_id']) { $sql .= ' AND ch.vendedor_id = ?'; $binds[] = $filtros['vendedor_id']; }
+
+        $sql .= ' GROUP BY d.id, d.nombre ORDER BY total_notas DESC';
+
+        $doctores = $db->query($sql, $binds)->getResult();
+
+        return view('consignaciones/reportes/doctores', [
+            'doctores'   => $doctores,
+            'filtros'    => $filtros,
+            'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    public function reporteClientes()
+    {
+        $chk = requerirPermiso('ver_consignaciones');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'vendedor_id'  => $this->request->getGet('vendedor_id')  ?: '',
+        ];
+
+        $sql   = "
+            SELECT c.nombre AS cliente_nombre,
+                   COUNT(DISTINCT ch.id)         AS total_notas,
+                   COUNT(DISTINCT cf.factura_id) AS total_facturas,
+                   COALESCE(SUM(fh.total_pagar), 0) AS total_facturado,
+                   MIN(ch.fecha) AS primera_fecha,
+                   MAX(ch.fecha) AS ultima_fecha
+            FROM consignaciones_head ch
+            INNER JOIN clientes c ON c.id = ch.cliente_id
+            LEFT JOIN consignaciones_cierres cc ON cc.consignacion_id = ch.id
+            LEFT JOIN consignaciones_cierres_facturas cf ON cf.cierre_id = cc.id
+            LEFT JOIN facturas_head fh ON fh.id = cf.factura_id AND fh.anulada = 0
+            WHERE ch.fecha >= ? AND ch.fecha <= ?";
+        $binds = [$filtros['fecha_inicio'], $filtros['fecha_fin']];
+
+        if ($filtros['vendedor_id']) { $sql .= ' AND ch.vendedor_id = ?'; $binds[] = $filtros['vendedor_id']; }
+
+        $sql .= ' GROUP BY c.id, c.nombre ORDER BY total_facturado DESC';
+
+        $clientes = $db->query($sql, $binds)->getResult();
+
+        return view('consignaciones/reportes/clientes', [
+            'clientes'   => $clientes,
+            'filtros'    => $filtros,
+            'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
     }
 }

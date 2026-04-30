@@ -286,14 +286,16 @@
             $(selectEl).select2({
                 language: 'es',
                 placeholder: 'Buscar factura...',
+                minimumInputLength: 0,
                 ajax: {
                     url: '<?= base_url('consignaciones/facturas-vendedor') ?>/' + vendedorId,
                     dataType: 'json',
-                    delay: 250,
+                    delay: 300,
+                    data: params => ({ q: params.term || '' }),
                     processResults: data => ({
                         results: data.results
                     }),
-                    cache: true,
+                    cache: false,
                 },
             });
         }

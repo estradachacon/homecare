@@ -430,6 +430,11 @@
                                     Precios por Vendedor
                                 </a>
                             <?php endif; ?>
+                            <?php if (tienePermiso('ver_consignaciones')): ?>
+                                <a class="nav-link" href="/consignaciones/reportes">
+                                    Reportes
+                                </a>
+                            <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>
