@@ -495,6 +495,27 @@
         // ── Aprobar ─────────────────────────────────────────────
         <?php if ($consignacion->estado === 'abierta' && tienePermiso('aprobar_consignaciones')): ?>
             $('#btnAprobar')?.on('click', function() {
+
+                let hayError = false;
+
+                <?php foreach ($detalles as $d): ?>
+                    <?php $totalLotes = count($lotesPorDetalle[$d->id] ?? []); ?>
+
+                    <?php if ($totalLotes === 0): ?>
+                        hayError = true;
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+
+                if (hayError) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Lotes incompletos',
+                        text: 'Todos los productos deben tener lotes asignados antes de aprobar la nota.'
+                    });
+                    return;
+                }
+
                 Swal.fire({
                     title: 'Aprobar nota',
                     text: '¿Confirma que la mercadería fue validada físicamente?',
@@ -505,16 +526,23 @@
                     confirmButtonColor: '#198754',
                 }).then(r => {
                     if (!r.isConfirmed) return;
+
                     fetch('<?= base_url('consignaciones/' . $consignacion->id . '/aprobar') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': CSRF
-                        },
-                    }).then(r => r.json()).then(d => {
-                        if (d.success) Swal.fire('Aprobada', d.message, 'success').then(() => location.reload());
-                        else Swal.fire('Error', d.message, 'error');
-                    });
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': CSRF
+                            },
+                        })
+                        .then(r => r.json())
+                        .then(d => {
+                            if (d.success) {
+                                Swal.fire('Aprobada', d.message, 'success')
+                                    .then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', d.message, 'error');
+                            }
+                        });
                 });
             });
 

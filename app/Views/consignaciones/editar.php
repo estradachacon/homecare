@@ -6,6 +6,7 @@
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px !important; padding-left: .75rem; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px !important; }
     #tablaProductos td { vertical-align: middle; }
+    .lotes-badge .badge { font-size: 10px; cursor: default; }
 </style>
 
 <div class="row">
@@ -71,7 +72,13 @@
                             <div class="d-flex">
                                 <select name="doctor_id" id="selectDoctor" class="form-control flex-grow-1">
                                     <?php if (!empty($doctor)): ?>
-                                        <option value="<?= $doctor->id ?>" selected><?= esc($doctor->nombre) ?></option>
+                                        <option value="<?= esc($doctor->id) ?>" selected>
+                                            <?= esc($doctor->nombre) ?>
+                                        </option>
+                                    <?php elseif (!empty($consignacion->doctor_id) && !empty($consignacion->doctor_nombre)): ?>
+                                        <option value="<?= esc($consignacion->doctor_id) ?>" selected>
+                                            <?= esc($consignacion->doctor_nombre) ?>
+                                        </option>
                                     <?php endif; ?>
                                 </select>
                                 <button type="button" class="btn btn-success ml-2"
@@ -114,7 +121,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th style="min-width:300px">Producto</th>
-                                    <th style="width:110px">Cantidad</th>
+                                    <th style="width:150px">Cantidad</th>
                                     <th style="width:130px">Precio Unit.</th>
                                     <th style="width:130px" class="text-end">Subtotal</th>
                                     <th style="width:50px"></th>
@@ -128,9 +135,20 @@
                                         </td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php foreach ($detalles as $i => $d): ?>
-                                    <tr class="fila-producto" data-idx="<?= $i ?>">
+                                    <?php foreach ($detalles as $i => $d):
+                                        $lotes      = ($lotesPorDetalle ?? [])[$d->id] ?? [];
+                                        $lotesCount = count($lotes);
+                                        $lotesTotal = array_sum(array_map(fn($l) => (float)$l->cantidad, $lotes));
+                                    ?>
+                                    <tr class="fila-producto"
+                                        data-idx="<?= $i ?>"
+                                        data-detalle-id="<?= $d->id ?>"
+                                        data-orig-cantidad="<?= $d->cantidad ?>"
+                                        data-orig-producto-id="<?= $d->producto_id ?>"
+                                        data-lotes-count="<?= $lotesCount ?>"
+                                        data-lotes-total="<?= $lotesTotal ?>">
                                         <td>
+                                            <input type="hidden" name="productos[<?= $i ?>][detalle_id]" value="<?= $d->id ?>">
                                             <select name="productos[<?= $i ?>][producto_id]"
                                                 class="form-control form-control-sm select-producto" required>
                                                 <option value="<?= $d->producto_id ?>" selected>
@@ -142,6 +160,13 @@
                                             <input type="number" name="productos[<?= $i ?>][cantidad]"
                                                 class="form-control form-control-sm input-cantidad"
                                                 value="<?= $d->cantidad ?>" min="0.01" step="0.01" required>
+                                            <div class="lotes-badge mt-1"<?= $lotesCount === 0 ? ' style="display:none"' : '' ?>>
+                                                <?php if ($lotesCount > 0): ?>
+                                                <span class="badge badge-info small">
+                                                    <?= $lotesCount ?> lote<?= $lotesCount > 1 ? 's' : '' ?> &middot; <?= number_format($lotesTotal, 2) ?> u
+                                                </span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                         <td>
                                             <input type="number" name="productos[<?= $i ?>][precio_unitario]"
@@ -200,6 +225,7 @@
         <td>
             <input type="number" name="productos[IDX][cantidad]" class="form-control form-control-sm input-cantidad"
                 min="0.01" step="0.01" value="1" required>
+            <div class="lotes-badge mt-1" style="display:none"></div>
         </td>
         <td>
             <input type="number" name="productos[IDX][precio_unitario]" class="form-control form-control-sm input-precio"
@@ -258,12 +284,12 @@
 
 <script>
 let filaIdx = <?= count($detalles) ?>;
-const vendedorSelect = document.getElementById('selectVendedor');
+const vendedorSelect  = document.getElementById('selectVendedor');
 const cuerpoProductos = document.getElementById('cuerpoProductos');
 
 function calcularSubtotal(fila) {
-    const cant   = parseFloat(fila.querySelector('.input-cantidad').value)  || 0;
-    const precio = parseFloat(fila.querySelector('.input-precio').value)    || 0;
+    const cant   = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
+    const precio = parseFloat(fila.querySelector('.input-precio').value)   || 0;
     const sub    = cant * precio;
     fila.querySelector('.input-subtotal').value       = sub.toFixed(2);
     fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
@@ -274,6 +300,30 @@ function recalcularTotal() {
     let total = 0;
     document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
     document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
+}
+
+function actualizarBadgeLotes(fila) {
+    const lotesCount = parseInt(fila.dataset.lotesCount || '0');
+    if (lotesCount === 0) return;
+
+    const badge = fila.querySelector('.lotes-badge');
+    if (!badge) return;
+    badge.style.display = '';
+
+    const origCant   = parseFloat(fila.dataset.origCantidad   || '0');
+    const origProdId = String(fila.dataset.origProductoId      || '');
+    const currCant   = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
+    const sel        = fila.querySelector('.select-producto');
+    const currProdId = String(sel ? sel.value : '');
+
+    const changed = Math.abs(currCant - origCant) > 0.001 || currProdId !== origProdId;
+
+    if (changed) {
+        badge.innerHTML = '<span class="badge badge-warning text-dark small"><i class="fa-solid fa-triangle-exclamation"></i> Lotes serán eliminados</span>';
+    } else {
+        const lotesTotal = parseFloat(fila.dataset.lotesTotal || '0');
+        badge.innerHTML  = `<span class="badge badge-info small">${lotesCount} lote${lotesCount > 1 ? 's' : ''} &middot; ${lotesTotal.toFixed(2)} u</span>`;
+    }
 }
 
 function initSelectProducto(select) {
@@ -292,13 +342,16 @@ function initSelectProducto(select) {
     }).on('select2:select', function (e) {
         const productoId = e.params.data.id;
         const vendedorId = vendedorSelect.value;
+        const fila       = $(select).closest('tr')[0];
+
+        actualizarBadgeLotes(fila);
+
         if (!vendedorId || !productoId) return;
 
         fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
             .then(r => r.json())
             .then(data => {
                 if (data.precio !== null) {
-                    const fila = $(select).closest('tr')[0];
                     fila.querySelector('.input-precio').value = parseFloat(data.precio).toFixed(2);
                     calcularSubtotal(fila);
                 }
@@ -306,40 +359,59 @@ function initSelectProducto(select) {
     });
 }
 
-// Event delegation: cálculo de subtotales
+// Subtotales y badge de lotes
 cuerpoProductos.addEventListener('input', function (e) {
     if (e.target.classList.contains('input-cantidad') || e.target.classList.contains('input-precio')) {
         const fila = e.target.closest('.fila-producto');
-        if (fila) calcularSubtotal(fila);
+        if (fila) {
+            calcularSubtotal(fila);
+            if (e.target.classList.contains('input-cantidad')) {
+                actualizarBadgeLotes(fila);
+            }
+        }
     }
 });
 
-// Event delegation: eliminar fila
+// Eliminar fila — con advertencia si tiene lotes
 cuerpoProductos.addEventListener('click', function (e) {
     const btn = e.target.closest('.btn-eliminar-fila');
     if (!btn) return;
     const fila = btn.closest('.fila-producto');
     if (!fila) return;
-    fila.remove();
-    recalcularTotal();
-    if (!cuerpoProductos.querySelector('.fila-producto')) {
-        const tr = document.createElement('tr');
-        tr.id = 'filaVacia';
-        tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
-        cuerpoProductos.appendChild(tr);
+
+    const lotesCount = parseInt(fila.dataset.lotesCount || '0');
+
+    const eliminarFila = () => {
+        fila.remove();
+        recalcularTotal();
+        if (!cuerpoProductos.querySelector('.fila-producto')) {
+            const tr = document.createElement('tr');
+            tr.id = 'filaVacia';
+            tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
+            cuerpoProductos.appendChild(tr);
+        }
+    };
+
+    if (lotesCount > 0) {
+        Swal.fire({
+            title: '¿Eliminar producto?',
+            html: `Este producto tiene <strong>${lotesCount} lote${lotesCount > 1 ? 's' : ''}</strong> asignado${lotesCount > 1 ? 's' : ''}.<br>Al eliminarlo, las asignaciones de lotes se perderán al guardar.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+        }).then(r => { if (r.isConfirmed) eliminarFila(); });
+    } else {
+        eliminarFila();
     }
 });
 
-// Inicializar Select2 en filas existentes
+// Inicialización
 window.addEventListener('load', function () {
 
-    if (typeof $ === 'undefined') {
-        console.error('jQuery no está cargado');
-        return;
-    }
-
-    if (!$.fn.select2) {
-        console.error('Select2 no está cargado');
+    if (typeof $ === 'undefined' || !$.fn.select2) {
+        console.error('jQuery o Select2 no están cargados');
         return;
     }
 
@@ -358,8 +430,7 @@ window.addEventListener('load', function () {
         document.getElementById('filaVacia')?.remove();
         cuerpoProductos.appendChild(fila);
 
-        const insertedFila = cuerpoProductos.lastElementChild;
-        initSelectProducto(insertedFila.querySelector('.select-producto'));
+        initSelectProducto(cuerpoProductos.lastElementChild.querySelector('.select-producto'));
     });
 
     $('#selectDoctor').select2({
@@ -373,8 +444,8 @@ window.addEventListener('load', function () {
             delay: 250,
             data: params => ({ q: params.term || '' }),
             processResults: data => ({ results: data.results || [] }),
-            cache: true
-        }
+            cache: true,
+        },
     });
 
     $('#selectCliente').select2({
@@ -388,38 +459,62 @@ window.addEventListener('load', function () {
             delay: 250,
             data: params => ({ q: params.term || '' }),
             processResults: data => ({ results: data.results || [] }),
-            cache: true
-        }
+            cache: true,
+        },
     });
-
 });
 
-// Confirmación antes de guardar
+// Submit con doble confirmación cuando hay lotes afectados
 document.getElementById('formEditar').addEventListener('submit', function (e) {
+    e.preventDefault();
+
     if (!cuerpoProductos.querySelector('.fila-producto')) {
-        e.preventDefault();
         Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
         return;
     }
 
+    // Buscar filas con lotes que cambiaron
+    const productosAfectados = [];
+    document.querySelectorAll('.fila-producto').forEach(fila => {
+        if (parseInt(fila.dataset.lotesCount || '0') === 0) return;
+        const badge = fila.querySelector('.lotes-badge span');
+        if (badge && badge.classList.contains('badge-warning')) {
+            const sel  = fila.querySelector('.select-producto');
+            const text = sel?.options[sel.selectedIndex]?.textContent?.trim() || 'Producto';
+            productosAfectados.push(text);
+        }
+    });
+
     const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
     const total    = document.getElementById('totalGeneral').textContent;
 
-    e.preventDefault();
+    const confirmarGuardar = () => {
+        Swal.fire({
+            title: 'Confirmar cambios',
+            html: `<b>Vendedor:</b> ${vendedor}<br><b>Total: ${total}</b>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#28a745',
+        }).then(r => { if (r.isConfirmed) document.getElementById('formEditar').submit(); });
+    };
 
-    Swal.fire({
-        title: 'Confirmar cambios',
-        html: `<b>Vendedor:</b> ${vendedor}<br><b>Total: ${total}</b>`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Guardar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#28a745',
-    }).then(r => {
-        if (r.isConfirmed) document.getElementById('formEditar').submit();
-    });
+    if (productosAfectados.length > 0) {
+        const lista = productosAfectados.map(p => `<li style="text-align:left">${p}</li>`).join('');
+        Swal.fire({
+            title: 'Advertencia: lotes serán eliminados',
+            html: `Los lotes de los siguientes productos serán eliminados al guardar:<ul style="margin-top:8px">${lista}</ul>Podrá reasignarlos desde la vista de detalle.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Continuar de todas formas',
+            cancelButtonText: 'Volver',
+            confirmButtonColor: '#fd7e14',
+        }).then(r => { if (r.isConfirmed) confirmarGuardar(); });
+    } else {
+        confirmarGuardar();
+    }
 });
-
 </script>
 
 <?= $this->endSection() ?>

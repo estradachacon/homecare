@@ -107,7 +107,7 @@ class ConsignacionesController extends BaseController
             'hora'            => $hora,
             'fecha_generacion' => date('Y-m-d H:i:s'),
             'subtotal'        => $subtotal,
-            'doctor'     => $this->request->getPost('doctor') ?: null,
+            'doctor_id' => $this->request->getPost('doctor_id') ?: null,
             'cliente_id' => $this->request->getPost('cliente_id') ?: null,
             'observaciones'   => $this->request->getPost('observaciones'),
             'estado'          => 'abierta',
@@ -214,7 +214,7 @@ class ConsignacionesController extends BaseController
             'consignacion'      => $consignacion,
             'detalles'          => $detalles,
             'cierre'            => $cierre,
-            'facturasPorDetalle'=> $facturasPorDetalle,
+            'facturasPorDetalle' => $facturasPorDetalle,
             'mapCierreDetalle'  => $mapCierreDetalle,
             'lotesPorDetalle'   => $lotesPorDetalle,
         ]);
@@ -276,10 +276,18 @@ class ConsignacionesController extends BaseController
 
         $detalles = $detModel->getPorConsignacion($id);
 
+        $detalleLoteModel = new ConsignacionDetalleLoteModel();
+        $lotesPorDetalle = [];
+
+        foreach ($detalles as $d) {
+            $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
+        }
+
         return view('consignaciones/cerrar', [
-            'aprobada' => ($consignacion->aprobacion_estado ?? '') === 'aprobada',
-            'consignacion' => $consignacion,
-            'detalles'     => $detalles,
+            'aprobada'        => ($consignacion->aprobacion_estado ?? '') === 'aprobada',
+            'consignacion'    => $consignacion,
+            'detalles'        => $detalles,
+            'lotesPorDetalle' => $lotesPorDetalle,
         ]);
     }
 
@@ -310,6 +318,26 @@ class ConsignacionesController extends BaseController
         $detalles    = $detModel->getPorConsignacion($id);
         $lineas      = $this->request->getPost('lineas') ?? [];
         $obsGenerales = $this->request->getPost('observaciones_cierre');
+
+        foreach ($detalles as $det) {
+            $lin = $lineas[$det->id] ?? [];
+
+            $cantFact  = (float)($lin['cantidad_facturada'] ?? 0);
+            $cantDev   = (float)($lin['cantidad_devuelta'] ?? 0);
+            $cantStock = (float)($lin['cantidad_stock_vendedor'] ?? 0);
+
+            if ($cantFact < 0 || $cantDev < 0 || $cantStock < 0) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'No se permiten cantidades negativas en el producto ' . $det->producto_nombre . '.');
+            }
+
+            $suma = $cantFact + $cantDev + $cantStock;
+
+            if (abs($suma - (float)$det->cantidad) > 0.01) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'La distribución del producto ' . $det->producto_nombre . ' no coincide con la cantidad original.');
+            }
+        }
 
         $db->transStart();
 
@@ -353,13 +381,87 @@ class ConsignacionesController extends BaseController
                 $lin = $lineas[$det->id] ?? [];
                 $cantStock = (float)($lin['cantidad_stock_vendedor'] ?? 0);
                 if ($cantStock > 0) {
-                    $detModel->insert([
+                    $nuevoDetalleId = $detModel->insert([
                         'consignacion_id' => $nuevoId,
                         'producto_id'     => $det->producto_id,
                         'cantidad'        => $cantStock,
                         'precio_unitario' => $det->precio_unitario,
                         'subtotal'        => round($cantStock * $det->precio_unitario, 2),
                     ]);
+
+                    $lotesOriginales = (new ConsignacionDetalleLoteModel())->getPorDetalle($det->id);
+                    $lotesParaNuevo  = [];
+
+                    if (!empty($lotesOriginales)) {
+
+                        // Caso 1: traslado completo del producto
+                        if (abs($cantStock - (float)$det->cantidad) < 0.001) {
+                            foreach ($lotesOriginales as $l) {
+                                $lotesParaNuevo[] = [
+                                    'lote_id'  => $l->lote_id,
+                                    'cantidad' => (float)$l->cantidad,
+                                ];
+                            }
+                        }
+
+                        // Caso 2: solo tenía un lote, traslado parcial automático
+                        elseif (count($lotesOriginales) === 1) {
+                            $lotesParaNuevo[] = [
+                                'lote_id'  => $lotesOriginales[0]->lote_id,
+                                'cantidad' => $cantStock,
+                            ];
+                        }
+
+                        // Caso 3: varios lotes y traslado parcial: usar selección del usuario
+                        else {
+                            $lotesPost = $lin['lotes_stock'] ?? [];
+                            $totalLotesPost = 0;
+
+                            $lotesPermitidos = [];
+                            foreach ($lotesOriginales as $lo) {
+                                $lotesPermitidos[(int)$lo->lote_id] = (float)$lo->cantidad;
+                            }
+
+                            foreach ($lotesPost as $loteId => $cantidadLote) {
+                                $loteId = (int)$loteId;
+                                $cantidadLote = (float)$cantidadLote;
+
+                                if (!isset($lotesPermitidos[$loteId])) {
+                                    $db->transRollback();
+                                    return redirect()->back()->withInput()
+                                        ->with('error', 'Se recibió un lote inválido para el producto ' . $det->producto_nombre . '.');
+                                }
+
+                                if ($cantidadLote - $lotesPermitidos[$loteId] > 0.001) {
+                                    $db->transRollback();
+                                    return redirect()->back()->withInput()
+                                        ->with('error', 'La cantidad del lote supera la cantidad original en el producto ' . $det->producto_nombre . '.');
+                                }
+
+                                if ($cantidadLote <= 0) {
+                                    continue;
+                                }
+
+                                $totalLotesPost += $cantidadLote;
+
+                                $lotesParaNuevo[] = [
+                                    'lote_id'  => (int)$loteId,
+                                    'cantidad' => $cantidadLote,
+                                ];
+                            }
+
+                            if (abs($totalLotesPost - $cantStock) > 0.001) {
+                                $db->transRollback();
+                                return redirect()->back()
+                                    ->withInput()
+                                    ->with('error', 'La distribución de lotes no coincide con el stock vendedor del producto ' . $det->producto_nombre . '.');
+                            }
+                        }
+
+                        if (!empty($lotesParaNuevo)) {
+                            (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($nuevoDetalleId, $lotesParaNuevo);
+                        }
+                    }
                 }
             }
         }
@@ -435,7 +537,12 @@ class ConsignacionesController extends BaseController
 
         $msg = 'Nota cerrada correctamente.';
         if ($nuevoId) {
-            $msg .= ' Se generó la nueva nota ' . $db->table('consignaciones_head')->where('id', $nuevoId)->get()->getRow()->numero ?? '' . ' con el stock restante.';
+            $nuevaNota = $db->table('consignaciones_head')
+                ->where('id', $nuevoId)
+                ->get()
+                ->getRow();
+
+            $msg .= ' Se generó la nueva nota ' . ($nuevaNota->numero ?? '') . ' con el stock restante.';
         }
 
         return redirect()->to('/consignaciones/' . $id)->with('success', $msg);
@@ -499,15 +606,46 @@ class ConsignacionesController extends BaseController
         $sellerModel = new SellerModel();
 
         $consignacion = $headModel->getConVendedor($id);
+
         if (!$consignacion || $consignacion->estado !== 'abierta') {
             return redirect()->to('/consignaciones/' . $id)
                 ->with('error', 'Solo se pueden editar notas con estado Abierta.');
         }
 
+        $detalles = $detModel->getPorConsignacion($id);
+
+        $db = \Config\Database::connect();
+
+        $doctor = null;
+        if (!empty($consignacion->doctor_id)) {
+            $doctor = $db->table('doctores')
+                ->where('id', $consignacion->doctor_id)
+                ->get()
+                ->getRow();
+        }
+
+        $cliente = null;
+        if (!empty($consignacion->cliente_id)) {
+            $cliente = $db->table('clientes')
+                ->where('id', $consignacion->cliente_id)
+                ->get()
+                ->getRow();
+        }
+
+        $detalleLoteModel = new ConsignacionDetalleLoteModel();
+        $lotesPorDetalle = [];
+
+        foreach ($detalles as $d) {
+            $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
+        }
+
         return view('consignaciones/editar', [
-            'consignacion' => $consignacion,
-            'detalles'     => $detModel->getPorConsignacion($id),
-            'vendedores'   => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'consignacion'    => $consignacion,
+            'detalles'        => $detalles,
+            'vendedores'      => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'doctor'          => $doctor,
+            'cliente'         => $cliente,
+            'lotesPorDetalle' => $lotesPorDetalle,
         ]);
     }
 
@@ -519,8 +657,9 @@ class ConsignacionesController extends BaseController
         $db      = \Config\Database::connect();
         $session = session();
 
-        $headModel = new ConsignacionHeadModel();
-        $detModel  = new ConsignacionDetalleModel();
+        $headModel        = new ConsignacionHeadModel();
+        $detModel         = new ConsignacionDetalleModel();
+        $detalleLoteModel = new ConsignacionDetalleLoteModel();
 
         $consignacion = $headModel->find($id);
         if (!$consignacion || $consignacion->estado !== 'abierta') {
@@ -534,38 +673,77 @@ class ConsignacionesController extends BaseController
                 ->with('error', 'Debe agregar al menos un producto.');
         }
 
-        $subtotal = 0;
-        foreach ($productos as $p) {
-            $subtotal += (float)($p['subtotal'] ?? 0);
+        // Mapa de detalles existentes: id => objeto
+        $existingDetalles = $detModel->getPorConsignacion($id);
+        $existingMap = [];
+        foreach ($existingDetalles as $d) {
+            $existingMap[(int)$d->id] = $d;
         }
 
+        $subtotal            = 0;
+        $submittedDetalleIds = [];
+
         $db->transStart();
+
+        foreach ($productos as $p) {
+            if (empty($p['producto_id']) || empty($p['cantidad'])) continue;
+
+            $cant      = (float)$p['cantidad'];
+            $precio    = (float)$p['precio_unitario'];
+            $sub       = round($cant * $precio, 2);
+            $detalleId = (int)($p['detalle_id'] ?? 0);
+            $subtotal += $sub;
+
+            if ($detalleId && isset($existingMap[$detalleId])) {
+                $existing    = $existingMap[$detalleId];
+                $qtyChanged  = abs($cant - (float)$existing->cantidad) > 0.001;
+                $prodChanged = (int)$p['producto_id'] !== (int)$existing->producto_id;
+
+                $detModel->update($detalleId, [
+                    'producto_id'     => (int)$p['producto_id'],
+                    'cantidad'        => $cant,
+                    'precio_unitario' => $precio,
+                    'subtotal'        => $sub,
+                ]);
+
+                // Limpiar lotes si cantidad o producto cambiaron
+                if ($qtyChanged || $prodChanged) {
+                    $detalleLoteModel->reemplazarPorDetalle($detalleId, []);
+                }
+
+                $submittedDetalleIds[] = $detalleId;
+            } else {
+                // Producto nuevo agregado en el edit
+                $newId = (int)$detModel->insert([
+                    'consignacion_id' => $id,
+                    'producto_id'     => (int)$p['producto_id'],
+                    'cantidad'        => $cant,
+                    'precio_unitario' => $precio,
+                    'subtotal'        => $sub,
+                ]);
+                $submittedDetalleIds[] = $newId;
+            }
+        }
+
+        // Eliminar filas borradas por el usuario (y sus lotes)
+        foreach (array_keys($existingMap) as $existingId) {
+            if (!in_array($existingId, $submittedDetalleIds)) {
+                $detalleLoteModel->reemplazarPorDetalle($existingId, []);
+                $detModel->delete($existingId);
+            }
+        }
 
         $headModel->update($id, [
             'vendedor_id'   => $this->request->getPost('vendedor_id'),
             'nombre'        => $this->request->getPost('nombre'),
+            'doctor_id'     => $this->request->getPost('doctor_id') ?: null,
+            'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
             'concepto'      => $this->request->getPost('concepto'),
             'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
-            'hora'          => $this->request->getPost('hora')  ?: date('H:i'),
+            'hora'          => $this->request->getPost('hora') ?: date('H:i'),
             'subtotal'      => $subtotal,
             'observaciones' => $this->request->getPost('observaciones'),
         ]);
-
-        // Reemplazar líneas: eliminar las existentes y reinsertar
-        $db->table('consignaciones_detalles')->where('consignacion_id', $id)->delete();
-
-        foreach ($productos as $p) {
-            if (empty($p['producto_id']) || empty($p['cantidad'])) continue;
-            $cant   = (float)$p['cantidad'];
-            $precio = (float)$p['precio_unitario'];
-            $detModel->insert([
-                'consignacion_id' => $id,
-                'producto_id'     => (int)$p['producto_id'],
-                'cantidad'        => $cant,
-                'precio_unitario' => $precio,
-                'subtotal'        => round($cant * $precio, 2),
-            ]);
-        }
 
         $db->transComplete();
 
@@ -760,70 +938,70 @@ class ConsignacionesController extends BaseController
         return $this->response->setJSON(['success' => true, 'lotes' => $lotes]);
     }
 
-public function guardarDetalleLotes(int $detalleId)
-{
-    $chk = requerirPermiso('crear_consignaciones');
-    if ($chk !== true) {
-        return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
-    }
+    public function guardarDetalleLotes(int $detalleId)
+    {
+        $chk = requerirPermiso('crear_consignaciones');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
 
-    $db = \Config\Database::connect();
+        $db = \Config\Database::connect();
 
-    $detRow = $db->table('consignaciones_detalles cd')
-        ->select('cd.cantidad, ch.estado')
-        ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
-        ->where('cd.id', $detalleId)
-        ->get()
-        ->getRow();
+        $detRow = $db->table('consignaciones_detalles cd')
+            ->select('cd.cantidad, ch.estado')
+            ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
+            ->where('cd.id', $detalleId)
+            ->get()
+            ->getRow();
 
-    if (!$detRow || $detRow->estado !== 'abierta') {
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Solo se pueden asignar lotes a notas abiertas.'
-        ]);
-    }
-
-    $body  = $this->request->getJSON(true) ?? [];
-    $lotes = $body['lotes'] ?? [];
-
-    $totalAsignado = 0;
-
-    foreach ($lotes as $lote) {
-        $cantidad = (float)($lote['cantidad'] ?? 0);
-
-        if (empty($lote['lote_id']) || $cantidad <= 0) {
+        if (!$detRow || $detRow->estado !== 'abierta') {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Todos los lotes deben tener lote y cantidad válida.'
+                'message' => 'Solo se pueden asignar lotes a notas abiertas.'
             ]);
         }
 
-        $totalAsignado += $cantidad;
-    }
+        $body  = $this->request->getJSON(true) ?? [];
+        $lotes = $body['lotes'] ?? [];
 
-    $cantidadDetalle = (float)$detRow->cantidad;
+        $totalAsignado = 0;
 
-    if (abs($totalAsignado - $cantidadDetalle) > 0.001) {
+        foreach ($lotes as $lote) {
+            $cantidad = (float)($lote['cantidad'] ?? 0);
+
+            if (empty($lote['lote_id']) || $cantidad <= 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Todos los lotes deben tener lote y cantidad válida.'
+                ]);
+            }
+
+            $totalAsignado += $cantidad;
+        }
+
+        $cantidadDetalle = (float)$detRow->cantidad;
+
+        if (abs($totalAsignado - $cantidadDetalle) > 0.001) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'La cantidad asignada en lotes debe ser exactamente ' .
+                    number_format($cantidadDetalle, 2) .
+                    '. Actualmente asignó ' .
+                    number_format($totalAsignado, 2) . '.'
+            ]);
+        }
+
+        (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
+
         return $this->response->setJSON([
-            'success' => false,
-            'message' => 'La cantidad asignada en lotes debe ser exactamente ' .
-                number_format($cantidadDetalle, 2) .
-                '. Actualmente asignó ' .
-                number_format($totalAsignado, 2) . '.'
+            'success' => true,
+            'message' => 'Lotes guardados correctamente.',
+            'detalle_id' => $detalleId,
+            'lotes' => $lotes,
+            'total_lotes' => count($lotes),
+            'total_asignado' => $totalAsignado
         ]);
     }
-
-    (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
-
-    return $this->response->setJSON([
-        'success' => true,
-        'message' => 'Lotes guardados correctamente.',
-        'detalle_id' => $detalleId,
-        'lotes' => $lotes,
-        'total_lotes' => count($lotes),
-        'total_asignado' => $totalAsignado
-    ]);
-}
 
     // ─────────────────────────────────────────────
     //  PRECIOS: LISTADO
