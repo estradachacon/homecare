@@ -131,6 +131,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/quedans-pdf', 'ReportesController::quedansPdf');
     $routes->get('reports/quedans-detalle-pdf', 'ReportesController::quedansDetallePdf');
     $routes->get('reports/quedans-excel', 'ReportesController::quedansExcel');
+    // -- Reporte de Pagos Recibidos
+    $routes->get('reports/pagos-recibidos-pdf',   'ReportesController::pagosRecibidosPDF');
+    $routes->get('reports/pagos-recibidos-excel', 'ReportesController::pagosRecibidosExcel');
 
     // Rutas para el módulo de facturación
     $routes->get('facturas', 'Facturas::index');

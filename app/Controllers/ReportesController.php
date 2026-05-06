@@ -7,6 +7,7 @@ use App\Models\FacturaHeadModel;
 use App\Models\ClienteModel;
 use App\Models\SettingModel;
 use App\Models\QuedanModel;
+use App\Models\SellerModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -2018,6 +2019,194 @@ class ReportesController extends Controller
         header('Content-Disposition: attachment;filename="reporte_quedans.xlsx"');
         header('Cache-Control: max-age=0');
 
+        $writer->save('php://output');
+        exit;
+    }
+
+    // ─── Pagos Recibidos ────────────────────────────────────────────────────
+
+    private function queryPagosRecibidos(array $f): array
+    {
+        $db = \Config\Database::connect();
+        $binds = [$f['fecha_inicio'], $f['fecha_fin']];
+
+        $sql = "SELECT ph.id AS pago_id, ph.numero_recupero, ph.fecha_pago, ph.forma_pago,
+                       ph.total, ph.observaciones, c.nombre AS cliente_nombre,
+                       fh.numero_control, fh.fecha_emision, pd.monto AS monto_aplicado
+                FROM pagos_head ph
+                INNER JOIN clientes c ON c.id = ph.cliente_id
+                LEFT JOIN pagos_details pd ON pd.pago_id = ph.id AND pd.anulado = 0
+                LEFT JOIN facturas_head fh ON fh.id = pd.factura_id
+                WHERE ph.anulado = 0
+                  AND ph.fecha_pago >= ?
+                  AND ph.fecha_pago <= ?";
+
+        if (!empty($f['cliente_id'])) {
+            $sql .= " AND ph.cliente_id = ?";
+            $binds[] = $f['cliente_id'];
+        }
+
+        if (!empty($f['vendedor_id'])) {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM pagos_details pd2
+                INNER JOIN facturas_head fh2 ON fh2.id = pd2.factura_id
+                WHERE pd2.pago_id = ph.id AND pd2.anulado = 0 AND fh2.vendedor_id = ?
+            )";
+            $binds[] = $f['vendedor_id'];
+        }
+
+        $sql .= " ORDER BY ph.fecha_pago ASC, c.nombre ASC, ph.id ASC, fh.fecha_emision ASC";
+
+        return $db->query($sql, $binds)->getResultObject();
+    }
+
+    private function groupPagosRecibidos(array $rows): array
+    {
+        helper('dte');
+        $siglas  = dte_siglas();
+        $grouped = [];
+
+        foreach ($rows as $r) {
+            $pid = $r->pago_id;
+            if (!isset($grouped[$pid])) {
+                $grouped[$pid] = [
+                    'numero_recupero' => $r->numero_recupero,
+                    'fecha_pago'      => $r->fecha_pago,
+                    'forma_pago'      => $r->forma_pago,
+                    'total'           => (float)$r->total,
+                    'observaciones'   => $r->observaciones,
+                    'cliente_nombre'  => $r->cliente_nombre,
+                    'docs'            => [],
+                ];
+            }
+            if (!empty($r->numero_control)) {
+                $partes     = explode('-', $r->numero_control);
+                $tipoCodigo = $partes[1] ?? null;
+                $sigla      = $siglas[$tipoCodigo] ?? 'DOC';
+                $correlativo = str_pad(substr($r->numero_control, -6), 6, '0', STR_PAD_LEFT);
+
+                $grouped[$pid]['docs'][] = [
+                    'sigla'          => $sigla,
+                    'correlativo'    => $correlativo,
+                    'fecha_emision'  => $r->fecha_emision,
+                    'monto_aplicado' => (float)$r->monto_aplicado,
+                ];
+            }
+        }
+        return array_values($grouped);
+    }
+
+    public function pagosRecibidosPDF()
+    {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'cliente_id'   => $this->request->getGet('cliente_id')  ?? '',
+            'vendedor_id'  => $this->request->getGet('vendedor_id') ?? '',
+        ];
+
+        $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
+        $total = array_sum(array_column($pagos, 'total'));
+
+        $data = [
+            'pagos'       => $pagos,
+            'filtros'     => $filtros,
+            'total'       => $total,
+            'generado_en' => date('d/m/Y H:i'),
+        ];
+
+        $html = view('reports/pagos_recibidos_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
+
+    public function pagosRecibidosExcel()
+    {
+        $chk = requerirPermiso('ver_reportes');
+        if ($chk !== true) return $chk;
+
+        $filtros = [
+            'fecha_inicio' => $this->request->getGet('fecha_inicio') ?: date('Y-m-01'),
+            'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
+            'cliente_id'   => $this->request->getGet('cliente_id')  ?? '',
+            'vendedor_id'  => $this->request->getGet('vendedor_id') ?? '',
+        ];
+
+        $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Pagos Recibidos');
+
+        $headers = ['N° Recupero', 'Cliente', 'Fecha Pago', 'Forma de Pago', 'Documentos Aplicados', 'Total', 'Observaciones'];
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $i => $col) {
+            $sheet->setCellValue("{$col}1", $headers[$i]);
+        }
+        $sheet->getStyle('A1:G1')->applyFromArray([
+            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E79']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        $row = 2;
+        $granTotal = 0;
+        foreach ($pagos as $p) {
+            $docsLines = array_map(fn($d) =>
+                $d['sigla'] . '-' . $d['correlativo'] . '   ' .
+                date('d/m/Y', strtotime($d['fecha_emision'])) . '   $' .
+                number_format($d['monto_aplicado'], 2),
+                $p['docs']
+            );
+
+            $sheet->setCellValue("A$row", $p['numero_recupero']);
+            $sheet->setCellValue("B$row", $p['cliente_nombre']);
+            $sheet->setCellValue("C$row", date('d/m/Y', strtotime($p['fecha_pago'])));
+            $sheet->setCellValue("D$row", $p['forma_pago']);
+            $sheet->setCellValue("E$row", implode("\n", $docsLines));
+            $sheet->setCellValue("F$row", $p['total']);
+            $sheet->setCellValue("G$row", $p['observaciones']);
+
+            $sheet->getStyle("E$row")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+            $sheet->getStyle("A$row:D$row")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+            $sheet->getStyle("F$row:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+            $sheet->getRowDimension($row)->setRowHeight(-1);
+
+            $granTotal += $p['total'];
+            $row++;
+        }
+
+        $sheet->setCellValue("E$row", 'TOTAL GENERAL:');
+        $sheet->setCellValue("F$row", $granTotal);
+        $sheet->getStyle("E$row:F$row")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+        ]);
+
+        $sheet->getStyle("F2:F$row")->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle("F2:F$row")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("A1:G$row")->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '999999']]],
+        ]);
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="pagos_recibidos_' . date('Y-m-d') . '.xlsx"');
+        header('Cache-Control: max-age=0');
         $writer->save('php://output');
         exit;
     }

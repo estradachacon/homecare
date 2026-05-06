@@ -310,6 +310,71 @@
             </div>
         </div>
     </div>
+    <div class="col-md-12 mt-2">
+        <div class="card">
+            <div class="card-header">
+                <h4>Reporte de Pagos Recibidos</h4>
+                <small class="text-muted">
+                    Pagos recibidos de clientes filtrable por fecha, vendedor y cliente.
+                </small>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="get" target="_blank">
+                        <div class="row">
+
+                            <!-- Desde -->
+                            <div class="col-md-2">
+                                <label>Desde</label>
+                                <input type="date" name="fecha_inicio" class="form-control"
+                                    value="<?= date('Y-m-01') ?>">
+                            </div>
+
+                            <!-- Hasta -->
+                            <div class="col-md-2">
+                                <label>Hasta</label>
+                                <input type="date" name="fecha_fin" class="form-control"
+                                    value="<?= date('Y-m-d') ?>">
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-3">
+                                <label>Cliente</label>
+                                <select name="cliente_id" class="form-control cliente-select"></select>
+                            </div>
+
+                            <!-- Vendedor -->
+                            <div class="col-md-3">
+                                <label>Vendedor</label>
+                                <select id="sellerSelectPagos" name="vendedor_id" class="form-control"></select>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="col-md-2 mt-4">
+                                <div class="row">
+                                    <div class="col-6 pr-1">
+                                        <button type="submit"
+                                            formaction="<?= base_url('reports/pagos-recibidos-pdf') ?>"
+                                            class="btn btn-primary btn-block btn-equal">
+                                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                                        </button>
+                                    </div>
+                                    <div class="col-6 pl-1">
+                                        <button type="submit"
+                                            formaction="<?= base_url('reports/pagos-recibidos-excel') ?>"
+                                            class="btn btn-success btn-block btn-equal">
+                                            <i class="fas fa-file-excel mr-1"></i> Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
     $(document).ready(function() {
@@ -344,23 +409,25 @@
 
         });
 
+        const sellerAjaxCfg = {
+            url: "<?= base_url('sellers/searchAjax') ?>",
+            dataType: 'json',
+            delay: 250,
+            data: function(params) { return { q: params.term, select2: 1 }; },
+            processResults: function(data) { return data; }
+        };
+
         $('#sellerSelect').select2({
             placeholder: 'Buscar vendedor...',
             minimumInputLength: 2,
-            ajax: {
-                url: "<?= base_url('sellers/searchAjax') ?>",
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        q: params.term,
-                        select2: 1
-                    };
-                },
-                processResults: function(data) {
-                    return data;
-                }
-            }
+            ajax: sellerAjaxCfg
+        });
+
+        $('#sellerSelectPagos').select2({
+            placeholder: 'Todos los vendedores',
+            allowClear: true,
+            minimumInputLength: 2,
+            ajax: sellerAjaxCfg
         });
     });
 </script>
