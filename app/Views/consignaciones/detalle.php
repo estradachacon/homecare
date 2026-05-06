@@ -128,8 +128,9 @@
 
             <div class="card-body">
                 <?php
-                    $puedeEditarLotes = tienePermiso('consignacion_sin_autorizacion')
-                                     || !empty($consignacion->lotes_autorizados_por);
+                    $puedeGestionarLotes = tienePermiso('gestionar_lotes_consignaciones');
+                    $puedeEditarLotes = $puedeGestionarLotes
+                                     && !empty($consignacion->lotes_autorizados_por);
                 ?>
 
                 <!-- Estado badge -->
@@ -181,7 +182,7 @@
                         <button class="btn btn-sm btn-warning ml-1" id="btnAutorizarLotes">
                             <i class="fa-solid fa-unlock mr-1"></i> Autorizar edición de lotes
                         </button>
-                    <?php elseif ($consignacion->estado === 'abierta' && !tienePermiso('consignacion_sin_autorizacion')): ?>
+                    <?php elseif ($consignacion->estado === 'abierta' && $puedeGestionarLotes): ?>
                         <span class="badge badge-secondary ml-1">
                             <i class="fa-solid fa-lock mr-1"></i> Lotes pendientes de autorización
                         </span>
@@ -335,11 +336,16 @@
                                 <?php endif; ?>
 
                                 <?php if (isset($mapCierreDetalle[$d->id])):
-                                    $cd = $mapCierreDetalle[$d->id]; ?>
-                                    <?php if ($cd->cantidad_devuelta > 0 || $cd->cantidad_stock_vendedor > 0 || $cd->doc_devolucion || $cd->comentario_devolucion): ?>
+                                    $cd = $mapCierreDetalle[$d->id];
+                                    $lotesCierre = $lotesCierrePorDetalle[$d->id] ?? [];
+                                ?>
+                                    <?php if ($cd->cantidad_facturada > 0 || $cd->cantidad_devuelta > 0 || $cd->cantidad_stock_vendedor > 0 || $cd->doc_devolucion || $cd->comentario_devolucion): ?>
                                         <tr>
                                             <td colspan="6" class="bg-light">
                                                 <small class="text-muted">Resultado del cierre:</small><br>
+                                                <?php if ($cd->cantidad_facturada > 0): ?>
+                                                    <span class="badge badge-success mr-1">Facturado: <?= number_format($cd->cantidad_facturada, 2) ?></span>
+                                                <?php endif; ?>
                                                 <?php if ($cd->cantidad_devuelta > 0): ?>
                                                     <span class="badge badge-warning mr-1">Devuelto: <?= number_format($cd->cantidad_devuelta, 2) ?></span>
                                                 <?php endif; ?>
@@ -356,6 +362,23 @@
                                                     <div class="mt-2">
                                                         <img src="<?= base_url('upload/devoluciones/' . $cd->foto_devolucion) ?>"
                                                             style="max-height:80px; border-radius:5px;">
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($lotesCierre)): ?>
+                                                    <div class="mt-2">
+                                                        <?php foreach (['facturado' => 'Lotes facturados', 'stock_vendedor' => 'Lotes stock vendedor'] as $tipo => $titulo): ?>
+                                                            <?php if (!empty($lotesCierre[$tipo])): ?>
+                                                                <div class="small mt-1">
+                                                                    <strong><?= esc($titulo) ?>:</strong>
+                                                                    <?php foreach ($lotesCierre[$tipo] as $loteCierre): ?>
+                                                                        <span class="badge badge-light border mr-1">
+                                                                            <?= esc($loteCierre->numero_lote ?? 'Lote') ?>:
+                                                                            <?= number_format($loteCierre->cantidad, 2) ?>
+                                                                        </span>
+                                                                    <?php endforeach; ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        <?php endforeach; ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </td>

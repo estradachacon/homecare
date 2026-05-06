@@ -208,6 +208,65 @@
                                                     </small>
                                                 </div>
                                             </div>
+
+                                            <div class="col-md-12 bloque-lotes-facturados mt-3"
+                                                id="lotes_facturados_<?= $d->id ?>"
+                                                data-total-lotes="<?= $totalLotes ?>"
+                                                style="display:none;">
+
+                                                <div class="p-3 border rounded bg-light">
+                                                    <p class="mb-2 small fw-bold text-primary">
+                                                        <i class="fa-solid fa-boxes-stacked"></i>
+                                                        Lotes que se facturarÃ¡n
+                                                    </p>
+
+                                                    <div class="alert alert-info py-2 mb-2 small">
+                                                        Si la facturaciÃ³n es completa, los lotes se asignan automÃ¡ticamente.
+                                                        Si es parcial y hay varios lotes, indique de cuÃ¡les lotes sale la cantidad facturada.
+                                                    </div>
+
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-bordered mb-1">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Lote</th>
+                                                                    <th class="text-end">Cantidad original</th>
+                                                                    <th class="text-end">Cantidad a facturar</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php foreach ($lotesLinea as $lote): ?>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <strong><?= esc($lote->numero_lote ?? 'Lote') ?></strong>
+                                                                            <?php if (!empty($lote->fecha_vencimiento)): ?>
+                                                                                <br><small class="text-muted">Vence: <?= esc($lote->fecha_vencimiento) ?></small>
+                                                                            <?php endif; ?>
+                                                                        </td>
+                                                                        <td class="text-end">
+                                                                            <?= number_format($lote->cantidad, 2) ?>
+                                                                        </td>
+                                                                        <td>
+                                                                            <input type="number"
+                                                                                name="lineas[<?= $d->id ?>][lotes_facturados][<?= $lote->lote_id ?>]"
+                                                                                class="form-control form-control-sm text-end input-lote-facturado"
+                                                                                min="0"
+                                                                                step="0.01"
+                                                                                value="0"
+                                                                                data-detalle="<?= $d->id ?>"
+                                                                                data-max-lote="<?= $lote->cantidad ?>">
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+
+                                                    <small class="estado-lotes-facturados qty-warning" id="estado_lotes_facturados_<?= $d->id ?>">
+                                                        Pendiente de validar lotes facturados.
+                                                    </small>
+                                                </div>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
 
@@ -313,6 +372,8 @@
             const suma = fact + dev + stock;
             const bloqueLotes = $(`#lotes_traslado_${id}`);
             const totalLotes = parseInt(bloqueLotes.data('total-lotes') || 0);
+            const bloqueLotesFacturados = $(`#lotes_facturados_${id}`);
+            const totalLotesFacturados = parseInt(bloqueLotesFacturados.data('total-lotes') || 0);
 
             if (stock > 0 && totalLotes > 1 && stock < max) {
                 bloqueLotes.show();
@@ -325,6 +386,18 @@
             }
 
             validarLotesTraslado(id);
+
+            if (fact > 0 && totalLotesFacturados > 1 && fact < max) {
+                bloqueLotesFacturados.show();
+            } else {
+                bloqueLotesFacturados.hide();
+
+                bloqueLotesFacturados.find('.input-lote-facturado').each(function() {
+                    $(this).val(0);
+                });
+            }
+
+            validarLotesFacturados(id);
 
             const card = $(`.card-linea[data-detalle-id="${id}"]`);
             const label = card.find('.estado-linea');
@@ -397,15 +470,60 @@
             return false;
         }
 
+        function validarLotesFacturados(id) {
+            const max = parseFloat($(`[data-id="${id}"].input-facturada`).data('max'));
+            const fact = parseFloat($(`[name="lineas[${id}][cantidad_facturada]"]`).val()) || 0;
+
+            const bloqueLotes = $(`#lotes_facturados_${id}`);
+            const totalLotes = parseInt(bloqueLotes.data('total-lotes') || 0);
+            const estado = $(`#estado_lotes_facturados_${id}`);
+
+            if (!bloqueLotes.length || fact <= 0 || totalLotes <= 1 || fact >= max) {
+                return true;
+            }
+
+            let sumaLotes = 0;
+            let loteExcedido = false;
+
+            bloqueLotes.find('.input-lote-facturado').each(function() {
+                const val = parseFloat($(this).val()) || 0;
+                const maxLote = parseFloat($(this).data('max-lote')) || 0;
+
+                if (val > maxLote) {
+                    loteExcedido = true;
+                }
+
+                sumaLotes += val;
+            });
+
+            if (loteExcedido) {
+                estado.removeClass('qty-ok').addClass('qty-warning')
+                    .text('âš  Un lote supera la cantidad original.');
+                return false;
+            }
+
+            if (Math.abs(sumaLotes - fact) < 0.001) {
+                estado.removeClass('qty-warning').addClass('qty-ok')
+                    .text('âœ“ Lotes facturados correctamente (' + fact.toFixed(2) + ')');
+                return true;
+            }
+
+            estado.removeClass('qty-ok').addClass('qty-warning')
+                .text('âš  Lotes: ' + sumaLotes.toFixed(2) + ' / Facturado: ' + fact.toFixed(2));
+
+            return false;
+        }
+
         // Escuchar cambios en inputs de cantidad
         $(document).on('input', '.input-facturada, .input-devuelta, .input-stock', function() {
             const id = $(this).data('id');
             validarLinea(id);
         });
 
-        $(document).on('input', '.input-lote-stock', function() {
+        $(document).on('input', '.input-lote-stock, .input-lote-facturado', function() {
             const id = $(this).data('detalle');
             validarLotesTraslado(id);
+            validarLotesFacturados(id);
         });
 
         // Submit con validación
@@ -423,6 +541,7 @@
                         const suma = fact + dev + stock;
                         if (Math.abs(suma - max) > 0.01) hayError = true;
                         if (!validarLotesTraslado(id)) hayError = true;
+                        if (!validarLotesFacturados(id)) hayError = true;
                     })();
             <?php endforeach; ?>
 

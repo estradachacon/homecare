@@ -39,6 +39,7 @@ class Permisos extends BaseConfig
             'cerrar_consignaciones',
             'anular_consignaciones',
             'aprobar_consignaciones',
+            'autorizar_lotes_consignacion',
             'gestionar_lotes_consignaciones',
             'ver_precios_consignaciones',
             'gestionar_precios_consignaciones',

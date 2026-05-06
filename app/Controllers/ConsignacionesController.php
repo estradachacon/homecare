@@ -9,6 +9,7 @@ use App\Models\ConsignacionPrecioModel;
 use App\Models\ConsignacionCierreModel;
 use App\Models\ConsignacionCierreDetalleModel;
 use App\Models\ConsignacionCierreFacturaModel;
+use App\Models\ConsignacionCierreLoteModel;
 use App\Models\ConsignacionLoteModel;
 use App\Models\ConsignacionDetalleLoteModel;
 use App\Models\ConsignacionLogModel;
@@ -182,6 +183,7 @@ class ConsignacionesController extends BaseController
         $cierreDetalleModel = new ConsignacionCierreDetalleModel();
         $facturasPorDetalle = [];
         $mapCierreDetalle = [];
+        $lotesCierrePorDetalle = [];
 
         if ($cierre) {
 
@@ -208,6 +210,21 @@ class ConsignacionesController extends BaseController
                     $facturasPorDetalle[$d->id] = [];
                 }
             }
+
+            $lotesCierre = (new ConsignacionCierreLoteModel())->getPorCierre((int)$cierre->id);
+            foreach ($lotesCierre as $loteCierre) {
+                $detalleId = (int)$loteCierre->detalle_id;
+                $tipo      = $loteCierre->tipo;
+
+                if (!isset($lotesCierrePorDetalle[$detalleId])) {
+                    $lotesCierrePorDetalle[$detalleId] = [];
+                }
+                if (!isset($lotesCierrePorDetalle[$detalleId][$tipo])) {
+                    $lotesCierrePorDetalle[$detalleId][$tipo] = [];
+                }
+
+                $lotesCierrePorDetalle[$detalleId][$tipo][] = $loteCierre;
+            }
         } else {
             // 👇 si no hay cierre, todos vacíos
             foreach ($detalles as $d) {
@@ -231,6 +248,7 @@ class ConsignacionesController extends BaseController
             'cierre'             => $cierre,
             'facturasPorDetalle' => $facturasPorDetalle,
             'mapCierreDetalle'   => $mapCierreDetalle,
+            'lotesCierrePorDetalle' => $lotesCierrePorDetalle,
             'lotesPorDetalle'    => $lotesPorDetalle,
             'log'                => $log,
         ]);
@@ -324,6 +342,7 @@ class ConsignacionesController extends BaseController
         $cierreModel       = new ConsignacionCierreModel();
         $cierreDetModel    = new ConsignacionCierreDetalleModel();
         $cierreFactModel   = new ConsignacionCierreFacturaModel();
+        $cierreLoteModel   = new ConsignacionCierreLoteModel();
 
         $consignacion = $headModel->find($id);
         if (!$consignacion || $consignacion->estado !== 'abierta') {
@@ -334,6 +353,7 @@ class ConsignacionesController extends BaseController
         $detalles    = $detModel->getPorConsignacion($id);
         $lineas      = $this->request->getPost('lineas') ?? [];
         $obsGenerales = $this->request->getPost('observaciones_cierre');
+        $distribucionesLotes = [];
 
         foreach ($detalles as $det) {
             $lin = $lineas[$det->id] ?? [];
@@ -353,6 +373,34 @@ class ConsignacionesController extends BaseController
                 return redirect()->back()->withInput()
                     ->with('error', 'La distribución del producto ' . $det->producto_nombre . ' no coincide con la cantidad original.');
             }
+        }
+
+        foreach ($detalles as $det) {
+            $lin = $lineas[$det->id] ?? [];
+
+            $cantFact  = (float)($lin['cantidad_facturada'] ?? 0);
+            $cantStock = (float)($lin['cantidad_stock_vendedor'] ?? 0);
+            $lotesOriginales = (new ConsignacionDetalleLoteModel())->getPorDetalle($det->id);
+
+            $distFacturado = $this->resolverDistribucionLotesCierre($det, $lin, 'lotes_facturados', $cantFact, $lotesOriginales, 'facturada');
+            if (!$distFacturado['success']) {
+                return redirect()->back()->withInput()->with('error', $distFacturado['message']);
+            }
+
+            $distStock = $this->resolverDistribucionLotesCierre($det, $lin, 'lotes_stock', $cantStock, $lotesOriginales, 'en stock del vendedor');
+            if (!$distStock['success']) {
+                return redirect()->back()->withInput()->with('error', $distStock['message']);
+            }
+
+            $consumoLotes = $this->validarConsumoLotesCierre($lotesOriginales, $distFacturado['lotes'], $distStock['lotes'], $det->producto_nombre);
+            if (!$consumoLotes['success']) {
+                return redirect()->back()->withInput()->with('error', $consumoLotes['message']);
+            }
+
+            $distribucionesLotes[$det->id] = [
+                'facturado'      => $distFacturado['lotes'],
+                'stock_vendedor' => $distStock['lotes'],
+            ];
         }
 
         $db->transStart();
@@ -521,6 +569,24 @@ class ConsignacionesController extends BaseController
             ]);
 
             // Facturas asociadas a esta línea
+            $cierreLoteModel->registrarDistribucion(
+                $cierreId,
+                $cierreDetId,
+                $det->id,
+                $det->producto_id,
+                'facturado',
+                $distribucionesLotes[$det->id]['facturado'] ?? []
+            );
+
+            $cierreLoteModel->registrarDistribucion(
+                $cierreId,
+                $cierreDetId,
+                $det->id,
+                $det->producto_id,
+                'stock_vendedor',
+                $distribucionesLotes[$det->id]['stock_vendedor'] ?? []
+            );
+
             $facturasLinea = $lin['facturas'] ?? [];
             foreach ($facturasLinea as $facturaId) {
                 if (!empty($facturaId)) {
@@ -976,9 +1042,9 @@ class ConsignacionesController extends BaseController
 
     public function guardarDetalleLotes(int $detalleId)
     {
-        $chk = requerirPermiso('crear_consignaciones');
+        $chk = requerirPermiso('gestionar_lotes_consignaciones');
         if ($chk !== true) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para gestionar lotes.']);
         }
 
         $db = \Config\Database::connect();
@@ -997,7 +1063,7 @@ class ConsignacionesController extends BaseController
             ]);
         }
 
-        if (!tienePermiso('consignacion_sin_autorizacion') && empty($detRow->lotes_autorizados_por)) {
+        if (empty($detRow->lotes_autorizados_por)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Los lotes de esta nota aún no han sido autorizados para edición. Solicite autorización.'
@@ -1400,6 +1466,113 @@ class ConsignacionesController extends BaseController
     // ─────────────────────────────────────────────
     //  HELPER: LOG INTERNO
     // ─────────────────────────────────────────────
+
+    private function resolverDistribucionLotesCierre(object $det, array $lin, string $campo, float $cantidad, array $lotesOriginales, string $etiqueta): array
+    {
+        if ($cantidad <= 0 || empty($lotesOriginales)) {
+            return ['success' => true, 'lotes' => []];
+        }
+
+        if (abs($cantidad - (float)$det->cantidad) < 0.001) {
+            $lotes = [];
+            foreach ($lotesOriginales as $lote) {
+                $lotes[] = [
+                    'lote_id'  => (int)$lote->lote_id,
+                    'cantidad' => (float)$lote->cantidad,
+                ];
+            }
+
+            return ['success' => true, 'lotes' => $lotes];
+        }
+
+        if (count($lotesOriginales) === 1) {
+            return [
+                'success' => true,
+                'lotes'   => [[
+                    'lote_id'  => (int)$lotesOriginales[0]->lote_id,
+                    'cantidad' => $cantidad,
+                ]],
+            ];
+        }
+
+        $lotesPermitidos = [];
+        foreach ($lotesOriginales as $lote) {
+            $lotesPermitidos[(int)$lote->lote_id] = (float)$lote->cantidad;
+        }
+
+        $lotesPost = $lin[$campo] ?? [];
+        $lotes = [];
+        $total = 0;
+
+        foreach ($lotesPost as $loteId => $cantidadLote) {
+            $loteId       = (int)$loteId;
+            $cantidadLote = (float)$cantidadLote;
+
+            if (!isset($lotesPermitidos[$loteId])) {
+                return [
+                    'success' => false,
+                    'message' => 'Se recibio un lote invalido para la cantidad ' . $etiqueta . ' del producto ' . $det->producto_nombre . '.',
+                ];
+            }
+
+            if ($cantidadLote <= 0) {
+                continue;
+            }
+
+            if ($cantidadLote - $lotesPermitidos[$loteId] > 0.001) {
+                return [
+                    'success' => false,
+                    'message' => 'La cantidad del lote supera la cantidad original en la parte ' . $etiqueta . ' del producto ' . $det->producto_nombre . '.',
+                ];
+            }
+
+            $total += $cantidadLote;
+            $lotes[] = [
+                'lote_id'  => $loteId,
+                'cantidad' => $cantidadLote,
+            ];
+        }
+
+        if (abs($total - $cantidad) > 0.001) {
+            return [
+                'success' => false,
+                'message' => 'La distribucion de lotes no coincide con la cantidad ' . $etiqueta . ' del producto ' . $det->producto_nombre . '.',
+            ];
+        }
+
+        return ['success' => true, 'lotes' => $lotes];
+    }
+
+    private function validarConsumoLotesCierre(array $lotesOriginales, array $lotesFacturados, array $lotesStock, string $productoNombre): array
+    {
+        if (empty($lotesOriginales)) {
+            return ['success' => true];
+        }
+
+        $permitidos = [];
+        foreach ($lotesOriginales as $lote) {
+            $permitidos[(int)$lote->lote_id] = (float)$lote->cantidad;
+        }
+
+        $consumo = [];
+        foreach ([$lotesFacturados, $lotesStock] as $grupo) {
+            foreach ($grupo as $lote) {
+                $loteId = (int)$lote['lote_id'];
+                $consumo[$loteId] = ($consumo[$loteId] ?? 0) + (float)$lote['cantidad'];
+            }
+        }
+
+        foreach ($consumo as $loteId => $cantidad) {
+            if (!isset($permitidos[$loteId]) || $cantidad - $permitidos[$loteId] > 0.001) {
+                return [
+                    'success' => false,
+                    'message' => 'La suma de lotes facturados y en stock supera la cantidad original de un lote en el producto ' . $productoNombre . '.',
+                ];
+            }
+        }
+
+        return ['success' => true];
+    }
 
     private function registrarLog(int $consignacionId, string $accion, ?string $detalle = null): void
     {
