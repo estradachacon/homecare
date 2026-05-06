@@ -349,6 +349,16 @@
                                 <select id="sellerSelectPagos" name="vendedor_id" class="form-control"></select>
                             </div>
 
+                            <!-- Forma de pago -->
+                            <div class="col-md-2">
+                                <label>Forma de pago</label>
+                                <select name="forma_pago" class="form-control">
+                                    <option value="">Todas</option>
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="transferencia">Transferencia</option>
+                                </select>
+                            </div>
+
                             <!-- Botones -->
                             <div class="col-md-2 mt-4">
                                 <div class="row">

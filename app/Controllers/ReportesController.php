@@ -2046,6 +2046,11 @@ class ReportesController extends Controller
             $binds[] = $f['cliente_id'];
         }
 
+        if (!empty($f['forma_pago'])) {
+            $sql .= " AND ph.forma_pago = ?";
+            $binds[] = $f['forma_pago'];
+        }
+
         if (!empty($f['vendedor_id'])) {
             $sql .= " AND EXISTS (
                 SELECT 1 FROM pagos_details pd2
@@ -2106,6 +2111,7 @@ class ReportesController extends Controller
             'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
             'cliente_id'   => $this->request->getGet('cliente_id')  ?? '',
             'vendedor_id'  => $this->request->getGet('vendedor_id') ?? '',
+            'forma_pago'   => $this->request->getGet('forma_pago')  ?? '',
         ];
 
         $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
@@ -2141,6 +2147,7 @@ class ReportesController extends Controller
             'fecha_fin'    => $this->request->getGet('fecha_fin')    ?: date('Y-m-d'),
             'cliente_id'   => $this->request->getGet('cliente_id')  ?? '',
             'vendedor_id'  => $this->request->getGet('vendedor_id') ?? '',
+            'forma_pago'   => $this->request->getGet('forma_pago')  ?? '',
         ];
 
         $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
