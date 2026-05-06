@@ -12,12 +12,13 @@ class ConsignacionHeadModel extends Model
     protected $useTimestamps = true;
 
     protected $allowedFields = [
-        'numero', 'vendedor_id', 'nombre', 'concepto',
+        'numero', 'vendedor_id', 'nombre', 'paciente_id', 'concepto',
         'fecha', 'hora', 'fecha_generacion',
         'subtotal', 'observaciones', 'estado',
         'anulada', 'anulada_por', 'fecha_anulacion', 'created_by',
         'doctor_id', 'cliente_id',
         'aprobacion_estado', 'aprobado_por', 'aprobado_at', 'rechazo_motivo',
+        'lotes_autorizados_por', 'lotes_autorizados_at',
     ];
 
     public function listar(array $filtros = [])
@@ -43,10 +44,19 @@ class ConsignacionHeadModel extends Model
 
     public function getConVendedor(int $id)
     {
-        return $this->select('consignaciones_head.*, sellers.seller as vendedor_nombre, doctores.nombre as doctor_nombre, clientes.nombre as cliente_nombre')
-            ->join('sellers',  'sellers.id = consignaciones_head.vendedor_id', 'left')
-            ->join('doctores', 'doctores.id = consignaciones_head.doctor_id',  'left')
-            ->join('clientes', 'clientes.id = consignaciones_head.cliente_id', 'left')
+        return $this->select('
+                consignaciones_head.*,
+                sellers.seller    AS vendedor_nombre,
+                doctores.nombre   AS doctor_nombre,
+                clientes.nombre   AS cliente_nombre,
+                pacientes.nombre  AS paciente_nombre,
+                u_auth.user_name  AS autorizador_nombre
+            ')
+            ->join('sellers',   'sellers.id = consignaciones_head.vendedor_id',              'left')
+            ->join('doctores',  'doctores.id = consignaciones_head.doctor_id',               'left')
+            ->join('clientes',  'clientes.id = consignaciones_head.cliente_id',              'left')
+            ->join('pacientes', 'pacientes.id = consignaciones_head.paciente_id',            'left')
+            ->join('users u_auth', 'u_auth.id = consignaciones_head.lotes_autorizados_por', 'left')
             ->where('consignaciones_head.id', $id)
             ->first();
     }

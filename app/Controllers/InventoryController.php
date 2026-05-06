@@ -153,9 +153,12 @@ class InventoryController extends BaseController
         }
 
         $productoModel->update($id, [
-            'descripcion' => $data['descripcion'],
-            'codigo'      => $codigo,
-            'activo'      => $data['activo']
+            'descripcion'      => $data['descripcion'],
+            'codigo'           => $codigo,
+            'tipo'             => (int)($data['tipo'] ?? 1),
+            'activo'           => $data['activo'],
+            'marca'            => trim($data['marca'] ?? '') ?: null,
+            'clasificacion_id' => ($data['clasificacion_id'] ?? null) ?: null,
         ]);
 
         return $this->response->setJSON([
@@ -295,6 +298,183 @@ class InventoryController extends BaseController
         $writer->save('php://output');
         exit;
     }
+
+    public function store()
+    {
+        $productoModel = new ProductoModel();
+
+        $data = $this->request->getJSON(true);
+
+        $descripcion = trim($data['descripcion'] ?? '');
+        $codigo      = trim($data['codigo'] ?? '');
+        $tipo        = (int)($data['tipo'] ?? 1);
+        $activo      = isset($data['activo']) ? (int)$data['activo'] : 1;
+
+        if (!$descripcion) {
+            return $this->response->setJSON(['success' => false, 'message' => 'La descripción es requerida']);
+        }
+
+        if (!$codigo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El código es requerido']);
+        }
+
+        if (!in_array($tipo, [1, 2, 3])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Tipo de producto inválido']);
+        }
+
+        $existe = $productoModel->where('codigo', $codigo)->first();
+
+        if ($existe) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Ya existe un producto con ese código']);
+        }
+
+        $id = $productoModel->insert([
+            'descripcion'      => $descripcion,
+            'codigo'           => $codigo,
+            'tipo'             => $tipo,
+            'activo'           => $activo,
+            'marca'            => trim($data['marca'] ?? '') ?: null,
+            'clasificacion_id' => ($data['clasificacion_id'] ?? null) ?: null,
+        ]);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Producto creado correctamente',
+            'id'      => $id
+        ]);
+    }
+
+    public function plantillaExcel()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Productos');
+
+        $sheet->setCellValue('A1', 'descripcion');
+        $sheet->setCellValue('B1', 'codigo');
+        $sheet->setCellValue('C1', 'tipo');
+
+        $headerStyle = [
+            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 12],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:C1')->applyFromArray($headerStyle);
+
+        $sheet->setCellValue('A2', 'Suero Fisiológico 500ml');
+        $sheet->setCellValue('B2', 'PRD-001');
+        $sheet->setCellValue('C2', '1');
+        $sheet->getStyle('A2:C2')->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'fill'    => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F0FE']],
+        ]);
+
+        $sheet->setCellValue('A3', 'Nota: tipo 1=Bien  |  2=Servicio  |  3=Otro.  Elimina esta fila de nota antes de importar.');
+        $sheet->mergeCells('A3:C3');
+        $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('A3')->getFont()->getColor()->setRGB('888888');
+
+        $sheet->getColumnDimension('A')->setWidth(40);
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+        $sheet->getColumnDimension('C')->setAutoSize(true);
+
+        $filename = 'plantilla_productos.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment;filename=\"$filename\"");
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function importarExcel()
+    {
+        $file = $this->request->getFile('archivo');
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Archivo inválido o no recibido']);
+        }
+
+        if (!in_array(strtolower($file->getClientExtension()), ['xlsx', 'xls'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Solo se aceptan archivos .xlsx o .xls']);
+        }
+
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file->getTempName());
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($file->getTempName());
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo leer el archivo: ' . $e->getMessage()]);
+        }
+
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+
+        if (count($rows) < 2) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El archivo no contiene datos']);
+        }
+
+        array_shift($rows); // quitar encabezado
+
+        $productoModel    = new ProductoModel();
+        $importados       = 0;
+        $errores          = [];
+        $codigosEnArchivo = [];
+
+        foreach ($rows as $i => $row) {
+            $fila        = $i + 2;
+            $descripcion = trim((string)($row[0] ?? ''));
+            $codigo      = trim((string)($row[1] ?? ''));
+            $tipo        = (int)($row[2] ?? 1);
+
+            if ($descripcion === '' && $codigo === '') {
+                continue;
+            }
+
+            if ($descripcion === '') {
+                $errores[] = "Fila {$fila}: la descripción es requerida";
+                continue;
+            }
+
+            if ($codigo === '') {
+                $errores[] = "Fila {$fila}: el código es requerido";
+                continue;
+            }
+
+            if (!in_array($tipo, [1, 2, 3])) {
+                $tipo = 1;
+            }
+
+            if (in_array($codigo, $codigosEnArchivo)) {
+                $errores[] = "Fila {$fila}: código '{$codigo}' duplicado dentro del archivo";
+                continue;
+            }
+
+            if ($productoModel->where('codigo', $codigo)->first()) {
+                $errores[] = "Fila {$fila}: el código '{$codigo}' ya existe en el sistema";
+                continue;
+            }
+
+            $productoModel->insert([
+                'descripcion' => $descripcion,
+                'codigo'      => $codigo,
+                'tipo'        => $tipo,
+                'activo'      => 1,
+            ]);
+
+            $codigosEnArchivo[] = $codigo;
+            $importados++;
+        }
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'importados' => $importados,
+            'errores'    => $errores,
+            'message'    => "Se importaron {$importados} producto(s) correctamente"
+        ]);
+    }
+
     public function searchAjax()
     {
         $q = $this->request->getGet('q');

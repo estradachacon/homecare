@@ -19,7 +19,9 @@ class ProductoModel extends Model
         'activo',
         'costo_promedio',
         'costo_promedio_actual',
-        'tipo'
+        'tipo',
+        'marca',
+        'clasificacion_id',
     ];
 
     protected $useTimestamps = true;
@@ -76,15 +78,17 @@ class ProductoModel extends Model
     public function conStock()
     {
         return $this->select('
-        productos.*,
-        COALESCE(mov.stock,0) AS stock
-    ')
+            productos.*,
+            COALESCE(mov.stock, 0)   AS stock,
+            clasificaciones.nombre   AS clasificacion_nombre
+        ')
             ->join(
-                '(SELECT producto_id, SUM(cantidad) as stock 
-              FROM productos_movimientos 
-              GROUP BY producto_id) mov',
+                '(SELECT producto_id, SUM(cantidad) as stock
+                  FROM productos_movimientos
+                  GROUP BY producto_id) mov',
                 'mov.producto_id = productos.id',
                 'left'
-            );
+            )
+            ->join('clasificaciones', 'clasificaciones.id = productos.clasificacion_id', 'left');
     }
 }

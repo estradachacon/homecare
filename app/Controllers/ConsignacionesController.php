@@ -11,6 +11,8 @@ use App\Models\ConsignacionCierreDetalleModel;
 use App\Models\ConsignacionCierreFacturaModel;
 use App\Models\ConsignacionLoteModel;
 use App\Models\ConsignacionDetalleLoteModel;
+use App\Models\ConsignacionLogModel;
+use App\Models\PacienteModel;
 use App\Models\SellerModel;
 
 class ConsignacionesController extends BaseController
@@ -98,20 +100,28 @@ class ConsignacionesController extends BaseController
 
         $db->transStart();
 
+        $pacienteId = (int)$this->request->getPost('paciente_id') ?: null;
+        $nombre     = null;
+        if ($pacienteId) {
+            $pRow   = (new PacienteModel())->select('nombre')->find($pacienteId);
+            $nombre = $pRow ? $pRow->nombre : null;
+        }
+
         $id = $headModel->insert([
-            'numero'          => $this->request->getPost('numero'),
-            'vendedor_id'     => $this->request->getPost('vendedor_id'),
-            'nombre'          => $this->request->getPost('nombre'),
-            'concepto'        => $this->request->getPost('concepto'),
-            'fecha'           => $fecha,
-            'hora'            => $hora,
+            'numero'           => $this->request->getPost('numero'),
+            'vendedor_id'      => $this->request->getPost('vendedor_id'),
+            'nombre'           => $nombre,
+            'paciente_id'      => $pacienteId,
+            'concepto'         => $this->request->getPost('concepto'),
+            'fecha'            => $fecha,
+            'hora'             => $hora,
             'fecha_generacion' => date('Y-m-d H:i:s'),
-            'subtotal'        => $subtotal,
-            'doctor_id' => $this->request->getPost('doctor_id') ?: null,
-            'cliente_id' => $this->request->getPost('cliente_id') ?: null,
-            'observaciones'   => $this->request->getPost('observaciones'),
-            'estado'          => 'abierta',
-            'created_by'      => $session->get('id'),
+            'subtotal'         => $subtotal,
+            'doctor_id'        => $this->request->getPost('doctor_id') ?: null,
+            'cliente_id'       => $this->request->getPost('cliente_id') ?: null,
+            'observaciones'    => $this->request->getPost('observaciones'),
+            'estado'           => 'abierta',
+            'created_by'       => $session->get('id'),
         ]);
 
         foreach ($productos as $p) {
@@ -140,6 +150,8 @@ class ConsignacionesController extends BaseController
             'Se creó la nota de envío ' . $this->request->getPost('numero') . '.',
             $session->get('id')
         );
+
+        $this->registrarLog($id, 'Nota creada');
 
         return redirect()->to('/consignaciones/' . $id)
             ->with('success', 'Nota de envío creada correctamente.');
@@ -210,13 +222,17 @@ class ConsignacionesController extends BaseController
             $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
         }
 
+        $logModel = new ConsignacionLogModel();
+        $log      = $logModel->where('consignacion_id', $id)->orderBy('created_at', 'ASC')->findAll();
+
         return view('consignaciones/detalle', [
-            'consignacion'      => $consignacion,
-            'detalles'          => $detalles,
-            'cierre'            => $cierre,
+            'consignacion'       => $consignacion,
+            'detalles'           => $detalles,
+            'cierre'             => $cierre,
             'facturasPorDetalle' => $facturasPorDetalle,
-            'mapCierreDetalle'  => $mapCierreDetalle,
-            'lotesPorDetalle'   => $lotesPorDetalle,
+            'mapCierreDetalle'   => $mapCierreDetalle,
+            'lotesPorDetalle'    => $lotesPorDetalle,
+            'log'                => $log,
         ]);
     }
 
@@ -534,6 +550,7 @@ class ConsignacionesController extends BaseController
             'Se cerró la nota ' . $consignacion->numero . ($nuevoId ? ' y se generó traslado.' : '.'),
             $session->get('id')
         );
+        $this->registrarLog($id, 'Nota cerrada', $nuevoId ? 'Se generó nota de traslado.' : null);
 
         $msg = 'Nota cerrada correctamente.';
         if ($nuevoId) {
@@ -588,6 +605,7 @@ class ConsignacionesController extends BaseController
             'Se anuló la nota ' . $nota->numero . '.',
             $session->get('id')
         );
+        $this->registrarLog($id, 'Nota anulada');
 
         return $this->response->setJSON(['success' => true, 'message' => 'Nota anulada correctamente.']);
     }
@@ -632,8 +650,13 @@ class ConsignacionesController extends BaseController
                 ->getRow();
         }
 
+        $paciente = null;
+        if (!empty($consignacion->paciente_id)) {
+            $paciente = (new PacienteModel())->find($consignacion->paciente_id);
+        }
+
         $detalleLoteModel = new ConsignacionDetalleLoteModel();
-        $lotesPorDetalle = [];
+        $lotesPorDetalle  = [];
 
         foreach ($detalles as $d) {
             $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
@@ -645,6 +668,7 @@ class ConsignacionesController extends BaseController
             'vendedores'      => $sellerModel->orderBy('seller', 'ASC')->findAll(),
             'doctor'          => $doctor,
             'cliente'         => $cliente,
+            'paciente'        => $paciente,
             'lotesPorDetalle' => $lotesPorDetalle,
         ]);
     }
@@ -733,9 +757,17 @@ class ConsignacionesController extends BaseController
             }
         }
 
+        $pacienteId = (int)$this->request->getPost('paciente_id') ?: null;
+        $nombre     = null;
+        if ($pacienteId) {
+            $pRow   = (new PacienteModel())->select('nombre')->find($pacienteId);
+            $nombre = $pRow ? $pRow->nombre : null;
+        }
+
         $headModel->update($id, [
             'vendedor_id'   => $this->request->getPost('vendedor_id'),
-            'nombre'        => $this->request->getPost('nombre'),
+            'nombre'        => $nombre,
+            'paciente_id'   => $pacienteId,
             'doctor_id'     => $this->request->getPost('doctor_id') ?: null,
             'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
             'concepto'      => $this->request->getPost('concepto'),
@@ -758,6 +790,8 @@ class ConsignacionesController extends BaseController
             'Se editó la nota de envío ' . $consignacion->numero . '.',
             $session->get('id')
         );
+
+        $this->registrarLog($id, 'Nota editada');
 
         return redirect()->to('/consignaciones/' . $id)
             ->with('success', 'Nota de envío actualizada correctamente.');
@@ -793,6 +827,7 @@ class ConsignacionesController extends BaseController
         ]);
 
         registrar_bitacora('Aprobar consignación', 'Consignaciones', 'Aprobó nota ' . $nota->numero . '.', $session->get('id'));
+        $this->registrarLog($id, 'Nota aprobada');
 
         return $this->response->setJSON(['success' => true, 'message' => 'Nota aprobada.']);
     }
@@ -827,6 +862,7 @@ class ConsignacionesController extends BaseController
         ]);
 
         registrar_bitacora('Rechazar consignación', 'Consignaciones', 'Rechazó nota ' . $nota->numero . '. Motivo: ' . $motivo, $session->get('id'));
+        $this->registrarLog($id, 'Nota rechazada', 'Motivo: ' . $motivo);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Nota rechazada.']);
     }
@@ -948,7 +984,7 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
 
         $detRow = $db->table('consignaciones_detalles cd')
-            ->select('cd.cantidad, ch.estado')
+            ->select('cd.cantidad, ch.estado, ch.lotes_autorizados_por, ch.id AS consignacion_id')
             ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
             ->where('cd.id', $detalleId)
             ->get()
@@ -958,6 +994,13 @@ class ConsignacionesController extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Solo se pueden asignar lotes a notas abiertas.'
+            ]);
+        }
+
+        if (!tienePermiso('consignacion_sin_autorizacion') && empty($detRow->lotes_autorizados_por)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Los lotes de esta nota aún no han sido autorizados para edición. Solicite autorización.'
             ]);
         }
 
@@ -993,13 +1036,15 @@ class ConsignacionesController extends BaseController
 
         (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
 
+        $this->registrarLog((int)$detRow->consignacion_id, 'Lotes actualizados', 'Detalle #' . $detalleId);
+
         return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Lotes guardados correctamente.',
-            'detalle_id' => $detalleId,
-            'lotes' => $lotes,
-            'total_lotes' => count($lotes),
-            'total_asignado' => $totalAsignado
+            'success'        => true,
+            'message'        => 'Lotes guardados correctamente.',
+            'detalle_id'     => $detalleId,
+            'lotes'          => $lotes,
+            'total_lotes'    => count($lotes),
+            'total_asignado' => $totalAsignado,
         ]);
     }
 
@@ -1312,6 +1357,63 @@ class ConsignacionesController extends BaseController
             'doctores'   => $doctores,
             'filtros'    => $filtros,
             'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  AUTORIZAR EDICIÓN DE LOTES
+    // ─────────────────────────────────────────────
+
+    public function autorizarLotes(int $id)
+    {
+        $chk = requerirPermiso('autorizar_lotes_consignacion');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para autorizar lotes.']);
+        }
+
+        $session   = session();
+        $headModel = new ConsignacionHeadModel();
+        $nota      = $headModel->find($id);
+
+        if (!$nota) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nota no encontrada.']);
+        }
+
+        if ($nota->estado !== 'abierta') {
+            return $this->response->setJSON(['success' => false, 'message' => 'Solo se pueden autorizar notas abiertas.']);
+        }
+
+        if (!empty($nota->lotes_autorizados_por)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Los lotes ya fueron autorizados anteriormente.']);
+        }
+
+        $headModel->update($id, [
+            'lotes_autorizados_por' => $session->get('id'),
+            'lotes_autorizados_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->registrarLog($id, 'Lotes autorizados', 'Se habilitó la edición de lotes.');
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Lotes autorizados correctamente.']);
+    }
+
+    // ─────────────────────────────────────────────
+    //  HELPER: LOG INTERNO
+    // ─────────────────────────────────────────────
+
+    private function registrarLog(int $consignacionId, string $accion, ?string $detalle = null): void
+    {
+        $session  = session();
+        $userId   = $session->get('id');
+        $userName = $session->get('user_name') ?? ('Usuario #' . $userId);
+
+        (new ConsignacionLogModel())->insert([
+            'consignacion_id' => $consignacionId,
+            'user_id'         => $userId,
+            'user_nombre'     => $userName,
+            'accion'          => $accion,
+            'detalle'         => $detalle,
+            'created_at'      => date('Y-m-d H:i:s'),
         ]);
     }
 

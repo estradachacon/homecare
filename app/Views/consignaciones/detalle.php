@@ -127,6 +127,11 @@
             </div>
 
             <div class="card-body">
+                <?php
+                    $puedeEditarLotes = tienePermiso('consignacion_sin_autorizacion')
+                                     || !empty($consignacion->lotes_autorizados_por);
+                ?>
+
                 <!-- Estado badge -->
                 <div class="mb-3">
                     <?php if ($consignacion->estado === 'abierta'): ?>
@@ -162,6 +167,25 @@
                             </button>
                         <?php endif; ?>
                     <?php endif; ?>
+
+                    <!-- Autorización de lotes -->
+                    <?php if (!empty($consignacion->lotes_autorizados_por)): ?>
+                        <span class="badge badge-success ml-1">
+                            <i class="fa-solid fa-unlock mr-1"></i> Lotes autorizados
+                        </span>
+                        <small class="text-muted ml-1">
+                            por <strong><?= esc($consignacion->autorizador_nombre ?? 'Usuario') ?></strong>
+                            el <?= date('d/m/Y H:i', strtotime($consignacion->lotes_autorizados_at)) ?>
+                        </small>
+                    <?php elseif ($consignacion->estado === 'abierta' && tienePermiso('autorizar_lotes_consignacion')): ?>
+                        <button class="btn btn-sm btn-warning ml-1" id="btnAutorizarLotes">
+                            <i class="fa-solid fa-unlock mr-1"></i> Autorizar edición de lotes
+                        </button>
+                    <?php elseif ($consignacion->estado === 'abierta' && !tienePermiso('consignacion_sin_autorizacion')): ?>
+                        <span class="badge badge-secondary ml-1">
+                            <i class="fa-solid fa-lock mr-1"></i> Lotes pendientes de autorización
+                        </span>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($apEst === 'rechazada' && !empty($consignacion->rechazo_motivo)): ?>
@@ -179,7 +203,9 @@
                     </div>
                     <div class="col-md-3">
                         <p class="mb-1 text-muted small">Paciente</p>
-                        <p class="font-weight-bold"><?= esc($consignacion->nombre ?: '—') ?></p>
+                        <p class="font-weight-bold">
+                            <?= esc($consignacion->paciente_nombre ?? $consignacion->nombre ?: '—') ?>
+                        </p>
                     </div>
                     <div class="col-md-3">
                         <p class="mb-1 text-muted small">Fecha</p>
@@ -252,14 +278,21 @@
                                             <i class="fa-solid fa-boxes-stacked mr-1"></i><?= $totalLotes ?>
                                         </button>
                                         <?php if ($consignacion->estado === 'abierta'): ?>
-                                            <button class="btn btn-xs btn-outline-primary btn-lotes mt-1"
-                                                data-id="<?= $d->id ?>"
-                                                data-producto-id="<?= $d->producto_id ?>"
-                                                data-nombre="<?= esc($d->producto_nombre) ?>"
-                                                data-cantidad="<?= $d->cantidad ?>"
-                                                title="Editar lotes">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                            </button>
+                                            <?php if ($puedeEditarLotes): ?>
+                                                <button class="btn btn-xs btn-outline-primary btn-lotes mt-1"
+                                                    data-id="<?= $d->id ?>"
+                                                    data-producto-id="<?= $d->producto_id ?>"
+                                                    data-nombre="<?= esc($d->producto_nombre) ?>"
+                                                    data-cantidad="<?= $d->cantidad ?>"
+                                                    title="Editar lotes">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-xs btn-outline-secondary mt-1"
+                                                    disabled title="Requiere autorización para editar lotes">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -369,6 +402,37 @@
                         Nota anulada el <?= date('d/m/Y H:i', strtotime($consignacion->fecha_anulacion)) ?>
                     </div>
                 <?php endif; ?>
+
+                <!-- Historial de actividad -->
+                <?php if (!empty($log)): ?>
+                    <hr>
+                    <div class="mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-toggle="collapse" data-target="#logSection" aria-expanded="false">
+                            <i class="fa-solid fa-history mr-1"></i>
+                            Historial de actividad (<?= count($log) ?>)
+                        </button>
+                    </div>
+                    <div class="collapse" id="logSection">
+                        <div class="card card-body p-2" style="font-size:12px; max-height:280px; overflow-y:auto;">
+                            <?php foreach ($log as $entry): ?>
+                                <div class="d-flex align-items-start py-1 border-bottom">
+                                    <small class="text-muted mr-3" style="white-space:nowrap; min-width:115px;">
+                                        <?= date('d/m/Y H:i', strtotime($entry->created_at)) ?>
+                                    </small>
+                                    <div>
+                                        <strong><?= esc($entry->user_nombre) ?></strong>
+                                        <span class="text-muted"> — <?= esc($entry->accion) ?></span>
+                                        <?php if (!empty($entry->detalle)): ?>
+                                            <div class="text-muted"><?= esc($entry->detalle) ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>
@@ -580,6 +644,30 @@
                         }),
                     }).then(r => r.json()).then(d => {
                         if (d.success) Swal.fire('Rechazada', d.message, 'success').then(() => location.reload());
+                        else Swal.fire('Error', d.message, 'error');
+                    });
+                });
+            });
+        <?php endif; ?>
+
+        // ── Autorizar lotes ──────────────────────────────────────
+        <?php if ($consignacion->estado === 'abierta' && tienePermiso('autorizar_lotes_consignacion')): ?>
+            $('#btnAutorizarLotes')?.on('click', function() {
+                Swal.fire({
+                    title: 'Autorizar edición de lotes',
+                    text: '¿Confirma que autoriza la edición de lotes para esta nota? Quedará registrado su nombre y la fecha.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, autorizar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#fd7e14',
+                }).then(r => {
+                    if (!r.isConfirmed) return;
+                    fetch('<?= base_url('consignaciones/' . $consignacion->id . '/autorizar-lotes') ?>', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': CSRF },
+                    }).then(r => r.json()).then(d => {
+                        if (d.success) Swal.fire('Autorizado', d.message, 'success').then(() => location.reload());
                         else Swal.fire('Error', d.message, 'error');
                     });
                 });

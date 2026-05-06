@@ -63,8 +63,19 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label text-muted small">Paciente</label>
-                            <input type="text" name="nombre" class="form-control"
-                                value="<?= esc($consignacion->nombre) ?>" placeholder="Ej: Paciente García">
+                            <div class="d-flex">
+                                <select name="paciente_id" id="selectPaciente" class="form-control flex-grow-1">
+                                    <?php if (!empty($paciente)): ?>
+                                        <option value="<?= $paciente->id ?>" selected>
+                                            <?= esc($paciente->nombre . (!empty($paciente->identificacion) ? ' | ' . $paciente->identificacion : '')) ?>
+                                        </option>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-success ml-2"
+                                    data-toggle="modal" data-target="#modalPaciente">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -242,6 +253,45 @@
         </td>
     </tr>
 </template>
+
+<!-- Modal Nuevo Paciente -->
+<div class="modal fade" id="modalPaciente" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="formPaciente">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Paciente</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre <span class="text-danger">*</span></label>
+                        <input type="text" name="nombre" id="pacienteNombre" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Identificación</label>
+                        <input type="text" name="identificacion" class="form-control" placeholder="DUI, pasaporte, etc.">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Correo</label>
+                        <input type="email" name="correo" class="form-control">
+                    </div>
+                    <div id="pacienteError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarPaciente">
+                        <i class="fa-solid fa-save"></i> Guardar paciente
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Modal Nuevo Doctor -->
 <div class="modal fade" id="modalDoctor" tabindex="-1">
@@ -431,6 +481,49 @@ window.addEventListener('load', function () {
         cuerpoProductos.appendChild(fila);
 
         initSelectProducto(cuerpoProductos.lastElementChild.querySelector('.select-producto'));
+    });
+
+    $('#selectPaciente').select2({
+        language: 'es',
+        placeholder: 'Buscar paciente...',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: '<?= base_url('pacientes/searchAjax') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => ({ results: data.results || [] }),
+            cache: true,
+        },
+    });
+
+    $('#formPaciente').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const btn  = $('#btnGuardarPaciente');
+        const err  = $('#pacienteError');
+        err.addClass('d-none').text('');
+        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+        $.ajax({
+            url: '<?= base_url('pacientes/storeAjax') ?>',
+            type: 'POST',
+            data: form.serialize(),
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success) {
+                    err.removeClass('d-none').text(res.message || 'No se pudo crear el paciente.');
+                    return;
+                }
+                const option = new Option(res.paciente.text, res.paciente.id, true, true);
+                $('#selectPaciente').append(option).trigger('change');
+                $('#modalPaciente').modal('hide');
+                form[0].reset();
+            },
+            error: function() { err.removeClass('d-none').text('Error al comunicarse con el servidor.'); },
+            complete: function() { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar paciente'); }
+        });
     });
 
     $('#selectDoctor').select2({

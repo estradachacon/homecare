@@ -164,8 +164,15 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes/exportar-excel/(:num)', 'ClienteController::exportarExcel/$1');
     $routes->get('clientes/searchAjax', 'ClienteController::searchAjax');
 
-    $routes->get('doctores/searchAjax', 'Doctores::searchAjax');
+    $routes->get('doctores/searchAjax',  'Doctores::searchAjax');
     $routes->post('doctores/storeAjax', 'Doctores::storeAjax');
+
+    // Pacientes
+    $routes->get('pacientes',                      'PacientesController::index');
+    $routes->post('pacientes/guardar',             'PacientesController::guardar');
+    $routes->post('pacientes/eliminar/(:num)',      'PacientesController::eliminar/$1');
+    $routes->get('pacientes/searchAjax',           'PacientesController::searchAjax');
+    $routes->post('pacientes/storeAjax',           'PacientesController::storeAjax');
 
     // Rutas para mantenimiento de tipos de venta
     $routes->get('tipo_venta', 'TipoVentaController::index');
@@ -192,6 +199,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('productos/(:num)', 'InventoryController::show/$1');
     $routes->get('inventory/excel', 'InventoryController::excel');
     $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
+    $routes->post('inventory/store', 'InventoryController::store');
+    $routes->get('inventory/plantilla-excel', 'InventoryController::plantillaExcel');
+    $routes->post('inventory/importar-excel', 'InventoryController::importarExcel');
+    $routes->get('clasificaciones/lista', 'ClasificacionController::lista');
+    $routes->post('clasificaciones/guardar', 'ClasificacionController::guardar');
+    $routes->post('clasificaciones/eliminar/(:num)', 'ClasificacionController::eliminar/$1');
 
     // Rutas para mantenimiento de proveedores
     $routes->get('proveedores', 'ProveedorController::index');
@@ -247,6 +260,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('consignaciones/(:num)/actualizar',            'ConsignacionesController::actualizar/$1');
     $routes->post('consignaciones/(:num)/aprobar',               'ConsignacionesController::aprobar/$1');
     $routes->post('consignaciones/(:num)/rechazar',              'ConsignacionesController::rechazar/$1');
+    $routes->post('consignaciones/(:num)/autorizar-lotes',       'ConsignacionesController::autorizarLotes/$1');
     $routes->get('consignaciones/precio-ajax',                   'ConsignacionesController::getPrecioAjax');
     $routes->get('consignaciones/facturas-vendedor/(:num)',       'ConsignacionesController::facturasVendedor/$1');
     // Lotes

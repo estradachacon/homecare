@@ -4,23 +4,26 @@
 
         <tr>
             <td>
-                <div class="d-flex flex-column h-100">
+                <div class="d-flex flex-column">
 
                     <strong><?= esc($p->descripcion) ?></strong>
 
-                    <?php
-                    $tipoTexto = 'Bien';
+                    <div class="mt-1">
+                        <?php
+                        $tipoTexto = match((int)$p->tipo) { 2 => 'Servicio', 3 => 'Otro', default => 'Bien' };
+                        ?>
+                        <small class="text-muted"><?= $tipoTexto ?></small>
 
-                    if ($p->tipo == 2) {
-                        $tipoTexto = 'Servicio';
-                    } elseif ($p->tipo == 3) {
-                        $tipoTexto = 'Otro';
-                    }
-                    ?>
+                        <?php if (!empty($p->marca)): ?>
+                            <small class="text-muted"> · <?= esc($p->marca) ?></small>
+                        <?php endif ?>
 
-                    <small class="text-muted mt-auto text-right">
-                        <?= $tipoTexto ?>
-                    </small>
+                        <?php if (!empty($p->clasificacion_nombre)): ?>
+                            <span class="badge badge-light border ml-1" style="font-size:11px">
+                                <?= esc($p->clasificacion_nombre) ?>
+                            </span>
+                        <?php endif ?>
+                    </div>
 
                 </div>
             </td>
@@ -81,7 +84,10 @@
                     data-id="<?= $p->id ?>"
                     data-descripcion="<?= esc($p->descripcion) ?>"
                     data-codigo="<?= esc($p->codigo) ?>"
-                    data-activo="<?= $p->activo ?>">
+                    data-tipo="<?= (int)$p->tipo ?>"
+                    data-activo="<?= $p->activo ?>"
+                    data-marca="<?= esc($p->marca ?? '') ?>"
+                    data-clasificacion-id="<?= $p->clasificacion_id ?? '' ?>">
                     <i class="fa-solid fa-pen"></i>
                 </button>
 
