@@ -154,16 +154,30 @@
                             </div>
 
                             <!-- Tipo Documento -->
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>Tipo Documento</label>
                                     <select name="tipo_documento" class="form-control">
                                         <option value="">Todos</option>
                                         <option value="01">Factura</option>
                                         <option value="03">Crédito Fiscal</option>
+                                        <option value="14">Sujeto Excluido</option>
                                     </select>
                                 </div>
                             </div>
+
+                            <!-- Tipo Línea -->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Tipo de Línea</label>
+                                    <select name="tipo_linea" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="producto">Productos</option>
+                                        <option value="servicio">Servicios</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <!-- Botones -->
                             <div class="col-md-6 btn-container-adjust">
                                 <div class="row">

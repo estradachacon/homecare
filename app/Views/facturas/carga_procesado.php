@@ -172,6 +172,18 @@
             if (!doc) return '';
             return doc.toString().replace(/[^0-9]/g, '');
         }
+
+        function obtenerClienteDte(json) {
+            return json.receptor ?? json.sujetoExcluido ?? {};
+        }
+
+        function obtenerTotalDte(json) {
+            return json.resumen?.montoTotalOperacion ??
+                json.resumen?.totalPagar ??
+                json.resumen?.totalCompra ??
+                json.resumen?.subTotal ??
+                0;
+        }
     </script>
     <script>
         const overlay = document.getElementById('globalDropOverlay');
@@ -390,6 +402,7 @@
                             mostrarDuplicados(duplicados);
                             return;
                         }
+                        const clienteDte = obtenerClienteDte(json);
                         const factura = {
                             file: file,
                             codigoGeneracion: codigo,
@@ -397,8 +410,8 @@
                             correlativo: correlativoInterno,
                             tipoDoc: json.identificacion?.tipoDte ?? 'N/D',
                             fecha: json.identificacion?.fecEmi ?? 'N/D',
-                            cliente: json.receptor?.nombre ?? 'N/D',
-                            total: json.resumen?.montoTotalOperacion ?? 0,
+                            cliente: clienteDte.nombre ?? 'N/D',
+                            total: obtenerTotalDte(json),
                             productos: json.cuerpoDocumento ?? [],
                             seller_id: null,
                             tipo_venta_id: null,
@@ -508,14 +521,15 @@
             reader.onload = function(e) {
                 try {
                     const json = JSON.parse(e.target.result);
+                    const clienteDte = obtenerClienteDte(json);
                     const factura = {
                         file: file,
                         codigoGeneracion: json.identificacion?.codigoGeneracion ?? null,
                         numeroControl: json.identificacion?.numeroControl ?? null,
                         tipoDoc: json.identificacion?.tipoDte ?? 'N/D',
                         fecha: json.identificacion?.fecEmi ?? 'N/D',
-                        cliente: json.receptor?.nombre ?? 'N/D',
-                        total: json.resumen?.montoTotalOperacion ?? 0,
+                        cliente: clienteDte.nombre ?? 'N/D',
+                        total: obtenerTotalDte(json),
                         productos: json.cuerpoDocumento ?? [],
                     };
                     const existe = archivosSeleccionados.some(f =>

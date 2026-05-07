@@ -20,6 +20,9 @@
         <td><strong>Cliente:</strong></td>
         <td><?= !empty($cliente) ? esc($cliente->nombre) : 'Todos los clientes' ?></td>
 
+        <td><strong>Línea:</strong></td>
+        <td><?= match($tipo_linea ?? '') { 'producto' => 'Solo Productos', 'servicio' => 'Solo Servicios', default => 'Productos y Servicios' } ?></td>
+
         <td><strong>Generado:</strong></td>
         <td><?= esc($generado_en) ?></td>
     </tr>
@@ -61,6 +64,8 @@
     ?>
 
     <?php foreach ($reporte as $tipo => $fechas): ?>
+
+        <?php if ((string) $tipo === '14') continue; ?>
 
         <tr style="background:#ddebf7;font-weight:bold;">
             <td colspan="9">
@@ -105,10 +110,10 @@
                 $sub_ret += $ret;
                 $sub_total += $total;
 
-                $gt_base += $base;
-                $gt_iva += $iva;
+                $gt_base  += $base;
+                $gt_iva   += $iva;
                 $gt_valor += $valor;
-                $gt_ret += $ret;
+                $gt_ret   += $ret;
                 $gt_total += $total;
 
                 ?>
@@ -152,15 +157,74 @@
     <?php endforeach; ?>
 
     <tr style="background:#c6e0b4;font-weight:bold;">
-
         <td colspan="4">GRAN TOTAL</td>
-
         <td><?= number_format($gt_base, 2) ?></td>
         <td><?= number_format($gt_iva, 2) ?></td>
         <td><?= number_format($gt_valor, 2) ?></td>
         <td><?= number_format($gt_ret, 2) ?></td>
         <td><?= number_format($gt_total, 2) ?></td>
-
     </tr>
+
+    <?php if (isset($reporte['14'])): ?>
+
+        <tr><td colspan="9"></td></tr>
+
+        <tr style="background:#7b7b7b;color:#fff;font-weight:bold;font-size:9px;">
+            <td colspan="9">FACTURAS DE SUJETO EXCLUIDO — no incluidas en el total general</td>
+        </tr>
+
+        <tr style="background:#1f4e79;color:white;font-weight:bold;">
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Numero</th>
+            <th>Cliente</th>
+            <th>Total S/IVA</th>
+            <th>10% Retencion Renta</th>
+            <th>Valor Venta</th>
+            <th>1% Ret</th>
+            <th>Total</th>
+        </tr>
+
+        <?php
+        $fsee_sub_base = 0; $fsee_sub_iva = 0;
+        $fsee_sub_valor = 0; $fsee_sub_ret = 0; $fsee_sub_total = 0;
+        ?>
+
+        <?php foreach ($reporte['14'] as $fecha => $data): ?>
+            <?php foreach ($data['facturas'] as $factura): ?>
+                <?php
+                $base  = $factura->total_gravada ?? 0;
+                $valor = $factura->monto_total_operacion ?? 0;
+                $ret   = $factura->iva_rete1 ?? 0;
+                $total = $factura->total_pagar ?? 0;
+                $iva   = max(0, $base - $total);
+                if ($factura->anulada) { $base = $iva = $valor = $ret = $total = 0; }
+                $fsee_sub_base  += $base; $fsee_sub_iva   += $iva;
+                $fsee_sub_valor += $valor; $fsee_sub_ret  += $ret; $fsee_sub_total += $total;
+                ?>
+                <tr>
+                    <td><?= date('d/m/Y', strtotime($factura->fecha_emision)) ?></td>
+                    <td><?= esc($siglas[$factura->tipo_dte] ?? $factura->tipo_dte) ?></td>
+                    <td><?= esc(str_pad(substr($factura->numero_control, -6), 6, '0', STR_PAD_LEFT)) ?></td>
+                    <td><?= esc($factura->cliente_nombre) ?></td>
+                    <td><?= number_format($base, 2) ?></td>
+                    <td><?= number_format($iva, 2) ?></td>
+                    <td><?= number_format($valor, 2) ?></td>
+                    <td><?= number_format($ret, 2) ?></td>
+                    <td><?= number_format($total, 2) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+
+        <tr style="background:#e2efda;font-weight:bold;">
+            <td colspan="4">GRAN TOTAL FSEE</td>
+            <td><?= number_format($fsee_sub_base, 2) ?></td>
+            <td><?= number_format($fsee_sub_iva, 2) ?></td>
+            <td><?= number_format($fsee_sub_valor, 2) ?></td>
+            <td><?= number_format($fsee_sub_ret, 2) ?></td>
+            <td><?= number_format($fsee_sub_total, 2) ?></td>
+        </tr>
+
+    <?php endif; ?>
 
 </table>

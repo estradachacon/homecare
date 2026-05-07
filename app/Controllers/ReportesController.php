@@ -1556,12 +1556,13 @@ class ReportesController extends Controller
         $tipo  = $this->request->getGet('tipo_documento');
         $cliente_id = $this->request->getGet('cliente_id');
 
+        $tipo_linea = $this->request->getGet('tipo_linea') ?? '';
+
         $query = $facturaModel
             ->select('facturas_head.*, clientes.nombre as cliente_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->where('fecha_emision >=', $desde)
-            ->where('fecha_emision <=', $hasta)
-            ->where('tipo_dte !=', '14'); // EXCLUIR SUJETO EXCLUIDO
+            ->where('fecha_emision <=', $hasta);
 
         if (!empty($tipo)) {
             $query->where('tipo_dte', $tipo);
@@ -1569,6 +1570,12 @@ class ReportesController extends Controller
 
         if (!empty($cliente_id)) {
             $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        if ($tipo_linea === 'producto') {
+            $query->where('EXISTS (SELECT 1 FROM factura_detalles WHERE factura_id = facturas_head.id AND tipo_item = 1)', null, false);
+        } elseif ($tipo_linea === 'servicio') {
+            $query->where('EXISTS (SELECT 1 FROM factura_detalles WHERE factura_id = facturas_head.id AND tipo_item = 2)', null, false);
         }
 
         $facturas = $query
@@ -1652,6 +1659,7 @@ class ReportesController extends Controller
             'modo'        => $modo,
             'reporte'     => $reporte,
             'cliente'     => $cliente,
+            'tipo_linea'  => $tipo_linea,
             'generado_en' => date('d/m/Y H:i')
         ];
 
@@ -1682,12 +1690,13 @@ class ReportesController extends Controller
         $tipo  = $this->request->getGet('tipo_documento');
         $cliente_id = $this->request->getGet('cliente_id');
 
+        $tipo_linea = $this->request->getGet('tipo_linea') ?? '';
+
         $query = $facturaModel
             ->select('facturas_head.*, clientes.nombre as cliente_nombre')
             ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
             ->where('fecha_emision >=', $desde)
-            ->where('fecha_emision <=', $hasta)
-            ->where('tipo_dte !=', '14');
+            ->where('fecha_emision <=', $hasta);
 
         if (!empty($tipo)) {
             $query->where('tipo_dte', $tipo);
@@ -1695,6 +1704,12 @@ class ReportesController extends Controller
 
         if (!empty($cliente_id)) {
             $query->where('facturas_head.receptor_id', $cliente_id);
+        }
+
+        if ($tipo_linea === 'producto') {
+            $query->where('EXISTS (SELECT 1 FROM factura_detalles WHERE factura_id = facturas_head.id AND tipo_item = 1)', null, false);
+        } elseif ($tipo_linea === 'servicio') {
+            $query->where('EXISTS (SELECT 1 FROM factura_detalles WHERE factura_id = facturas_head.id AND tipo_item = 2)', null, false);
         }
 
         $facturas = $query

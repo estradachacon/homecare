@@ -196,6 +196,15 @@ class Facturas extends BaseController
                     $totalGravada = round($totalDte / 1.13, 2);
                     $totalIva     = round($totalDte - $totalGravada, 2);
                 }
+            } elseif ($tipoDte === '14') {
+
+                // Factura de sujeto excluido usa campos de compra, no venta.
+                $totalGravada = (float) (
+                    $json['resumen']['totalCompra']
+                    ?? $json['resumen']['subTotal']
+                    ?? $totalDte
+                );
+                $totalIva = 0;
             } else {
 
                 // Otros DTE
@@ -227,13 +236,12 @@ class Facturas extends BaseController
                 continue;
             }
             // =============================
-            // PROCESAR CLIENTE (RECEPTOR)
+            // PROCESAR CLIENTE (RECEPTOR / SUJETO EXCLUIDO)
             // =============================
             $clienteId = null;
+            $receptor = $json['receptor'] ?? $json['sujetoExcluido'] ?? null;
 
-            if (!empty($json['receptor'])) {
-
-                $receptor = $json['receptor'];
+            if (!empty($receptor)) {
 
                 $nrc = $receptor['nrc'] ?? null;
 
@@ -341,7 +349,7 @@ class Facturas extends BaseController
                 'total_gravada' => $totalGravada,
                 'total_iva'     => $totalIva,
                 'sub_total'             => $json['resumen']['subTotal'] ?? 0,
-                'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
+                'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? $totalDte,
                 'total_pagar'           => $totalDte,
                 'tipo_venta'            => $tipoVentaId,
                 'condicion_operacion'   => $condicionDte,
@@ -519,7 +527,7 @@ class Facturas extends BaseController
     ==============================
     */
 
-                    $ventaGravada = (float) ($item['ventaGravada'] ?? 0);
+                    $ventaGravada = (float) ($item['ventaGravada'] ?? $item['compra'] ?? 0);
                     $ivaItem = (float) ($item['ivaItem'] ?? 0);
 
                     /*
