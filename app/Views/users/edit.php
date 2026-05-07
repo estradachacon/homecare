@@ -54,6 +54,18 @@
 
                         </div>
                     </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="seller_id" class="form-label">Vendedor asignado</label>
+                            <select class="form-select" id="seller_id" name="seller_id">
+                                <option value="">— Sin vendedor —</option>
+                                <?php foreach ($sellers as $s): ?>
+                                    <option value="<?= esc($s->id) ?>" <?= $s->id == ($user['seller_id'] ?? null) ? 'selected' : '' ?>>
+                                        <?= esc($s->seller) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Se usará como vendedor en las Notas de Pedido.</small>
+                        </div>
                     <div class="text-end">
                         <button type="submit" class="btn btn-primary">Actualizar usuario</button>
                     </div>

@@ -87,7 +87,8 @@
                     data-tipo="<?= (int)$p->tipo ?>"
                     data-activo="<?= $p->activo ?>"
                     data-marca="<?= esc($p->marca ?? '') ?>"
-                    data-clasificacion-id="<?= $p->clasificacion_id ?? '' ?>">
+                    data-clasificacion-id="<?= $p->clasificacion_id ?? '' ?>"
+                    data-precio-minimo="<?= number_format((float)($p->precio_minimo ?? 0), 2, '.', '') ?>">
                     <i class="fa-solid fa-pen"></i>
                 </button>
 

@@ -33,6 +33,13 @@ class Permisos extends BaseConfig
             'editar_vendedor_en_detalle'
         ],
 
+        'Notas de Pedido' => [
+            'ver_pedidos',
+            'crear_pedidos',
+            'editar_pedidos',
+            'anular_pedidos',
+        ],
+
         'Consignaciones' => [
             'ver_consignaciones',
             'crear_consignaciones',

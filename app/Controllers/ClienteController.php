@@ -57,8 +57,9 @@ class ClienteController extends BaseController
         $nrc = $c->nrc ? ' | NRC: ' . $c->nrc : '';
 
         $results[] = [
-            'id'   => $c->id,
+            'id'  => $c->id,
             'text' => $c->nombre . $doc . $nrc,
+            'nrc' => $c->nrc ?: '',
         ];
     }
 

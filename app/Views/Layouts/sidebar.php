@@ -395,6 +395,40 @@
                 <?php endif; ?>
 
                 <?php if (
+                    tienePermiso('ver_pedidos') ||
+                    tienePermiso('crear_pedidos')
+                ): ?>
+                    <a class="nav-link collapsed" href="#"
+                        data-toggle="collapse"
+                        data-target="#pedidos"
+                        aria-expanded="false"
+                        aria-controls="pedidos">
+                        <div class="sb-nav-link-icon">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                        </div>
+                        Notas de Pedido
+                        <div class="sb-sidenav-collapse-arrow">
+                            <i class="fa-solid fa-angle-down"></i>
+                        </div>
+                    </a>
+
+                    <div class="collapse" id="pedidos" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_pedidos')): ?>
+                                <a class="nav-link" href="/pedidos">
+                                    Ver Notas de Pedido
+                                </a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('crear_pedidos')): ?>
+                                <a class="nav-link" href="/pedidos/crear">
+                                    Nueva Nota
+                                </a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (
                     tienePermiso('ver_consignaciones') ||
                     tienePermiso('crear_consignaciones') ||
                     tienePermiso('ver_precios_consignaciones')

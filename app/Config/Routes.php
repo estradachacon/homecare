@@ -250,6 +250,19 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('emision-dte/(:num)/nc',              'DteController::nuevaNc/$1');
     $routes->post('emision-dte/nc/store',              'DteController::storeNc');
 
+    // ─── MÓDULO DE PEDIDOS ───────────────────────────────────────────────────
+    $routes->get('pedidos',                               'PedidosController::index');
+    $routes->get('pedidos/crear',                         'PedidosController::crear');
+    $routes->post('pedidos/guardar',                      'PedidosController::guardar');
+    $routes->get('pedidos/precio-producto',               'PedidosController::getPrecioProducto');
+    $routes->post('pedidos/cliente-store-ajax',           'PedidosController::clienteStoreAjax');
+    $routes->get('pedidos/(:num)',                        'PedidosController::show/$1');
+    $routes->get('pedidos/(:num)/editar',                 'PedidosController::editar/$1');
+    $routes->post('pedidos/(:num)/actualizar',            'PedidosController::actualizar/$1');
+    $routes->post('pedidos/(:num)/anular',                'PedidosController::anular/$1');
+    $routes->post('pedidos/(:num)/asociar-factura',       'PedidosController::asociarFactura/$1');
+    $routes->get('pedidos/facturas-cliente/(:num)',        'PedidosController::facturasCliente/$1');
+
     // ─── MÓDULO DE CONSIGNACIONES ─────────────────────────────────────────────
     $routes->get('consignaciones',                               'ConsignacionesController::index');
     $routes->get('consignaciones/crear',                         'ConsignacionesController::crear');

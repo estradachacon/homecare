@@ -19,6 +19,7 @@ class ProductoModel extends Model
         'activo',
         'costo_promedio',
         'costo_promedio_actual',
+        'precio_minimo',
         'tipo',
         'marca',
         'clasificacion_id',

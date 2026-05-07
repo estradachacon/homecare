@@ -280,7 +280,7 @@
         style="background-color: <?= setting('primary_color') ?? '#1d2744' ?>;">
         <div class="container-fluid d-flex justify-content-between">
             <div class="d-flex align-items-center">
-                <a class="navbar-brand mb-0 h5 me-3" href="/dashboard">
+                <a class="navbar-brand mb-0 h5 me-3 d-none d-md-inline" href="/dashboard">
                     <?= esc(setting('company_name') ?? 'Sistema') ?>
                 </a>
 

@@ -159,6 +159,7 @@ class InventoryController extends BaseController
             'activo'           => $data['activo'],
             'marca'            => trim($data['marca'] ?? '') ?: null,
             'clasificacion_id' => ($data['clasificacion_id'] ?? null) ?: null,
+            'precio_minimo'    => isset($data['precio_minimo']) ? (float)$data['precio_minimo'] : null,
         ]);
 
         return $this->response->setJSON([
@@ -335,6 +336,7 @@ class InventoryController extends BaseController
             'activo'           => $activo,
             'marca'            => trim($data['marca'] ?? '') ?: null,
             'clasificacion_id' => ($data['clasificacion_id'] ?? null) ?: null,
+            'precio_minimo'    => isset($data['precio_minimo']) ? (float)$data['precio_minimo'] : 0,
         ]);
 
         return $this->response->setJSON([
@@ -500,9 +502,10 @@ class InventoryController extends BaseController
 
         foreach ($productos as $p) {
             $results[] = [
-                'id'   => $p->id,
-                'text' => $p->descripcion . ' (' . $p->codigo . ')',
-                'tipo' => $p->tipo
+                'id'            => $p->id,
+                'text'          => $p->descripcion . ' (' . $p->codigo . ')',
+                'tipo'          => $p->tipo,
+                'precio_minimo' => (float)($p->precio_minimo ?? 0),
             ];
         }
 

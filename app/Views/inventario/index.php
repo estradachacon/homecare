@@ -255,6 +255,7 @@ $(function () {
         $('#pTipo').val(b.tipo || 1);
         $('#pMarca').val(b.marca || '');
         $('#pActivo').val(b.activo);
+        $('#pPrecioMinimo').val(parseFloat(b.precioMinimo || 0).toFixed(2));
         cargarClasificacionesSelect(b.clasificacionId || '');
         $('#modalProducto').modal('show');
     });
@@ -271,6 +272,7 @@ $(function () {
             marca:            $('#pMarca').val().trim() || null,
             clasificacion_id: $('#pClasificacion').val() || null,
             activo:           parseInt($('#pActivo').val()),
+            precio_minimo:    parseFloat($('#pPrecioMinimo').val()) || 0,
         };
         const url = id > 0
             ? '<?= base_url('inventory/update') ?>/' + id
@@ -483,6 +485,15 @@ $(function () {
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Precio Mínimo de Venta</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend"><span class="input-group-text">$</span></div>
+                            <input type="number" id="pPrecioMinimo" class="form-control" min="0" step="0.01" value="0.00" placeholder="0.00">
+                        </div>
+                        <small class="text-muted">Precio mínimo que los vendedores pueden ingresar en notas de pedido.</small>
                     </div>
 
                     <div class="form-group mb-0">

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\UserModel;
+use App\Models\SellerModel;
 
 class UserController extends BaseController
 {
@@ -102,14 +103,16 @@ class UserController extends BaseController
             return redirect()->to('/users')->with('error', 'Usuario no encontrado.');
         }
 
-        // 2. Obtener la lista de ramas y usuarios (para los dropdowns)
+        // 2. Obtener la lista de ramas, roles y sellers
         $branches = $this->branchModel->findAll();
-        $roles = $this->roleModel->findAll();
+        $roles    = $this->roleModel->findAll();
+        $sellers  = (new SellerModel())->orderBy('seller', 'ASC')->findAll();
 
         $data = [
-            'user' => $users,
+            'user'    => $users,
             'branches' => $branches,
-            'roles' => $roles,
+            'roles'   => $roles,
+            'sellers' => $sellers,
         ];
 
         // Se asume que tienes una vista en 'users/edit'
@@ -134,11 +137,13 @@ class UserController extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
+        $sellerId = $this->request->getPost('seller_id');
         $data = [
             'user_name' => $this->request->getPost('user_name'),
-            'email' => $this->request->getPost('email'),
+            'email'     => $this->request->getPost('email'),
             'branch_id' => $this->request->getPost('branch_id'),
-            'role_id' => $this->request->getPost('role_id'),
+            'role_id'   => $this->request->getPost('role_id'),
+            'seller_id' => $sellerId ?: null,
         ];
 
         $password = $this->request->getPost('user_password');
