@@ -29,10 +29,16 @@ foreach ($detalles as $d) {
 
 // Determinar si es Crédito Fiscal (03)
 $esCreditoFiscal = ($factura->tipo_dte == '03');
+$esSujetoExcluido = ($factura->tipo_dte == '14');
 $ivaCalculado = 0;
+$retencionRenta = 0;
 
 if ($esCreditoFiscal) {
     $ivaCalculado = $factura->total_pagar - $subtotalProductos;
+}
+
+if ($esSujetoExcluido) {
+    $retencionRenta = max(0, $subtotalProductos - (float) $factura->total_pagar);
 }
 
 $tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento';
@@ -455,6 +461,17 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                     <th class="text-end">IVA (13%):</th>
                                     <td class="text-end">
                                         $<?= number_format($ivaCalculado, 2) ?>
+                                    </td>
+                                </tr>
+
+                            <?php endif; ?>
+
+                            <?php if ($esSujetoExcluido && $retencionRenta > 0): ?>
+
+                                <tr>
+                                    <th class="text-end">Retención Renta (10%):</th>
+                                    <td class="text-end text-danger">
+                                        -$<?= number_format($retencionRenta, 2) ?>
                                     </td>
                                 </tr>
 
