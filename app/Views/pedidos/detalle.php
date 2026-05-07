@@ -8,6 +8,57 @@
     .badge-estado-pendiente  { background:#ffc107; color:#000; }
     .badge-estado-facturada  { background:#28a745; color:#fff; }
     .badge-estado-anulada    { background:#dc3545; color:#fff; }
+
+    /* ── Área de impresión (oculta en pantalla) ──────────────────────────── */
+    #printArea { display: none; }
+
+    @media print {
+        @page { size: letter portrait; margin: 12mm 15mm; }
+
+        body * { visibility: hidden !important; }
+        #printArea { display: block !important; visibility: visible !important;
+                     position: fixed; top: 0; left: 0; width: 100%;
+                     max-height: 100vh; overflow: visible; }
+        #printArea * { visibility: visible !important; }
+
+        /* ── Reset tipografía ── */
+        #printArea { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+
+        /* ── Cabecera: logo + título ── */
+        .pr-header { display: flex; align-items: center; justify-content: space-between;
+                     border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; }
+        .pr-header img { height: 56px; width: auto; }
+        .pr-header-right { text-align: right; }
+        .pr-header-right h2 { font-size: 12pt; font-weight: 700; margin: 0 0 2px; }
+        .pr-header-right p  { margin: 0; font-size: 8pt; }
+        .pr-numero { font-size: 11pt; font-weight: 700; }
+
+        /* ── Bloque info: cliente + pedido ── */
+        .pr-info { display: flex; gap: 8px; margin-bottom: 8px; }
+        .pr-info-col { flex: 1; border: 1px solid #ccc; border-radius: 3px; padding: 5px 7px; }
+        .pr-info-col h6 { font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+                          letter-spacing: .04em; color: #555; margin: 0 0 4px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
+        .pr-info-col p  { margin: 0 0 2px; font-size: 8pt; }
+
+        /* ── Tabla productos ── */
+        .pr-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        .pr-table th { background: #222; color: #fff; font-size: 7.5pt;
+                       padding: 3px 5px; text-align: left; }
+        .pr-table td { font-size: 8pt; padding: 2px 5px; border-bottom: 1px solid #e0e0e0; }
+        .pr-table .txt-r { text-align: right; }
+        .pr-table tfoot td { font-weight: 700; border-top: 1.5px solid #000; border-bottom: none; }
+        .pr-table tfoot .lbl { text-align: right; color: #444; font-size: 7.5pt; }
+        .pr-total-line { font-size: 9.5pt; }
+
+        /* ── Notas ── */
+        .pr-notas { margin-top: 8px; border-top: 1px solid #ccc; padding-top: 5px; font-size: 8pt; }
+        .pr-notas strong { font-size: 8pt; }
+
+        /* ── Firma ── */
+        .pr-firma { display: flex; justify-content: space-between; margin-top: 18px; }
+        .pr-firma-col { text-align: center; width: 42%; }
+        .pr-firma-col .linea { border-top: 1px solid #000; padding-top: 2px; font-size: 7.5pt; margin-top: 22px; }
+    }
 </style>
 
 <div class="row">
@@ -27,7 +78,7 @@
         <?php endif; ?>
 
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <div>
                     <h4 class="header-title mb-0 d-inline">
                         Nota de Pedido — <strong><?= esc($pedido->numero) ?></strong>
@@ -64,6 +115,9 @@
                             <?= $pedido->estado === 'facturada' ? 'Cambiar Factura' : 'Asociar Factura' ?>
                         </button>
                     <?php endif; ?>
+                    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm mr-1" title="Imprimir media página">
+                        <i class="fa-solid fa-print"></i> Imprimir
+                    </button>
                     <a href="<?= base_url('pedidos') ?>" class="btn btn-secondary btn-sm">
                         <i class="fa-solid fa-arrow-left"></i> Volver
                     </a>
@@ -226,6 +280,132 @@
         </div>
     </div>
 </div>
+
+<!-- ═══════════════════════════ ÁREA DE IMPRESIÓN ═══════════════════════════ -->
+<div id="printArea">
+
+    <!-- Cabecera: logo + número -->
+    <div class="pr-header">
+        <?php if (setting('logo')): ?>
+            <img src="<?= base_url('upload/settings/' . setting('logo')) ?>" alt="Logo">
+        <?php else: ?>
+            <span style="font-size:13pt;font-weight:700;"><?= esc(setting('company_name') ?? '') ?></span>
+        <?php endif; ?>
+        <div class="pr-header-right">
+            <h2>NOTA DE PEDIDO</h2>
+            <p class="pr-numero"><?= esc($pedido->numero) ?></p>
+            <p>Fecha: <?= date('d/m/Y', strtotime($pedido->created_at)) ?></p>
+            <p>Estado:
+                <?php
+                $printEstado = ['pendiente' => 'Pendiente', 'facturada' => 'Facturada', 'anulada' => 'ANULADA'];
+                echo $printEstado[$pedido->estado] ?? esc($pedido->estado);
+                ?>
+            </p>
+        </div>
+    </div>
+
+    <!-- Info: cliente + pedido -->
+    <div class="pr-info">
+        <div class="pr-info-col">
+            <h6>Cliente</h6>
+            <p><strong><?= esc($pedido->cliente_nombre) ?></strong></p>
+            <?php if ($pedido->cliente_tipo_doc && $pedido->cliente_num_doc): ?>
+                <p><?= esc($pedido->cliente_tipo_doc) ?>: <?= esc($pedido->cliente_num_doc) ?></p>
+            <?php endif; ?>
+            <?php if ($pedido->cliente_nrc): ?>
+                <p>NRC: <?= esc($pedido->cliente_nrc) ?></p>
+            <?php endif; ?>
+            <?php if ($pedido->cliente_telefono): ?>
+                <p>Tel: <?= esc($pedido->cliente_telefono) ?></p>
+            <?php endif; ?>
+            <?php if ($pedido->cliente_direccion): ?>
+                <p><?= esc($pedido->cliente_direccion) ?></p>
+            <?php endif; ?>
+        </div>
+        <div class="pr-info-col">
+            <h6>Detalle del pedido</h6>
+            <p><strong>Vendedor:</strong> <?= esc($pedido->vendedor_nombre) ?></p>
+            <p>
+                <strong>Documento:</strong>
+                <?php
+                $docLabel = ['factura' => 'Factura', 'credito_fiscal' => 'Crédito Fiscal', 'nota_remision' => 'Nota de Remisión'];
+                echo $docLabel[$pedido->tipo_documento] ?? esc($pedido->tipo_documento);
+                ?>
+            </p>
+            <p>
+                <strong>Pago:</strong>
+                <?php if ($pedido->tipo_pago === 'credito'): ?>
+                    Crédito — <?= $pedido->dias_credito ?> días
+                <?php else: ?>
+                    Contado
+                <?php endif; ?>
+            </p>
+            <?php if ($pedido->factura_numero): ?>
+                <p><strong>Factura:</strong> <?= esc($pedido->factura_numero) ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Tabla de productos -->
+    <table class="pr-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th class="txt-r">Cant.</th>
+                <th class="txt-r">P. Unit.</th>
+                <th class="txt-r">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($detalles as $i => $d): ?>
+                <tr>
+                    <td><?= $i + 1 ?></td>
+                    <td><?= esc($d->producto_codigo) ?></td>
+                    <td><?= esc($d->producto_nombre) ?></td>
+                    <td class="txt-r"><?= number_format($d->cantidad, 2) ?></td>
+                    <td class="txt-r">$<?= number_format($d->precio_unitario, 2) ?></td>
+                    <td class="txt-r">$<?= number_format($d->subtotal, 2) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="lbl">Subtotal:</td>
+                <td class="txt-r">$<?= number_format($pedido->subtotal, 2) ?></td>
+            </tr>
+            <?php if ($pedido->iva > 0): ?>
+                <tr>
+                    <td colspan="5" class="lbl">IVA (13%):</td>
+                    <td class="txt-r">$<?= number_format($pedido->iva, 2) ?></td>
+                </tr>
+            <?php endif; ?>
+            <tr class="pr-total-line">
+                <td colspan="5" class="lbl">TOTAL:</td>
+                <td class="txt-r">$<?= number_format($pedido->total, 2) ?></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <?php if ($pedido->notas): ?>
+        <div class="pr-notas">
+            <strong>Notas:</strong> <?= nl2br(esc($pedido->notas)) ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Líneas de firma -->
+    <div class="pr-firma">
+        <div class="pr-firma-col">
+            <div class="linea">Entregado por</div>
+        </div>
+        <div class="pr-firma-col">
+            <div class="linea">Recibido por</div>
+        </div>
+    </div>
+
+</div>
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
 
 <!-- Modal Asociar Factura -->
 <div class="modal fade" id="modalFactura" tabindex="-1">

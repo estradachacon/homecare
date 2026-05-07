@@ -19,6 +19,13 @@
     .box-totales .row-total { font-size: 1.1rem; font-weight: 700; }
     .alerta-doc { font-size: 0.88rem; }
 
+    /* ── Wizard paso a paso ──────────────────────────────────────────────── */
+    @keyframes pasoFadeIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .paso-aparece { animation: pasoFadeIn 0.3s ease; }
+
     /* ── Chip del producto seleccionado ──────────────────────────────────── */
     .prod-chip {
         display: flex; align-items: flex-start; gap: .4rem;
@@ -126,102 +133,109 @@
                         </div>
                     </div>
 
-                    <!-- FILA 2: Tipo documento / Tipo pago / Días -->
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label text-muted small">Documento final <span class="text-danger">*</span></label>
-                            <select name="tipo_documento" id="selectTipoDoc" class="form-control" required>
-                                <option value="">Seleccione...</option>
-                                <option value="factura">Factura</option>
-                                <option value="credito_fiscal">Crédito Fiscal</option>
-                                <option value="nota_remision">Nota de Remisión</option>
-                            </select>
+                    <!-- PASO 2: Tipo documento (aparece al seleccionar cliente) -->
+                    <div id="seccionDocumento" class="paso-seccion d-none">
+                        <div class="row mb-2">
+                            <div class="col-md-5">
+                                <label class="form-label text-muted small">Documento final <span class="text-danger">*</span></label>
+                                <select name="tipo_documento" id="selectTipoDoc" class="form-control" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="factura">Factura</option>
+                                    <option value="credito_fiscal">Crédito Fiscal</option>
+                                    <option value="nota_remision">Nota de Remisión</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label text-muted small">Tipo de pago <span class="text-danger">*</span></label>
-                            <select name="tipo_pago" id="selectTipoPago" class="form-control" required>
-                                <option value="contado">Contado</option>
-                                <option value="credito">Crédito</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3" id="wrapDiasCredito" style="display:none;">
-                            <label class="form-label text-muted small">Días plazo <span class="text-danger">*</span></label>
-                            <select name="dias_credito" id="selectDiasCredito" class="form-control">
-                                <option value="15">15 días</option>
-                                <option value="30" selected>30 días</option>
-                                <option value="45">45 días</option>
-                                <option value="60">60 días</option>
-                                <option value="90">90 días</option>
-                                <option value="120">120 días</option>
-                            </select>
-                        </div>
+                        <div id="alertaDoc" class="alert alerta-doc d-none mb-2"></div>
                     </div>
 
-                    <!-- Alerta tipo documento -->
-                    <div id="alertaDoc" class="alert alerta-doc d-none"></div>
-
-                    <hr>
-
-                    <!-- Tabla de productos -->
-                    <div class="d-flex justify-content-between mb-2">
-                        <h6 class="mb-0">Productos</h6>
-                        <button type="button" id="btnAgregarProducto" class="btn btn-outline-primary btn-sm">
-                            <i class="fa-solid fa-plus"></i> Agregar producto
-                        </button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm" id="tablaProductos">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="min-width:280px">Producto</th>
-                                    <th style="width:100px">Cantidad</th>
-                                    <th style="width:140px">Precio Unit.</th>
-                                    <th style="width:130px" class="text-end">Subtotal</th>
-                                    <th style="width:40px"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="cuerpoProductos">
-                                <tr id="filaVacia">
-                                    <td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Box de totales -->
-                    <div class="row justify-content-end mt-2">
-                        <div class="col-md-4">
-                            <div class="box-totales">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Subtotal:</span>
-                                    <span id="dispSubtotal">$0.00</span>
-                                </div>
-                                <div id="rowIva" class="d-flex justify-content-between mb-1 d-none">
-                                    <span>IVA (13%):</span>
-                                    <span id="dispIva">$0.00</span>
-                                </div>
-                                <hr class="my-1">
-                                <div class="d-flex justify-content-between row-total">
-                                    <span>Total:</span>
-                                    <span id="dispTotal" class="text-primary">$0.00</span>
-                                </div>
+                    <!-- PASO 3: Tipo pago (aparece al seleccionar documento) -->
+                    <div id="seccionPago" class="paso-seccion d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small">Tipo de pago <span class="text-danger">*</span></label>
+                                <select name="tipo_pago" id="selectTipoPago" class="form-control" required>
+                                    <option value="">Seleccione tipo de pago...</option>
+                                    <option value="contado">Contado</option>
+                                    <option value="credito">Crédito</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="wrapDiasCredito" style="display:none;">
+                                <label class="form-label text-muted small">Días plazo <span class="text-danger">*</span></label>
+                                <select name="dias_credito" id="selectDiasCredito" class="form-control">
+                                    <option value="15">15 días</option>
+                                    <option value="30" selected>30 días</option>
+                                    <option value="45">45 días</option>
+                                    <option value="60">60 días</option>
+                                    <option value="90">90 días</option>
+                                    <option value="120">120 días</option>
+                                </select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Notas -->
-                    <div class="row mb-3 mt-3">
-                        <div class="col-md-12">
-                            <label class="form-label text-muted small">Notas</label>
-                            <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones del pedido..."></textarea>
-                        </div>
-                    </div>
+                    <!-- PASO 4: Productos + Totales + Notas + Submit (aparece al seleccionar pago) -->
+                    <div id="seccionProductos" class="paso-seccion d-none">
+                        <hr>
 
-                    <div class="text-end">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fa-solid fa-save"></i> Guardar Nota de Pedido
-                        </button>
+                        <div class="d-flex justify-content-between mb-2">
+                            <h6 class="mb-0">Productos</h6>
+                            <button type="button" id="btnAgregarProducto" class="btn btn-outline-primary btn-sm">
+                                <i class="fa-solid fa-plus"></i> Agregar producto
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" id="tablaProductos">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="min-width:280px">Producto</th>
+                                        <th style="width:100px">Cantidad</th>
+                                        <th style="width:140px">Precio Unit.</th>
+                                        <th style="width:130px" class="text-end">Subtotal</th>
+                                        <th style="width:40px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuerpoProductos">
+                                    <tr id="filaVacia">
+                                        <td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row justify-content-end mt-2">
+                            <div class="col-md-4">
+                                <div class="box-totales">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Subtotal:</span>
+                                        <span id="dispSubtotal">$0.00</span>
+                                    </div>
+                                    <div id="rowIva" class="d-flex justify-content-between mb-1 d-none">
+                                        <span>IVA (13%):</span>
+                                        <span id="dispIva">$0.00</span>
+                                    </div>
+                                    <hr class="my-1">
+                                    <div class="d-flex justify-content-between row-total">
+                                        <span>Total:</span>
+                                        <span id="dispTotal" class="text-primary">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3 mt-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-muted small">Notas</label>
+                                <textarea name="notas" class="form-control" rows="2" placeholder="Observaciones del pedido..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-save"></i> Guardar Nota de Pedido
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -398,11 +412,15 @@ function onTipoDocChange() {
     }
 
     recalcularTotal();
+    actualizarBtnProducto();
+    if (document.getElementById('selectTipoDoc').value) {
+        mostrarPaso('seccionPago');
+    }
 }
 
 document.getElementById('selectTipoDoc').addEventListener('change', onTipoDocChange);
 
-// ── Tipo pago → días de crédito ───────────────────────────────────────────────
+// ── Tipo pago → días de crédito + revelar productos ──────────────────────────
 document.getElementById('selectTipoPago').addEventListener('change', function () {
     const wrap = document.getElementById('wrapDiasCredito');
     wrap.style.display = this.value === 'credito' ? '' : 'none';
@@ -411,6 +429,7 @@ document.getElementById('selectTipoPago').addEventListener('change', function ()
     } else {
         document.getElementById('selectDiasCredito').required = false;
     }
+    if (this.value) mostrarPaso('seccionProductos');
 });
 
 // ── Cálculos ─────────────────────────────────────────────────────────────────
@@ -469,8 +488,10 @@ function initSelectProducto(select) {
         fetch(`<?= base_url('pedidos/precio-producto') ?>?producto_id=${id}&cliente_id=${clienteId}`)
             .then(r => r.json())
             .then(data => {
-                const min   = parseFloat(data.precio_minimo) || 0;
-                const rec   = data.precio_recomendado !== null ? parseFloat(data.precio_recomendado) : null;
+                const tipoDoc   = document.getElementById('selectTipoDoc').value;
+                const ivaFactor = tipoDoc === 'factura' ? 1.13 : 1;
+                const min   = (parseFloat(data.precio_minimo) || 0) * ivaFactor;
+                const rec   = data.precio_recomendado !== null ? parseFloat(data.precio_recomendado) * ivaFactor : null;
                 const floor = rec !== null ? Math.max(min, rec) : min;
                 const inp   = fila.querySelector('.input-precio');
                 const hint  = fila.querySelector('.input-precio-hint');
@@ -545,6 +566,41 @@ function validarCCFConNRC() {
     return true;
 }
 
+function actualizarBtnProducto() {
+    const bloqueado = document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual;
+    const btn = document.getElementById('btnAgregarProducto');
+    btn.disabled = bloqueado;
+    btn.title = bloqueado ? 'El cliente debe tener NRC para agregar productos en CCF' : '';
+}
+
+// ── Helpers wizard ───────────────────────────────────────────────────────────
+function mostrarPaso(id) {
+    const el = document.getElementById(id);
+    if (!el.classList.contains('d-none')) return;
+    el.classList.remove('d-none');
+    void el.offsetWidth;
+    el.classList.add('paso-aparece');
+    setTimeout(() => el.classList.remove('paso-aparece'), 400);
+}
+function ocultarPaso(id) {
+    document.getElementById(id).classList.add('d-none');
+}
+
+// ── Reset de productos ────────────────────────────────────────────────────────
+let prevClienteId   = '';
+let prevClienteText = '';
+
+function limpiarProductos() {
+    document.querySelectorAll('.fila-producto').forEach(f => f.remove());
+    if (!document.getElementById('filaVacia')) {
+        const tr = document.createElement('tr');
+        tr.id = 'filaVacia';
+        tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos.</td>';
+        document.getElementById('cuerpoProductos').appendChild(tr);
+    }
+    recalcularTotal();
+}
+
 // ── Select2 Cliente ───────────────────────────────────────────────────────────
 $(function () {
     $('#selectCliente').select2({
@@ -561,17 +617,61 @@ $(function () {
             cache: true,
         },
     }).on('select2:select', function (e) {
-        clienteNrcActual = e.params.data.nrc || '';
-        // Si ya está elegido CCF, avisar inmediatamente
-        if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+        const newId   = String(e.params.data.id);
+        const newText = e.params.data.text;
+        const newNrc  = e.params.data.nrc || '';
+        const hayProductos = document.querySelectorAll('.fila-producto').length > 0;
+
+        function aplicarCambioCliente() {
+            clienteNrcActual = newNrc;
+            prevClienteId    = newId;
+            prevClienteText  = newText;
+            actualizarBtnProducto();
+            if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cliente sin NRC',
+                    text: 'Este cliente no tiene NRC registrado. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice los datos del cliente.',
+                });
+            }
+        }
+
+        if (hayProductos && prevClienteId && prevClienteId !== newId) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Cliente sin NRC',
-                text: 'Este cliente no tiene NRC registrado. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice los datos del cliente.',
+                title: '¿Cambiar cliente?',
+                html: 'Al cambiar de cliente <strong>se eliminarán todos los productos</strong> para revalidar los precios.',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    aplicarCambioCliente();
+                    limpiarProductos();
+                } else {
+                    const opt = new Option(prevClienteText, prevClienteId, true, true);
+                    $('#selectCliente').empty().append(opt).trigger('change');
+                }
             });
+        } else {
+            aplicarCambioCliente();
         }
     }).on('select2:clear', function () {
         clienteNrcActual = '';
+        prevClienteId    = '';
+        prevClienteText  = '';
+        actualizarBtnProducto();
+        ocultarPaso('seccionDocumento');
+        ocultarPaso('seccionPago');
+        ocultarPaso('seccionProductos');
+        document.getElementById('selectTipoDoc').value = '';
+        onTipoDocChange();
+        document.getElementById('selectTipoPago').value = '';
+        document.getElementById('wrapDiasCredito').style.display = 'none';
+        limpiarProductos();
+    }).on('change', function () {
+        if ($(this).val()) mostrarPaso('seccionDocumento');
     });
 
     // Modal crear cliente

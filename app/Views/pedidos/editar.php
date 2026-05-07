@@ -401,6 +401,7 @@ function onTipoDocChange() {
         rowIva.classList.add('d-none');
     }
     recalcularTotal();
+    actualizarBtnProducto();
 }
 
 document.getElementById('selectTipoDoc').addEventListener('change', onTipoDocChange);
@@ -464,8 +465,10 @@ function initSelectProducto(select, preloadId, preloadText) {
         fetch(`<?= base_url('pedidos/precio-producto') ?>?producto_id=${id}&cliente_id=${clienteId}`)
             .then(r => r.json())
             .then(data => {
-                const min   = parseFloat(data.precio_minimo) || 0;
-                const rec   = data.precio_recomendado !== null ? parseFloat(data.precio_recomendado) : null;
+                const tipoDoc   = document.getElementById('selectTipoDoc').value;
+                const ivaFactor = tipoDoc === 'factura' ? 1.13 : 1;
+                const min   = (parseFloat(data.precio_minimo) || 0) * ivaFactor;
+                const rec   = data.precio_recomendado !== null ? parseFloat(data.precio_recomendado) * ivaFactor : null;
                 const floor = rec !== null ? Math.max(min, rec) : min;
                 const inp   = fila.querySelector('.input-precio');
                 const hint  = fila.querySelector('.input-precio-hint');
@@ -564,6 +567,28 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
     adjuntarEventosFila(filaEl);
 });
 
+// ── Reset de productos ────────────────────────────────────────────────────────
+function actualizarBtnProducto() {
+    const bloqueado = document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual;
+    const btn = document.getElementById('btnAgregarProducto');
+    btn.disabled = bloqueado;
+    btn.title = bloqueado ? 'El cliente debe tener NRC para agregar productos en CCF' : '';
+}
+
+let prevClienteId   = '';
+let prevClienteText = '';
+
+function limpiarProductos() {
+    document.querySelectorAll('.fila-producto').forEach(f => f.remove());
+    if (!document.getElementById('filaVacia')) {
+        const tr = document.createElement('tr');
+        tr.id = 'filaVacia';
+        tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos.</td>';
+        document.getElementById('cuerpoProductos').appendChild(tr);
+    }
+    recalcularTotal();
+}
+
 // ── Select2 cliente ────────────────────────────────────────────────────────
 $(function () {
     const clienteId   = <?= (int)$pedido->cliente_id ?>;
@@ -583,21 +608,58 @@ $(function () {
             cache: true,
         },
     }).on('select2:select', function (e) {
-        clienteNrcActual = e.params.data.nrc || '';
-        if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+        const newId   = String(e.params.data.id);
+        const newText = e.params.data.text;
+        const newNrc  = e.params.data.nrc || '';
+        const hayProductos = document.querySelectorAll('.fila-producto').length > 0;
+
+        function aplicarCambioCliente() {
+            clienteNrcActual = newNrc;
+            prevClienteId    = newId;
+            prevClienteText  = newText;
+            actualizarBtnProducto();
+            if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cliente sin NRC',
+                    text: 'Este cliente no tiene NRC registrado. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice los datos del cliente.',
+                });
+            }
+        }
+
+        if (hayProductos && prevClienteId && prevClienteId !== newId) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Cliente sin NRC',
-                text: 'Este cliente no tiene NRC registrado. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice los datos del cliente.',
+                title: '¿Cambiar cliente?',
+                html: 'Al cambiar de cliente <strong>se eliminarán todos los productos</strong> para revalidar los precios.',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+            }).then(result => {
+                if (result.isConfirmed) {
+                    aplicarCambioCliente();
+                    limpiarProductos();
+                } else {
+                    const opt = new Option(prevClienteText, prevClienteId, true, true);
+                    $('#selectCliente').empty().append(opt).trigger('change');
+                }
             });
+        } else {
+            aplicarCambioCliente();
         }
     }).on('select2:clear', function () {
         clienteNrcActual = '';
+        prevClienteId    = '';
+        prevClienteText  = '';
+        actualizarBtnProducto();
     });
 
     if (clienteId && clienteNombre) {
         const opt = new Option(clienteNombre, clienteId, true, true);
         $('#selectCliente').append(opt).trigger('change');
+        prevClienteId   = String(clienteId);
+        prevClienteText = clienteNombre;
     }
 
     $('#formCliente').on('submit', function (e) {
