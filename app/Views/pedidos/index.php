@@ -18,7 +18,7 @@
         <?php endif; ?>
 
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0">Notas de Pedido</h4>
                 <?php if (tienePermiso('crear_pedidos')): ?>
                     <a href="<?= base_url('pedidos/crear') ?>" class="btn btn-success btn-sm">
