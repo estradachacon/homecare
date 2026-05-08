@@ -41,9 +41,15 @@ class ContConfiguracionController extends BaseController
             'cuenta_costos_id'       => $this->request->getPost('cuenta_costos_id')       ?: null,
             'cuenta_gastos_admin_id' => $this->request->getPost('cuenta_gastos_admin_id') ?: null,
             'cuenta_gastos_venta_id' => $this->request->getPost('cuenta_gastos_venta_id') ?: null,
-            'cuenta_resultado_id'    => $this->request->getPost('cuenta_resultado_id')    ?: null,
-            'cuenta_capital_id'      => $this->request->getPost('cuenta_capital_id')      ?: null,
-            'moneda'                 => $this->request->getPost('moneda')   ?: 'USD',
+            'cuenta_resultado_id'       => $this->request->getPost('cuenta_resultado_id')       ?: null,
+            'cuenta_capital_id'         => $this->request->getPost('cuenta_capital_id')         ?: null,
+            'cuenta_iva_debito_id'          => $this->request->getPost('cuenta_iva_debito_id')          ?: null,
+            'cuenta_retencion_cobrar_id'    => $this->request->getPost('cuenta_retencion_cobrar_id')    ?: null,
+            'cuenta_ventas_servicio1_id'    => $this->request->getPost('cuenta_ventas_servicio1_id')    ?: null,
+            'cuenta_ventas_servicio1_label' => $this->request->getPost('cuenta_ventas_servicio1_label') ?: null,
+            'cuenta_ventas_servicio2_id'    => $this->request->getPost('cuenta_ventas_servicio2_id')    ?: null,
+            'cuenta_ventas_servicio2_label' => $this->request->getPost('cuenta_ventas_servicio2_label') ?: null,
+            'moneda'                        => $this->request->getPost('moneda')                        ?: 'USD',
             'digitos_decimales'      => (int)($this->request->getPost('digitos_decimales') ?: 2),
         ];
 

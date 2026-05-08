@@ -1,6 +1,19 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 
+<style>
+    .relacion-filtros label {
+        font-size: .78rem;
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: .25rem;
+    }
+
+    .relacion-filtros .form-control {
+        min-height: 32px;
+    }
+</style>
+
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -11,22 +24,22 @@
                 </div>
             </div>
             <div class="card-body">
-                <div class="row g-2 mb-3">
-                    <div class="col-md-3">
+                <div class="row relacion-filtros mb-3">
+                    <div class="col-12 col-md-6 col-lg-5 mb-2">
                         <label>Buscar</label>
                         <input type="text" id="buscar" class="form-control form-control-sm" placeholder="Buscar código o nombre...">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-3 col-lg-3 mb-2">
                         <label>Tipo</label>
-                        <select id="filtroTipo" class="form-select form-select-sm">
+                        <select id="filtroTipo" class="form-control form-control-sm">
                             <option value="">Todos los tipos</option>
                             <option>ACTIVO</option><option>PASIVO</option><option>CAPITAL</option>
                             <option>INGRESO</option><option>COSTO</option><option>GASTO</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-3 col-lg-4 mb-2">
                         <label>Con movimientos</label>
-                        <select id="filtroMovim" class="form-select form-select-sm">
+                        <select id="filtroMovim" class="form-control form-control-sm">
                             <option value="">Con y sin movimientos</option>
                             <option value="1">Solo con movimientos</option>
                             <option value="0">Solo grupos</option>

@@ -39,7 +39,7 @@
                         <label class="form-label small fw-semibold">Fecha hasta</label>
                         <input type="date" name="fecha_hasta" class="form-control form-control-sm" value="<?= $fechaHasta ?>">
                     </div>
-                    <div class="col-md-1 d-flex align-items-end">
+                    <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-primary btn-sm w-100 mb-3">Generar</button>
                     </div>
                 </form>

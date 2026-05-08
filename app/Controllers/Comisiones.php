@@ -680,6 +680,81 @@ class Comisiones extends BaseController
             ]);
         }
     }
+    public function reportes()
+    {
+        $chk = requerirPermiso('ver_comisiones');
+        if ($chk !== true) return $chk;
+
+        $db = \Config\Database::connect();
+
+        $sellerId = $this->request->getGet('seller_id');
+        $desde    = $this->request->getGet('desde');
+        $hasta    = $this->request->getGet('hasta');
+        $estado   = $this->request->getGet('estado');
+
+        // ── Resumen por vendedor ──────────────────────────────────────────────
+        $qVendedor = $db->table('comisiones c')
+            ->select('
+                s.seller         AS vendedor_nombre,
+                c.vendedor_id,
+                COUNT(c.id)            AS num_comisiones,
+                SUM(c.total_ventas)    AS total_ventas,
+                SUM(c.total_comision)  AS total_comision,
+                AVG(c.porcentaje_promedio) AS prom_porcentaje,
+                MIN(c.fecha_inicio)    AS primera_fecha,
+                MAX(c.fecha_fin)       AS ultima_fecha
+            ')
+            ->join('sellers s', 's.id = c.vendedor_id', 'left');
+
+        if ($sellerId)  $qVendedor->where('c.vendedor_id', $sellerId);
+        if ($estado)    $qVendedor->where('c.estado', $estado);
+        if ($desde)     $qVendedor->where('DATE(c.fecha_inicio) >=', $desde);
+        if ($hasta)     $qVendedor->where('DATE(c.fecha_fin) <=',    $hasta);
+
+        $porVendedor = $qVendedor
+            ->groupBy('c.vendedor_id, s.seller')
+            ->orderBy('total_comision', 'DESC')
+            ->get()->getResult();
+
+        // ── Desglose por origen (producto / vendedor / general / manual) ──────
+        $qOrigen = $db->table('comision_detalles cd')
+            ->select('cd.origen_comision, SUM(cd.monto_comision) AS total')
+            ->join('comisiones c', 'c.id = cd.comision_id');
+
+        if ($sellerId)  $qOrigen->where('c.vendedor_id', $sellerId);
+        if ($estado)    $qOrigen->where('c.estado', $estado);
+        if ($desde)     $qOrigen->where('DATE(c.fecha_inicio) >=', $desde);
+        if ($hasta)     $qOrigen->where('DATE(c.fecha_fin) <=',    $hasta);
+
+        $porOrigen = $qOrigen
+            ->groupBy('cd.origen_comision')
+            ->orderBy('total', 'DESC')
+            ->get()->getResult();
+
+        // ── KPIs globales ─────────────────────────────────────────────────────
+        $totalVentas    = array_sum(array_column($porVendedor, 'total_ventas'));
+        $totalComision  = array_sum(array_column($porVendedor, 'total_comision'));
+        $numComisiones  = array_sum(array_column($porVendedor, 'num_comisiones'));
+        $promGlobal     = $totalVentas > 0 ? ($totalComision / $totalVentas) * 100 : 0;
+
+        // ── Lista de vendedores para filtro ───────────────────────────────────
+        $sellers = (new \App\Models\SellerModel())->orderBy('seller')->findAll();
+
+        return view('comisiones/reportes', [
+            'porVendedor'   => $porVendedor,
+            'porOrigen'     => $porOrigen,
+            'totalVentas'   => $totalVentas,
+            'totalComision' => $totalComision,
+            'numComisiones' => $numComisiones,
+            'promGlobal'    => $promGlobal,
+            'sellers'       => $sellers,
+            'sellerId'      => $sellerId,
+            'desde'         => $desde,
+            'hasta'         => $hasta,
+            'estado'        => $estado,
+        ]);
+    }
+
     public function ver($id)
     {
         $comisionModel = new \App\Models\ComisionModel();

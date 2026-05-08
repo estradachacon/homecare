@@ -1,4 +1,33 @@
-.text-black{
+.text-black {
     color: #000 !important;
-  }
-  
+}
+
+/* ── Tablas compactas globales ─────────────────────────────────────────────── */
+.table th,
+.table td {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.95rem;
+    vertical-align: middle;
+}
+
+.table thead th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+/* ── btn-xs (Bootstrap 4 no lo incluye por defecto) ───────────────────────── */
+.btn-xs {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border-radius: 0.2rem;
+}
+
+/* Compensar en tablas que explícitamente piden más espacio (modal, asientos, etc.) */
+.table-spacious th,
+.table-spacious td {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem;
+}

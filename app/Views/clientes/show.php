@@ -34,18 +34,158 @@
                     </div>
                     <div class="col-md-4">
                         <small class="text-muted">Cuenta Contable</small>
-                        <div class="fw-semibold">
-                            <?php if (!empty($cliente->cuenta_codigo)): ?>
-                                <?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>
-                            <?php else: ?>
-                                N/D
-                            <?php endif; ?>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span id="cuentaLabel" class="fw-semibold">
+                                <?php if (!empty($cliente->cuenta_codigo)): ?>
+                                    <?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>
+                                <?php else: ?>
+                                    <span class="text-danger">Sin cuenta</span>
+                                <?php endif; ?>
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2"
+                                    data-bs-toggle="modal" data-bs-target="#modalCuentaCliente">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
 
             </div>
         </div>
+
+<!-- Modal Cuenta Contable -->
+<div class="modal fade" id="modalCuentaCliente" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cuenta Contable del Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fw-semibold">Seleccionar subcuenta existente</label>
+                <div class="input-group mb-3">
+                    <select id="selectCuentaCliente" class="form-select"></select>
+                    <button class="btn btn-success" type="button" id="btnCrearSubcuenta">
+                        <i class="fa-solid fa-plus"></i> Nueva
+                    </button>
+                </div>
+                <div id="formCrearSubcuenta" class="d-none">
+                    <label class="form-label fw-semibold small">Nombre para la nueva subcuenta</label>
+                    <div class="input-group">
+                        <input type="text" id="inputNombreSubcuenta" class="form-control"
+                               value="<?= esc($cliente->nombre) ?>">
+                        <button class="btn btn-primary" type="button" id="btnConfirmarSubcuenta">
+                            Crear y asignar
+                        </button>
+                    </div>
+                    <small class="text-muted">Se creará como subcuenta de 110201 CLIENTES LOCALES</small>
+                </div>
+                <div id="alertaCuenta" class="mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarCuenta">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+$(function () {
+    const clienteId  = <?= (int)$cliente->id ?>;
+    const csrfName   = '<?= csrf_token() ?>';
+    let   csrfHash   = '<?= csrf_hash() ?>';
+    let   cuentaIdSeleccionada = <?= !empty($cliente->cuenta_contable_id) ? (int)$cliente->cuenta_contable_id : 'null' ?>;
+
+    $('#selectCuentaCliente').select2({
+        dropdownParent: $('#modalCuentaCliente'),
+        placeholder: 'Buscar subcuenta...',
+        allowClear: true,
+        minimumInputLength: 0,
+        ajax: {
+            url: '<?= base_url('clientes/cuentas-contables-select2') ?>',
+            dataType: 'json',
+            delay: 200,
+            data: p => ({ q: p.term ?? '' }),
+            processResults: d => d,
+            cache: true,
+        }
+    });
+
+    // Precargar cuenta actual
+    <?php if (!empty($cliente->cuenta_contable_id) && !empty($cliente->cuenta_codigo)): ?>
+    const optActual = new Option(
+        '<?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>',
+        <?= (int)$cliente->cuenta_contable_id ?>, true, true
+    );
+    $('#selectCuentaCliente').append(optActual).trigger('change');
+    <?php endif; ?>
+
+    $('#selectCuentaCliente').on('select2:select', function (e) {
+        cuentaIdSeleccionada = e.params.data.id;
+    }).on('select2:clear', function () {
+        cuentaIdSeleccionada = null;
+    });
+
+    // Toggle formulario crear
+    $('#btnCrearSubcuenta').on('click', function () {
+        $('#formCrearSubcuenta').toggleClass('d-none');
+    });
+
+    // Crear subcuenta + asignar directamente
+    $('#btnConfirmarSubcuenta').on('click', function () {
+        const nombre = $('#inputNombreSubcuenta').val().trim();
+        if (!nombre) return;
+
+        $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
+
+        $.post('<?= base_url('clientes/cuentas-contables-crear') ?>', {
+            [csrfName]: csrfHash,
+            nombre: nombre
+        }, null, 'json')
+        .done(function (r) {
+            csrfHash = r.csrf ?? csrfHash;
+            if (!r.success) {
+                $('#alertaCuenta').html('<div class="alert alert-danger">' + r.message + '</div>');
+                return;
+            }
+            const opt = new Option(r.cuenta.text, r.cuenta.id, true, true);
+            $('#selectCuentaCliente').append(opt).trigger('change');
+            cuentaIdSeleccionada = r.cuenta.id;
+            $('#formCrearSubcuenta').addClass('d-none');
+            $('#alertaCuenta').html('<div class="alert alert-success">Subcuenta creada: ' + r.cuenta.text + '</div>');
+        })
+        .always(function () {
+            $('#btnConfirmarSubcuenta').prop('disabled', false).html('Crear y asignar');
+        });
+    });
+
+    // Guardar asignación
+    $('#btnGuardarCuenta').on('click', function () {
+        $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: '<?= base_url('clientes/asignar-cuenta/') ?>' + clienteId,
+            type: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            data: { [csrfName]: csrfHash, cuenta_contable_id: cuentaIdSeleccionada ?? '' },
+            dataType: 'json'
+        })
+        .done(function (r) {
+            csrfHash = r.csrf ?? csrfHash;
+            if (!r.success) {
+                $('#alertaCuenta').html('<div class="alert alert-danger">' + (r.message ?? 'Error') + '</div>');
+                return;
+            }
+            const texto = r.cuenta ? r.cuenta.text : '<span class="text-danger">Sin cuenta</span>';
+            $('#cuentaLabel').html('<span class="fw-semibold">' + texto + '</span>');
+            $('#modalCuentaCliente').modal('hide');
+        })
+        .always(function () {
+            $('#btnGuardarCuenta').prop('disabled', false).html('Guardar');
+        });
+    });
+});
+</script>
 
         <!-- FACTURAS -->
 

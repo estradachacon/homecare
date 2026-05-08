@@ -24,7 +24,7 @@
                             type="text"
                             name="q"
                             class="form-control"
-                            placeholder="Buscar por nombre, documento o NRC"
+                            placeholder="Buscar por nombre, documento, NRC o cuenta contable"
                             value="<?= esc($q ?? '') ?>">
                     </div>
 

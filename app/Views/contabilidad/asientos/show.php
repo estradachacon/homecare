@@ -52,14 +52,14 @@ $mesesN = [
                     <!-- DERECHA -->
                     <div class="d-flex align-items-center gap-2">
 
-                        <?php if ($asiento->estado === 'BORRADOR'): ?>
+                        <?php if ($asiento->estado !== 'ANULADO'): ?>
 
-                            <?php if (tienePermiso('aprobar_asiento')): ?>
-                                <button class="btn btn-success btn-sm d-flex align-items-center gap-1 mr-1"
-                                    onclick="aprobarAsiento(<?= $asiento->id ?>)">
-                                    <i class="fa-solid fa-check-circle"></i>
-                                    <span>Aprobar</span>
-                                </button>
+                            <?php if (tienePermiso('crear_asiento')): ?>
+                                <a href="<?= base_url('contabilidad/asientos/editar/' . $asiento->id) ?>"
+                                   class="btn btn-warning btn-sm d-flex align-items-center gap-1 mr-1">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                    <span>Editar</span>
+                                </a>
                             <?php endif; ?>
 
                             <?php if (tienePermiso('anular_asiento')): ?>
@@ -70,15 +70,7 @@ $mesesN = [
                                 </button>
                             <?php endif; ?>
 
-                        <?php elseif ($asiento->estado === 'APROBADO' && tienePermiso('anular_asiento')): ?>
-
-                            <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 mr-1"
-                                onclick="anularAsiento(<?= $asiento->id ?>)">
-                                <i class="fa-solid fa-ban"></i>
-                                <span>Anular</span>
-                            </button>
-
-                        <?php elseif ($asiento->estado === 'ANULADO'): ?>
+                        <?php else: ?>
 
                             <span class="badge badge-danger px-3 py-2 d-flex align-items-center gap-1 mr-1">
                                 <i class="fa-solid fa-ban"></i> Anulado
@@ -195,14 +187,17 @@ $mesesN = [
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Anular Asiento</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title">Anular Asiento</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
-                <label class="form-label small fw-semibold">Motivo de anulación</label>
+                <label class="small font-weight-bold">Motivo de anulación</label>
                 <textarea id="motivoAnulacion" class="form-control" rows="3" placeholder="Ingresa el motivo..."></textarea>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
                 <button class="btn btn-danger btn-sm" onclick="confirmarAnulacion()">Anular</button>
             </div>
         </div>
@@ -235,7 +230,7 @@ $mesesN = [
     function anularAsiento(id) {
         asientoIdActual = id;
         document.getElementById('motivoAnulacion').value = '';
-        new bootstrap.Modal(document.getElementById('modalAnular')).show();
+        $('#modalAnular').modal('show');
     }
 
     function confirmarAnulacion() {

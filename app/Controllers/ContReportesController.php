@@ -278,14 +278,19 @@ class ContReportesController extends BaseController
         $anios    = $db->query('SELECT DISTINCT anio FROM cont_transacciones_hist ORDER BY anio DESC')->getResultArray();
         $anios    = array_column($anios, 'anio');
         $cuentaId = $this->request->getGet('cuenta_id');
-        $anioSel  = $this->request->getGet('anio') ?? (int)date('Y');
-        $mesSel   = $this->request->getGet('mes');
+        $anioSel  = (int)($this->request->getGet('anio') ?: date('Y'));
+        $mesSel   = $this->request->getGet('mes') ?: null;
         $filas    = [];
         $cuenta   = null;
 
+        // Asegurar que el año actual esté en la lista aunque la tabla esté vacía
+        if (!in_array((string)$anioSel, $anios)) {
+            array_unshift($anios, (string)$anioSel);
+        }
+
         if ($cuentaId) {
             $cuenta = $cuentasModel->find($cuentaId);
-            $filas  = $histModel->getByCuenta($cuentaId, (int)$anioSel, $mesSel ? (int)$mesSel : null);
+            $filas  = $histModel->getByCuenta((int)$cuentaId, $anioSel, $mesSel ? (int)$mesSel : null);
         }
 
         return view('contabilidad/mantenimientos/transacciones_historicas', [

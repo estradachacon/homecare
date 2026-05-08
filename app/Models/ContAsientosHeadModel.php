@@ -33,6 +33,45 @@ class ContAsientosHeadModel extends Model
                     ->first();
     }
 
+    /**
+     * Registra saldos e histórico para un asiento ya insertado.
+     * $lineas acepta arrays (desde JSON) u objetos (desde getByAsiento).
+     */
+    public function aprobarConSaldos(int $asientoId, $lineas, int $periodoId, string $fecha, string $descripcion, string $tipo, object $periodo): void
+    {
+        $saldosModel = new \App\Models\ContSaldosCuentasModel();
+        $histModel   = new \App\Models\ContTransaccionesHistModel();
+        $db          = \Config\Database::connect();
+
+        foreach ($lineas as $l) {
+            $cuentaId = (int)(is_array($l) ? $l['cuenta_id'] : $l->cuenta_id);
+            $debe     = (float)(is_array($l) ? ($l['debe']  ?? 0) : $l->debe);
+            $haber    = (float)(is_array($l) ? ($l['haber'] ?? 0) : $l->haber);
+            $desc     = is_array($l) ? ($l['descripcion'] ?? $descripcion) : ($l->descripcion ?: $descripcion);
+
+            $saldosModel->upsert($cuentaId, $periodoId, $debe, $haber);
+
+            $saldoAcum = (float)($db->query(
+                'SELECT COALESCE(SUM(debe)-SUM(haber),0) AS s FROM cont_transacciones_hist WHERE cuenta_id=?',
+                [$cuentaId]
+            )->getRow()->s ?? 0);
+
+            $histModel->insert([
+                'asiento_id'      => $asientoId,
+                'cuenta_id'       => $cuentaId,
+                'fecha'           => $fecha,
+                'descripcion'     => $desc,
+                'debe'            => $debe,
+                'haber'           => $haber,
+                'saldo_acumulado' => $saldoAcum + $debe - $haber,
+                'anio'            => $periodo->anio,
+                'mes'             => $periodo->mes,
+                'tipo_asiento'    => $tipo,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
     public function getByPeriodo(int $periodoId)
     {
         return $this->where('periodo_id', $periodoId)
@@ -65,8 +104,8 @@ class ContAsientosHeadModel extends Model
             $q->like('cont_asientos_head.descripcion', $filtros['descripcion']);
         }
 
-        return $q->orderBy('cont_asientos_head.fecha', 'DESC')
-                 ->orderBy('cont_asientos_head.numero_asiento', 'DESC')
+        return $q->orderBy('cont_asientos_head.numero_asiento', 'DESC')
+                 ->orderBy('cont_asientos_head.id', 'DESC')
                  ->paginate($perPage);
     }
 }

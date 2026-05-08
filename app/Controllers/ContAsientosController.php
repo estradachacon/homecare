@@ -106,18 +106,21 @@ class ContAsientosController extends BaseController
         $db->transStart();
 
         $nextNum = $headModel->getSiguienteNumero();
+        $tipo    = $data['tipo'] ?? 'DIARIO';
 
         $asientoId = $headModel->insert([
-            'numero_asiento' => $nextNum,
-            'fecha'          => $data['fecha'],
-            'descripcion'    => $data['descripcion'],
-            'tipo'           => $data['tipo'] ?? 'DIARIO',
-            'estado'         => 'BORRADOR',
-            'periodo_id'     => (int)$data['periodo_id'],
-            'total_debe'     => $totalDebe,
-            'total_haber'    => $totalHaber,
-            'referencia'     => $data['referencia'] ?? null,
-            'usuario_id'     => session()->get('id'),
+            'numero_asiento'     => $nextNum,
+            'fecha'              => $data['fecha'],
+            'descripcion'        => $data['descripcion'],
+            'tipo'               => $tipo,
+            'estado'             => 'APROBADO',
+            'periodo_id'         => (int)$data['periodo_id'],
+            'total_debe'         => $totalDebe,
+            'total_haber'        => $totalHaber,
+            'referencia'         => $data['referencia'] ?? null,
+            'usuario_id'         => session()->get('id'),
+            'usuario_aprueba_id' => session()->get('id'),
+            'fecha_aprobacion'   => date('Y-m-d H:i:s'),
         ]);
 
         if (!$asientoId) {
@@ -136,13 +139,15 @@ class ContAsientosController extends BaseController
             ]);
         }
 
+        $headModel->aprobarConSaldos($asientoId, $lineas, (int)$data['periodo_id'], $data['fecha'], $data['descripcion'], $tipo, $periodo);
+
         $db->transComplete();
 
         if ($db->transStatus() === false) {
             return $this->response->setJSON(['success' => false, 'message' => 'Error en la base de datos']);
         }
 
-        return $this->response->setJSON(['success' => true, 'message' => 'Asiento guardado como borrador', 'id' => $asientoId]);
+        return $this->response->setJSON(['success' => true, 'message' => 'Asiento guardado', 'id' => $asientoId]);
     }
 
     public function show($id)
@@ -232,6 +237,202 @@ class ContAsientosController extends BaseController
         }
 
         return $this->response->setJSON(['success' => true, 'message' => 'Asiento aprobado y saldos actualizados']);
+    }
+
+    /**
+     * GET contabilidad/asientos/plantilla-venta
+     *
+     * Endpoint AJAX: recibe los datos de un CCF o FAC y devuelve el JSON
+     * listo para enviarse a store() y crear el asiento automáticamente.
+     *
+     * Parámetros GET:
+     *   tipo_dte   string  'CCF' | 'FAC'
+     *   monto      float   CCF → venta sin IVA  |  FAC → total con IVA
+     *   retencion  float   Monto de retención (0 si no aplica)
+     *   referencia string  Número del documento, ej: "CCF-00001"
+     *   fecha      string  Y-m-d (default: hoy)
+     *   periodo_id int     ID del período contable abierto
+     *   descripcion string Glosa del asiento (opcional)
+     *
+     * Respuesta JSON exitosa:
+     *   { success: true, desglose: {...}, asiento: { ...payload para store()... } }
+     *
+     * Respuesta de error:
+     *   { success: false, message: '...', errores: [...] }
+     */
+    public function plantillaVenta()
+    {
+        helper('cont_ventas');
+
+        $get = $this->request->getGet();
+
+        $tipoDte    = strtoupper(trim($get['tipo_dte']    ?? ''));
+        $monto      = (float)($get['monto']               ?? 0);
+        $retencion  = (float)($get['retencion']           ?? 0);
+        $referencia = trim($get['referencia']             ?? '');
+        $fecha      = $get['fecha']                       ?? date('Y-m-d');
+        $periodoId  = (int)($get['periodo_id']            ?? 0);
+        $descripcion = trim($get['descripcion']           ?? '');
+
+        if (!$tipoDte || $monto <= 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Parámetros requeridos: tipo_dte (CCF|FAC) y monto > 0',
+            ]);
+        }
+
+        try {
+            $resultado = cont_asiento_venta_json(
+                $tipoDte, $monto, $retencion,
+                $referencia, $periodoId, $fecha, $descripcion
+            );
+        } catch (\InvalidArgumentException $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+
+        if (!$resultado['ok']) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => implode(' | ', $resultado['errores']),
+                'errores' => $resultado['errores'],
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'desglose' => $resultado['desglose'],
+            'asiento'  => $resultado['payload'],
+        ]);
+    }
+
+    public function edit($id)
+    {
+        $chk = requerirPermiso('crear_asiento');
+        if ($chk !== true) return $chk;
+
+        $headModel    = new ContAsientosHeadModel();
+        $detalleModel = new ContAsientosDetalleModel();
+        $periodosModel = new ContPeriodosModel();
+
+        $asiento = $headModel->getConDetalle($id);
+        if (!$asiento) {
+            return redirect()->to(base_url('contabilidad/asientos'))->with('error', 'Asiento no encontrado');
+        }
+
+        if ($asiento->estado === 'ANULADO') {
+            return redirect()->to(base_url('contabilidad/asientos/' . $id))
+                ->with('error', 'No se pueden editar asientos anulados');
+        }
+
+        $lineas  = $detalleModel->getByAsiento($id);
+        $periodos = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
+
+        return view('contabilidad/asientos/edit', [
+            'asiento' => $asiento,
+            'lineas'  => $lineas,
+            'periodos' => $periodos,
+        ]);
+    }
+
+    public function update($id)
+    {
+        $chk = requerirPermiso('crear_asiento');
+        if ($chk !== true) return $chk;
+
+        $headModel = new ContAsientosHeadModel();
+        $asiento   = $headModel->find($id);
+
+        if (!$asiento) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Asiento no encontrado']);
+        }
+        if ($asiento->estado === 'ANULADO') {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pueden editar asientos anulados']);
+        }
+
+        $data = $this->request->getJSON(true);
+
+        if (empty($data['periodo_id']) || empty($data['fecha']) || empty($data['descripcion'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Datos incompletos']);
+        }
+
+        $lineas = $data['lineas'] ?? [];
+        if (count($lineas) < 2) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Un asiento requiere al menos 2 líneas']);
+        }
+
+        $totalDebe  = 0;
+        $totalHaber = 0;
+        foreach ($lineas as $l) {
+            $totalDebe  += (float)($l['debe']  ?? 0);
+            $totalHaber += (float)($l['haber'] ?? 0);
+        }
+
+        if (abs($totalDebe - $totalHaber) > 0.01) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El asiento no cuadra. Debe = ' . number_format($totalDebe, 2) . ' | Haber = ' . number_format($totalHaber, 2)]);
+        }
+
+        $periodosModel = new ContPeriodosModel();
+        $periodo = $periodosModel->find($data['periodo_id']);
+        if (!$periodo || $periodo->estado === 'CERRADO') {
+            return $this->response->setJSON(['success' => false, 'message' => 'El período está cerrado o no existe']);
+        }
+
+        $detalleModel  = new ContAsientosDetalleModel();
+        $saldosModel   = new ContSaldosCuentasModel();
+        $histModel     = new ContTransaccionesHistModel();
+        $periodosModel = new ContPeriodosModel();
+        $db            = \Config\Database::connect();
+
+        $periodo = $periodosModel->find($data['periodo_id']);
+        if (!$periodo || $periodo->estado === 'CERRADO') {
+            return $this->response->setJSON(['success' => false, 'message' => 'El período está cerrado o no existe']);
+        }
+
+        $tipo = $data['tipo'] ?? 'DIARIO';
+
+        $db->transStart();
+
+        // Revertir saldos e historial del asiento original
+        $oldLineas = $detalleModel->getByAsiento($id);
+        foreach ($oldLineas as $l) {
+            $saldosModel->upsert((int)$l->cuenta_id, (int)$asiento->periodo_id, -(float)$l->debe, -(float)$l->haber);
+        }
+        $histModel->eliminarPorAsiento($id);
+
+        $headModel->update($id, [
+            'fecha'              => $data['fecha'],
+            'descripcion'        => $data['descripcion'],
+            'tipo'               => $tipo,
+            'periodo_id'         => (int)$data['periodo_id'],
+            'total_debe'         => $totalDebe,
+            'total_haber'        => $totalHaber,
+            'referencia'         => $data['referencia'] ?? null,
+            'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+            'usuario_aprueba_id' => session()->get('id'),
+        ]);
+
+        $db->table('cont_asientos_detalle')->where('asiento_id', $id)->delete();
+
+        foreach ($lineas as $i => $l) {
+            $detalleModel->insert([
+                'asiento_id'  => $id,
+                'cuenta_id'   => (int)$l['cuenta_id'],
+                'descripcion' => $l['descripcion'] ?? null,
+                'debe'        => (float)($l['debe']  ?? 0),
+                'haber'       => (float)($l['haber'] ?? 0),
+                'orden'       => $i + 1,
+            ]);
+        }
+
+        $headModel->aprobarConSaldos($id, $lineas, (int)$data['periodo_id'], $data['fecha'], $data['descripcion'], $tipo, $periodo);
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error en la base de datos']);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Asiento actualizado correctamente', 'id' => $id]);
     }
 
     public function anular($id)

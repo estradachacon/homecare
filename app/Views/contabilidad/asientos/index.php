@@ -92,7 +92,7 @@ select.form-select option {
                 <table class="table table-bordered table-hover table-sm align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width:80px">N° Asiento</th>
+                            <th class="text-center" style="width:100px">N° Asiento</th>
                             <th class="text-center" style="width:100px">Fecha</th>
                             <th>Descripción</th>
                             <th class="text-center" style="width:90px">Tipo</th>

@@ -376,13 +376,33 @@
 
             }).then(result => {
 
-                if (result.isConfirmed) {
+                if (result.isConfirmed && result.value) {
+                    const d = result.value;
+                    let html = '';
+
+                    if (d.asiento_error) {
+                        html += `<div class="text-warning small mt-1">⚠ Asiento no creado: ${d.asiento_error}</div>`;
+                    } else if (d.asientos && d.asientos.length) {
+                        html += '<table class="table table-sm table-bordered mt-2" style="font-size:0.82rem">';
+                        html += '<thead class="table-light"><tr><th>Factura</th><th>Asiento</th><th class="text-end">Monto</th></tr></thead><tbody>';
+                        d.asientos.forEach(a => {
+                            if (a.error) {
+                                html += `<tr><td>${a.factura}</td><td colspan="2" class="text-danger">${a.error}</td></tr>`;
+                            } else {
+                                html += `<tr><td>${a.factura}</td><td><strong>${a.asiento}</strong></td><td class="text-end">$ ${parseFloat(a.monto).toFixed(2)}</td></tr>`;
+                            }
+                        });
+                        html += '</tbody></table>';
+                    }
 
                     Swal.fire({
                         icon: 'success',
-                        title: 'Pago registrado correctamente'
-                    }).then(() => location.reload());
-
+                        title: 'Pago registrado',
+                        html: '<p class="mb-1">Pago registrado correctamente.</p>' + html,
+                        width: 500,
+                    }).then(() => {
+                        window.location = '<?= base_url('payments/') ?>' + d.pago_id;
+                    });
                 }
 
             });

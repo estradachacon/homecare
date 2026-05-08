@@ -13,11 +13,12 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between">
                 <h4 class="header-title mb-0">
-                    <i class="fa-solid fa-plus-circle me-2 mr-1"></i>Nuevo Asiento Contable
-                    <span class="badge bg-secondary ms-2 text-white mr-1">AST-<?= str_pad($nextNumero, 5, '0', STR_PAD_LEFT) ?></span>
+                    <i class="fa-solid fa-pen-to-square me-2 mr-1"></i>Editar Asiento Contable
+                    <span class="badge bg-secondary ms-2 text-white mr-1">AST-<?= str_pad($asiento->numero_asiento, 5, '0', STR_PAD_LEFT) ?></span>
+                    <span class="badge bg-success text-white ms-1"><?= esc($asiento->estado) ?></span>
                 </h4>
                 <div class="ms-auto">
-                    <a href="<?= base_url('contabilidad/asientos') ?>" class="btn btn-outline-secondary btn-sm">
+                    <a href="<?= base_url('contabilidad/asientos/' . $asiento->id) ?>" class="btn btn-outline-secondary btn-sm">
                         <i class="fa-solid fa-arrow-left"></i> Volver
                     </a>
                 </div>
@@ -39,7 +40,8 @@
                             foreach ($periodos as $p): ?>
                                 <option value="<?= $p->id ?>"
                                         data-mes="<?= $p->mes ?>"
-                                        data-anio="<?= $p->anio ?>">
+                                        data-anio="<?= $p->anio ?>"
+                                        <?= $p->id == $asiento->periodo_id ? 'selected' : '' ?>>
                                     <?= $mesesN[$p->mes] ?> <?= $p->anio ?>
                                 </option>
                             <?php endforeach; ?>
@@ -47,23 +49,23 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-semibold">Fecha <span class="text-danger">*</span></label>
-                        <input type="date" id="fechaAsiento" class="form-control" value="<?= date('Y-m-d') ?>">
+                        <input type="date" id="fechaAsiento" class="form-control" value="<?= esc($asiento->fecha) ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-semibold">Tipo</label>
                         <select id="tipoAsiento" class="form-select">
-                            <option value="DIARIO">DIARIO</option>
-                            <option value="AJUSTE">AJUSTE</option>
-                            <option value="APERTURA">APERTURA</option>
+                            <option value="DIARIO"   <?= $asiento->tipo === 'DIARIO'   ? 'selected' : '' ?>>DIARIO</option>
+                            <option value="AJUSTE"   <?= $asiento->tipo === 'AJUSTE'   ? 'selected' : '' ?>>AJUSTE</option>
+                            <option value="APERTURA" <?= $asiento->tipo === 'APERTURA' ? 'selected' : '' ?>>APERTURA</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-semibold">Descripción <span class="text-danger">*</span></label>
-                        <input type="text" id="descAsiento" class="form-control" placeholder="Descripción del asiento">
+                        <input type="text" id="descAsiento" class="form-control" value="<?= esc($asiento->descripcion) ?>" placeholder="Descripción del asiento">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-semibold">Referencia</label>
-                        <input type="text" id="refAsiento" class="form-control" placeholder="Opcional">
+                        <input type="text" id="refAsiento" class="form-control" value="<?= esc($asiento->referencia ?? '') ?>" placeholder="Opcional">
                     </div>
                 </div>
 
@@ -104,7 +106,7 @@
                         <i class="fa-solid fa-plus"></i> Agregar línea
                     </button>
                     <button class="btn btn-success ms-auto" onclick="guardarAsiento()">
-                        <i class="fa-solid fa-save"></i> Guardar asiento
+                        <i class="fa-solid fa-save"></i> Guardar cambios
                     </button>
                 </div>
 
@@ -116,7 +118,18 @@
 <script>
 let contadorLineas = 0;
 
-function agregarLinea() {
+// Líneas existentes precargadas desde PHP
+const lineasExistentes = <?= json_encode(array_map(function($l) {
+    return [
+        'cuenta_id'   => $l->cuenta_id,
+        'cuenta_text' => $l->codigo . ' - ' . $l->cuenta_nombre,
+        'descripcion' => $l->descripcion ?? '',
+        'debe'        => (float)$l->debe,
+        'haber'       => (float)$l->haber,
+    ];
+}, $lineas)) ?>;
+
+function agregarLinea(opts = {}) {
     contadorLineas++;
     const i = contadorLineas;
 
@@ -126,9 +139,9 @@ function agregarLinea() {
         <td>
             <select class="form-control form-control-sm" id="cuenta-${i}"></select>
         </td>
-        <td><input type="text" class="form-control form-control-sm" id="desc-${i}"></td>
-        <td><input type="number" class="form-control form-control-sm monto-debe" id="debe-${i}" value="0.00" oninput="recalcular()"></td>
-        <td><input type="number" class="form-control form-control-sm monto-haber" id="haber-${i}" value="0.00" oninput="recalcular()"></td>
+        <td><input type="text" class="form-control form-control-sm" id="desc-${i}" value="${escHtml(opts.descripcion ?? '')}"></td>
+        <td><input type="number" class="form-control form-control-sm monto-debe" id="debe-${i}" value="${(opts.debe ?? 0).toFixed(2)}" oninput="recalcular()"></td>
+        <td><input type="number" class="form-control form-control-sm monto-haber" id="haber-${i}" value="${(opts.haber ?? 0).toFixed(2)}" oninput="recalcular()"></td>
         <td>
             <button class="btn btn-sm btn-outline-danger" onclick="eliminarLinea(${i})">X</button>
         </td>
@@ -139,7 +152,7 @@ function agregarLinea() {
     const select = document.getElementById(`cuenta-${i}`);
     if (select.tomselect) select.tomselect.destroy();
 
-    new TomSelect(select, {
+    const ts = new TomSelect(select, {
         valueField: 'id',
         labelField: 'text',
         searchField: 'text',
@@ -153,6 +166,22 @@ function agregarLinea() {
                 .catch(() => callback());
         }
     });
+
+    // Precargar cuenta si viene de una línea existente
+    if (opts.cuenta_id) {
+        ts.addOption({ id: opts.cuenta_id, text: opts.cuenta_text });
+        ts.setValue(opts.cuenta_id, true);
+    }
+
+    recalcular();
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function eliminarLinea(i) {
@@ -188,7 +217,6 @@ function guardarAsiento() {
         return;
     }
 
-    // ── 1. RECOLECTAR LÍNEAS PRIMERO ──────────────────────────────
     const lineas = [];
     document.querySelectorAll('.linea-asiento').forEach(row => {
         const id         = row.id.replace('linea-', '');
@@ -215,10 +243,8 @@ function guardarAsiento() {
     const totalHaber = lineas.reduce((s, l) => s + l.haber, 0);
     const diferencia = Math.abs(totalDebe - totalHaber);
 
-    // ── 2. ADVERTENCIAS ───────────────────────────────────────────
     const advertencias = [];
 
-    // 📆 Fecha fuera del período — parse manual para evitar desfase de zona horaria
     const [anioF, mesF, diaF] = fecha.split('-').map(Number);
     const selected    = $('#periodoId option:selected');
     const periodoMes  = parseInt(selected.data('mes'));
@@ -228,85 +254,53 @@ function guardarAsiento() {
         advertencias.push(`📆 La fecha <strong>${diaF}/${mesF}/${anioF}</strong> no corresponde al período <strong>${selected.text()}</strong>`);
     }
 
-    // ⚖️ Naturaleza de cuentas
     lineas.forEach(l => {
         const texto = l.cuenta.toUpperCase();
-
-        const esDeudora =
-            texto.includes('CAJA') || texto.includes('BANCOS') ||
-            texto.includes('CLIENTES') || texto.includes('INVENTARIO') ||
-            texto.includes('GASTO') || texto.includes('COSTO') ||
-            texto.includes('ACTIVO');
-
-        const esAcreedora =
-            texto.includes('VENTAS') || texto.includes('IVA DÉBITO') ||
-            texto.includes('PAGAR') || texto.includes('CAPITAL') ||
-            texto.includes('INGRESO') || texto.includes('PASIVO');
-
-        if (esDeudora && l.haber > 0 && l.debe === 0) {
-            advertencias.push(`⚠️ <strong>${l.cuenta}</strong> normalmente va en Debe`);
-        }
-        if (esAcreedora && l.debe > 0 && l.haber === 0) {
-            advertencias.push(`⚠️ <strong>${l.cuenta}</strong> normalmente va en Haber`);
-        }
+        const esDeudora  = texto.includes('CAJA') || texto.includes('BANCOS') || texto.includes('CLIENTES') || texto.includes('INVENTARIO') || texto.includes('GASTO') || texto.includes('COSTO') || texto.includes('ACTIVO');
+        const esAcreedora = texto.includes('VENTAS') || texto.includes('IVA DÉBITO') || texto.includes('PAGAR') || texto.includes('CAPITAL') || texto.includes('INGRESO') || texto.includes('PASIVO');
+        if (esDeudora  && l.haber > 0 && l.debe  === 0) advertencias.push(`⚠️ <strong>${l.cuenta}</strong> normalmente va en Debe`);
+        if (esAcreedora && l.debe > 0  && l.haber === 0) advertencias.push(`⚠️ <strong>${l.cuenta}</strong> normalmente va en Haber`);
     });
 
-    if (totalDebe === 0 || totalHaber === 0) {
-        advertencias.push('⚠️ El asiento solo tiene Debe o solo Haber');
-    }
+    if (totalDebe === 0 || totalHaber === 0) advertencias.push('⚠️ El asiento solo tiene Debe o solo Haber');
 
-    if (lineas.length > 10) {
-        advertencias.push('🤔 Este asiento tiene muchas líneas, verifica si es correcto');
-    }
-
-    // ── 3. CONSTRUIR HTML DEL RESUMEN ─────────────────────────────
     let html = `
         <div style="text-align:left; font-size:13px">
         <strong>Descripción:</strong> ${descripcion}<br>
         <strong>Fecha:</strong> ${diaF}/${mesF}/${anioF} &nbsp;|&nbsp; <strong>Período:</strong> ${selected.text()}<br><br>
         <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr>
-                    <th style="text-align:left; border-bottom:1px solid #ccc; padding:4px">Cuenta</th>
-                    <th style="text-align:right; border-bottom:1px solid #ccc; padding:4px">Debe</th>
-                    <th style="text-align:right; border-bottom:1px solid #ccc; padding:4px">Haber</th>
-                </tr>
-            </thead>
+            <thead><tr>
+                <th style="text-align:left; border-bottom:1px solid #ccc; padding:4px">Cuenta</th>
+                <th style="text-align:right; border-bottom:1px solid #ccc; padding:4px">Debe</th>
+                <th style="text-align:right; border-bottom:1px solid #ccc; padding:4px">Haber</th>
+            </tr></thead>
             <tbody>`;
 
     lineas.forEach(l => {
-        html += `
-            <tr>
-                <td style="padding:3px 4px">${l.cuenta}</td>
-                <td style="text-align:right; padding:3px 4px">${l.debe  > 0 ? '$ ' + l.debe.toFixed(2)  : ''}</td>
-                <td style="text-align:right; padding:3px 4px">${l.haber > 0 ? '$ ' + l.haber.toFixed(2) : ''}</td>
-            </tr>`;
+        html += `<tr>
+            <td style="padding:3px 4px">${l.cuenta}</td>
+            <td style="text-align:right; padding:3px 4px">${l.debe  > 0 ? '$ ' + l.debe.toFixed(2)  : ''}</td>
+            <td style="text-align:right; padding:3px 4px">${l.haber > 0 ? '$ ' + l.haber.toFixed(2) : ''}</td>
+        </tr>`;
     });
 
-    html += `
-            </tbody>
-        </table>
+    html += `</tbody></table>
         <hr style="margin:8px 0">
         <strong>Total Debe:</strong> $ ${totalDebe.toFixed(2)}&nbsp;&nbsp;
         <strong>Total Haber:</strong> $ ${totalHaber.toFixed(2)}`;
 
-    if (diferencia > 0.01) {
-        html += `<br><span style="color:red"><strong>⚠️ Diferencia: $ ${diferencia.toFixed(2)}</strong></span>`;
-    }
+    if (diferencia > 0.01) html += `<br><span style="color:red"><strong>⚠️ Diferencia: $ ${diferencia.toFixed(2)}</strong></span>`;
 
     if (advertencias.length > 0) {
-        html += `
-        <div style="margin-top:10px; color:#92400e; background:#fff3cd; padding:10px; border-radius:6px; font-size:12px">
+        html += `<div style="margin-top:10px; color:#92400e; background:#fff3cd; padding:10px; border-radius:6px; font-size:12px">
             <strong>Advertencias:</strong><br>
             ${advertencias.map(a => `• ${a}`).join('<br>')}
         </div>`;
     }
-
     html += `</div>`;
 
-    // ── 4. CONFIRMAR Y GUARDAR ────────────────────────────────────
     const icon  = diferencia > 0.01 || advertencias.length > 0 ? 'warning' : 'question';
-    const title = diferencia > 0.01 ? '⚠️ Asiento NO cuadra' : 'Confirmar asiento';
+    const title = diferencia > 0.01 ? '⚠️ Asiento NO cuadra' : 'Confirmar cambios';
 
     Swal.fire({
         title,
@@ -314,7 +308,7 @@ function guardarAsiento() {
         width: 620,
         icon,
         showCancelButton: true,
-        confirmButtonText: diferencia > 0.01 ? 'Guardar de todos modos' : 'Guardar asiento',
+        confirmButtonText: diferencia > 0.01 ? 'Guardar de todos modos' : 'Guardar cambios',
         cancelButtonText: 'Revisar'
     }).then(result => {
         if (!result.isConfirmed) return;
@@ -324,7 +318,7 @@ function guardarAsiento() {
             return;
         }
 
-        fetch('<?= base_url('contabilidad/asientos/store') ?>', {
+        fetch('<?= base_url('contabilidad/asientos/actualizar/') ?><?= $asiento->id ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -345,9 +339,8 @@ function guardarAsiento() {
     });
 }
 
-// Agregar 2 líneas iniciales
-agregarLinea();
-agregarLinea();
+// Cargar líneas existentes al iniciar
+lineasExistentes.forEach(l => agregarLinea(l));
 </script>
 
 <?= $this->endSection() ?>

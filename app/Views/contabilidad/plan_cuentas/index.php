@@ -155,7 +155,7 @@
                                                 : '<span class="badge bg-light text-muted border">No</span>' ?>
                                         </td>
 
-                                        <td class="text-center">
+                                        <td class="text-center text-white">
                                             <span class="badge <?= $c->activo ? 'bg-success' : 'bg-secondary' ?>">
                                                 <?= $c->activo ? 'Activa' : 'Inactiva' ?>
                                             </span>

@@ -117,10 +117,14 @@ class Facturas extends BaseController
         if ($chk !== true) return $chk;
 
         $emisorModel = new \App\Models\EmisorModel();
-        $emisor = $emisorModel->first(); // solo debería existir uno
+        $emisor = $emisorModel->first();
+
+        $configModel = new \App\Models\ContConfiguracionModel();
+        $contConfig  = (array)$configModel->getConfig();
 
         return view('facturas/carga_procesado', [
-            'emisor' => $emisor
+            'emisor'     => $emisor,
+            'contConfig' => $contConfig,
         ]);
     }
 
@@ -130,10 +134,12 @@ class Facturas extends BaseController
         session_write_close();
 
         $files = $this->request->getFiles();
-        $tipoVentaIds = $this->request->getPost('tipo_venta_ids');
-        $sellerIds = $this->request->getPost('seller_ids');
-        $plazos = $this->request->getPost('plazos_credito');
-        $condiciones = $this->request->getPost('condiciones');
+        $tipoVentaIds         = $this->request->getPost('tipo_venta_ids');
+        $sellerIds            = $this->request->getPost('seller_ids');
+        $plazos               = $this->request->getPost('plazos_credito');
+        $condiciones          = $this->request->getPost('condiciones');
+        $tipoLineas           = $this->request->getPost('tipo_lineas')            ?? [];
+        $cuentaVentasOverrides = $this->request->getPost('cuenta_ventas_override_ids') ?? [];
 
         if (!isset($files['archivos'])) {
             return $this->response->setJSON([
@@ -156,6 +162,7 @@ class Facturas extends BaseController
         $controles = [];
         $totalOperacion = 0;
         $seProcesoNC = false;
+        $asientosQueue = [];
 
         foreach ($files['archivos'] as $index => $file) {
 
@@ -602,6 +609,22 @@ CCF YA VIENE SIN IVA
                     }
                 }
             }
+
+            // Encolar asiento contable para CCF y FAC (se procesa después de commit)
+            if (in_array($tipoDte, ['01', '03'])) {
+                $asientosQueue[] = [
+                    'tipoDte'          => $tipoDte,
+                    'totalGravada'     => $totalGravada,
+                    'montoTotalOp'     => (float)($json['resumen']['montoTotalOperacion'] ?? $totalDte),
+                    'retencion'        => (float)($json['resumen']['ivaRete1'] ?? 0),
+                    'fechaEmision'     => $json['identificacion']['fecEmi'] ?? date('Y-m-d'),
+                    'numeroControl'    => $dataHead['numero_control'],
+                    'clienteId'        => $clienteId ?? null,
+                    'tipoLinea'        => $tipoLineas[$index] ?? 'producto',
+                    'cuentaOverrideId' => (($tipoLineas[$index] ?? '') === 'servicio' && !empty($cuentaVentasOverrides[$index]))
+                        ? (int)$cuentaVentasOverrides[$index] : null,
+                ];
+            }
         }
 
         $db->transComplete();
@@ -633,9 +656,174 @@ CCF YA VIENE SIN IVA
             );
         }
 
+        // Crear asientos contables automáticos (CCF y FAC únicamente)
+        $asientosCreados  = 0;
+        $asientosOmitidos = [];
+
+        if (!empty($asientosQueue)) {
+            helper('cont_ventas');
+            $periodosModel    = new \App\Models\ContPeriodosModel();
+            $contHeadModel    = new \App\Models\ContAsientosHeadModel();
+            $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
+
+            // Usar el período abierto más reciente como base
+            $periodoActual = $periodosModel->getPeriodoActual();
+
+            foreach ($asientosQueue as $item) {
+                $ref = substr($item['numeroControl'], -6);
+
+                if (!$periodoActual) {
+                    $asientosOmitidos[] = "{$ref}: sin período contable abierto";
+                    continue;
+                }
+
+                $tipoDteHelper = $item['tipoDte'] === '03' ? 'CCF' : 'FAC';
+                $monto = $item['tipoDte'] === '03' ? (float)$item['totalGravada'] : (float)$item['montoTotalOp'];
+
+                if ($monto <= 0) {
+                    $asientosOmitidos[] = "{$ref}: monto inválido ({$monto})";
+                    continue;
+                }
+
+                // Usar la subcuenta propia del cliente; si no tiene, crearla automáticamente
+                $cxcOverrideId = null;
+                if (!empty($item['clienteId'])) {
+                    $clienteModel = new \App\Models\ClienteModel();
+                    $cli = $clienteModel->select('id, nombre, cuenta_contable_id')->find((int)$item['clienteId']);
+
+                    if ($cli && !empty($cli->cuenta_contable_id)) {
+                        $cxcOverrideId = (int)$cli->cuenta_contable_id;
+                    } elseif ($cli) {
+                        // Auto-crear subcuenta bajo 110201 CLIENTES LOCALES
+                        $planModel = new \App\Models\ContPlanCuentasModel();
+                        $padre     = $planModel->where('codigo', '110201')->first();
+
+                        if ($padre) {
+                            // 1. Buscar subcuenta existente por nombre bajo 110201xxxx
+                            $subcuentaExistente = $planModel
+                                ->like('codigo', '110201', 'after')
+                                ->where('nombre', mb_strtoupper($cli->nombre))
+                                ->first();
+
+                            if ($subcuentaExistente) {
+                                $clienteModel->update($cli->id, ['cuenta_contable_id' => $subcuentaExistente->id]);
+                                $cxcOverrideId = (int)$subcuentaExistente->id;
+                            } else {
+                                // 2. Código seguro: MAX sobre TODOS los códigos 110201xxxx
+                                //    (independiente de cuenta_padre_id para evitar duplicados)
+                                $dbRaw     = \Config\Database::connect();
+                                $siguiente = (int)($dbRaw->query(
+                                    "SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, 7) AS UNSIGNED)), 0) + 1
+                                     AS sig FROM cont_plan_cuentas
+                                     WHERE codigo LIKE '110201%' AND LENGTH(codigo) > 6"
+                                )->getRow()->sig ?? 1);
+
+                                $nuevoCodigo = '110201' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+
+                                $nuevaCuentaId = $planModel->insert([
+                                    'codigo'             => $nuevoCodigo,
+                                    'nombre'             => mb_strtoupper($cli->nombre),
+                                    'tipo'               => $padre->tipo,
+                                    'naturaleza'         => $padre->naturaleza,
+                                    'nivel'              => $padre->nivel + 1,
+                                    'cuenta_padre_id'    => $padre->id,
+                                    'acepta_movimientos' => 1,
+                                    'activo'             => 1,
+                                ]);
+
+                                if ($nuevaCuentaId) {
+                                    $clienteModel->update($cli->id, ['cuenta_contable_id' => $nuevaCuentaId]);
+                                    $cxcOverrideId = (int)$nuevaCuentaId;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                try {
+                    $resultado = cont_asiento_venta_json(
+                        $tipoDteHelper,
+                        $monto,
+                        (float)$item['retencion'],
+                        $ref,
+                        $periodoActual->id,
+                        $item['fechaEmision'],
+                        "Venta {$tipoDteHelper} {$ref}",
+                        $item['cuentaOverrideId'],
+                        $cxcOverrideId
+                    );
+                } catch (\InvalidArgumentException $e) {
+                    $asientosOmitidos[] = "{$ref}: " . $e->getMessage();
+                    continue;
+                }
+
+                if (!$resultado['ok']) {
+                    $asientosOmitidos[] = "{$ref}: " . implode(', ', $resultado['errores']);
+                    continue;
+                }
+
+                $payload    = $resultado['payload'];
+                $totalDebe  = round(array_sum(array_column($payload['lineas'], 'debe')),  2);
+                $totalHaber = round(array_sum(array_column($payload['lineas'], 'haber')), 2);
+
+                $asientoId = $contHeadModel->insert([
+                    'numero_asiento'     => $contHeadModel->getSiguienteNumero(),
+                    'fecha'              => $payload['fecha'],
+                    'descripcion'        => $payload['descripcion'],
+                    'tipo'               => $payload['tipo'],
+                    'estado'             => 'APROBADO',
+                    'periodo_id'         => $payload['periodo_id'],
+                    'total_debe'         => $totalDebe,
+                    'total_haber'        => $totalHaber,
+                    'referencia'         => $payload['referencia'],
+                    'usuario_id'         => $user_id,
+                    'usuario_aprueba_id' => $user_id,
+                    'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+                ]);
+
+                if (!$asientoId) {
+                    $asientosOmitidos[] = "{$ref}: error al insertar encabezado de asiento";
+                    continue;
+                }
+
+                foreach ($payload['lineas'] as $i => $l) {
+                    $contDetalleModel->insert([
+                        'asiento_id'  => $asientoId,
+                        'cuenta_id'   => $l['cuenta_id'],
+                        'descripcion' => $l['descripcion'],
+                        'debe'        => $l['debe'],
+                        'haber'       => $l['haber'],
+                        'orden'       => $i + 1,
+                    ]);
+                }
+
+                $contHeadModel->aprobarConSaldos(
+                    $asientoId,
+                    $payload['lineas'],
+                    (int)$payload['periodo_id'],
+                    $payload['fecha'],
+                    $payload['descripcion'],
+                    $payload['tipo'],
+                    $periodoActual
+                );
+
+                $asientosCreados++;
+            }
+        }
+
+        $mensaje = 'Facturas procesadas correctamente';
+        if ($asientosCreados > 0) {
+            $mensaje .= ". {$asientosCreados} asiento(s) contable(s) generado(s).";
+        }
+        if (!empty($asientosOmitidos)) {
+            $mensaje .= ' Omitidos: ' . implode(' | ', $asientosOmitidos);
+        }
+
         return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Facturas procesadas correctamente'
+            'success'          => true,
+            'message'          => $mensaje,
+            'asientos_creados' => $asientosCreados,
+            'asientos_omitidos'=> $asientosOmitidos,
         ]);
     }
 

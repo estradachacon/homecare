@@ -122,7 +122,7 @@
                             ];
                             ?>
                             <h5 class="mb-1"><?= $meses[$periodoActual->mes] ?> <?= $periodoActual->anio ?></h5>
-                            <span class="badge bg-success">ABIERTO</span>
+                            <span class="badge bg-success text-white">ABIERTO</span>
                             <hr>
                             <div class="d-flex justify-content-between small">
                                 <span>Asientos del período</span>
@@ -162,7 +162,7 @@
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $colores = ['ACTIVO' => 'primary', 'PASIVO' => 'danger', 'CAPITAL' => 'warning', 'INGRESO' => 'success', 'COSTO' => 'secondary', 'GASTO' => 'dark'];
+                                    $colores = ['ACTIVO' => 'primary text-white', 'PASIVO' => 'danger text-white', 'CAPITAL' => 'warning text-white', 'INGRESO' => 'success text-white', 'COSTO' => 'secondary text-white', 'GASTO' => 'dark text-white'];
                                     foreach ($saldosPorTipo as $tipo => $s): ?>
                                         <tr>
                                             <td><span class="badge bg-<?= $colores[$tipo] ?? 'secondary' ?>"><?= $tipo ?></span></td>
@@ -192,7 +192,7 @@
                                     <li class="list-group-item px-3 py-2 mr-1">
                                         <div class="d-flex justify-content-between">
                                             <span class="fw-semibold small">AST-<?= str_pad($a->numero_asiento, 5, '0', STR_PAD_LEFT) ?></span>
-                                            <span class="badge bg-<?= $a->estado === 'APROBADO' ? 'success' : ($a->estado === 'BORRADOR' ? 'warning' : 'danger') ?>"><?= $a->estado ?></span>
+                                            <span class="badge bg-<?= $a->estado === 'APROBADO' ? 'success text-white' : ($a->estado === 'BORRADOR' ? 'warning' : 'danger text-white') ?>"><?= $a->estado ?></span>
                                         </div>
                                         <div class="text-muted" style="font-size:0.78rem"><?= esc(substr($a->descripcion, 0, 40)) ?>...</div>
                                         <div class="text-muted" style="font-size:0.75rem"><?= date('d/m/Y', strtotime($a->fecha)) ?> — $ <?= number_format($a->total_debe, 2) ?></div>

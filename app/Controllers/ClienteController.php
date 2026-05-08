@@ -16,13 +16,16 @@ class ClienteController extends BaseController
         $clienteModel = new ClienteModel();
         $q = $this->request->getGet('q');
 
-        $builder = $clienteModel;
+        $builder = $clienteModel
+            ->select('clientes.*')
+            ->join('cont_plan_cuentas', 'cont_plan_cuentas.id = clientes.cuenta_contable_id', 'left');
 
         if ($q) {
             $builder->groupStart()
-                ->like('nombre', $q)
-                ->orLike('numero_documento', $q)
-                ->orLike('nrc', $q)
+                ->like('clientes.nombre', $q)
+                ->orLike('clientes.numero_documento', $q)
+                ->orLike('clientes.nrc', $q)
+                ->orLike('cont_plan_cuentas.codigo', $q)
                 ->groupEnd();
         }
 
@@ -354,6 +357,31 @@ class ClienteController extends BaseController
             'csrf' => csrf_hash()
         ]);
     }
+    public function asignarCuentaAjax($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false]);
+        }
+
+        $model     = new ClienteModel();
+        $cuentaId  = $this->request->getPost('cuenta_contable_id') ?: null;
+
+        if (!$model->update($id, ['cuenta_contable_id' => $cuentaId])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al actualizar']);
+        }
+
+        if ($cuentaId) {
+            $cuenta = (new ContPlanCuentasModel())->select('id, codigo, nombre')->find((int)$cuentaId);
+            return $this->response->setJSON([
+                'success' => true,
+                'cuenta'  => ['id' => $cuenta->id, 'text' => $cuenta->codigo . ' - ' . $cuenta->nombre],
+                'csrf'    => csrf_hash(),
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'cuenta' => null, 'csrf' => csrf_hash()]);
+    }
+
     public function cuentasContablesSelect2()
     {
         $q = trim($this->request->getGet('q') ?? '');

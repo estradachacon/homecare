@@ -66,6 +66,38 @@
                             <select name="cuenta_resultado_id" class="form-select config-select" data-val="<?= $config->cuenta_resultado_id ?? '' ?>"></select>
                         </div>
 
+                        <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">CUENTAS DE RETENCIONES</h6></div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">IVA Débito Fiscal</label>
+                            <small class="text-muted d-block mb-1">IVA generado en ventas (pasivo)</small>
+                            <select name="cuenta_iva_debito_id" class="form-select config-select" data-val="<?= $config->cuenta_iva_debito_id ?? '' ?>"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Retención IVA 1% por Cobrar</label>
+                            <small class="text-muted d-block mb-1">Retención del 1% aplicada a clientes (activo)</small>
+                            <select name="cuenta_retencion_cobrar_id" class="form-select config-select" data-val="<?= $config->cuenta_retencion_cobrar_id ?? '' ?>"></select>
+                        </div>
+
+                        <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">CUENTAS DE SERVICIOS</h6></div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Cuenta Servicios 1 — Etiqueta</label>
+                            <input type="text" name="cuenta_ventas_servicio1_label" class="form-control form-control-sm mb-1"
+                                placeholder="Ej: Ingresos por Servicios Médicos"
+                                value="<?= esc($config->cuenta_ventas_servicio1_label ?? '') ?>">
+                            <label class="form-label small fw-semibold">Cuenta Servicios 1</label>
+                            <select name="cuenta_ventas_servicio1_id" class="form-select config-select" data-val="<?= $config->cuenta_ventas_servicio1_id ?? '' ?>"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Cuenta Servicios 2 — Etiqueta</label>
+                            <input type="text" name="cuenta_ventas_servicio2_label" class="form-control form-control-sm mb-1"
+                                placeholder="Ej: Ingresos por Servicios Domiciliarios"
+                                value="<?= esc($config->cuenta_ventas_servicio2_label ?? '') ?>">
+                            <label class="form-label small fw-semibold">Cuenta Servicios 2</label>
+                            <select name="cuenta_ventas_servicio2_id" class="form-select config-select" data-val="<?= $config->cuenta_ventas_servicio2_id ?? '' ?>"></select>
+                        </div>
+
                         <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">OPCIONES GENERALES</h6></div>
 
                         <div class="col-md-3">
@@ -90,7 +122,7 @@
                     <div id="erroresConfig" class="alert alert-danger mt-3 d-none"></div>
 
                     <div class="mt-4 d-flex gap-2">
-                        <a href="<?= base_url('contabilidad') ?>" class="btn btn-outline-secondary">
+                        <a href="<?= base_url('contabilidad') ?>" class="btn btn-outline-secondary mr-1">
                             <i class="fa-solid fa-arrow-left"></i> Volver
                         </a>
                         <button type="button" class="btn btn-success ms-auto" onclick="guardarConfig()">
@@ -104,51 +136,57 @@
 </div>
 
 <script>
-// Precargar cuentas configuradas
-const cuentasPrecargadas = <?= json_encode(array_map(fn($c) => ['id'=>$c->id,'text'=>$c->codigo.' - '.$c->nombre], $cuentas)) ?>;
-const mapaId = {};
-cuentasPrecargadas.forEach(c => { mapaId[c.id] = c; });
+$(document).ready(function () {
+    // Mapa de cuentas precargadas para mostrar el valor guardado sin necesidad de buscar
+    const cuentasPrecargadas = <?= json_encode(array_map(fn($c) => ['id' => $c->id, 'text' => $c->codigo . ' - ' . $c->nombre], $cuentas)) ?>;
+    const mapaId = {};
+    cuentasPrecargadas.forEach(c => { mapaId[String(c.id)] = c; });
 
-document.querySelectorAll('.config-select').forEach(el => {
-    const $el = $(el);
-    $el.select2({
-        width: '100%',
-        placeholder: 'Seleccionar cuenta...',
-        allowClear: true,
-        minimumInputLength: 2,
-        language: 'es',
-        ajax: {
-            url: '<?= base_url('contabilidad/plan-cuentas/search') ?>',
-            dataType: 'json', delay: 200,
-            data: p => ({q: p.term}),
-            processResults: d => d,
-            cache: true
+    document.querySelectorAll('.config-select').forEach(function (el) {
+        const $el = $(el);
+
+        $el.select2({
+            width: '100%',
+            placeholder: 'Seleccionar cuenta...',
+            allowClear: true,
+            minimumInputLength: 2,
+            language: 'es',
+            ajax: {
+                url: '<?= base_url('contabilidad/plan-cuentas/search') ?>',
+                dataType: 'json',
+                delay: 200,
+                data: p => ({ q: p.term }),
+                processResults: d => d,
+                cache: true
+            }
+        });
+
+        // Precargar el valor ya guardado en BD
+        const val = String(el.dataset.val || '');
+        if (val && mapaId[val]) {
+            const opt = new Option(mapaId[val].text, mapaId[val].id, true, true);
+            $el.append(opt).trigger('change');
         }
     });
 
-    const val = el.dataset.val;
-    if (val && mapaId[val]) {
-        const opt = new Option(mapaId[val].text, mapaId[val].id, true, true);
-        $el.append(opt).trigger('change');
-    }
+    window.guardarConfig = function () {
+        const form = document.getElementById('formConfig');
+        const data = new FormData(form);
+
+        fetch('<?= base_url('contabilidad/configuracion/guardar') ?>', { method: 'POST', body: data })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    Swal.fire('Guardado', d.message, 'success');
+                } else {
+                    const msgs = d.errors ? Object.values(d.errors).join('<br>') : d.message;
+                    document.getElementById('erroresConfig').classList.remove('d-none');
+                    document.getElementById('erroresConfig').innerHTML = msgs;
+                    Swal.fire('Error', d.message, 'error');
+                }
+            });
+    };
 });
-
-function guardarConfig() {
-    const form = document.getElementById('formConfig');
-    const data = new FormData(form);
-
-    fetch('<?= base_url('contabilidad/configuracion/guardar') ?>', { method:'POST', body: data })
-        .then(r => r.json()).then(d => {
-            if (d.success) {
-                Swal.fire('Guardado', d.message, 'success');
-            } else {
-                const msgs = d.errors ? Object.values(d.errors).join('<br>') : d.message;
-                document.getElementById('erroresConfig').classList.remove('d-none');
-                document.getElementById('erroresConfig').innerHTML = msgs;
-                Swal.fire('Error', d.message, 'error');
-            }
-        });
-}
 </script>
 
 <?= $this->endSection() ?>

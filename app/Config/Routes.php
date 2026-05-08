@@ -163,6 +163,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes/cuentas-contables-select2', 'ClienteController::cuentasContablesSelect2');
     $routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
     $routes->post('clientes/cuentas-contables-crear', 'ClienteController::crearCuentaContableAjax');
+    $routes->post('clientes/asignar-cuenta/(:num)', 'ClienteController::asignarCuentaAjax/$1');
     $routes->get('clientes/municipios-por-departamento', 'ClienteController::municipiosPorDepartamento');
     $routes->get('clientes/exportar-excel/(:num)', 'ClienteController::exportarExcel/$1');
     $routes->get('clientes/searchAjax', 'ClienteController::searchAjax');
@@ -317,6 +318,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('comisiones/vendedor/add', 'Comisiones::addVendedor');
     $routes->post('comisiones/vendedor/update', 'Comisiones::updateVendedor');
     $routes->post('comisiones/vendedor/delete', 'Comisiones::deleteVendedor');
+    $routes->get('comisiones/reportes', 'Comisiones::reportes');
     $routes->get('comisiones/generar', 'Comisiones::generar');
     $routes->post('comisiones/getDocumentos', 'Comisiones::getDocumentos');
     $routes->post('comisiones/guardar', 'Comisiones::guardar');
@@ -345,12 +347,15 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('contabilidad/periodos/reabrir/(:num)',     'ContPeriodosController::reabrir/$1');
 
     // Asientos Contables
-    $routes->get('contabilidad/asientos',                    'ContAsientosController::index');
-    $routes->get('contabilidad/asientos/nuevo',              'ContAsientosController::nuevo');
-    $routes->post('contabilidad/asientos/store',             'ContAsientosController::store');
-    $routes->get('contabilidad/asientos/(:num)',             'ContAsientosController::show/$1');
-    $routes->post('contabilidad/asientos/aprobar/(:num)',    'ContAsientosController::aprobar/$1');
-    $routes->post('contabilidad/asientos/anular/(:num)',     'ContAsientosController::anular/$1');
+    $routes->get('contabilidad/asientos',                        'ContAsientosController::index');
+    $routes->get('contabilidad/asientos/nuevo',                  'ContAsientosController::nuevo');
+    $routes->post('contabilidad/asientos/store',                 'ContAsientosController::store');
+    $routes->get('contabilidad/asientos/plantilla-venta',        'ContAsientosController::plantillaVenta');
+    $routes->get('contabilidad/asientos/(:num)',                 'ContAsientosController::show/$1');
+    $routes->get('contabilidad/asientos/editar/(:num)',          'ContAsientosController::edit/$1');
+    $routes->post('contabilidad/asientos/actualizar/(:num)',     'ContAsientosController::update/$1');
+    $routes->post('contabilidad/asientos/aprobar/(:num)',        'ContAsientosController::aprobar/$1');
+    $routes->post('contabilidad/asientos/anular/(:num)',         'ContAsientosController::anular/$1');
 
     // Listados
     $routes->get('contabilidad/listados/relacion-cuentas',   'ContReportesController::relacionCuentas');

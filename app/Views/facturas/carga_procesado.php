@@ -167,6 +167,7 @@
         const EMISOR_NIT = "<?= $emisor->nit ?>";
         const EMISOR_NRC = "<?= $emisor->nrc ?>";
 
+
         // función para normalizar NIT/NRC (quitar guiones y espacios)
         function limpiarDoc(doc) {
             if (!doc) return '';
@@ -416,7 +417,10 @@
                             seller_id: null,
                             tipo_venta_id: null,
                             condicion_operacion: parseInt(json.resumen?.condicionOperacion ?? 1),
-                            plazo_credito: (json.resumen?.condicionOperacion == 2) ? 30 : null
+                            plazo_credito: (json.resumen?.condicionOperacion == 2) ? 30 : null,
+                            tipo_linea: 'producto',
+                            cuenta_ventas_override_id: null,
+                            cuenta_ventas_override: null,
                         };
                         fetch("<?= base_url('facturas/validar-numero-control') ?>", {
                                 method: "POST",
@@ -495,6 +499,51 @@
                     archivosSeleccionados[index].tipo_venta_id = e.params.data.id;
                 });
 
+            });
+        }
+
+        function initCuentaServicioSelect(el) {
+            const $el = $(el);
+            if ($el.hasClass('select2-hidden-accessible')) return;
+
+            const idx = parseInt(el.dataset.index);
+
+            $el.select2({
+                width: '100%',
+                placeholder: 'Buscar cuenta contable...',
+                allowClear: true,
+                minimumInputLength: 2,
+                ajax: {
+                    url: '<?= base_url('contabilidad/plan-cuentas/search') ?>',
+                    dataType: 'json',
+                    delay: 200,
+                    data: p => ({ q: p.term }),
+                    processResults: d => d,
+                    cache: true
+                }
+            });
+
+            const saved = archivosSeleccionados[idx]?.cuenta_ventas_override;
+            if (saved?.id) {
+                $el.append(new Option(saved.text, saved.id, true, true)).trigger('change');
+            }
+
+            $el.on('select2:select', function(e) {
+                archivosSeleccionados[idx].cuenta_ventas_override    = { id: e.params.data.id, text: e.params.data.text };
+                archivosSeleccionados[idx].cuenta_ventas_override_id = e.params.data.id;
+            });
+
+            $el.on('select2:clear', function() {
+                archivosSeleccionados[idx].cuenta_ventas_override    = null;
+                archivosSeleccionados[idx].cuenta_ventas_override_id = null;
+            });
+        }
+
+        function initCuentaServicioSelects() {
+            document.querySelectorAll('.cuenta-servicio-select').forEach(function(el) {
+                const idx = parseInt(el.dataset.index);
+                if ((archivosSeleccionados[idx]?.tipo_linea ?? 'producto') !== 'servicio') return;
+                initCuentaServicioSelect(el);
             });
         }
 
@@ -586,6 +635,8 @@
                 formData.append('tipo_venta_ids[]', factura.tipo_venta_id);
                 formData.append('condiciones[]', factura.condicion_operacion);
                 formData.append('plazos_credito[]', factura.plazo_credito);
+                formData.append('tipo_lineas[]', factura.tipo_linea ?? 'producto');
+                formData.append('cuenta_ventas_override_ids[]', factura.cuenta_ventas_override_id ?? '');
             });
             fetch("<?= base_url('facturas/cargar') ?>", {
                     method: "POST",
@@ -771,6 +822,21 @@
                                         </select>
                                     </div>
 
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="tipo-linea-select form-control form-control-sm"
+                                            data-index="${index}">
+                                            <option value="producto" ${(factura.tipo_linea ?? 'producto') === 'producto' ? 'selected' : ''}>Producto</option>
+                                            <option value="servicio" ${(factura.tipo_linea ?? '') === 'servicio' ? 'selected' : ''}>Servicio</option>
+                                        </select>
+                                    </div>
+
+                                    <div style="width: 50%; padding:2px;">
+                                        <select class="cuenta-servicio-select form-control form-control-sm"
+                                            data-index="${index}"
+                                            style="${(factura.tipo_linea ?? 'producto') === 'servicio' ? '' : 'visibility:hidden;'}">
+                                        </select>
+                                    </div>
+
                                 </div>
                             </div>
                             </div>
@@ -854,6 +920,26 @@
 
             });
 
+            document.querySelectorAll('.tipo-linea-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const idx = parseInt(this.dataset.index);
+                    const valor = this.value;
+                    archivosSeleccionados[idx].tipo_linea = valor;
+                    const cuentaEl = document.querySelector(`.cuenta-servicio-select[data-index="${idx}"]`);
+                    if (valor === 'servicio') {
+                        cuentaEl.style.visibility = 'visible';
+                        initCuentaServicioSelect(cuentaEl);
+                    } else {
+                        if ($(cuentaEl).hasClass('select2-hidden-accessible')) {
+                            $(cuentaEl).select2('destroy');
+                        }
+                        cuentaEl.style.visibility = 'hidden';
+                        archivosSeleccionados[idx].cuenta_ventas_override    = null;
+                        archivosSeleccionados[idx].cuenta_ventas_override_id = null;
+                    }
+                });
+            });
+
             btnProcesar.addEventListener('click', function() {
                 const sinVendedor = archivosSeleccionados.some(f => !f.seller_id);
                 const sinTipoVenta = archivosSeleccionados.some(f => !f.tipo_venta_id);
@@ -862,6 +948,17 @@
                         icon: 'warning',
                         title: 'Faltan tipos de venta',
                         text: 'Todas las facturas deben tener tipo de venta.'
+                    });
+                    return;
+                }
+                const sinCuentaServicio = archivosSeleccionados.some(f =>
+                    (f.tipo_linea ?? 'producto') === 'servicio' && !f.cuenta_ventas_override_id
+                );
+                if (sinCuentaServicio) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cuenta de servicios requerida',
+                        text: 'Las facturas marcadas como Servicio deben tener una cuenta de ingresos seleccionada.'
                     });
                     return;
                 }
@@ -906,6 +1003,7 @@
             btnProcesar.disabled = archivosSeleccionados.length === 0 || archivosSeleccionados.length > MAX_ARCHIVOS;
             initSellerSelects();
             initTipoVentaSelects();
+            initCuentaServicioSelects();
         }
     </script>
 

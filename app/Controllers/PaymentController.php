@@ -306,10 +306,27 @@ class PaymentController extends BaseController
                 $session->get('user_id')
             );
 
+            // ======== ASIENTOS CONTABLES (uno por factura, independiente del pago) ========
+            $asientosCreados = [];
+            $asientoError    = null;
+            try {
+                $asientosCreados = $this->_crearAsientosPago(
+                    (int)$data['cliente_id'],
+                    $data['facturas'],
+                    $data['fecha_pago'],
+                    $pagoId
+                );
+            } catch (\Throwable $e) {
+                $asientoError = $e->getMessage();
+            }
+
             return $this->response->setJSON([
-                'status' => 'ok',
-                'pago_id' => $pagoId
+                'status'        => 'ok',
+                'pago_id'       => $pagoId,
+                'asientos'      => $asientosCreados,
+                'asiento_error' => $asientoError,
             ]);
+
         } catch (\Throwable $e) {
 
             $db->transRollback();
@@ -321,6 +338,146 @@ class PaymentController extends BaseController
                     'message' => $e->getMessage()
                 ]);
         }
+    }
+
+    private function _crearAsientosPago(int $clienteId, array $facturas, string $fecha, int $pagoId): array
+    {
+        $planModel     = new \App\Models\ContPlanCuentasModel();
+        $clienteModel  = new \App\Models\ClienteModel();
+        $periodosModel = new \App\Models\ContPeriodosModel();
+        $headModel     = new \App\Models\ContAsientosHeadModel();
+        $detModel      = new \App\Models\ContAsientosDetalleModel();
+        $facturaModel  = new \App\Models\FacturaHeadModel();
+
+        // 1. Cuenta DEBE: 11010101 CAJA GRANDE
+        $cuentaCaja = $planModel->where('codigo', '11010101')->first();
+        if (!$cuentaCaja) {
+            throw new \Exception('No existe la cuenta 11010101 CAJA GRANDE en el plan de cuentas');
+        }
+
+        // 2. Cuenta HABER: CxC del cliente (crear subcuenta si no tiene)
+        $cliente = $clienteModel->find($clienteId);
+        if (!$cliente) {
+            throw new \Exception('Cliente no encontrado');
+        }
+
+        $cxcId = (int)($cliente->cuenta_contable_id ?? 0) ?: null;
+
+        if (!$cxcId) {
+            $existente = $planModel
+                ->like('codigo', '110201', 'after')
+                ->where('nombre', mb_strtoupper($cliente->nombre))
+                ->first();
+
+            if ($existente) {
+                $clienteModel->update($clienteId, ['cuenta_contable_id' => $existente->id]);
+                $cxcId = (int)$existente->id;
+            } else {
+                $padre = $planModel->where('codigo', '110201')->first();
+                if (!$padre) {
+                    throw new \Exception('No existe la cuenta padre 110201 CLIENTES LOCALES');
+                }
+
+                $db        = \Config\Database::connect();
+                $siguiente = (int)$db->query(
+                    "SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, 7) AS UNSIGNED)), 0) + 1
+                     AS sig FROM cont_plan_cuentas
+                     WHERE codigo LIKE '110201%' AND LENGTH(codigo) > 6"
+                )->getRow()->sig;
+
+                $nuevoCodigo = '110201' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+
+                $cxcId = (int)$planModel->insert([
+                    'codigo'             => $nuevoCodigo,
+                    'nombre'             => mb_strtoupper($cliente->nombre),
+                    'tipo'               => $padre->tipo,
+                    'naturaleza'         => $padre->naturaleza,
+                    'nivel'              => $padre->nivel + 1,
+                    'cuenta_padre_id'    => $padre->id,
+                    'acepta_movimientos' => 1,
+                    'activo'             => 1,
+                ]);
+
+                $clienteModel->update($clienteId, ['cuenta_contable_id' => $cxcId]);
+            }
+        }
+
+        // 3. Período contable abierto
+        $periodo = $periodosModel->getPeriodoActual();
+        if (!$periodo) {
+            throw new \Exception('No hay período contable abierto');
+        }
+
+        // 4. Un asiento por cada factura pagada
+        $creados = [];
+
+        foreach ($facturas as $f) {
+            $monto     = (float)$f['monto'];
+            $facturaId = (int)$f['factura_id'];
+
+            $factura = $facturaModel->find($facturaId);
+            $correlativo = $factura
+                ? substr($factura->numero_control, -6)
+                : 'FAC-' . $facturaId;
+
+            $descripcion   = 'Pago ' . $correlativo . ' — ' . $cliente->nombre;
+            $numeroAsiento = $headModel->getSiguienteNumero();
+
+            $userId    = session()->get('id');
+            $asientoId = $headModel->insert([
+                'numero_asiento'     => $numeroAsiento,
+                'fecha'              => $fecha,
+                'descripcion'        => $descripcion,
+                'tipo'               => 'DIARIO',
+                'estado'             => 'APROBADO',
+                'periodo_id'         => $periodo->id,
+                'total_debe'         => $monto,
+                'total_haber'        => $monto,
+                'referencia'         => 'PAGO-' . $pagoId,
+                'usuario_id'         => $userId,
+                'usuario_aprueba_id' => $userId,
+                'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+            ]);
+
+            if (!$asientoId) {
+                $creados[] = ['factura' => $correlativo, 'error' => 'No se pudo insertar el asiento'];
+                continue;
+            }
+
+            $lineasAsiento = [
+                ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descripcion, 'debe' => $monto, 'haber' => 0],
+                ['cuenta_id' => $cxcId,          'descripcion' => $descripcion, 'debe' => 0,      'haber' => $monto],
+            ];
+
+            foreach ($lineasAsiento as $i => $linea) {
+                $detModel->insert([
+                    'asiento_id'  => $asientoId,
+                    'cuenta_id'   => $linea['cuenta_id'],
+                    'descripcion' => $linea['descripcion'],
+                    'debe'        => $linea['debe'],
+                    'haber'       => $linea['haber'],
+                    'orden'       => $i + 1,
+                ]);
+            }
+
+            $headModel->aprobarConSaldos(
+                $asientoId,
+                $lineasAsiento,
+                $periodo->id,
+                $fecha,
+                $descripcion,
+                'DIARIO',
+                $periodo
+            );
+
+            $creados[] = [
+                'factura' => $correlativo,
+                'asiento' => 'AST-' . str_pad($numeroAsiento, 5, '0', STR_PAD_LEFT),
+                'monto'   => $monto,
+            ];
+        }
+
+        return $creados;
     }
     public function anular($id)
     {
