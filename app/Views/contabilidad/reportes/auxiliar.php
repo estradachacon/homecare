@@ -36,7 +36,7 @@
                 <?php if ($periodoId && !empty($filas)): ?>
                 <?php
                 $tipos = ['ACTIVO','PASIVO','CAPITAL','INGRESO','COSTO','GASTO'];
-                $tipoBadge=['ACTIVO'=>'primary','PASIVO'=>'danger','CAPITAL'=>'warning','INGRESO'=>'success','COSTO'=>'secondary','GASTO'=>'dark'];
+                $tipoBadge=['ACTIVO'=>'primary text-white','PASIVO'=>'danger text-white','CAPITAL'=>'warning','INGRESO'=>'success text-white','COSTO'=>'secondary text-white','GASTO'=>'dark text-white'];
                 $filasPorTipo = [];
                 foreach ($filas as $f) $filasPorTipo[$f->tipo][] = $f;
                 $grandD=$grandH=$grandS=0;
