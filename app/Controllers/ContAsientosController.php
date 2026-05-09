@@ -8,6 +8,7 @@ use App\Models\ContPeriodosModel;
 use App\Models\ContSaldosCuentasModel;
 use App\Models\ContTransaccionesHistModel;
 use App\Models\ContPlanCuentasModel;
+use App\Models\ContTiposPartidaModel;
 
 class ContAsientosController extends BaseController
 {
@@ -59,10 +60,12 @@ class ContAsientosController extends BaseController
 
         $periodos      = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio','DESC')->orderBy('mes','DESC')->findAll();
         $nextNumero    = $headModel->getSiguienteNumero();
+        $tiposPartida  = (new \App\Models\ContTiposPartidaModel())->getActivos();
 
         return view('contabilidad/asientos/new', [
-            'periodos'   => $periodos,
-            'nextNumero' => $nextNumero,
+            'periodos'     => $periodos,
+            'nextNumero'   => $nextNumero,
+            'tiposPartida' => $tiposPartida,
         ]);
     }
 
@@ -105,14 +108,19 @@ class ContAsientosController extends BaseController
 
         $db->transStart();
 
-        $nextNum = $headModel->getSiguienteNumero();
-        $tipo    = $data['tipo'] ?? 'DIARIO';
+        $nextNum       = $headModel->getSiguienteNumero();
+        $tipo          = $data['tipo'] ?? 'DIARIO';
+        $tipoPartidaId = !empty($data['tipo_partida_id']) ? (int)$data['tipo_partida_id'] : null;
+        $anioFecha     = (int)substr($data['fecha'], 0, 4);
+        $numPartida    = $tipoPartidaId ? $headModel->getSiguienteNumeroPartida($tipoPartidaId, $anioFecha) : null;
 
         $asientoId = $headModel->insert([
             'numero_asiento'     => $nextNum,
+            'numero_partida'     => $numPartida,
             'fecha'              => $data['fecha'],
             'descripcion'        => $data['descripcion'],
             'tipo'               => $tipo,
+            'tipo_partida_id'    => $tipoPartidaId,
             'estado'             => 'APROBADO',
             'periodo_id'         => (int)$data['periodo_id'],
             'total_debe'         => $totalDebe,
@@ -324,13 +332,21 @@ class ContAsientosController extends BaseController
                 ->with('error', 'No se pueden editar asientos anulados');
         }
 
-        $lineas  = $detalleModel->getByAsiento($id);
-        $periodos = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
+        $periodoDelAsiento = $periodosModel->find($asiento->periodo_id);
+        if ($periodoDelAsiento && $periodoDelAsiento->estado === 'CERRADO') {
+            return redirect()->to(base_url('contabilidad/asientos/' . $id))
+                ->with('error', 'El período de este asiento está cerrado. Debe reabrirlo antes de editarlo.');
+        }
+
+        $lineas       = $detalleModel->getByAsiento($id);
+        $periodos     = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
+        $tiposPartida = (new ContTiposPartidaModel())->getActivos();
 
         return view('contabilidad/asientos/edit', [
-            'asiento' => $asiento,
-            'lineas'  => $lineas,
-            'periodos' => $periodos,
+            'asiento'      => $asiento,
+            'lineas'       => $lineas,
+            'periodos'     => $periodos,
+            'tiposPartida' => $tiposPartida,
         ]);
     }
 
@@ -388,7 +404,11 @@ class ContAsientosController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'El período está cerrado o no existe']);
         }
 
-        $tipo = $data['tipo'] ?? 'DIARIO';
+        $tipo          = $data['tipo'] ?? 'DIARIO';
+        $tipoPartidaId = !empty($data['tipo_partida_id']) ? (int)$data['tipo_partida_id'] : null;
+        $numPartida    = isset($data['numero_partida']) && $data['numero_partida'] !== ''
+                            ? (int)$data['numero_partida']
+                            : null;
 
         $db->transStart();
 
@@ -403,6 +423,8 @@ class ContAsientosController extends BaseController
             'fecha'              => $data['fecha'],
             'descripcion'        => $data['descripcion'],
             'tipo'               => $tipo,
+            'tipo_partida_id'    => $tipoPartidaId,
+            'numero_partida'     => $numPartida,
             'periodo_id'         => (int)$data['periodo_id'],
             'total_debe'         => $totalDebe,
             'total_haber'        => $totalHaber,

@@ -466,37 +466,32 @@
 
                 if ($(this).hasClass("select2-hidden-accessible")) return;
 
-                const index = $(this).data('index');
+                const $sel  = $(this);
+                const index = $sel.data('index');
+                const f     = archivosSeleccionados[index];
 
-                $(this).select2({
+                $sel.select2({
                     placeholder: 'Tipo venta...',
                     minimumInputLength: 1,
                     ajax: {
                         url: "<?= base_url('/tipo_venta/searchAjax') ?>",
                         dataType: 'json',
                         delay: 250,
-                        data: function(params) {
-                            return {
-                                q: params.term,
-                                select2: 1
-                            };
-                        },
-                        processResults: function(data) {
-                            return data;
-                        }
+                        data: params => ({ q: params.term, select2: 1 }),
+                        processResults: data => data
                     }
                 });
 
-                const tipoGuardado = archivosSeleccionados[index].tipo_venta_id ?? 1;
+                // Restaurar desde caché o usar default 'Privado' (id=1)
+                const tipoId   = f.tipo_venta_id   ?? 1;
+                const tipoText = f.tipo_venta_text ?? 'Privado';
+                $sel.append(new Option(tipoText, tipoId, true, true)).trigger('change');
+                f.tipo_venta_id   = tipoId;
+                f.tipo_venta_text = tipoText;
 
-                $(this)
-                    .append(new Option('Privado', tipoGuardado, true, true))
-                    .trigger('change');
-
-                archivosSeleccionados[index].tipo_venta_id = tipoGuardado;
-
-                $(this).on('select2:select', function(e) {
-                    archivosSeleccionados[index].tipo_venta_id = e.params.data.id;
+                $sel.on('select2:select', function(e) {
+                    archivosSeleccionados[index].tipo_venta_id   = e.params.data.id;
+                    archivosSeleccionados[index].tipo_venta_text = e.params.data.text;
                 });
 
             });
@@ -685,51 +680,39 @@
 
                 if ($(this).hasClass("select2-hidden-accessible")) return;
 
-                const index = $(this).data('index');
-                const vendedorGuardado = archivosSeleccionados[index].seller_id;
+                const $sel  = $(this);
+                const index = $sel.data('index');
+                const f     = archivosSeleccionados[index];
 
-                $(this).select2({
+                $sel.select2({
                     placeholder: 'Buscar vendedor...',
                     minimumInputLength: 2,
                     ajax: {
                         url: "<?= base_url('sellers/searchAjax') ?>",
                         dataType: 'json',
                         delay: 250,
-                        data: function(params) {
-                            return {
-                                q: params.term,
-                                select2: 1
-                            };
-                        },
-                        processResults: function(data) {
-                            return data;
-                        }
+                        data: params => ({ q: params.term, select2: 1 }),
+                        processResults: data => data
                     }
                 });
 
-                // 🔥 Restaurar vendedor seleccionado
-                if (vendedorGuardado) {
-
-                    fetch("<?= base_url('sellers/get') ?>/" + vendedorGuardado)
-                        .then(r => r.json())
-                        .then(data => {
-
-                            const option = new Option(data.text, data.id, true, true);
-                            $(this).append(option).trigger('change');
-
-                        });
-
+                // Restaurar sincrónicamente desde el caché (sin fetch asíncrono)
+                if (f.seller_id && f.seller_text) {
+                    $sel.append(new Option(f.seller_text, f.seller_id, true, true))
+                        .trigger('change');
                 }
 
-                $(this).on('select2:select', function(e) {
-                    archivosSeleccionados[index].seller_id = e.params.data.id;
+                $sel.on('select2:select', function(e) {
+                    // Guardar ID y texto para restaurar sin fetch en el próximo renderTable
+                    archivosSeleccionados[index].seller_id   = e.params.data.id;
+                    archivosSeleccionados[index].seller_text = e.params.data.text;
                 });
 
             });
         }
 
         function renderTable() {
-            tableBody.innerHTML = '';
+            let html = '';
             archivosSeleccionados.forEach((factura, index) => {
                 const detailId = "detail_" + index;
                 const productosHtml = factura.productos.length ?
@@ -853,8 +836,9 @@
                         </td>
                     </tr>
                 `;
-                tableBody.innerHTML += row;
+                html += row;
             });
+            tableBody.innerHTML = html;
 
             // Bloqueo para el row de los detalles en factura
             document.querySelectorAll('.main-row').forEach(row => {
@@ -881,8 +865,40 @@
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
 
-                    const idx = this.dataset.index;
+                    // Snapshot del DOM antes de destruirlo, por si algún
+                    // evento (change, select2:select) no alcanzó a guardarse.
+                    document.querySelectorAll('.condicion-select').forEach(sel => {
+                        const i = parseInt(sel.dataset.index);
+                        if (archivosSeleccionados[i] !== undefined)
+                            archivosSeleccionados[i].condicion_operacion = parseInt(sel.value);
+                    });
+                    document.querySelectorAll('.credito-select').forEach(sel => {
+                        const i = parseInt(sel.dataset.index);
+                        if (archivosSeleccionados[i] !== undefined)
+                            archivosSeleccionados[i].plazo_credito = parseInt(sel.value) || null;
+                    });
+                    document.querySelectorAll('.tipo-linea-select').forEach(sel => {
+                        const i = parseInt(sel.dataset.index);
+                        if (archivosSeleccionados[i] !== undefined)
+                            archivosSeleccionados[i].tipo_linea = sel.value;
+                    });
+                    document.querySelectorAll('.seller-select').forEach(sel => {
+                        const i = parseInt(sel.dataset.index);
+                        if (archivosSeleccionados[i] !== undefined) {
+                            const ts = $(sel).data('select2');
+                            const val = ts ? $(sel).val() : sel.value;
+                            if (val) archivosSeleccionados[i].seller_id = val;
+                        }
+                    });
+                    document.querySelectorAll('.tipo-venta-select').forEach(sel => {
+                        const i = parseInt(sel.dataset.index);
+                        if (archivosSeleccionados[i] !== undefined) {
+                            const val = $(sel).val();
+                            if (val) archivosSeleccionados[i].tipo_venta_id = val;
+                        }
+                    });
 
+                    const idx = parseInt(this.dataset.index);
                     archivosSeleccionados.splice(idx, 1);
                     renderTable();
                 });

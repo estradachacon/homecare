@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\ContConfiguracionModel;
 use App\Models\ContPlanCuentasModel;
+use App\Models\ContTiposPartidaModel;
 
 class ContConfiguracionController extends BaseController
 {
@@ -15,12 +16,16 @@ class ContConfiguracionController extends BaseController
         $configModel  = new ContConfiguracionModel();
         $cuentasModel = new ContPlanCuentasModel();
 
-        $config  = $configModel->getConfig();
-        $cuentas = $cuentasModel->getCuentasMovimiento();
+        $tiposPartidaModel = new ContTiposPartidaModel();
+
+        $config       = $configModel->getConfig();
+        $cuentas      = $cuentasModel->getCuentasMovimiento();
+        $tiposPartida = $tiposPartidaModel->getActivos();
 
         return view('contabilidad/configuracion/index', [
-            'config'  => $config,
-            'cuentas' => $cuentas,
+            'config'       => $config,
+            'cuentas'      => $cuentas,
+            'tiposPartida' => $tiposPartida,
         ]);
     }
 
@@ -49,6 +54,8 @@ class ContConfiguracionController extends BaseController
             'cuenta_ventas_servicio1_label' => $this->request->getPost('cuenta_ventas_servicio1_label') ?: null,
             'cuenta_ventas_servicio2_id'    => $this->request->getPost('cuenta_ventas_servicio2_id')    ?: null,
             'cuenta_ventas_servicio2_label' => $this->request->getPost('cuenta_ventas_servicio2_label') ?: null,
+            'tipo_partida_ventas_id'        => $this->request->getPost('tipo_partida_ventas_id')        ?: null,
+            'tipo_partida_pagos_id'         => $this->request->getPost('tipo_partida_pagos_id')         ?: null,
             'moneda'                        => $this->request->getPost('moneda')                        ?: 'USD',
             'digitos_decimales'      => (int)($this->request->getPost('digitos_decimales') ?: 2),
         ];

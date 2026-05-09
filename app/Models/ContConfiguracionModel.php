@@ -22,6 +22,8 @@ class ContConfiguracionModel extends Model
         // Cuentas de servicios — migración 2026-05-08-000002
         'cuenta_ventas_servicio1_id', 'cuenta_ventas_servicio1_label',
         'cuenta_ventas_servicio2_id', 'cuenta_ventas_servicio2_label',
+        // Tipos de partida para procesos automáticos — migración 2026-05-08-000006
+        'tipo_partida_ventas_id', 'tipo_partida_pagos_id',
         'moneda', 'digitos_decimales',
     ];
 

@@ -762,52 +762,94 @@ CCF YA VIENE SIN IVA
                     continue;
                 }
 
-                $payload    = $resultado['payload'];
-                $totalDebe  = round(array_sum(array_column($payload['lineas'], 'debe')),  2);
-                $totalHaber = round(array_sum(array_column($payload['lineas'], 'haber')), 2);
+                $payload       = $resultado['payload'];
+                $fechaAsiento  = $payload['fecha'];
+                $tipoPartidaId = $payload['tipo_partida_id'] ?? null;
+                $totalDebe     = round(array_sum(array_column($payload['lineas'], 'debe')),  2);
+                $totalHaber    = round(array_sum(array_column($payload['lineas'], 'haber')), 2);
 
-                $asientoId = $contHeadModel->insert([
-                    'numero_asiento'     => $contHeadModel->getSiguienteNumero(),
-                    'fecha'              => $payload['fecha'],
-                    'descripcion'        => $payload['descripcion'],
-                    'tipo'               => $payload['tipo'],
-                    'estado'             => 'APROBADO',
-                    'periodo_id'         => $payload['periodo_id'],
-                    'total_debe'         => $totalDebe,
-                    'total_haber'        => $totalHaber,
-                    'referencia'         => $payload['referencia'],
-                    'usuario_id'         => $user_id,
-                    'usuario_aprueba_id' => $user_id,
-                    'fecha_aprobacion'   => date('Y-m-d H:i:s'),
-                ]);
+                // Consolidar: buscar partida del mismo día y tipo
+                $existing = $tipoPartidaId
+                    ? $contHeadModel->buscarPartidaDia($tipoPartidaId, $fechaAsiento)
+                    : null;
 
-                if (!$asientoId) {
-                    $asientosOmitidos[] = "{$ref}: error al insertar encabezado de asiento";
-                    continue;
-                }
+                if ($existing) {
+                    // Añadir líneas a la partida existente del día
+                    $dbRaw    = \Config\Database::connect();
+                    $maxOrden = (int)($dbRaw->query(
+                        'SELECT COALESCE(MAX(orden), 0) AS m FROM cont_asientos_detalle WHERE asiento_id = ?',
+                        [$existing->id]
+                    )->getRow()->m ?? 0);
 
-                foreach ($payload['lineas'] as $i => $l) {
-                    $contDetalleModel->insert([
-                        'asiento_id'  => $asientoId,
-                        'cuenta_id'   => $l['cuenta_id'],
-                        'descripcion' => $l['descripcion'],
-                        'debe'        => $l['debe'],
-                        'haber'       => $l['haber'],
-                        'orden'       => $i + 1,
+                    foreach ($payload['lineas'] as $i => $l) {
+                        $contDetalleModel->insert([
+                            'asiento_id'  => $existing->id,
+                            'cuenta_id'   => $l['cuenta_id'],
+                            'descripcion' => $l['descripcion'],
+                            'debe'        => $l['debe'],
+                            'haber'       => $l['haber'],
+                            'orden'       => $maxOrden + $i + 1,
+                        ]);
+                    }
+
+                    $contHeadModel->update($existing->id, [
+                        'total_debe'  => round($existing->total_debe  + $totalDebe,  2),
+                        'total_haber' => round($existing->total_haber + $totalHaber, 2),
                     ]);
+
+                    $asientoId = $existing->id;
+                } else {
+                    // Nueva partida para este día
+                    $anioFecha  = (int)substr($fechaAsiento, 0, 4);
+                    $numPartida = $tipoPartidaId
+                        ? $contHeadModel->getSiguienteNumeroPartida($tipoPartidaId, $anioFecha)
+                        : null;
+
+                    $asientoId = $contHeadModel->insert([
+                        'numero_asiento'     => $contHeadModel->getSiguienteNumero(),
+                        'numero_partida'     => $numPartida,
+                        'fecha'              => $fechaAsiento,
+                        'descripcion'        => $payload['descripcion'],
+                        'tipo'               => $payload['tipo'],
+                        'tipo_partida_id'    => $tipoPartidaId,
+                        'estado'             => 'APROBADO',
+                        'periodo_id'         => $payload['periodo_id'],
+                        'total_debe'         => $totalDebe,
+                        'total_haber'        => $totalHaber,
+                        'referencia'         => $payload['referencia'],
+                        'usuario_id'         => $user_id,
+                        'usuario_aprueba_id' => $user_id,
+                        'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+                    ]);
+
+                    if (!$asientoId) {
+                        $asientosOmitidos[] = "{$ref}: error al insertar encabezado de asiento";
+                        continue;
+                    }
+
+                    foreach ($payload['lineas'] as $i => $l) {
+                        $contDetalleModel->insert([
+                            'asiento_id'  => $asientoId,
+                            'cuenta_id'   => $l['cuenta_id'],
+                            'descripcion' => $l['descripcion'],
+                            'debe'        => $l['debe'],
+                            'haber'       => $l['haber'],
+                            'orden'       => $i + 1,
+                        ]);
+                    }
+
+                    $asientosCreados++;
                 }
 
                 $contHeadModel->aprobarConSaldos(
                     $asientoId,
                     $payload['lineas'],
                     (int)$payload['periodo_id'],
-                    $payload['fecha'],
+                    $fechaAsiento,
                     $payload['descripcion'],
                     $payload['tipo'],
                     $periodoActual
                 );
-
-                $asientosCreados++;
             }
         }
 

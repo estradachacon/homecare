@@ -34,6 +34,7 @@ class ConsignacionesController extends BaseController
             'estado'       => $this->request->getGet('estado'),
             'fecha_inicio' => $this->request->getGet('fecha_inicio'),
             'fecha_fin'    => $this->request->getGet('fecha_fin'),
+            'lote_estado'  => $this->request->getGet('lote_estado'),
         ];
 
         $perPage = 15;

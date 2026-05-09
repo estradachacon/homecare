@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 
 <div class="row justify-content-center">
-    <div class="col-md-10">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-cog me-2"></i>Configuración Contable</h4>
@@ -96,6 +96,44 @@
                                 value="<?= esc($config->cuenta_ventas_servicio2_label ?? '') ?>">
                             <label class="form-label small fw-semibold">Cuenta Servicios 2</label>
                             <select name="cuenta_ventas_servicio2_id" class="form-select config-select" data-val="<?= $config->cuenta_ventas_servicio2_id ?? '' ?>"></select>
+                        </div>
+
+                        <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">TIPOS DE PARTIDA — PROCESOS AUTOMÁTICOS</h6></div>
+
+                        <div class="col-12">
+                            <div class="alert alert-light border small mb-1">
+                                <i class="fa-solid fa-circle-info me-1 text-primary"></i>
+                                Selecciona el tipo de partida que se asignará automáticamente a los asientos generados por cada proceso.
+                                Si no seleccionas ninguno, el asiento se creará sin tipo de partida.
+                                <a href="<?= base_url('contabilidad/mantenimientos/tipos-partida') ?>" class="ms-2">
+                                    <i class="fa-solid fa-tags"></i> Administrar tipos de partida
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Carga de Facturas (JSON / Ventas automáticas)</label>
+                            <small class="text-muted d-block mb-1">Tipo de partida para asientos generados al cargar CCF / FAC</small>
+                            <select name="tipo_partida_ventas_id" class="form-select">
+                                <option value="">— Sin tipo de partida —</option>
+                                <?php foreach ($tiposPartida as $tp): ?>
+                                    <option value="<?= $tp->id ?>" <?= ($config->tipo_partida_ventas_id ?? null) == $tp->id ? 'selected' : '' ?>>
+                                        <?= esc($tp->nombre) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Carga de Pagos de Clientes</label>
+                            <small class="text-muted d-block mb-1">Tipo de partida para asientos generados al registrar pagos</small>
+                            <select name="tipo_partida_pagos_id" class="form-select">
+                                <option value="">— Sin tipo de partida —</option>
+                                <?php foreach ($tiposPartida as $tp): ?>
+                                    <option value="<?= $tp->id ?>" <?= ($config->tipo_partida_pagos_id ?? null) == $tp->id ? 'selected' : '' ?>>
+                                        <?= esc($tp->nombre) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">OPCIONES GENERALES</h6></div>

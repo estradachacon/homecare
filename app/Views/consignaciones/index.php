@@ -1,6 +1,64 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 
+<style>
+    .consignaciones-filtros {
+        background: #f8f9fa;
+        border: 1px solid #e3e6ea;
+        border-radius: .25rem;
+        padding: .85rem;
+    }
+
+    .consignaciones-filtros label {
+        color: #495057;
+        font-size: .74rem;
+        font-weight: 600;
+        margin-bottom: .25rem;
+    }
+
+    .consignaciones-filtros .form-control,
+    .consignaciones-filtros .btn {
+        height: calc(1.5em + .5rem + 2px);
+    }
+
+    .consignaciones-filtros .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .consignaciones-filtros .acciones-filtro {
+        display: flex;
+    }
+
+    .consignaciones-filtros .acciones-filtro .btn + .btn {
+        margin-left: .35rem;
+    }
+
+    .estado-consignacion-badge {
+        font-size: .72rem;
+        font-weight: 600;
+        line-height: 1;
+        padding: .28rem .48rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .consignaciones-filtros .acciones-filtro {
+            flex-direction: column;
+        }
+
+        .consignaciones-filtros .acciones-filtro .btn {
+            width: 100%;
+        }
+
+        .consignaciones-filtros .acciones-filtro .btn + .btn {
+            margin-left: 0;
+            margin-top: .35rem;
+        }
+    }
+</style>
+
 <div class="row">
     <div class="col-md-12">
 
@@ -29,10 +87,15 @@
 
             <div class="card-body">
                 <!-- Filtros -->
-                <form method="GET" action="<?= base_url('consignaciones') ?>" class="mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <select name="vendedor_id" class="form-control form-control-sm">
+                <form method="GET" action="<?= base_url('consignaciones') ?>" class="consignaciones-filtros mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fa-solid fa-filter text-primary mr-2"></i>
+                        <span class="font-weight-bold text-muted small text-uppercase">Filtros</span>
+                    </div>
+                    <div class="row no-gutters align-items-end">
+                        <div class="col-lg-3 col-md-6 pr-md-2 mb-2">
+                            <label for="filtro_vendedor">Vendedor</label>
+                            <select name="vendedor_id" id="filtro_vendedor" class="form-control form-control-sm">
                                 <option value="">Todos los vendedores</option>
                                 <?php foreach ($vendedores as $v): ?>
                                     <option value="<?= $v->id ?>" <?= ($filtros['vendedor_id'] == $v->id) ? 'selected' : '' ?>>
@@ -41,27 +104,42 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <select name="estado" class="form-control form-control-sm">
+                        <div class="col-lg-2 col-md-6 pr-lg-2 mb-2">
+                            <label for="filtro_estado">Estado</label>
+                            <select name="estado" id="filtro_estado" class="form-control form-control-sm">
                                 <option value="">Todos los estados</option>
                                 <option value="abierta" <?= ($filtros['estado'] === 'abierta')  ? 'selected' : '' ?>>Abierta</option>
                                 <option value="cerrada" <?= ($filtros['estado'] === 'cerrada')  ? 'selected' : '' ?>>Cerrada</option>
                                 <option value="anulada" <?= ($filtros['estado'] === 'anulada')  ? 'selected' : '' ?>>Anulada</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <input type="date" name="fecha_inicio" value="<?= esc($filtros['fecha_inicio'] ?? '') ?>" class="form-control form-control-sm">
+                        <div class="col-lg-2 col-md-6 pr-md-2 mb-2">
+                            <label for="filtro_fecha_inicio">Desde</label>
+                            <input type="date" name="fecha_inicio" id="filtro_fecha_inicio" value="<?= esc($filtros['fecha_inicio'] ?? '') ?>" class="form-control form-control-sm">
                         </div>
-                        <div class="col-md-2">
-                            <input type="date" name="fecha_fin" value="<?= esc($filtros['fecha_fin'] ?? '') ?>" class="form-control form-control-sm">
+                        <div class="col-lg-2 col-md-6 pr-lg-2 mb-2">
+                            <label for="filtro_fecha_fin">Hasta</label>
+                            <input type="date" name="fecha_fin" id="filtro_fecha_fin" value="<?= esc($filtros['fecha_fin'] ?? '') ?>" class="form-control form-control-sm">
                         </div>
-                        <div class="col-md-3 d-flex gap-1">
-                            <button type="submit" class="btn btn-primary btn-sm mr-2">
-                                <i class="fa-solid fa-filter"></i> Filtrar
-                            </button>
-                            <a href="<?= base_url('consignaciones') ?>" class="btn btn-secondary btn-sm">
-                                <i class="fa-solid fa-times"></i> Limpiar
-                            </a>
+                        <div class="col-lg-2 col-md-6 pr-md-2 mb-2">
+                            <label for="filtro_lotes">Lotes</label>
+                            <select name="lote_estado" id="filtro_lotes" class="form-control form-control-sm">
+                                <option value="">Estado de lotes</option>
+                                <option value="sin_autorizar"  <?= ($filtros['lote_estado'] === 'sin_autorizar')  ? 'selected' : '' ?>>Sin autorizar</option>
+                                <option value="pendiente_lotes" <?= ($filtros['lote_estado'] === 'pendiente_lotes') ? 'selected' : '' ?>>Pendiente asignación</option>
+                                <option value="lotes_ok"       <?= ($filtros['lote_estado'] === 'lotes_ok')       ? 'selected' : '' ?>>Lotes asignados</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-1 col-md-6 mb-2">
+                            <label class="d-none d-lg-block">&nbsp;</label>
+                            <div class="acciones-filtro">
+                                <button type="submit" class="btn btn-primary btn-sm" title="Filtrar">
+                                    <i class="fa-solid fa-filter"></i>
+                                </button>
+                                <a href="<?= base_url('consignaciones') ?>" class="btn btn-outline-secondary btn-sm" title="Limpiar">
+                                    <i class="fa-solid fa-times"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -77,13 +155,14 @@
                                 <th>Fecha</th>
                                 <th class="text-end">Subtotal</th>
                                 <th class="text-center">Estado</th>
+                                <th class="text-center">Lotes</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($consignaciones)): ?>
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">
+                                    <td colspan="9" class="text-center text-muted py-4">
                                         No hay notas de envío registradas.
                                     </td>
                                 </tr>
@@ -102,24 +181,43 @@
                                         <td class="text-end">$<?= number_format($c->subtotal, 2) ?></td>
                                         <td class="text-center">
                                             <?php if ($c->estado === 'abierta'): ?>
-                                                <span class="badge badge-success px-3 py-2" style="font-size: 0.9rem;">Abierta</span>
+                                                <span class="badge badge-success estado-consignacion-badge">Abierta</span>
                                             <?php elseif ($c->estado === 'cerrada'): ?>
-                                                <span class="badge badge-secondary px-3 py-2" style="font-size: 0.9rem;">Cerrada</span>
+                                                <span class="badge badge-secondary estado-consignacion-badge">Cerrada</span>
                                             <?php else: ?>
-                                                <span class="badge badge-danger px-3 py-2" style="font-size: 0.9rem;">Anulada</span>
+                                                <span class="badge badge-danger estado-consignacion-badge">Anulada</span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            <a href="<?= base_url('consignaciones/' . $c->id) ?>" class="btn btn-info btn-xs" title="Ver">
+                                            <?php if ($c->estado === 'abierta'): ?>
+                                                <?php if (empty($c->lotes_autorizados_por)): ?>
+                                                    <span class="badge badge-warning" title="Pendiente autorización de lotes">
+                                                        <i class="fa-solid fa-clock"></i> Sin autorizar
+                                                    </span>
+                                                <?php elseif ((int)$c->lotes_asignados_count === 0): ?>
+                                                    <span class="badge badge-info" title="Autorizado — sin lotes asignados aún">
+                                                        <i class="fa-solid fa-boxes-stacked"></i> Pendiente lotes
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-success" title="<?= (int)$c->lotes_asignados_count ?> lote(s) asignado(s)">
+                                                        <i class="fa-solid fa-check"></i> <?= (int)$c->lotes_asignados_count ?> lote(s)
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="<?= base_url('consignaciones/' . $c->id) ?>" class="btn btn-info btn-sm" title="Ver">
                                                 <i class="fa-solid fa-eye"></i>
                                             </a>
                                             <?php if ($c->estado === 'abierta' && tienePermiso('cerrar_consignaciones')): ?>
-                                                <a href="<?= base_url('consignaciones/' . $c->id . '/cerrar') ?>" class="btn btn-warning btn-xs" title="Cerrar">
+                                                <a href="<?= base_url('consignaciones/' . $c->id . '/cerrar') ?>" class="btn btn-warning btn-sm" title="Cerrar">
                                                     <i class="fa-solid fa-lock"></i>
                                                 </a>
                                             <?php endif; ?>
                                             <?php if ($c->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
-                                                <button class="btn btn-danger btn-xs btn-anular" data-id="<?= $c->id ?>" data-numero="<?= esc($c->numero) ?>" title="Anular">
+                                                <button class="btn btn-danger btn-sm btn-anular" data-id="<?= $c->id ?>" data-numero="<?= esc($c->numero) ?>" title="Anular">
                                                     <i class="fa-solid fa-ban"></i>
                                                 </button>
                                             <?php endif; ?>

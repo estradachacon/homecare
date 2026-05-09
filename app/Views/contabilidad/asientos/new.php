@@ -57,6 +57,15 @@
                             <option value="APERTURA">APERTURA</option>
                         </select>
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Tipo de Partida</label>
+                        <select id="tipoPartidaId" class="form-select">
+                            <option value="">— Ninguno —</option>
+                            <?php foreach ($tiposPartida as $tp): ?>
+                                <option value="<?= $tp->id ?>"><?= esc($tp->nombre) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-semibold">Descripción <span class="text-danger">*</span></label>
                         <input type="text" id="descAsiento" class="form-control" placeholder="Descripción del asiento">
@@ -180,8 +189,9 @@ function guardarAsiento() {
     const periodoId   = $('#periodoId').val();
     const fecha       = $('#fechaAsiento').val();
     const descripcion = $('#descAsiento').val().trim();
-    const tipo        = $('#tipoAsiento').val();
-    const referencia  = $('#refAsiento').val().trim();
+    const tipo          = $('#tipoAsiento').val();
+    const tipoPartidaId = $('#tipoPartidaId').val() || null;
+    const referencia    = $('#refAsiento').val().trim();
 
     if (!periodoId || !fecha || !descripcion) {
         Swal.fire('Faltan datos', 'Completa período, fecha y descripción', 'warning');
@@ -330,7 +340,7 @@ function guardarAsiento() {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ periodo_id: periodoId, fecha, descripcion, tipo, referencia, lineas })
+            body: JSON.stringify({ periodo_id: periodoId, fecha, descripcion, tipo, tipo_partida_id: tipoPartidaId, referencia, lineas })
         })
         .then(r => r.json())
         .then(d => {

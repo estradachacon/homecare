@@ -23,8 +23,16 @@ class ConsignacionHeadModel extends Model
 
     public function listar(array $filtros = [])
     {
-        $this->select('consignaciones_head.*, sellers.seller as vendedor_nombre')
-            ->join('sellers', 'sellers.id = consignaciones_head.vendedor_id', 'left');
+        // Subquery: contar lotes asignados por consignación
+        $lotesSub = '(SELECT COUNT(cdl.id)
+                       FROM consignacion_detalle_lotes cdl
+                       INNER JOIN consignaciones_detalles cd ON cd.id = cdl.detalle_id
+                       WHERE cd.consignacion_id = consignaciones_head.id)';
+
+        $this->select("consignaciones_head.*,
+                        sellers.seller AS vendedor_nombre,
+                        {$lotesSub} AS lotes_asignados_count")
+             ->join('sellers', 'sellers.id = consignaciones_head.vendedor_id', 'left');
 
         if (!empty($filtros['vendedor_id'])) {
             $this->where('consignaciones_head.vendedor_id', $filtros['vendedor_id']);
@@ -37,6 +45,22 @@ class ConsignacionHeadModel extends Model
         }
         if (!empty($filtros['fecha_fin'])) {
             $this->where('DATE(consignaciones_head.fecha) <=', $filtros['fecha_fin']);
+        }
+
+        // Filtro por estado de lotes
+        switch ($filtros['lote_estado'] ?? '') {
+            case 'sin_autorizar':
+                $this->where('consignaciones_head.lotes_autorizados_por IS NULL');
+                $this->where('consignaciones_head.estado', 'abierta');
+                break;
+            case 'pendiente_lotes':
+                $this->where('consignaciones_head.lotes_autorizados_por IS NOT NULL');
+                $this->where("{$lotesSub} = 0");
+                $this->where('consignaciones_head.estado', 'abierta');
+                break;
+            case 'lotes_ok':
+                $this->where("{$lotesSub} > 0");
+                break;
         }
 
         return $this->orderBy('consignaciones_head.id', 'DESC');

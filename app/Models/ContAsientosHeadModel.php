@@ -12,7 +12,7 @@ class ContAsientosHeadModel extends Model
     protected $useTimestamps = true;
 
     protected $allowedFields = [
-        'numero_asiento', 'fecha', 'descripcion', 'tipo', 'estado',
+        'numero_asiento', 'numero_partida', 'fecha', 'descripcion', 'tipo', 'tipo_partida_id', 'estado',
         'periodo_id', 'total_debe', 'total_haber', 'referencia',
         'usuario_id', 'usuario_aprueba_id', 'fecha_aprobacion', 'motivo_anulacion',
     ];
@@ -24,11 +24,32 @@ class ContAsientosHeadModel extends Model
         return (int)($row->siguiente ?? 1);
     }
 
+    public function getSiguienteNumeroPartida(int $tipoPartidaId, int $anio): int
+    {
+        $db  = \Config\Database::connect();
+        $row = $db->query(
+            'SELECT COALESCE(MAX(numero_partida), 0) + 1 AS siguiente
+             FROM cont_asientos_head
+             WHERE tipo_partida_id = ? AND YEAR(fecha) = ?',
+            [$tipoPartidaId, $anio]
+        )->getRow();
+        return (int)($row->siguiente ?? 1);
+    }
+
+    public function buscarPartidaDia(int $tipoPartidaId, string $fecha): ?object
+    {
+        return $this->where('tipo_partida_id', $tipoPartidaId)
+                    ->where('fecha', $fecha)
+                    ->where('estado !=', 'ANULADO')
+                    ->first();
+    }
+
     public function getConDetalle(int $id)
     {
-        return $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes, users.user_name AS usuario_nombre')
+        return $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes, users.user_name AS usuario_nombre, tp.nombre AS tipo_partida_nombre')
                     ->join('cont_periodos', 'cont_periodos.id = cont_asientos_head.periodo_id', 'left')
                     ->join('users', 'users.id = cont_asientos_head.usuario_id', 'left')
+                    ->join('cont_tipos_partida tp', 'tp.id = cont_asientos_head.tipo_partida_id', 'left')
                     ->where('cont_asientos_head.id', $id)
                     ->first();
     }
@@ -82,8 +103,9 @@ class ContAsientosHeadModel extends Model
 
     public function getListadoFiltrado(array $filtros, int $perPage = 25)
     {
-        $q = $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes')
-                  ->join('cont_periodos', 'cont_periodos.id = cont_asientos_head.periodo_id', 'left');
+        $q = $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes, tp.nombre AS tipo_partida_nombre')
+                  ->join('cont_periodos', 'cont_periodos.id = cont_asientos_head.periodo_id', 'left')
+                  ->join('cont_tipos_partida tp', 'tp.id = cont_asientos_head.tipo_partida_id', 'left');
 
         if (!empty($filtros['periodo_id'])) {
             $q->where('cont_asientos_head.periodo_id', $filtros['periodo_id']);

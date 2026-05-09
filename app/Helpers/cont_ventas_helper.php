@@ -223,7 +223,7 @@ if (!function_exists('cont_lineas_venta')) {
      *   errores: string[]
      * }
      */
-    function cont_lineas_venta(array $desglose, string $ref = '', ?int $ventasOverrideId = null, ?int $cxcOverrideId = null): array
+    function cont_lineas_venta(array $desglose, string $ref = '', ?int $ventasOverrideId = null, ?int $cxcOverrideId = null, string $fecha = ''): array
     {
         $errores  = [];
         $cuentas  = _cont_cuentas_venta();
@@ -267,15 +267,16 @@ if (!function_exists('cont_lineas_venta')) {
             ];
         }
 
-        $tipo  = $desglose['tipo_dte'];
-        $label = $ref ? " {$ref}" : '';
-        $lineas = [];
+        $tipo       = $desglose['tipo_dte'];
+        $label      = $ref ? " {$ref}" : '';
+        $fechaLabel = $fecha ? ' ' . date('d/m/Y', strtotime($fecha)) : '';
+        $lineas     = [];
 
         // ── DÉBITO 1: Clientes / Cuentas por Cobrar ───────────────────────
         $cuentaCxcId = $cxcOverrideId ?? (int)$cuentas['cxc'];
         $lineas[] = [
             'cuenta_id'   => $cuentaCxcId,
-            'descripcion' => "Venta {$tipo}{$label} — valor a recibir",
+            'descripcion' => "Venta {$tipo}{$label}{$fechaLabel} — valor a recibir",
             'debe'        => $desglose['valor_a_recibir'],
             'haber'       => 0.0,
         ];
@@ -381,7 +382,7 @@ if (!function_exists('cont_asiento_venta_json')) {
         $desglose = cont_desglose_venta($tipoDte, $monto, $retencion);
 
         // 2. Construir líneas contables
-        $resultado = cont_lineas_venta($desglose, $referencia, $ventasOverrideId, $cxcOverrideId);
+        $resultado = cont_lineas_venta($desglose, $referencia, $ventasOverrideId, $cxcOverrideId, $fecha);
 
         if (!$resultado['ok']) {
             return [
@@ -392,20 +393,21 @@ if (!function_exists('cont_asiento_venta_json')) {
             ];
         }
 
-        // 3. Armar el payload listo para ContAsientosController::store()
+        // 3. Leer tipo_partida configurado para ventas
+        $cfg             = (new \App\Models\ContConfiguracionModel())->getConfig();
+        $tipoPartidaId   = !empty($cfg->tipo_partida_ventas_id) ? (int)$cfg->tipo_partida_ventas_id : null;
+
+        // 4. Armar el payload listo para ContAsientosController::store()
         $payload = [
             // ── Cabecera del asiento ─────────────────────────────────────
-            'periodo_id'  => $periodoId,
-            'fecha'       => $fecha ?: date('Y-m-d'),
-            // La descripción general del asiento (aparece en el libro diario)
-            'descripcion' => $descripcion ?: "Venta {$desglose['tipo_dte']} {$referencia}",
-            // Tipo de asiento: ajusta si tienes tipos distintos en tu catálogo
-            // Valores posibles según ContAsientosHeadModel: 'DIARIO', 'APERTURA',
-            // 'AJUSTE', 'CIERRE', 'VENTA', etc. — usa el que corresponda.
-            'tipo'        => 'VENTA',
-            'referencia'  => $referencia,
+            'periodo_id'      => $periodoId,
+            'fecha'           => $fecha ?: date('Y-m-d'),
+            'descripcion'     => $descripcion ?: "Venta {$desglose['tipo_dte']} {$referencia}",
+            'tipo'            => 'VENTA',
+            'tipo_partida_id' => $tipoPartidaId,
+            'referencia'      => $referencia,
             // ── Líneas (partida doble) ───────────────────────────────────
-            'lineas'      => $resultado['lineas'],
+            'lineas'          => $resultado['lineas'],
         ];
 
         return [

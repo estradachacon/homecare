@@ -43,9 +43,20 @@ $mesesN = [
                             <?= $asiento->estado ?>
                         </span>
 
-                        <span class="badge mr-3 mr-1 badge-light border px-2 py-1">
-                            <?= $asiento->tipo ?>
-                        </span>
+                        <?php if (!empty($asiento->tipo_partida_nombre)): ?>
+                            <span class="badge mr-1 badge-success text-white px-2 py-1">
+                                <?= esc($asiento->tipo_partida_nombre) ?>
+                            </span>
+                            <?php if (!empty($asiento->numero_partida)): ?>
+                                <span class="badge mr-3 mr-1 badge-light border px-2 py-1">
+                                    #<?= str_pad($asiento->numero_partida, 4, '0', STR_PAD_LEFT) ?>
+                                </span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="badge mr-3 mr-1 badge-light border px-2 py-1">
+                                <?= $asiento->tipo ?>
+                            </span>
+                        <?php endif; ?>
 
                     </div>
 

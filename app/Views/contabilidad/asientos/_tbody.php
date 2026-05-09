@@ -9,14 +9,27 @@
             'DIARIO'=>'primary text-white',
             'AJUSTE'=>'info',
             'CIERRE'=>'dark text-white',
-            'APERTURA'=>'secondary text-white'];
+            'APERTURA'=>'secondary text-white',
+            'VENTA'=>'success text-white'];
     ?>
     <tr>
         <td class="text-center fw-bold">AST-<?= str_pad($a->numero_asiento, 5, '0', STR_PAD_LEFT) ?></td>
         <td class="text-center"><?= date('d/m/Y', strtotime($a->fecha)) ?></td>
         <td><?= esc(substr($a->descripcion, 0, 60)) . (strlen($a->descripcion) > 60 ? '...' : '') ?></td>
         <td class="text-center">
-            <span class="badge bg-<?= $tipoBadge[$a->tipo] ?? 'secondary text-white' ?>" style="font-size:0.7rem"><?= $a->tipo ?></span>
+            <?php if (!empty($a->tipo_partida_nombre)): ?>
+                <span class="badge bg-<?= $tipoBadge[$a->tipo] ?? 'secondary text-white' ?>" style="font-size:0.7rem"
+                      title="Tipo sistema: <?= esc($a->tipo) ?>">
+                    <?= esc($a->tipo_partida_nombre) ?>
+                </span>
+                <?php if (!empty($a->numero_partida)): ?>
+                    <span class="badge bg-light text-dark border" style="font-size:0.7rem">
+                        #<?= str_pad($a->numero_partida, 4, '0', STR_PAD_LEFT) ?>
+                    </span>
+                <?php endif; ?>
+            <?php else: ?>
+                <span class="badge bg-<?= $tipoBadge[$a->tipo] ?? 'secondary text-white' ?>" style="font-size:0.7rem"><?= $a->tipo ?></span>
+            <?php endif; ?>
         </td>
         <td class="text-center">
             <span class="badge bg-<?= $estadoBadge[$a->estado] ?? 'secondary' ?>"><?= $a->estado ?></span>

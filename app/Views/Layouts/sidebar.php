@@ -267,6 +267,7 @@
                                 </a>
                                 <div class="collapse" id="contMant">
                                     <nav class="sb-sidenav-menu-nested nav">
+                                        <a class="nav-link" href="/contabilidad/mantenimientos/tipos-partida">Tipos de Partida</a>
                                         <a class="nav-link" href="/contabilidad/mantenimientos/acumulados">Saldos Actuales</a>
                                         <a class="nav-link" href="/contabilidad/mantenimientos/acumulados-historicos">Saldos Históricos</a>
                                         <a class="nav-link" href="/contabilidad/mantenimientos/transacciones-hist">Transacciones Históricas</a>

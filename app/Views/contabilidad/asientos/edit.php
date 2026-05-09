@@ -59,6 +59,22 @@
                             <option value="APERTURA" <?= $asiento->tipo === 'APERTURA' ? 'selected' : '' ?>>APERTURA</option>
                         </select>
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Tipo de Partida</label>
+                        <select id="tipoPartidaId" class="form-select" onchange="toggleNumeroPartida()">
+                            <option value="">— Ninguno —</option>
+                            <?php foreach ($tiposPartida as $tp): ?>
+                                <option value="<?= $tp->id ?>" <?= $asiento->tipo_partida_id == $tp->id ? 'selected' : '' ?>>
+                                    <?= esc($tp->nombre) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-1" id="colNumeroPartida" style="<?= empty($asiento->tipo_partida_id) ? 'display:none' : '' ?>">
+                        <label class="form-label small fw-semibold">Correlativo</label>
+                        <input type="number" id="numeroPartida" class="form-control" min="1" step="1"
+                               value="<?= $asiento->numero_partida ?? '' ?>" placeholder="—">
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-semibold">Descripción <span class="text-danger">*</span></label>
                         <input type="text" id="descAsiento" class="form-control" value="<?= esc($asiento->descripcion) ?>" placeholder="Descripción del asiento">
@@ -206,11 +222,13 @@ function recalcular() {
 }
 
 function guardarAsiento() {
-    const periodoId   = $('#periodoId').val();
-    const fecha       = $('#fechaAsiento').val();
-    const descripcion = $('#descAsiento').val().trim();
-    const tipo        = $('#tipoAsiento').val();
-    const referencia  = $('#refAsiento').val().trim();
+    const periodoId     = $('#periodoId').val();
+    const fecha         = $('#fechaAsiento').val();
+    const descripcion   = $('#descAsiento').val().trim();
+    const tipo          = $('#tipoAsiento').val();
+    const tipoPartidaId = $('#tipoPartidaId').val() || null;
+    const numeroPartida = $('#numeroPartida').val() !== '' ? parseInt($('#numeroPartida').val()) : null;
+    const referencia    = $('#refAsiento').val().trim();
 
     if (!periodoId || !fecha || !descripcion) {
         Swal.fire('Faltan datos', 'Completa período, fecha y descripción', 'warning');
@@ -324,7 +342,7 @@ function guardarAsiento() {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ periodo_id: periodoId, fecha, descripcion, tipo, referencia, lineas })
+            body: JSON.stringify({ periodo_id: periodoId, fecha, descripcion, tipo, tipo_partida_id: tipoPartidaId, numero_partida: numeroPartida, referencia, lineas })
         })
         .then(r => r.json())
         .then(d => {
@@ -337,6 +355,16 @@ function guardarAsiento() {
             }
         });
     });
+}
+
+function toggleNumeroPartida() {
+    const col = document.getElementById('colNumeroPartida');
+    if ($('#tipoPartidaId').val()) {
+        col.style.display = '';
+    } else {
+        col.style.display = 'none';
+        $('#numeroPartida').val('');
+    }
 }
 
 // Cargar líneas existentes al iniciar

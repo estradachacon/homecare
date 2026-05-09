@@ -408,73 +408,112 @@ class PaymentController extends BaseController
             throw new \Exception('No hay período contable abierto');
         }
 
-        // 4. Un asiento por cada factura pagada
+        // Leer tipo_partida de pagos desde configuración
+        $cfg           = (new \App\Models\ContConfiguracionModel())->getConfig();
+        $tipoPartidaId = !empty($cfg->tipo_partida_pagos_id) ? (int)$cfg->tipo_partida_pagos_id : null;
+
+        // 4. Un asiento consolidado por día (o uno por factura si no hay tipo_partida)
         $creados = [];
+        $userId  = session()->get('id');
 
         foreach ($facturas as $f) {
             $monto     = (float)$f['monto'];
             $facturaId = (int)$f['factura_id'];
 
-            $factura = $facturaModel->find($facturaId);
+            $factura     = $facturaModel->find($facturaId);
             $correlativo = $factura
                 ? substr($factura->numero_control, -6)
                 : 'FAC-' . $facturaId;
 
-            $descripcion   = 'Pago ' . $correlativo . ' — ' . $cliente->nombre;
-            $numeroAsiento = $headModel->getSiguienteNumero();
-
-            $userId    = session()->get('id');
-            $asientoId = $headModel->insert([
-                'numero_asiento'     => $numeroAsiento,
-                'fecha'              => $fecha,
-                'descripcion'        => $descripcion,
-                'tipo'               => 'DIARIO',
-                'estado'             => 'APROBADO',
-                'periodo_id'         => $periodo->id,
-                'total_debe'         => $monto,
-                'total_haber'        => $monto,
-                'referencia'         => 'PAGO-' . $pagoId,
-                'usuario_id'         => $userId,
-                'usuario_aprueba_id' => $userId,
-                'fecha_aprobacion'   => date('Y-m-d H:i:s'),
-            ]);
-
-            if (!$asientoId) {
-                $creados[] = ['factura' => $correlativo, 'error' => 'No se pudo insertar el asiento'];
-                continue;
-            }
+            $descLinea = 'Pago ' . $correlativo . ' — ' . $cliente->nombre;
 
             $lineasAsiento = [
-                ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descripcion, 'debe' => $monto, 'haber' => 0],
-                ['cuenta_id' => $cxcId,          'descripcion' => $descripcion, 'debe' => 0,      'haber' => $monto],
+                ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descLinea, 'debe' => $monto, 'haber' => 0],
+                ['cuenta_id' => $cxcId,          'descripcion' => $descLinea, 'debe' => 0,      'haber' => $monto],
             ];
 
-            foreach ($lineasAsiento as $i => $linea) {
-                $detModel->insert([
-                    'asiento_id'  => $asientoId,
-                    'cuenta_id'   => $linea['cuenta_id'],
-                    'descripcion' => $linea['descripcion'],
-                    'debe'        => $linea['debe'],
-                    'haber'       => $linea['haber'],
-                    'orden'       => $i + 1,
+            // Consolidar: buscar partida del mismo día y tipo
+            $existing = $tipoPartidaId
+                ? $headModel->buscarPartidaDia($tipoPartidaId, $fecha)
+                : null;
+
+            if ($existing) {
+                $dbRaw    = \Config\Database::connect();
+                $maxOrden = (int)($dbRaw->query(
+                    'SELECT COALESCE(MAX(orden), 0) AS m FROM cont_asientos_detalle WHERE asiento_id = ?',
+                    [$existing->id]
+                )->getRow()->m ?? 0);
+
+                foreach ($lineasAsiento as $i => $linea) {
+                    $detModel->insert([
+                        'asiento_id'  => $existing->id,
+                        'cuenta_id'   => $linea['cuenta_id'],
+                        'descripcion' => $linea['descripcion'],
+                        'debe'        => $linea['debe'],
+                        'haber'       => $linea['haber'],
+                        'orden'       => $maxOrden + $i + 1,
+                    ]);
+                }
+
+                $headModel->update($existing->id, [
+                    'total_debe'  => round($existing->total_debe  + $monto, 2),
+                    'total_haber' => round($existing->total_haber + $monto, 2),
                 ]);
+
+                $headModel->aprobarConSaldos($existing->id, $lineasAsiento, $periodo->id, $fecha, $descLinea, 'DIARIO', $periodo);
+
+                $creados[] = [
+                    'factura' => $correlativo,
+                    'asiento' => 'AST-' . str_pad($existing->numero_asiento, 5, '0', STR_PAD_LEFT),
+                    'monto'   => $monto,
+                ];
+            } else {
+                // Nueva partida del día
+                $anioFecha     = (int)substr($fecha, 0, 4);
+                $numPartida    = $tipoPartidaId ? $headModel->getSiguienteNumeroPartida($tipoPartidaId, $anioFecha) : null;
+                $numeroAsiento = $headModel->getSiguienteNumero();
+
+                $asientoId = $headModel->insert([
+                    'numero_asiento'     => $numeroAsiento,
+                    'numero_partida'     => $numPartida,
+                    'fecha'              => $fecha,
+                    'descripcion'        => 'Pagos ' . $fecha,
+                    'tipo'               => 'DIARIO',
+                    'tipo_partida_id'    => $tipoPartidaId,
+                    'estado'             => 'APROBADO',
+                    'periodo_id'         => $periodo->id,
+                    'total_debe'         => $monto,
+                    'total_haber'        => $monto,
+                    'referencia'         => 'PAGO-' . $pagoId,
+                    'usuario_id'         => $userId,
+                    'usuario_aprueba_id' => $userId,
+                    'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+                ]);
+
+                if (!$asientoId) {
+                    $creados[] = ['factura' => $correlativo, 'error' => 'No se pudo insertar el asiento'];
+                    continue;
+                }
+
+                foreach ($lineasAsiento as $i => $linea) {
+                    $detModel->insert([
+                        'asiento_id'  => $asientoId,
+                        'cuenta_id'   => $linea['cuenta_id'],
+                        'descripcion' => $linea['descripcion'],
+                        'debe'        => $linea['debe'],
+                        'haber'       => $linea['haber'],
+                        'orden'       => $i + 1,
+                    ]);
+                }
+
+                $headModel->aprobarConSaldos($asientoId, $lineasAsiento, $periodo->id, $fecha, $descLinea, 'DIARIO', $periodo);
+
+                $creados[] = [
+                    'factura' => $correlativo,
+                    'asiento' => 'AST-' . str_pad($numeroAsiento, 5, '0', STR_PAD_LEFT),
+                    'monto'   => $monto,
+                ];
             }
-
-            $headModel->aprobarConSaldos(
-                $asientoId,
-                $lineasAsiento,
-                $periodo->id,
-                $fecha,
-                $descripcion,
-                'DIARIO',
-                $periodo
-            );
-
-            $creados[] = [
-                'factura' => $correlativo,
-                'asiento' => 'AST-' . str_pad($numeroAsiento, 5, '0', STR_PAD_LEFT),
-                'monto'   => $monto,
-            ];
         }
 
         return $creados;
