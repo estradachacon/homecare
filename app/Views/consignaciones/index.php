@@ -43,6 +43,14 @@
         padding: .28rem .48rem;
     }
 
+    .estado-aprobacion-badge {
+        display: inline-block;
+        font-size: .68rem;
+        font-weight: 600;
+        margin-top: .22rem;
+        padding: .24rem .42rem;
+    }
+
     @media (max-width: 767.98px) {
         .consignaciones-filtros .acciones-filtro {
             flex-direction: column;
@@ -187,6 +195,19 @@
                                             <?php else: ?>
                                                 <span class="badge badge-danger estado-consignacion-badge">Anulada</span>
                                             <?php endif; ?>
+                                            <?php
+                                                $apEst = $c->aprobacion_estado ?? 'pendiente';
+                                                $apBadge = [
+                                                    'aprobada'  => ['badge-success', 'Aprobada'],
+                                                    'rechazada' => ['badge-danger', 'Rechazada'],
+                                                    'pendiente' => ['badge-warning text-dark', 'Pendiente aprobación'],
+                                                ][$apEst] ?? ['badge-warning text-dark', ucfirst($apEst)];
+                                            ?>
+                                            <br>
+                                            <span class="badge <?= $apBadge[0] ?> estado-aprobacion-badge"
+                                                  title="<?= $apEst === 'rechazada' ? esc($c->rechazo_motivo ?? 'Nota rechazada') : '' ?>">
+                                                <?= esc($apBadge[1]) ?>
+                                            </span>
                                         </td>
                                         <td class="text-center">
                                             <?php if ($c->estado === 'abierta'): ?>
