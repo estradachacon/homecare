@@ -667,14 +667,16 @@ CCF YA VIENE SIN IVA
             $contHeadModel    = new \App\Models\ContAsientosHeadModel();
             $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
 
-            // Usar el período abierto más reciente como base
-            $periodoActual = $periodosModel->getPeriodoActual();
-
             foreach ($asientosQueue as $item) {
                 $ref = substr($item['numeroControl'], -6);
 
+                // Obtain (or auto-create) the period matching the invoice date
+                $anioItem      = (int)substr($item['fechaEmision'], 0, 4);
+                $mesItem       = (int)substr($item['fechaEmision'], 5, 2);
+                $periodoActual = $periodosModel->abrirObtenerPeriodo($anioItem, $mesItem);
+
                 if (!$periodoActual) {
-                    $asientosOmitidos[] = "{$ref}: sin período contable abierto";
+                    $asientosOmitidos[] = "{$ref}: período {$mesItem}/{$anioItem} está cerrado, no se puede reabrir automáticamente";
                     continue;
                 }
 

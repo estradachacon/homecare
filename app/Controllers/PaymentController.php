@@ -402,10 +402,12 @@ class PaymentController extends BaseController
             }
         }
 
-        // 3. Período contable abierto
-        $periodo = $periodosModel->getPeriodoActual();
+        // 3. Período contable — auto-create if it doesn't exist yet for this date
+        $anioFechaP = (int)substr($fecha, 0, 4);
+        $mesFechaP  = (int)substr($fecha, 5, 2);
+        $periodo    = $periodosModel->abrirObtenerPeriodo($anioFechaP, $mesFechaP);
         if (!$periodo) {
-            throw new \Exception('No hay período contable abierto');
+            throw new \Exception("El período {$mesFechaP}/{$anioFechaP} está cerrado y no puede reabrirse automáticamente");
         }
 
         // Leer tipo_partida de pagos desde configuración

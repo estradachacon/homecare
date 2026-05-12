@@ -47,4 +47,25 @@ class ContPeriodosModel extends Model
         $rows = $db->query('SELECT DISTINCT anio FROM cont_periodos ORDER BY anio DESC')->getResultArray();
         return array_column($rows, 'anio');
     }
+
+    /**
+     * Returns the period for the given year/month, creating it (ABIERTO) if it doesn't exist yet.
+     * Returns null if the period exists but is CERRADO — closed periods are never auto-reopened.
+     */
+    public function abrirObtenerPeriodo(int $anio, int $mes): ?object
+    {
+        $periodo = $this->getPeriodoByAnioMes($anio, $mes);
+
+        if (!$periodo) {
+            $id = $this->insert([
+                'anio'           => $anio,
+                'mes'            => $mes,
+                'estado'         => 'ABIERTO',
+                'fecha_apertura' => date('Y-m-d'),
+            ]);
+            return $this->find($id);
+        }
+
+        return $periodo->estado === 'CERRADO' ? null : $periodo;
+    }
 }

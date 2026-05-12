@@ -205,20 +205,88 @@ class ContReportesController extends BaseController
         if ($chk !== true) return $chk;
 
         $periodosModel = new ContPeriodosModel();
-        $saldosModel   = new ContSaldosCuentasModel();
+        $planModel     = new ContPlanCuentasModel();
+        $db            = \Config\Database::connect();
 
-        $periodos  = $periodosModel->orderBy('anio','DESC')->orderBy('mes','DESC')->findAll();
-        $periodoId = $this->request->getGet('periodo_id');
-        $filas     = [];
+        $periodos = $periodosModel->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
+        $cuentas  = $planModel->where('acepta_movimientos', 1)->orderBy('codigo', 'ASC')->findAll();
 
-        if ($periodoId) {
-            $filas = $saldosModel->getByPeriodo($periodoId);
+        $periodoId   = $this->request->getGet('periodo_id');
+        $fechaDesde  = $this->request->getGet('fecha_desde');
+        $fechaHasta  = $this->request->getGet('fecha_hasta');
+        $cuentaId    = $this->request->getGet('cuenta_id');
+        $subtotalDia = $this->request->getGet('subtotal_dia') === '1';
+        $subtotalMes = $this->request->getGet('subtotal_mes') === '1';
+        $formato     = $this->request->getGet('formato') ?: 'contable';
+
+        $movimientos   = [];
+        $saldosPrevios = [];
+        $filtrado      = $periodoId || $fechaDesde || $fechaHasta || $cuentaId;
+
+        if ($filtrado) {
+            // Individual movements query
+            $sql    = "SELECT d.id, d.asiento_id, d.cuenta_id,
+                              d.descripcion AS linea_desc, d.debe, d.haber, d.orden,
+                              h.fecha, h.numero_asiento,
+                              h.descripcion AS asiento_desc, h.referencia, h.periodo_id,
+                              cp.codigo, cp.nombre AS cuenta_nombre, cp.tipo, cp.naturaleza
+                       FROM   cont_asientos_detalle d
+                       JOIN   cont_asientos_head   h  ON h.id  = d.asiento_id
+                       JOIN   cont_plan_cuentas    cp ON cp.id = d.cuenta_id
+                       WHERE  h.estado = 'APROBADO'";
+            $params = [];
+
+            if ($periodoId) { $sql .= ' AND h.periodo_id = ?';  $params[] = $periodoId; }
+            if ($fechaDesde) { $sql .= ' AND h.fecha >= ?';     $params[] = $fechaDesde; }
+            if ($fechaHasta) { $sql .= ' AND h.fecha <= ?';     $params[] = $fechaHasta; }
+            if ($cuentaId)   { $sql .= ' AND d.cuenta_id = ?';  $params[] = $cuentaId; }
+
+            $sql .= ' ORDER BY cp.codigo, h.fecha, h.numero_asiento, d.orden';
+            $movimientos = $db->query($sql, $params)->getResult();
+
+            // Saldo previo per account (movements before the filtered range)
+            if ($periodoId || $fechaDesde) {
+                $sqlPrev    = "SELECT d.cuenta_id,
+                                      COALESCE(SUM(d.debe - d.haber), 0) AS saldo_previo
+                               FROM   cont_asientos_detalle d
+                               JOIN   cont_asientos_head   h  ON h.id  = d.asiento_id
+                               JOIN   cont_periodos        pp ON pp.id = h.periodo_id
+                               WHERE  h.estado = 'APROBADO'";
+                $paramsPrev = [];
+
+                if ($periodoId) {
+                    $po          = $periodosModel->find($periodoId);
+                    $sqlPrev    .= ' AND (pp.anio < ? OR (pp.anio = ? AND pp.mes < ?))';
+                    $paramsPrev[] = $po->anio;
+                    $paramsPrev[] = $po->anio;
+                    $paramsPrev[] = $po->mes;
+                } elseif ($fechaDesde) {
+                    $sqlPrev    .= ' AND h.fecha < ?';
+                    $paramsPrev[] = $fechaDesde;
+                }
+
+                if ($cuentaId) { $sqlPrev .= ' AND d.cuenta_id = ?'; $paramsPrev[] = $cuentaId; }
+
+                $sqlPrev .= ' GROUP BY d.cuenta_id';
+                foreach ($db->query($sqlPrev, $paramsPrev)->getResult() as $row) {
+                    $saldosPrevios[(int)$row->cuenta_id] = (float)$row->saldo_previo;
+                }
+            }
         }
 
         return view('contabilidad/reportes/auxiliar', [
-            'periodos'  => $periodos,
-            'periodoId' => $periodoId,
-            'filas'     => $filas,
+            'periodos'      => $periodos,
+            'cuentas'       => $cuentas,
+            'periodoId'     => $periodoId,
+            'fechaDesde'    => $fechaDesde,
+            'fechaHasta'    => $fechaHasta,
+            'cuentaId'      => $cuentaId,
+            'subtotalDia'   => $subtotalDia,
+            'subtotalMes'   => $subtotalMes,
+            'formato'       => $formato,
+            'movimientos'   => $movimientos,
+            'saldosPrevios' => $saldosPrevios,
+            'filtrado'      => $filtrado,
         ]);
     }
 

@@ -332,15 +332,15 @@ class ContAsientosController extends BaseController
                 ->with('error', 'No se pueden editar asientos anulados');
         }
 
-        $periodoDelAsiento = $periodosModel->find($asiento->periodo_id);
-        if ($periodoDelAsiento && $periodoDelAsiento->estado === 'CERRADO') {
-            return redirect()->to(base_url('contabilidad/asientos/' . $id))
-                ->with('error', 'El período de este asiento está cerrado. Debe reabrirlo antes de editarlo.');
-        }
-
         $lineas       = $detalleModel->getByAsiento($id);
-        $periodos     = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
         $tiposPartida = (new ContTiposPartidaModel())->getActivos();
+
+        // Períodos abiertos + el período original aunque esté cerrado (para mantenerlo sin moverlo)
+        $periodos        = $periodosModel->where('estado', 'ABIERTO')->orderBy('anio', 'DESC')->orderBy('mes', 'DESC')->findAll();
+        $periodoOriginal = $periodosModel->find($asiento->periodo_id);
+        if ($periodoOriginal && $periodoOriginal->estado === 'CERRADO') {
+            array_unshift($periodos, $periodoOriginal);
+        }
 
         return view('contabilidad/asientos/edit', [
             'asiento'      => $asiento,
@@ -389,20 +389,21 @@ class ContAsientosController extends BaseController
 
         $periodosModel = new ContPeriodosModel();
         $periodo = $periodosModel->find($data['periodo_id']);
-        if (!$periodo || $periodo->estado === 'CERRADO') {
-            return $this->response->setJSON(['success' => false, 'message' => 'El período está cerrado o no existe']);
+        if (!$periodo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Período no encontrado']);
         }
 
-        $detalleModel  = new ContAsientosDetalleModel();
-        $saldosModel   = new ContSaldosCuentasModel();
-        $histModel     = new ContTransaccionesHistModel();
-        $periodosModel = new ContPeriodosModel();
-        $db            = \Config\Database::connect();
-
-        $periodo = $periodosModel->find($data['periodo_id']);
-        if (!$periodo || $periodo->estado === 'CERRADO') {
-            return $this->response->setJSON(['success' => false, 'message' => 'El período está cerrado o no existe']);
+        // Permitir guardar en el período original aunque esté cerrado.
+        // Bloquear solo si se intenta MOVER el asiento a un período cerrado diferente.
+        $cambianPeriodo = (int)$data['periodo_id'] !== (int)$asiento->periodo_id;
+        if ($cambianPeriodo && $periodo->estado === 'CERRADO') {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se puede mover el asiento a un período cerrado']);
         }
+
+        $detalleModel = new ContAsientosDetalleModel();
+        $saldosModel  = new ContSaldosCuentasModel();
+        $histModel    = new ContTransaccionesHistModel();
+        $db           = \Config\Database::connect();
 
         $tipo          = $data['tipo'] ?? 'DIARIO';
         $tipoPartidaId = !empty($data['tipo_partida_id']) ? (int)$data['tipo_partida_id'] : null;

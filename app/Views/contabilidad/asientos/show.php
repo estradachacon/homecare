@@ -136,7 +136,7 @@ $mesesN = [
                             <small class="text-muted d-block">Documento origen</small>
                             <a href="<?= base_url($dl['url'] . $asiento->documento_id) ?>" class="fw-bold">
                                 <i class="fa-solid <?= $dl['icon'] ?> mr-1"></i>
-                                <?= $dl['label'] ?> #<?= $asiento->documento_id ?>
+                                <?= $dl['label'] ?> ID #<?= $asiento->documento_id ?>
                             </a>
                         </div>
                     <?php endif; ?>

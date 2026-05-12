@@ -41,8 +41,10 @@
                                 <option value="<?= $p->id ?>"
                                         data-mes="<?= $p->mes ?>"
                                         data-anio="<?= $p->anio ?>"
-                                        <?= $p->id == $asiento->periodo_id ? 'selected' : '' ?>>
+                                        <?= $p->id == $asiento->periodo_id ? 'selected' : '' ?>
+                                        >
                                     <?= $mesesN[$p->mes] ?> <?= $p->anio ?>
+                                    <?= ($p->estado ?? 'ABIERTO') === 'CERRADO' ? ' — CERRADO' : '' ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

@@ -403,7 +403,7 @@ if (!function_exists('cont_asiento_venta_json')) {
             'periodo_id'      => $periodoId,
             'fecha'           => $fecha ?: date('Y-m-d'),
             'descripcion'     => $descripcion ?: "Venta {$desglose['tipo_dte']} {$referencia}",
-            'tipo'            => 'VENTA',
+            'tipo'            => 'DIARIO',
             'tipo_partida_id' => $tipoPartidaId,
             'referencia'      => $referencia,
             // ── Líneas (partida doble) ───────────────────────────────────
