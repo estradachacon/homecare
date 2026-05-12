@@ -1,6 +1,36 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 
+<?php
+if (!function_exists('_nlUnidades')) {
+    function _nlUnidades(int $n): string {
+        $u = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+              'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis',
+              'diecisiete', 'dieciocho', 'diecinueve', 'veinte', 'veintiún',
+              'veintidós', 'veintitrés', 'veinticuatro', 'veinticinco', 'veintiséis',
+              'veintisiete', 'veintiocho', 'veintinueve'];
+        $d = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta',
+              'sesenta', 'setenta', 'ochenta', 'noventa'];
+        $c = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos',
+              'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+        if ($n < 30)   return $u[$n];
+        if ($n < 100)  { $r = $n % 10; return $r === 0 ? $d[intdiv($n,10)] : $d[intdiv($n,10)] . ' y ' . $u[$r]; }
+        if ($n === 100) return 'cien';
+        if ($n < 1000) { $r = $n % 100; return $r === 0 ? $c[intdiv($n,100)] : $c[intdiv($n,100)] . ' ' . _nlUnidades($r); }
+        if ($n < 2000) { $r = $n % 1000; return 'mil' . ($r === 0 ? '' : ' ' . _nlUnidades($r)); }
+        if ($n < 1000000) { $m = intdiv($n,1000); $r = $n % 1000; return _nlUnidades($m) . ' mil' . ($r === 0 ? '' : ' ' . _nlUnidades($r)); }
+        if ($n < 2000000) { $r = $n % 1000000; return 'un millón' . ($r === 0 ? '' : ' ' . _nlUnidades($r)); }
+        $m = intdiv($n,1000000); $r = $n % 1000000;
+        return _nlUnidades($m) . ' millones' . ($r === 0 ? '' : ' ' . _nlUnidades($r));
+    }
+    function numero_a_letras(float $monto): string {
+        $entero   = (int) floor(abs($monto));
+        $centavos = (int) round((abs($monto) - $entero) * 100);
+        return ucfirst(_nlUnidades($entero)) . ' ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100 dólares';
+    }
+}
+?>
+
 <style>
     .box-totales { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 16px; }
     .box-totales .row-total { font-size: 1.05rem; font-weight: 700; }
@@ -22,42 +52,43 @@
         #printArea * { visibility: visible !important; }
 
         /* ── Reset tipografía ── */
-        #printArea { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+        #printArea { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
 
         /* ── Cabecera: logo + título ── */
         .pr-header { display: flex; align-items: center; justify-content: space-between;
                      border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; }
-        .pr-header img { height: 56px; width: auto; }
+        .pr-header img { height: 78px; width: auto; }
         .pr-header-right { text-align: right; }
-        .pr-header-right h2 { font-size: 12pt; font-weight: 700; margin: 0 0 2px; }
-        .pr-header-right p  { margin: 0; font-size: 8pt; }
-        .pr-numero { font-size: 11pt; font-weight: 700; }
+        .pr-header-right h2 { font-size: 15pt; font-weight: 700; margin: 0 0 2px; }
+        .pr-header-right p  { margin: 0; font-size: 11pt; }
+        .pr-numero { font-size: 14pt; font-weight: 700; }
 
         /* ── Bloque info: cliente + pedido ── */
         .pr-info { display: flex; gap: 8px; margin-bottom: 8px; }
-        .pr-info-col { flex: 1; border: 1px solid #ccc; border-radius: 3px; padding: 5px 7px; }
-        .pr-info-col h6 { font-size: 7.5pt; font-weight: 700; text-transform: uppercase;
+        .pr-info-col { flex: 1; border: 1px solid #ccc; border-radius: 3px; padding: 5px 8px; }
+        .pr-info-col h6 { font-size: 10pt; font-weight: 700; text-transform: uppercase;
                           letter-spacing: .04em; color: #555; margin: 0 0 4px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
-        .pr-info-col p  { margin: 0 0 2px; font-size: 8pt; }
+        .pr-info-col p  { margin: 0 0 3px; font-size: 11pt; }
 
         /* ── Tabla productos ── */
         .pr-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        .pr-table th { background: #222; color: #fff; font-size: 7.5pt;
-                       padding: 3px 5px; text-align: left; }
-        .pr-table td { font-size: 8pt; padding: 2px 5px; border-bottom: 1px solid #e0e0e0; }
+        .pr-table th { background: #222; color: #fff; font-size: 10pt;
+                       padding: 5px 7px; text-align: left; }
+        .pr-table td { font-size: 11pt; padding: 4px 7px; border-bottom: 1px solid #e0e0e0; }
         .pr-table .txt-r { text-align: right; }
         .pr-table tfoot td { font-weight: 700; border-top: 1.5px solid #000; border-bottom: none; }
-        .pr-table tfoot .lbl { text-align: right; color: #444; font-size: 7.5pt; }
-        .pr-total-line { font-size: 9.5pt; }
+        .pr-table tfoot .lbl { text-align: right; color: #444; font-size: 10pt; }
+        .pr-total-line { font-size: 13pt; }
+        .pr-letras { font-size: 10.5pt; font-style: italic; color: #333; font-weight: normal; }
 
         /* ── Notas ── */
-        .pr-notas { margin-top: 8px; border-top: 1px solid #ccc; padding-top: 5px; font-size: 8pt; }
-        .pr-notas strong { font-size: 8pt; }
+        .pr-notas { margin-top: 8px; border-top: 1px solid #ccc; padding-top: 5px; font-size: 11pt; }
+        .pr-notas strong { font-size: 11pt; }
 
         /* ── Firma ── */
-        .pr-firma { display: flex; justify-content: space-between; margin-top: 18px; }
+        .pr-firma { display: flex; justify-content: space-between; margin-top: 24px; }
         .pr-firma-col { text-align: center; width: 42%; }
-        .pr-firma-col .linea { border-top: 1px solid #000; padding-top: 2px; font-size: 7.5pt; margin-top: 22px; }
+        .pr-firma-col .linea { border-top: 1px solid #000; padding-top: 2px; font-size: 10pt; margin-top: 28px; }
     }
 </style>
 
@@ -203,6 +234,9 @@
                                 <span>Total:</span>
                                 <span class="text-primary">$<?= number_format($pedido->total, 2) ?></span>
                             </div>
+                            <div class="mt-1" style="font-size:0.78rem;color:#555;font-style:italic;line-height:1.3;">
+                                <?= numero_a_letras((float)$pedido->total) ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -253,6 +287,11 @@
                             <tr class="table-primary">
                                 <td colspan="5" class="text-end fw-bold">Total:</td>
                                 <td class="text-end fw-bold">$<?= number_format($pedido->total, 2) ?></td>
+                            </tr>
+                            <tr>
+                                <td colspan="6" class="text-muted small" style="font-style:italic;">
+                                    <strong>Son:</strong> <?= numero_a_letras((float)$pedido->total) ?>
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -384,6 +423,11 @@
             <tr class="pr-total-line">
                 <td colspan="5" class="lbl">TOTAL:</td>
                 <td class="txt-r">$<?= number_format($pedido->total, 2) ?></td>
+            </tr>
+            <tr>
+                <td colspan="6" class="pr-letras" style="border-top:none;">
+                    Son: <?= numero_a_letras((float)$pedido->total) ?>
+                </td>
             </tr>
         </tfoot>
     </table>
