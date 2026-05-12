@@ -232,7 +232,7 @@ foreach ($porCuenta as $cId => $lines) {
         </h5>
         <?php if ($filtrado && !empty($movimientos)): ?>
         <div class="d-flex gap-2 no-print">
-          <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+          <button class="btn btn-sm btn-outline-secondary mr-2" onclick="window.print()">
             <i class="fa-solid fa-print"></i> Imprimir
           </button>
           <a href="<?= site_url('contabilidad/reportes/auxiliar/excel') . '?' . http_build_query(array_filter([

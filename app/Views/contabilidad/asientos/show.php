@@ -63,22 +63,33 @@ $mesesN = [
                     <!-- DERECHA -->
                     <div class="d-flex align-items-center gap-2">
 
+                        <?php $periodoCerrado = ($asiento->periodo_estado ?? '') === 'CERRADO'; ?>
+
                         <?php if ($asiento->estado !== 'ANULADO'): ?>
 
-                            <?php if (tienePermiso('crear_asiento')): ?>
-                                <a href="<?= base_url('contabilidad/asientos/editar/' . $asiento->id) ?>"
-                                   class="btn btn-warning btn-sm d-flex align-items-center gap-1 mr-1">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                    <span>Editar</span>
-                                </a>
-                            <?php endif; ?>
+                            <?php if ($periodoCerrado): ?>
+                                <span class="badge badge-secondary px-3 py-2 d-flex align-items-center gap-1 mr-1"
+                                      title="El período está cerrado">
+                                    <i class="fa-solid fa-lock mr-1"></i> Período cerrado
+                                </span>
+                            <?php else: ?>
 
-                            <?php if (tienePermiso('anular_asiento')): ?>
-                                <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 mr-1"
-                                    onclick="anularAsiento(<?= $asiento->id ?>)">
-                                    <i class="fa-solid fa-ban"></i>
-                                    <span>Anular</span>
-                                </button>
+                                <?php if (tienePermiso('crear_asiento')): ?>
+                                    <a href="<?= base_url('contabilidad/asientos/editar/' . $asiento->id) ?>"
+                                       class="btn btn-warning btn-sm d-flex align-items-center gap-1 mr-1">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Editar</span>
+                                    </a>
+                                <?php endif; ?>
+
+                                <?php if (tienePermiso('anular_asiento')): ?>
+                                    <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1 mr-1"
+                                        onclick="anularAsiento(<?= $asiento->id ?>)">
+                                        <i class="fa-solid fa-ban"></i>
+                                        <span>Anular</span>
+                                    </button>
+                                <?php endif; ?>
+
                             <?php endif; ?>
 
                         <?php else: ?>

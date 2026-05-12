@@ -36,7 +36,7 @@
                 <div class="alert alert-info">No hay períodos abiertos disponibles para cierre</div>
                 <?php else: ?>
                 <div class="d-flex gap-2">
-                    <a href="<?= base_url('contabilidad') ?>" class="btn btn-outline-secondary">
+                    <a href="<?= base_url('contabilidad') ?>" class="btn btn-outline-secondary mr-2">
                         <i class="fa-solid fa-arrow-left"></i> Cancelar
                     </a>
                     <button class="btn btn-danger ms-auto" onclick="ejecutarCierre()">

@@ -10,13 +10,77 @@
         padding-right: 0 !important;
     }
 
-    /* Unificar altura Select2 con Bootstrap */
+    .payment-new-page .card {
+        border: 0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+    }
+
+    .payment-new-page label {
+        font-size: .78rem;
+        font-weight: 700;
+        color: #5f6b7a;
+        margin-bottom: .25rem;
+    }
+
+    .payment-new-page .form-control,
+    .payment-new-page .custom-select {
+        font-size: .86rem;
+    }
+
+    .payment-section-title {
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #7b8794;
+        border-bottom: 1px solid #eef1f5;
+        padding-bottom: .45rem;
+        margin-bottom: 1rem;
+    }
+
+    .payment-summary-panel {
+        background: #f8fafc;
+        border: 1px solid #edf1f5;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .payment-total-input {
+        height: 44px;
+        font-size: 1.15rem !important;
+        background: #fff !important;
+    }
+
+    .payment-empty-state {
+        padding: 32px 16px !important;
+    }
+
+    .payment-table th {
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: #657184;
+        background: #f7f9fc;
+        border-bottom: 1px solid #e6ebf1 !important;
+    }
+
+    .payment-table td {
+        font-size: .84rem;
+        vertical-align: middle !important;
+    }
+
+    .payment-actions {
+        border-top: 1px solid #eef1f5;
+        padding-top: 1rem;
+    }
+
+    /* Unificar altura Select2 con Bootstrap 4 */
 
     .select2-container .select2-selection--single {
         height: 38px !important;
         /* altura estándar Bootstrap */
         border: 1px solid #ced4da;
-        border-radius: .375rem;
+        border-radius: .25rem;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -30,9 +94,10 @@
     }
 
     /* focus igual que form-control */
-    .select2-container--default.select2-container--focus .select2-selection--single {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--bootstrap4.select2-container--focus .select2-selection {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .25);
     }
 
     /*Loader en tabla*/
@@ -44,15 +109,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
         color: #6c757d;
     }
 
     .mini-spinner {
         width: 18px;
         height: 18px;
+        margin-right: 10px;
         border: 2px solid #dee2e6;
-        border-top-color: #0d6efd;
+        border-top-color: #007bff;
         border-radius: 50%;
         animation: spin .7s linear infinite;
     }
@@ -63,57 +128,97 @@
         }
     }
 </style>
-<div class="row">
+<div class="row payment-new-page">
     <div class="col-md-12">
 
         <div class="card">
 
-            <div class="card-header d-flex">
-                <h4 class="header-title">Nuevo pago</h4>
+            <div class="card-header d-flex justify-content-between py-3">
+                <h4 class="header-title mb-0">
+                    <i class="fa-solid fa-money-check-dollar mr-2 text-success"></i>Nuevo pago
+                </h4>
+                <a href="<?= base_url('payments') ?>" class="btn btn-light btn-sm border">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Volver
+                </a>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form id="formPago">
+                    <div class="payment-section-title">Datos del pago</div>
+
                     <div class="row">
-                        <!-- CLIENTE -->
-                        <div class="col-md-4 mb-3">
-                            <label class="text-muted">Cliente</label>
-                            <select id="clienteSelect" class="form-control"></select>
+                        <div class="col-lg-8">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="clienteSelect">Cliente</label>
+                                    <select id="clienteSelect" class="form-control"></select>
+                                </div>
+
+                                <div class="form-group col-md-3">
+                                    <label for="fechaPago">Fecha pago</label>
+                                    <input type="date" id="fechaPago" class="form-control" value="<?= date('Y-m-d') ?>">
+                                </div>
+
+                                <div class="form-group col-md-3">
+                                    <label for="tipoPago">Tipo de pago</label>
+                                    <select class="custom-select" id="tipoPago">
+                                        <option value="">Seleccione</option>
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="transferencia">Transferencia</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6 d-none" id="boxRecupero">
+                                    <label for="descripcionRecupero">Número de recupero / referencia</label>
+                                    <input type="text" class="form-control" id="descripcionRecupero" placeholder="Ej: REC-000123">
+                                </div>
+
+                                <div class="form-group col-md-6 d-none" id="boxTransferencia">
+                                    <label for="cuentaTransferencia">Cuenta bancaria destino</label>
+                                    <select class="form-control" id="cuentaTransferencia" style="width:100%"></select>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-lg-0">
+                                <label for="observacionesPago">Observaciones</label>
+                                <textarea id="observacionesPago" class="form-control" rows="2" placeholder="Notas internas del pago"></textarea>
+                            </div>
                         </div>
 
-                        <!-- FECHA (campos para el pago)-->
-                        <div class="col-md-3 mb-3">
-                            <label class="text-muted">Fecha pago</label>
-                            <input type="date" class="form-control">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="text-muted">Tipo de pago</label>
-                            <select class="form-control" id="tipoPago">
-                                <option value="">Seleccione</option>
-                                <option value="efectivo">Efectivo</option>
-                                <option value="transferencia">Transferencia</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 d-none" id="boxRecupero">
-                            <label class="text-muted">Numero de recupero</label>
-                            <input type="text" class="form-control" id="descripcionRecupero">
-                        </div>
+                        <div class="col-lg-4 mt-3 mt-lg-0">
+                            <div class="payment-summary-panel h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="mr-2 text-success">
+                                        <i class="fa-solid fa-calculator fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-weight-bold">Resumen del pago</div>
+                                        <small class="text-muted">Se calcula con los montos aplicados.</small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-6 d-none" id="boxTransferencia">
-                            <label class="text-muted">Cuenta bancaria destino</label>
-                            <select class="form-control" id="cuentaTransferencia" style="width:100%"></select>
-                        </div>
+                                <label for="totalPago">Total aplicado</label>
+                                <input type="text" id="totalPago" class="form-control text-right font-weight-bold payment-total-input" value="0.00" readonly>
 
+                                <div class="d-flex justify-content-between mt-3 small">
+                                    <span class="text-muted">Facturas aplicadas</span>
+                                    <strong id="facturasAplicadasCount">0</strong>
+                                </div>
+
+                                <div class="small text-muted mt-3">
+                                    Selecciona un cliente, carga sus facturas pendientes y aplica el monto correspondiente a cada documento.
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <hr>
-
-                    <!-- FACTURAS -->
-                    <h6 class="mb-2">Facturas pendientes</h6>
+                    <div class="payment-section-title mt-4">Facturas pendientes</div>
 
                     <div class="table-responsive">
-                        <table class="table table-bordered">
+                        <table class="table table-bordered table-hover payment-table">
 
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
                                     <th>Factura</th>
                                     <th>Fecha Doc.</th>
@@ -127,29 +232,19 @@
 
                             <tbody id="facturasContainer">
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">
-                                        <small>Seleccione un cliente para cargar facturas</small>
+                                    <td colspan="7" class="text-center text-muted payment-empty-state">
+                                        <i class="fa-regular fa-file-lines fa-2x mb-2 d-block text-muted"></i>
+                                        <small>Seleccione un cliente para cargar facturas pendientes</small>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
-                        <div class="d-flex justify-content-end mt-2">
-                            <div style="width:220px">
-                                <label class="text-muted mb-1">Total</label>
-                                <input type="text" id="totalPago" class="form-control text-end font-weight-bold" readonly>
-                            </div>
-                        </div>
                     </div>
-                    <div class="mt-3">
-                        <label class="small text-muted">Observaciones</label>
-                        <textarea class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="text-end mt-3">
 
+                    <div class="payment-actions d-flex justify-content-end mt-3">
                         <button type="button" id="btnGuardarPago" class="btn btn-success">
-                            Guardar pago
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar pago
                         </button>
-
                     </div>
 
                 </form>
@@ -165,16 +260,23 @@
             <div class="modal-content">
 
                 <div class="modal-header">
-                    <h6 class="modal-title" id="tituloModalPago"></h6>
-                    <button class="close" data-dismiss="modal">&times;</button>
+                    <h6 class="modal-title mb-0" id="tituloModalPago"></h6>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
 
                 <div class="modal-body">
 
-                    <label>Monto</label>
-                    <input type="number" step="0.01" id="modalMonto" class="form-control">
+                    <label for="modalMonto">Monto a aplicar</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="number" step="0.01" min="0" id="modalMonto" class="form-control text-right">
+                    </div>
 
-                    <label class="mt-2">Comentario</label>
+                    <label for="modalComentario" class="mt-3">Comentario</label>
                     <textarea id="modalComentario" class="form-control" rows="2"></textarea>
 
                 </div>
@@ -197,7 +299,9 @@
 
                 <div class="modal-header">
                     <h6 class="modal-title">Factura</h6>
-                    <button class="close" data-dismiss="modal">&times;</button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
 
                 <div class="modal-body" id="facturaPreview">
@@ -213,9 +317,8 @@
         $(document).on('click', '#btnGuardarPago', function(e) {
 
             e.preventDefault();
-            console.log("Botón presionado");
             const cliente = $('#clienteSelect').val();
-            const fecha = $('input[type="date"]').val();
+            const fecha = $('#fechaPago').val();
             const tipoPago = $('#tipoPago').val();
             const descRecupero = ($('#descripcionRecupero').val() || '').trim();
             const cuenta = ($('#cuentaTransferencia').val() || '').trim();
@@ -296,7 +399,7 @@
                 icon: 'question',
                 title: 'Confirmar pago',
                 html: `
-                    <div class="text-start">
+                    <div class="text-left">
                         <p><strong>Facturas:</strong> ${cantidad}</p>
                         <p><strong>Total:</strong> $${total.toFixed(2)}</p>
                         <p><strong>Tipo:</strong> ${tipoPago}</p>
@@ -340,7 +443,7 @@
                         tipo_pago: tipoPago,
                         recupero: descRecupero,
                         cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : 1,
-                        observaciones: $('textarea').val() || '',
+                        observaciones: $('#observacionesPago').val() || '',
                         total: total,
                         facturas: facturas
                     };
@@ -384,12 +487,12 @@
                         html += `<div class="text-warning small mt-1">⚠ Asiento no creado: ${d.asiento_error}</div>`;
                     } else if (d.asientos && d.asientos.length) {
                         html += '<table class="table table-sm table-bordered mt-2" style="font-size:0.82rem">';
-                        html += '<thead class="table-light"><tr><th>Factura</th><th>Asiento</th><th class="text-end">Monto</th></tr></thead><tbody>';
+                        html += '<thead><tr><th>Factura</th><th>Asiento</th><th class="text-right">Monto</th></tr></thead><tbody>';
                         d.asientos.forEach(a => {
                             if (a.error) {
                                 html += `<tr><td>${a.factura}</td><td colspan="2" class="text-danger">${a.error}</td></tr>`;
                             } else {
-                                html += `<tr><td>${a.factura}</td><td><strong>${a.asiento}</strong></td><td class="text-end">$ ${parseFloat(a.monto).toFixed(2)}</td></tr>`;
+                                html += `<tr><td>${a.factura}</td><td><strong>${a.asiento}</strong></td><td class="text-right">$ ${parseFloat(a.monto).toFixed(2)}</td></tr>`;
                             }
                         });
                         html += '</tbody></table>';
@@ -432,9 +535,21 @@
         });
 
         $('#guardarMonto').on('click', function() {
+            const monto = parseFloat($('#modalMonto').val()) || 0;
+            const saldo = parseFloat($('#modalMonto').attr('max')) || 0;
+
+            if (monto < 0) {
+                Swal.fire('Monto inválido', 'El monto no puede ser negativo.', 'warning');
+                return;
+            }
+
+            if (saldo > 0 && monto > saldo) {
+                Swal.fire('Monto inválido', 'El monto aplicado no puede superar el saldo de la factura.', 'warning');
+                return;
+            }
 
             inputActual
-                .val(parseFloat($('#modalMonto').val() || 0).toFixed(2))
+                .val(monto.toFixed(2))
                 .trigger('input');
 
             comentarioActual.val($('#modalComentario').val());
@@ -445,7 +560,10 @@
         // ================= CLIENTE SELECT2 =================
 
         $('#clienteSelect').select2({
+            theme: 'bootstrap4',
+            width: '100%',
             placeholder: 'Buscar cliente...',
+            allowClear: true,
             ajax: {
                 url: '<?= base_url("clientes/buscar") ?>',
                 dataType: 'json',
@@ -476,6 +594,7 @@
             }
 
             $('#cuentaTransferencia').select2({
+                theme: 'bootstrap4',
                 language: 'es',
                 placeholder: 'Buscar cuenta bancaria...',
                 allowClear: true,
@@ -557,9 +676,20 @@
 
         $('#clienteSelect').on('change', function() {
             $('#totalPago').val('0.00');
+            $('#facturasAplicadasCount').text('0');
             const clienteId = $(this).val();
 
-            if (!clienteId) return;
+            if (!clienteId) {
+                $('#facturasContainer').html(`
+                    <tr>
+                        <td colspan="7" class="text-center text-muted payment-empty-state">
+                            <i class="fa-regular fa-file-lines fa-2x mb-2 d-block text-muted"></i>
+                            <small>Seleccione un cliente para cargar facturas pendientes</small>
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
 
             $('#facturasContainer').html(`
                 <tr class="loader-row">
@@ -588,7 +718,14 @@
                 .then(data => {
 
                     if (!data.length) {
-                        $('#facturasContainer').html('<tr><td colspan="4" class="text-center">Sin facturas pendientes</td></tr>');
+                        $('#facturasContainer').html(`
+                            <tr>
+                                <td colspan="7" class="text-center text-muted payment-empty-state">
+                                    <i class="fa-regular fa-circle-check fa-2x mb-2 d-block text-muted"></i>
+                                    <small>Este cliente no tiene facturas pendientes.</small>
+                                </td>
+                            </tr>
+                        `);
                         return;
                     }
 
@@ -608,7 +745,7 @@
                             <td>
                                 ${f.numero_control.substr(-6)}
                                 <button type="button"
-                                    class="btn btn-link p-0 ms-1 verFactura"
+                                    class="btn btn-link p-0 ml-1 verFactura"
                                     data-id="${f.id}">
                                     <i class="fa-solid fa-eye text-muted"></i>
                                 </button>
@@ -617,7 +754,7 @@
                             <td class="text-center">${diasDeAntiguedad(f.fecha_emision)}</td>
                             <td>${f.vendedor}</td>
                             <td>${f.tipo_venta_nombre}</td>
-                            <td class="text-end">
+                            <td class="text-right">
                                 $${parseFloat(f.saldo).toFixed(2)}
                                 <div class="mt-1">
                                     <span class="badge badge-secondary pagoBadge d-none"></span>
@@ -626,7 +763,7 @@
                             <td>
                                 <div class="input-group input-group-sm">
                                     <input type="text"
-                                        class="form-control text-end aplicarMonto"
+                                        class="form-control text-right aplicarMonto"
                                         value="0.00"
                                         readonly>
                                     <input type="hidden" class="comentarioFactura">
@@ -646,6 +783,16 @@
                         `;
                     });
                     $('#facturasContainer').html(html);
+                })
+                .catch(() => {
+                    $('#facturasContainer').html(`
+                        <tr>
+                            <td colspan="7" class="text-center text-danger payment-empty-state">
+                                <i class="fa-solid fa-triangle-exclamation fa-2x mb-2 d-block"></i>
+                                <small>No se pudieron cargar las facturas pendientes.</small>
+                            </td>
+                        </tr>
+                    `);
                 });
         });
 
@@ -653,9 +800,14 @@
 
         function actualizarTotal() {
             let total = 0;
+            let facturasAplicadas = 0;
 
             $('.aplicarMonto').each(function() {
-                total += parseFloat($(this).val()) || 0;
+                const monto = parseFloat($(this).val()) || 0;
+                total += monto;
+                if (monto > 0) {
+                    facturasAplicadas++;
+                }
             });
 
             $('#totalPago').val(
@@ -664,6 +816,7 @@
                     maximumFractionDigits: 2
                 }).format(total)
             );
+            $('#facturasAplicadasCount').text(facturasAplicadas);
             actualizarBadges();
         }
 
@@ -750,10 +903,6 @@
                 }
             });
         }
-    });
-
-    window.addEventListener('error', function(e) {
-        console.log("GLOBAL JS ERROR:", e.error);
     });
 </script>
 

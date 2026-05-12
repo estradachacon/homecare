@@ -375,6 +375,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('contabilidad/procesos/cierre-mes/ejecutar',       'ContProcesosController::ejecutarCierreMes');
     $routes->get('contabilidad/procesos/cierre-anual',               'ContProcesosController::cierreAnual');
     $routes->post('contabilidad/procesos/cierre-anual/ejecutar',     'ContProcesosController::ejecutarCierreAnual');
+    $routes->post('contabilidad/procesos/cierre-anual/reabrir',      'ContProcesosController::reabrirCierreAnual');
 
     // Mantenimientos — Tipos de Partida
     $routes->get('contabilidad/mantenimientos/tipos-partida',                  'ContTiposPartidaController::index');

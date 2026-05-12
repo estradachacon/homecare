@@ -154,13 +154,22 @@ class ContProcesosController extends BaseController
         )->getResultArray();
         $anios = array_column($anios, 'anio');
 
-        // Años ya cerrados anualmente (para mostrar historial)
+        // Años ya cerrados anualmente — incluye utilidad del asiento de cierre
         $aniosCerrados = $db->query(
-            "SELECT anio, MAX(fecha_cierre_anual) AS fecha_cierre_anual
-             FROM cont_periodos
-             WHERE cierre_anual = 1
-             GROUP BY anio
-             ORDER BY anio DESC"
+            "SELECT p.anio,
+                    MAX(p.fecha_cierre_anual) AS fecha_cierre_anual,
+                    (SELECT h.total_haber - h.total_debe
+                     FROM cont_asientos_head h
+                     WHERE h.tipo = 'CIERRE'
+                       AND h.estado != 'ANULADO'
+                       AND h.periodo_id IN (SELECT id FROM cont_periodos WHERE anio = p.anio)
+                       AND h.descripcion LIKE CONCAT('Cierre anual ', p.anio, '%')
+                     ORDER BY h.id DESC LIMIT 1
+                    ) AS utilidad
+             FROM cont_periodos p
+             WHERE p.cierre_anual = 1
+             GROUP BY p.anio
+             ORDER BY p.anio DESC"
         )->getResult();
 
         return view('contabilidad/procesos/cierre_anual', [
@@ -264,6 +273,78 @@ class ContProcesosController extends BaseController
             'success'  => true,
             'message'  => "Cierre anual $anio completado correctamente",
             'utilidad' => $utilidad,
+        ]);
+    }
+
+    // ─── REAPERTURA DE CIERRE ANUAL ───────────────────────────
+
+    public function reabrirCierreAnual()
+    {
+        $chk = requerirPermiso('ejecutar_cierre_anual');
+        if ($chk !== true) return $chk;
+
+        $anio = (int)$this->request->getPost('anio');
+        if (!$anio) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Año inválido']);
+        }
+
+        $db            = \Config\Database::connect();
+        $periodosModel = new ContPeriodosModel();
+        $headModel     = new ContAsientosHeadModel();
+        $saldosModel   = new ContSaldosCuentasModel();
+
+        if (!$periodosModel->esCierreAnualEjecutado($anio)) {
+            return $this->response->setJSON(['success' => false, 'message' => "El año $anio no tiene cierre anual ejecutado"]);
+        }
+
+        $db->transStart();
+
+        // 1. Buscar y anular el asiento de cierre anual
+        $asientoCierre = $headModel
+            ->where('tipo', 'CIERRE')
+            ->where('periodo_id IN (SELECT id FROM cont_periodos WHERE anio = ' . $anio . ')')
+            ->like('descripcion', "Cierre anual $anio")
+            ->where('estado !=', 'ANULADO')
+            ->first();
+
+        if ($asientoCierre) {
+            // Revertir el efecto en saldos: invertir las líneas del asiento
+            $detalles = (new ContAsientosDetalleModel())->where('asiento_id', $asientoCierre->id)->findAll();
+            $periodoAnual = $periodosModel->find($asientoCierre->periodo_id);
+
+            if ($periodoAnual) {
+                foreach ($detalles as $d) {
+                    $saldo = $saldosModel->getByCuentaPeriodo((int)$d->cuenta_id, (int)$asientoCierre->periodo_id);
+                    if ($saldo) {
+                        $saldosModel->update($saldo->id, [
+                            'total_debe'  => max(0, $saldo->total_debe  - (float)$d->debe),
+                            'total_haber' => max(0, $saldo->total_haber - (float)$d->haber),
+                            'saldo_final' => $saldo->saldo_inicial
+                                            + max(0, $saldo->total_debe  - (float)$d->debe)
+                                            - max(0, $saldo->total_haber - (float)$d->haber),
+                        ]);
+                    }
+                }
+            }
+
+            $headModel->update($asientoCierre->id, ['estado' => 'ANULADO']);
+        }
+
+        // 2. Quitar la marca de cierre anual en todos los períodos del año
+        $db->query(
+            'UPDATE cont_periodos SET cierre_anual = 0, fecha_cierre_anual = NULL WHERE anio = ?',
+            [$anio]
+        );
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al revertir el cierre anual']);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => "Cierre anual $anio revertido. Los períodos del año pueden reabrirse nuevamente.",
         ]);
     }
 }

@@ -1,235 +1,206 @@
+<?php
+$session = session();
+$foto = $session->get('foto');
+$sidebarFotoPath = ($foto && file_exists(FCPATH . 'upload/perfiles/' . $foto))
+    ? base_url('upload/perfiles/' . $foto)
+    : base_url('upload/profile/user.jpg');
+$primaryColor = setting('primary_color') ?? '#1d2744';
+?>
+
 <div id="layoutSidenav_nav">
     <span class="close-mobile-nav"><i class="fa-solid fa-close"></i></span>
-    <nav class="sb-sidenav accordion sb-sidenav-light" id="sidenavAccordion">
+    <nav class="sb-sidenav accordion sb-sidenav-dark sb-sidenav-custom" id="sidenavAccordion">
 
-        <div class="sidebar-user position-relative">
-
-            <!-- Fondo superior con color del sistema -->
-            <div
-                style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 69px;
-            background-color: <?= setting('primary_color') ?? '#1d2744' ?>;
-            z-index: -1;
-            border-radius: 6px 6px 0 0;
-        ">
-            </div>
-
-            <a href="<?= base_url('dashboard') ?>" class="text-center d-block pt-3">
-
-                <!-- LOGO EMPRESA -->
+        <!-- ── BRAND ────────────────────────────────────────── -->
+        <div class="sidebar-brand" style="background-color:<?= $primaryColor ?>;">
+            <a href="<?= base_url('dashboard') ?>" class="sidebar-brand-link">
                 <?php if (setting('logo')): ?>
-                    <img class="logo shadow-sm"
-                        src="<?= base_url('upload/settings/' . setting('logo')) ?>"
-                        alt="logo-company"
-                        height="60">
+                    <img src="<?= base_url('upload/settings/' . setting('logo')) ?>"
+                         alt="logo" class="sidebar-logo">
                 <?php else: ?>
-                    <h5 class="text-white font-weight-bold">
-                        <?= esc(setting('company_name') ?? 'Empresa') ?>
-                    </h5>
+                    <span class="sidebar-brand-text">
+                        <?= esc(setting('company_name') ?? 'ERP') ?>
+                    </span>
                 <?php endif; ?>
-
-                <!-- SUCURSAL -->
-                <div class="nav-link text-dark mt-2 p-0">
-                    <?= esc($session->get('branch_name') ?? 'N/A') ?>
-                </div>
-
             </a>
         </div>
 
+        <!-- ── USER SECTION ──────────────────────────────────── -->
+        <div class="sidebar-user-section">
+            <img src="<?= esc($sidebarFotoPath) ?>" alt="avatar" class="sidebar-avatar">
+            <div class="sidebar-user-meta">
+                <div class="sidebar-user-name"><?= esc($session->get('user_name') ?? 'Usuario') ?></div>
+                <div class="sidebar-branch-name">
+                    <i class="fa-solid fa-location-dot" style="font-size:.6rem;"></i>
+                    <?= esc($session->get('branch_name') ?? 'Sistema') ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── MENU ──────────────────────────────────────────── -->
         <div class="sb-sidenav-menu">
             <div class="nav">
-                <div class="sb-sidenav-menu-heading">NAVEGACION</div>
 
+                <div class="sb-sidenav-menu-heading">Principal</div>
+
+                <!-- DASHBOARD -->
                 <a class="nav-link" href="/dashboard">
-                    <div class="sb-nav-link-icon"><i class="fa-solid fa-house"></i></div>
-                    Inicio
+                    <div class="sb-nav-link-icon si-inicio"><i class="fa-solid fa-gauge-high"></i></div>
+                    Dashboard
                 </a>
 
-                <?php if (
-                    tienePermiso('cargar_facturas') ||
-                    tienePermiso('ver_facturas') ||
-                    tienePermiso('ver_clientes')
-                ): ?>
-
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#ventas" aria-expanded="false"
-                        aria-controls="ventas">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <!-- VENTAS -->
+                <?php if (tienePermiso('cargar_facturas') || tienePermiso('ver_facturas') || tienePermiso('ver_clientes')): ?>
+                    <a class="nav-link collapsed" href="#"
+                       data-toggle="collapse" data-target="#ventas"
+                       aria-expanded="false" aria-controls="ventas">
+                        <div class="sb-nav-link-icon si-ventas"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                         Ventas
                         <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
-                    <div class="collapse" id="ventas" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                    <div class="collapse" id="ventas" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('emitir_dte')): ?>
                                 <a class="nav-link" href="/factura/crear">Emisión de DTE</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('cargar_facturas')): ?>
-                                <a class="nav-link" href="/facturas/carga">Cargar Facturas con JSON</a>
+                                <a class="nav-link" href="/facturas/carga">Cargar JSON</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_facturas')): ?>
                                 <a class="nav-link" href="/facturas">Ver Facturas</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_clientes')): ?>
-                                <a class="nav-link" href="/clientes">Ver Clientes</a>
+                                <a class="nav-link" href="/clientes">Clientes</a>
                             <?php endif; ?>
                         </nav>
                     </div>
-
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ingresar_pagos') ||
-                    tienePermiso('ver_pagos')
-                ): ?>
+                <!-- CUENTAS POR COBRAR -->
+                <?php if (tienePermiso('ingresar_pagos') || tienePermiso('ver_pagos')): ?>
                     <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#cuentasCobrar"
-                        aria-expanded="false"
-                        aria-controls="cuentasCobrar">
-
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                        </div>
-
-                        Cuentas por cobrar
-
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
+                       data-toggle="collapse" data-target="#cuentasCobrar"
+                       aria-expanded="false" aria-controls="cuentasCobrar">
+                        <div class="sb-nav-link-icon si-cxc"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        Cuentas por Cobrar
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
                     <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('ingresar_pagos')): ?>
-                                <a class="nav-link" href="/payments/new">
-                                    Ingresar pagos
-                                </a>
+                                <a class="nav-link" href="/payments/new">Ingresar Pagos</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_pagos')): ?>
-                                <a class="nav-link" href="/payments">
-                                    Ver pagos
-                                </a>
+                                <a class="nav-link" href="/payments">Ver Pagos</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_quedans')): ?>
-                                <a class="nav-link" href="/quedans">
-                                    Control de Quedans
-                                </a>
+                                <a class="nav-link" href="/quedans">Control de Quedans</a>
                             <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_transacciones') ||
-                    tienePermiso('ver_cajas') ||
-                    tienePermiso('crear_caja') ||
-                    tienePermiso('ver_cuentas')
-                ): ?>
+                <!-- INVENTARIO -->
+                <?php if (tienePermiso('ver_inventario')): ?>
+                    <a class="nav-link collapsed" href="#"
+                       data-toggle="collapse" data-target="#inventario"
+                       aria-expanded="false" aria-controls="inventario">
+                        <div class="sb-nav-link-icon si-inventario"><i class="fa-solid fa-boxes-stacked"></i></div>
+                        Inventario
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                    </a>
+                    <div class="collapse" id="inventario" data-parent="#sidenavAccordion">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_inventario')): ?>
+                                <a class="nav-link" href="/inventory">Inventario</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_compras')): ?>
+                                <a class="nav-link" href="/purchases">Ver Compras</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_pagos_a_compras')): ?>
+                                <a class="nav-link" href="/compraspagos">Pagos a Compras</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_proveedores')): ?>
+                                <a class="nav-link" href="/proveedores">Proveedores</a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
 
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#cash" aria-expanded="false"
-                        aria-controls="cash">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-wallet"></i></div>
+                <!-- FINANZAS -->
+                <?php if (tienePermiso('ver_transacciones') || tienePermiso('ver_cajas') || tienePermiso('crear_caja') || tienePermiso('ver_cuentas')): ?>
+                    <a class="nav-link collapsed" href="#"
+                       data-toggle="collapse" data-target="#cash"
+                       aria-expanded="false" aria-controls="cash">
+                        <div class="sb-nav-link-icon si-finanzas"><i class="fa-solid fa-wallet"></i></div>
                         Finanzas
                         <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
-                    <div class="collapse" id="cash" aria-labelledby="headingOne" data-parent="#sidenavAccordion">
+                    <div class="collapse" id="cash" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
-
-                            <!-- SUBMENÚ CAJAS -->
-                            <?php if (
-                                tienePermiso('ver_cajas') ||
-                                tienePermiso('ver_historicos_de_caja') ||
-                                tienePermiso('crear_caja')
-                            ): ?>
-
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#subCajas"
-                                    aria-expanded="false" aria-controls="subCajas">
+                            <?php if (tienePermiso('ver_cajas') || tienePermiso('ver_historicos_de_caja') || tienePermiso('crear_caja')): ?>
+                                <a class="nav-link collapsed" href="#"
+                                   data-toggle="collapse" data-target="#subCajas"
+                                   aria-expanded="false" aria-controls="subCajas">
                                     Cajas
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                                 </a>
-
                                 <div class="collapse" id="subCajas" data-parent="#cash">
                                     <nav class="sb-sidenav-menu-nested nav">
-
                                         <?php if (tienePermiso('ver_cajas')): ?>
                                             <a class="nav-link" href="/cashiers">Lista de Cajas</a>
                                         <?php endif; ?>
-
                                         <?php if (tienePermiso('crear_caja')): ?>
-                                            <a class="nav-link" href="/cashiers/new">Creación de caja</a>
+                                            <a class="nav-link" href="/cashiers/new">Nueva Caja</a>
                                         <?php endif; ?>
-
                                         <?php if (tienePermiso('ver_historicos_de_caja')): ?>
-                                            <a class="nav-link" href="/cashier/transactions">Movimientos de caja</a>
+                                            <a class="nav-link" href="/cashier/transactions">Movimientos</a>
                                         <?php endif; ?>
                                     </nav>
                                 </div>
-
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_transacciones')): ?>
-                                <a class="nav-link" href="/transactions">Movimientos históricos</a>
+                                <a class="nav-link" href="/transactions">Movimientos Históricos</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_cuentas')): ?>
                                 <a class="nav-link" href="/accounts">Cuentas</a>
                             <?php endif; ?>
-
                         </nav>
                     </div>
-
                 <?php endif; ?>
-                <?php if (
-                    tienePermiso('ver_contabilidad') ||
-                    tienePermiso('ver_plan_cuentas') ||
-                    tienePermiso('ver_asientos') ||
-                    tienePermiso('ver_listados_contables') ||
-                    tienePermiso('ver_reportes_contables') ||
-                    tienePermiso('ejecutar_cierre_mes') ||
-                    tienePermiso('ver_mantenimientos_contables') ||
-                    tienePermiso('configurar_contabilidad')
-                ): ?>
 
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contabilidad"
-                        aria-expanded="false" aria-controls="contabilidad">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-book-open-reader"></i></div>
+                <!-- CONTABILIDAD -->
+                <?php if (
+                    tienePermiso('ver_contabilidad') || tienePermiso('ver_plan_cuentas') ||
+                    tienePermiso('ver_asientos') || tienePermiso('ver_listados_contables') ||
+                    tienePermiso('ver_reportes_contables') || tienePermiso('ejecutar_cierre_mes') ||
+                    tienePermiso('ver_mantenimientos_contables') || tienePermiso('configurar_contabilidad')
+                ): ?>
+                    <a class="nav-link collapsed" href="#"
+                       data-toggle="collapse" data-target="#contabilidad"
+                       aria-expanded="false" aria-controls="contabilidad">
+                        <div class="sb-nav-link-icon si-contab"><i class="fa-solid fa-book-open-reader"></i></div>
                         Contabilidad
                         <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
                     <div class="collapse" id="contabilidad" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
-
                             <?php if (tienePermiso('ver_contabilidad')): ?>
-                                <a class="nav-link" href="/contabilidad">Panel Resumen
-                                </a>
+                                <a class="nav-link" href="/contabilidad">Panel Resumen</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_plan_cuentas')): ?>
-                                <a class="nav-link" href="/contabilidad/plan-cuentas">Catalogo de Cuentas
-                                </a>
+                                <a class="nav-link" href="/contabilidad/plan-cuentas">Catálogo de Cuentas</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_periodos_contables')): ?>
-                                <a class="nav-link" href="/contabilidad/periodos">Períodos
-                                </a>
+                                <a class="nav-link" href="/contabilidad/periodos">Períodos</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_asientos')): ?>
-                                <a class="nav-link" href="/contabilidad/asientos">Asientos Contables
-                                </a>
+                                <a class="nav-link" href="/contabilidad/asientos">Asientos Contables</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_listados_contables')): ?>
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contListados"
-                                    aria-expanded="false" aria-controls="contListados">
+                                <a class="nav-link collapsed" href="#"
+                                   data-toggle="collapse" data-target="#contListados"
+                                   aria-expanded="false" aria-controls="contListados">
                                     Listados
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                                 </a>
@@ -243,10 +214,10 @@
                                     </nav>
                                 </div>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_reportes_contables')): ?>
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contReportes"
-                                    aria-expanded="false" aria-controls="contReportes">
+                                <a class="nav-link collapsed" href="#"
+                                   data-toggle="collapse" data-target="#contReportes"
+                                   aria-expanded="false" aria-controls="contReportes">
                                     Reportes
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                                 </a>
@@ -258,10 +229,10 @@
                                     </nav>
                                 </div>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_mantenimientos_contables')): ?>
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contMant"
-                                    aria-expanded="false" aria-controls="contMant">
+                                <a class="nav-link collapsed" href="#"
+                                   data-toggle="collapse" data-target="#contMant"
+                                   aria-expanded="false" aria-controls="contMant">
                                     Mantenimientos
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                                 </a>
@@ -274,10 +245,10 @@
                                     </nav>
                                 </div>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ejecutar_cierre_mes') || tienePermiso('ejecutar_cierre_anual')): ?>
-                                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#contProcesos"
-                                    aria-expanded="false" aria-controls="contProcesos">
+                                <a class="nav-link collapsed" href="#"
+                                   data-toggle="collapse" data-target="#contProcesos"
+                                   aria-expanded="false" aria-controls="contProcesos">
                                     Procesos
                                     <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                                 </a>
@@ -292,339 +263,200 @@
                                     </nav>
                                 </div>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('configurar_contabilidad')): ?>
-                                <a class="nav-link" href="/contabilidad/configuracion">
-                                    <i class="fa-solid fa-cog mr-1"></i>Configuración
-                                </a>
-                            <?php endif; ?>
-
-                        </nav>
-                    </div>
-                <?php endif; ?>
-                <?php if (
-                    tienePermiso('ver_inventario')
-                ): ?>
-                    <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#inventario"
-                        aria-expanded="false"
-                        aria-controls="inventario">
-
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-boxes-packing"></i>
-                        </div>
-
-                        Inventario
-
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
-                    </a>
-
-                    <div class="collapse" id="inventario" data-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
-                            <?php if (tienePermiso('ver_inventario')): ?>
-                                <a class="nav-link" href="/inventory">
-                                    Inventario
-                                </a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ver_compras')): ?>
-                                <a class="nav-link" href="/purchases">
-                                    Ver compras
-                                </a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ver_pagos_a_compras')): ?>
-                                <a class="nav-link" href="/compraspagos">
-                                    Ver Pagos a compras
-                                </a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ver_proveedores')): ?>
-                                <a class="nav-link" href="/proveedores">
-                                    Proveedores
-                                </a>
+                                <a class="nav-link" href="/contabilidad/configuracion">Configuración</a>
                             <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_comisiones') ||
-                    tienePermiso('configurar_comisiones') ||
-                    tienePermiso('ver_reportes_comisiones')
-                ): ?>
+                <!-- COMISIONES -->
+                <?php if (tienePermiso('ver_comisiones') || tienePermiso('configurar_comisiones') || tienePermiso('ver_reportes_comisiones')): ?>
                     <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#comisiones"
-                        aria-expanded="false"
-                        aria-controls="comisiones">
-
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-percent"></i>
-                        </div>
-
+                       data-toggle="collapse" data-target="#comisiones"
+                       aria-expanded="false" aria-controls="comisiones">
+                        <div class="sb-nav-link-icon si-comis"><i class="fa-solid fa-percent"></i></div>
                         Comisiones
-
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
                     <div class="collapse" id="comisiones" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
-
                             <?php if (tienePermiso('ver_comisiones')): ?>
-                                <a class="nav-link" href="/comisiones">
-                                    Ver comisiones
-                                </a>
+                                <a class="nav-link" href="/comisiones">Ver Comisiones</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('configurar_comisiones')): ?>
-                                <a class="nav-link" href="/comisiones/configuracion">
-                                    Configuración
-                                </a>
+                                <a class="nav-link" href="/comisiones/configuracion">Configuración</a>
                             <?php endif; ?>
-
                             <?php if (tienePermiso('ver_reportes_comisiones')): ?>
-                                <a class="nav-link" href="/comisiones/reportes">
-                                    Reportes
-                                </a>
+                                <a class="nav-link" href="/comisiones/reportes">Reportes</a>
                             <?php endif; ?>
-
                         </nav>
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_pedidos') ||
-                    tienePermiso('crear_pedidos')
-                ): ?>
+                <!-- PEDIDOS -->
+                <?php if (tienePermiso('ver_pedidos') || tienePermiso('crear_pedidos')): ?>
                     <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#pedidos"
-                        aria-expanded="false"
-                        aria-controls="pedidos">
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-cart-shopping"></i>
-                        </div>
+                       data-toggle="collapse" data-target="#pedidos"
+                       aria-expanded="false" aria-controls="pedidos">
+                        <div class="sb-nav-link-icon si-pedidos"><i class="fa-solid fa-cart-shopping"></i></div>
                         Notas de Pedido
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
                     <div class="collapse" id="pedidos" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('ver_pedidos')): ?>
-                                <a class="nav-link" href="/pedidos">
-                                    Ver Notas de Pedido
-                                </a>
+                                <a class="nav-link" href="/pedidos">Ver Pedidos</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('crear_pedidos')): ?>
-                                <a class="nav-link" href="/pedidos/crear">
-                                    Nueva Nota
-                                </a>
+                                <a class="nav-link" href="/pedidos/crear">Nueva Nota</a>
                             <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_consignaciones') ||
-                    tienePermiso('crear_consignaciones') ||
-                    tienePermiso('ver_precios_consignaciones')
-                ): ?>
+                <!-- CONSIGNACIONES -->
+                <?php if (tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') || tienePermiso('ver_precios_consignaciones')): ?>
                     <a class="nav-link collapsed" href="#"
-                        data-toggle="collapse"
-                        data-target="#consignaciones"
-                        aria-expanded="false"
-                        aria-controls="consignaciones">
-                        <div class="sb-nav-link-icon">
-                            <i class="fa-solid fa-truck-ramp-box"></i>
-                        </div>
+                       data-toggle="collapse" data-target="#consignaciones"
+                       aria-expanded="false" aria-controls="consignaciones">
+                        <div class="sb-nav-link-icon si-consig"><i class="fa-solid fa-truck-ramp-box"></i></div>
                         Consignaciones
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fa-solid fa-angle-down"></i>
-                        </div>
+                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
                     </a>
-
                     <div class="collapse" id="consignaciones" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
                             <?php if (tienePermiso('ver_consignaciones')): ?>
-                                <a class="nav-link" href="/consignaciones">
-                                    Notas de Envío
-                                </a>
+                                <a class="nav-link" href="/consignaciones">Notas de Envío</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('crear_consignaciones')): ?>
-                                <a class="nav-link" href="/consignaciones/crear">
-                                    Nueva Nota
-                                </a>
+                                <a class="nav-link" href="/consignaciones/crear">Nueva Nota</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_precios_consignaciones')): ?>
-                                <a class="nav-link" href="/consignaciones/precios">
-                                    Precios por Vendedor
-                                </a>
+                                <a class="nav-link" href="/consignaciones/precios">Precios por Vendedor</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_consignaciones')): ?>
-                                <a class="nav-link" href="/consignaciones/reportes">
-                                    Reportes
-                                </a>
+                                <a class="nav-link" href="/consignaciones/reportes">Reportes</a>
                             <?php endif; ?>
                         </nav>
                     </div>
                 <?php endif; ?>
 
-                <?php if (
-                    tienePermiso('ver_vendedores')
-                ): ?>
-                    <a class="nav-link" href="/sellers">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-address-book"></i></div>
-                        Vendedores
-                    </a>
+                <!-- CATÁLOGOS -->
+                <?php if (tienePermiso('ver_vendedores') || tienePermiso('ver_tipo_venta')): ?>
+                    <div class="sb-sidenav-menu-heading">Catálogos</div>
+                    <?php if (tienePermiso('ver_vendedores')): ?>
+                        <a class="nav-link" href="/sellers">
+                            <div class="sb-nav-link-icon si-vendedores"><i class="fa-solid fa-address-book"></i></div>
+                            Vendedores
+                        </a>
+                    <?php endif; ?>
+                    <?php if (tienePermiso('ver_tipo_venta')): ?>
+                        <a class="nav-link" href="/tipo_venta">
+                            <div class="sb-nav-link-icon si-tipoventa"><i class="fa-solid fa-clipboard-list"></i></div>
+                            Tipos de Venta
+                        </a>
+                    <?php endif; ?>
                 <?php endif; ?>
 
+                <!-- ADMINISTRACIÓN -->
                 <?php if (
-                    tienePermiso('ver_tipo_venta')
+                    tienePermiso('ver_configuracion') || tienePermiso('ver_sucursales') ||
+                    tienePermiso('ver_usuarios') || tienePermiso('ver_roles') ||
+                    tienePermiso('ver_reportes') || tienePermiso('ver_bitacora')
                 ): ?>
-                    <a class="nav-link" href="/tipo_venta">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-                        Tipos de venta
-                    </a>
-                <?php endif; ?>
+                    <div class="sb-sidenav-menu-heading">Administración</div>
 
-                <?php if (
-                    tienePermiso('ver_configuracion') ||
-                    tienePermiso('ver_sucursales') ||
-                    tienePermiso('ver_usuarios') ||
-                    tienePermiso('ver_roles')
-                ): ?>
-                    <div class="sb-sidenav-menu-heading">Ajustes del sistema</div>
-
-                    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#company_settings"
-                        aria-expanded="false" aria-controls="company_settings">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-cog"></i></div>
-                        Ajustes del sistema
-                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
-                    </a>
-                    <div class="collapse" id="company_settings"
-                        aria-labelledby="headingOne"
-                        data-parent="#sidenavAccordion">
-
-                        <nav class="sb-sidenav-menu-nested nav">
-
-                            <?php if (tienePermiso('ver_usuarios') || tienePermiso('ver_roles')): ?>
-
-                                <a class="nav-link collapsed" href="#"
-                                    data-toggle="collapse"
-                                    data-target="#staffs"
-                                    aria-expanded="false"
-                                    aria-controls="staffs">
-                                    Gestión de usuarios
-                                    <div class="sb-sidenav-collapse-arrow">
-                                        <i class="fa-solid fa-angle-down"></i>
+                    <?php if (tienePermiso('ver_configuracion') || tienePermiso('ver_sucursales') || tienePermiso('ver_usuarios') || tienePermiso('ver_roles')): ?>
+                        <a class="nav-link collapsed" href="#"
+                           data-toggle="collapse" data-target="#company_settings"
+                           aria-expanded="false" aria-controls="company_settings">
+                            <div class="sb-nav-link-icon si-admin"><i class="fa-solid fa-gear"></i></div>
+                            Ajustes del Sistema
+                            <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse" id="company_settings" data-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                <?php if (tienePermiso('ver_usuarios') || tienePermiso('ver_roles')): ?>
+                                    <a class="nav-link collapsed" href="#"
+                                       data-toggle="collapse" data-target="#staffs"
+                                       aria-expanded="false" aria-controls="staffs">
+                                        Gestión de Usuarios
+                                        <div class="sb-sidenav-collapse-arrow"><i class="fa-solid fa-angle-down"></i></div>
+                                    </a>
+                                    <div class="collapse" id="staffs">
+                                        <nav class="sb-sidenav-menu-nested nav">
+                                            <?php if (tienePermiso('ver_usuarios')): ?>
+                                                <a class="nav-link" href="/users">Lista de Usuarios</a>
+                                            <?php endif; ?>
+                                            <?php if (tienePermiso('ver_roles')): ?>
+                                                <a class="nav-link" href="/roles">Roles y Permisos</a>
+                                            <?php endif; ?>
+                                        </nav>
                                     </div>
-                                </a>
+                                <?php endif; ?>
+                                <?php if (tienePermiso('ver_sucursales')): ?>
+                                    <a class="nav-link" href="/branches">Sucursales</a>
+                                <?php endif; ?>
+                                <?php if (tienePermiso('ajustes_multimedia')): ?>
+                                    <a class="nav-link" href="/content">Multimedia</a>
+                                <?php endif; ?>
+                                <?php if (tienePermiso('ver_configuracion')): ?>
+                                    <a class="nav-link" href="/settings">Información del Sistema</a>
+                                <?php endif; ?>
+                            </nav>
+                        </div>
+                    <?php endif; ?>
 
-                                <div class="collapse" id="staffs">
-                                    <nav class="sb-sidenav-menu-nested nav">
+                    <?php if (tienePermiso('ver_reportes')): ?>
+                        <a class="nav-link" href="/reports">
+                            <div class="sb-nav-link-icon si-reports"><i class="fa-solid fa-chart-line"></i></div>
+                            Reportería
+                        </a>
+                    <?php endif; ?>
 
-                                        <?php if (tienePermiso('ver_usuarios')): ?>
-                                            <a class="nav-link" href="/users">Lista de usuarios</a>
-                                        <?php endif; ?>
-
-                                        <?php if (tienePermiso('ver_roles')): ?>
-                                            <a class="nav-link" href="/roles">Roles</a>
-                                        <?php endif; ?>
-
-                                    </nav>
-                                </div>
-
-                            <?php endif; ?>
-
-                            <?php if (tienePermiso('ver_sucursales')): ?>
-                                <a class="nav-link" href="/branches">Listado de sucursales</a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ajustes_multimedia')): ?>
-                                <a class="nav-link" href="/content">Multimedia</a>
-                            <?php endif; ?>
-                            <?php if (tienePermiso('ver_configuracion')): ?>
-                                <a class="nav-link" href="/settings">Información de Sistema</a>
-                            <?php endif; ?>
-                        </nav>
-                    </div>
+                    <?php if (tienePermiso('ver_bitacora')): ?>
+                        <a class="nav-link" href="/logs">
+                            <div class="sb-nav-link-icon si-log"><i class="fa-solid fa-book"></i></div>
+                            Bitácora
+                        </a>
+                    <?php endif; ?>
 
                 <?php endif; ?>
-                <?php if (tienePermiso('ver_reportes')): ?>
-                    <a class="nav-link" href="/reports">
-                        <div class="sb-nav-link-icon"><i class="fa-solid fa-chart-line"></i></div>
-                        Reportería
-                    </a>
-                <?php endif; ?>
-                <?php if (tienePermiso('ver_bitacora')): ?>
-                    <a class="nav-link" href="/logs">
-                        <div class="sb-nav-link-icon"><i class="fas fa-book"></i></div>Bitácora
-                    </a>
-                <?php endif; ?>
+
             </div>
         </div>
     </nav>
 </div>
 
-<!-- Lógica de activación de Sidebar (requiere jQuery y Bootstrap JS) -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Obtener la ruta actual, normalizada para eliminar la barra inicial si existe, 
-        // y limpiar parámetros de consulta si los hay.
-        let currentPath = window.location.pathname;
+document.addEventListener('DOMContentLoaded', function () {
+    let currentPath = window.location.pathname;
+    if (currentPath === '/') {
+        currentPath = '/dashboard';
+    } else {
+        currentPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+        currentPath = currentPath.split('?')[0].split('#')[0];
+    }
 
-        // Si estás en la raíz (/), el path será solo /.
-        if (currentPath === '/') {
-            currentPath = '/dashboard'; // Asume que la raíz lleva al dashboard
-        } else {
-            // Eliminar la barra inicial para coincidencias más flexibles (e.g. /packages/new -> packages/new)
-            currentPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
-            // Eliminar parámetros de consulta y hashes (e.g. /tracking?filter=1 -> tracking)
-            currentPath = currentPath.split('?')[0].split('#')[0];
-        }
+    document.querySelectorAll('.nav-link').forEach(link => {
+        let href = link.getAttribute('href');
+        if (!href) return;
+        let normalized = href.startsWith('/') ? href.substring(1) : href;
+        normalized = normalized.startsWith('#') ? normalized.substring(1) : normalized;
 
-        // 1. Iterar sobre todos los enlaces de navegación
-        document.querySelectorAll('.nav-link').forEach(link => {
-            let linkHref = link.getAttribute('href');
-
-            if (linkHref) {
-                // Eliminar la barra inicial de la URL del enlace (e.g. /packages -> packages)
-                let normalizedLink = linkHref.startsWith('/') ? linkHref.substring(1) : linkHref;
-                // Eliminar el hash inicial de las URLs que usan solo anclas (e.g. #/reports -> /reports)
-                normalizedLink = normalizedLink.startsWith('#') ? normalizedLink.substring(1) : normalizedLink;
-
-                // Si la URL del enlace coincide exactamente con el path actual:
-                if (currentPath === normalizedLink) {
-                    // 2. Resaltar el enlace
-                    link.classList.add('active');
-
-                    // 3. Expandir el menú padre si es un sub-enlace
-                    // Buscar el contenedor de colapso padre (div.collapse)
-                    let parentCollapse = link.closest('.collapse');
-
-                    if (parentCollapse) {
-                        // Añadir la clase 'show' para abrir el submenú
-                        parentCollapse.classList.add('show');
-
-                        // Encontrar el enlace padre que controla este colapso (a.nav-link.collapsed)
-                        // Usamos el ID del colapso para encontrar el data-target coincidente
-                        const targetId = '#' + parentCollapse.id;
-                        const parentLink = document.querySelector(`a[data-target="${targetId}"]`);
-
-                        if (parentLink) {
-                            // Marcar el enlace padre como no colapsado y activo visualmente
-                            parentLink.classList.remove('collapsed');
-                            parentLink.setAttribute('aria-expanded', 'true');
-                            // Opcional: podrías agregar la clase 'active' también al enlace padre si deseas resaltarlo, 
-                            // pero solo 'active' en el subenlace es más común.
-                        }
-                    }
+        if (currentPath === normalized) {
+            link.classList.add('active');
+            let parentCollapse = link.closest('.collapse');
+            if (parentCollapse) {
+                parentCollapse.classList.add('show');
+                const parentLink = document.querySelector(`a[data-target="#${parentCollapse.id}"]`);
+                if (parentLink) {
+                    parentLink.classList.remove('collapsed');
+                    parentLink.setAttribute('aria-expanded', 'true');
                 }
             }
-        });
+        }
     });
+});
 </script>

@@ -47,7 +47,7 @@ class ContAsientosHeadModel extends Model
 
     public function getConDetalle(int $id)
     {
-        return $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes, users.user_name AS usuario_nombre, tp.nombre AS tipo_partida_nombre')
+        return $this->select('cont_asientos_head.*, cont_periodos.anio, cont_periodos.mes, cont_periodos.estado AS periodo_estado, users.user_name AS usuario_nombre, tp.nombre AS tipo_partida_nombre')
                     ->join('cont_periodos', 'cont_periodos.id = cont_asientos_head.periodo_id', 'left')
                     ->join('users', 'users.id = cont_asientos_head.usuario_id', 'left')
                     ->join('cont_tipos_partida tp', 'tp.id = cont_asientos_head.tipo_partida_id', 'left')
