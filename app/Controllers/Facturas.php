@@ -1087,25 +1087,130 @@ CCF YA VIENE SIN IVA
             ]);
         }
 
-        // Reversar asiento contable vinculado (si existe)
+        // Reversar asiento contable: se calcula desde los datos de la factura
+        // para funcionar correctamente con asientos consolidados por día.
         $mensajeContable = '';
-        try {
-            $contHeadModel = new \App\Models\ContAsientosHeadModel();
-            $asientoOrig   = $contHeadModel->buscarPorDocumento('factura', $id);
+        if (in_array($factura->tipo_dte, ['01', '03'])) {
+            try {
+                helper('cont_ventas');
+                $contHeadModel    = new \App\Models\ContAsientosHeadModel();
+                $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
+                $periodosModel    = new \App\Models\ContPeriodosModel();
 
-            if ($asientoOrig) {
-                $reversaId = $contHeadModel->crearReversa(
-                    $asientoOrig->id,
-                    'Anulación factura ' . substr($factura->numero_control, -6),
-                    $user_id
+                $periodo = $periodosModel->getPeriodoActual();
+                if (!$periodo) {
+                    throw new \Exception('No hay período contable abierto para registrar la reversión');
+                }
+
+                $ref           = substr($factura->numero_control, -6);
+                $tipoDteHelper = $factura->tipo_dte === '03' ? 'CCF' : 'FAC';
+                $monto         = $factura->tipo_dte === '03'
+                    ? (float)$factura->total_gravada
+                    : (float)$factura->monto_total_operacion;
+                $retencion     = (float)($factura->iva_rete1 ?? 0);
+
+                if ($monto <= 0) {
+                    throw new \Exception("Monto de factura inválido ({$monto})");
+                }
+
+                // Subcuenta CxC específica del cliente si existe
+                $cxcOverrideId = null;
+                if (!empty($factura->receptor_id)) {
+                    $cli = (new \App\Models\ClienteModel())
+                        ->select('id, cuenta_contable_id')
+                        ->find((int)$factura->receptor_id);
+                    if ($cli && !empty($cli->cuenta_contable_id)) {
+                        $cxcOverrideId = (int)$cli->cuenta_contable_id;
+                    }
+                }
+
+                // Calcular líneas del asiento original (misma lógica que la carga)
+                $resultado = cont_asiento_venta_json(
+                    $tipoDteHelper,
+                    $monto,
+                    $retencion,
+                    $ref,
+                    $periodo->id,
+                    date('Y-m-d'),
+                    'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref,
+                    null,
+                    $cxcOverrideId
                 );
-                $mensajeContable = ' Asiento de reversión AST-' . str_pad(
-                    $contHeadModel->find($reversaId)->numero_asiento,
-                    5, '0', STR_PAD_LEFT
-                ) . ' generado.';
+
+                if (!$resultado['ok']) {
+                    throw new \Exception('Error al calcular líneas contables: ' . implode(', ', $resultado['errores']));
+                }
+
+                // Invertir DEBE ↔ HABER para el asiento de reversión
+                $payload       = $resultado['payload'];
+                $lineasReversa = [];
+                foreach ($payload['lineas'] as $l) {
+                    $lineasReversa[] = [
+                        'cuenta_id'   => $l['cuenta_id'],
+                        'descripcion' => 'REVERSA: ' . $l['descripcion'],
+                        'debe'        => $l['haber'],
+                        'haber'       => $l['debe'],
+                    ];
+                }
+
+                $totalDebe  = round(array_sum(array_column($lineasReversa, 'debe')), 2);
+                $totalHaber = round(array_sum(array_column($lineasReversa, 'haber')), 2);
+
+                $tipoPartidaId = !empty($payload['tipo_partida_id']) ? (int)$payload['tipo_partida_id'] : null;
+                $numPartida    = $tipoPartidaId
+                    ? $contHeadModel->getSiguienteNumeroPartida($tipoPartidaId, (int)date('Y'))
+                    : null;
+                $numAsiento    = $contHeadModel->getSiguienteNumero();
+
+                $reversaId = $contHeadModel->insert([
+                    'numero_asiento'     => $numAsiento,
+                    'numero_partida'     => $numPartida,
+                    'fecha'              => date('Y-m-d'),
+                    'descripcion'        => 'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref,
+                    'tipo'               => 'DIARIO',
+                    'tipo_partida_id'    => $tipoPartidaId,
+                    'estado'             => 'APROBADO',
+                    'periodo_id'         => $periodo->id,
+                    'total_debe'         => $totalDebe,
+                    'total_haber'        => $totalHaber,
+                    'referencia'         => 'Anulación ' . $ref,
+                    'documento_tipo'     => 'factura',
+                    'documento_id'       => (int)$id,
+                    'usuario_id'         => $user_id,
+                    'usuario_aprueba_id' => $user_id,
+                    'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+                ]);
+
+                if (!$reversaId) {
+                    throw new \Exception('No se pudo insertar el encabezado del asiento de reversión');
+                }
+
+                foreach ($lineasReversa as $i => $l) {
+                    $contDetalleModel->insert([
+                        'asiento_id'  => $reversaId,
+                        'cuenta_id'   => $l['cuenta_id'],
+                        'descripcion' => $l['descripcion'],
+                        'debe'        => $l['debe'],
+                        'haber'       => $l['haber'],
+                        'orden'       => $i + 1,
+                    ]);
+                }
+
+                $contHeadModel->aprobarConSaldos(
+                    $reversaId,
+                    $lineasReversa,
+                    $periodo->id,
+                    date('Y-m-d'),
+                    'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref,
+                    'DIARIO',
+                    $periodo
+                );
+
+                $mensajeContable = ' Asiento de reversión AST-' . str_pad($numAsiento, 5, '0', STR_PAD_LEFT) . ' generado.';
+
+            } catch (\Throwable $e) {
+                $mensajeContable = ' (Nota: no se pudo crear reversión contable: ' . $e->getMessage() . ')';
             }
-        } catch (\Throwable $e) {
-            $mensajeContable = ' (Nota: no se pudo crear reversión contable: ' . $e->getMessage() . ')';
         }
 
         // Bitácora
