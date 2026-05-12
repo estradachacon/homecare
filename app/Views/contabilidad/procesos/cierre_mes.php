@@ -1,8 +1,8 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
+<div class="row">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <h4 class="header-title mb-0"><i class="fa-solid fa-lock me-2"></i>Proceso de Cierre de Mes</h4>

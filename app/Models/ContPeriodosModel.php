@@ -14,6 +14,7 @@ class ContPeriodosModel extends Model
     protected $allowedFields = [
         'anio', 'mes', 'estado', 'fecha_apertura',
         'fecha_cierre', 'usuario_cierre_id',
+        'cierre_anual', 'fecha_cierre_anual',
     ];
 
     public function getPeriodoActual()
@@ -46,6 +47,22 @@ class ContPeriodosModel extends Model
         $db = \Config\Database::connect();
         $rows = $db->query('SELECT DISTINCT anio FROM cont_periodos ORDER BY anio DESC')->getResultArray();
         return array_column($rows, 'anio');
+    }
+
+    public function esCierreAnualEjecutado(int $anio): bool
+    {
+        return $this->where('anio', $anio)
+                    ->where('cierre_anual', 1)
+                    ->countAllResults() > 0;
+    }
+
+    public function marcarCierreAnual(int $anio): void
+    {
+        $db = \Config\Database::connect();
+        $db->query(
+            'UPDATE cont_periodos SET cierre_anual = 1, fecha_cierre_anual = ? WHERE anio = ?',
+            [date('Y-m-d'), $anio]
+        );
     }
 
     /**

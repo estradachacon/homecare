@@ -20,15 +20,55 @@ class ContPeriodosController extends BaseController
 
         $model   = new ContPeriodosModel();
         $anios   = $model->getAniosDisponibles();
-        $anioSel = $this->request->getGet('anio') ?? (int)date('Y');
+        $anioSel = (int)($this->request->getGet('anio') ?? date('Y'));
 
-        $periodos = $model->getPeriodosPorAnio((int)$anioSel);
+        $periodos = $model->getPeriodosPorAnio($anioSel);
+
+        // Estadísticas del año seleccionado
+        $totalCreados       = count($periodos);
+        $totalCerrados      = 0;
+        $cierreAnualEjecutado = false;
+        $fechaCierreAnual   = null;
+
+        foreach ($periodos as $p) {
+            if ($p->estado === 'CERRADO') {
+                $totalCerrados++;
+            }
+            if (!empty($p->cierre_anual) && (int)$p->cierre_anual === 1) {
+                $cierreAnualEjecutado = true;
+                if (!empty($p->fecha_cierre_anual)) {
+                    $fechaCierreAnual = $p->fecha_cierre_anual;
+                }
+            }
+        }
+
+        // Conteo de asientos por período
+        $asientosPorPeriodo = [];
+        if (!empty($periodos)) {
+            $db         = \Config\Database::connect();
+            $periodoIds = array_column($periodos, 'id');
+            $rows = $db->query(
+                'SELECT periodo_id, COUNT(*) AS total, COALESCE(SUM(total_debe),0) AS suma_debe
+                 FROM cont_asientos_head
+                 WHERE periodo_id IN (' . implode(',', array_map('intval', $periodoIds)) . ')
+                   AND estado != "ANULADO"
+                 GROUP BY periodo_id'
+            )->getResult();
+            foreach ($rows as $r) {
+                $asientosPorPeriodo[$r->periodo_id] = $r;
+            }
+        }
 
         return view('contabilidad/periodos/index', [
-            'periodos' => $periodos,
-            'anios'    => $anios,
-            'anioSel'  => $anioSel,
-            'meses'    => $this->meses,
+            'periodos'             => $periodos,
+            'anios'                => $anios,
+            'anioSel'              => $anioSel,
+            'meses'                => $this->meses,
+            'totalCreados'         => $totalCreados,
+            'totalCerrados'        => $totalCerrados,
+            'cierreAnualEjecutado' => $cierreAnualEjecutado,
+            'fechaCierreAnual'     => $fechaCierreAnual,
+            'asientosPorPeriodo'   => $asientosPorPeriodo,
         ]);
     }
 
@@ -50,6 +90,13 @@ class ContPeriodosController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'El período ya existe']);
         }
 
+        if ($model->esCierreAnualEjecutado($anio)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => "No se pueden crear períodos para {$anio}: el cierre anual ya fue ejecutado para ese año.",
+            ]);
+        }
+
         $model->insert([
             'anio'           => $anio,
             'mes'            => $mes,
@@ -60,7 +107,7 @@ class ContPeriodosController extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Período creado correctamente']);
     }
 
-    public function cerrar($id)
+    public function cerrar(int $id)
     {
         $chk = requerirPermiso('cerrar_periodo_contable');
         if ($chk !== true) return $chk;
@@ -75,13 +122,12 @@ class ContPeriodosController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'El período ya está cerrado']);
         }
 
-        // Verificar asientos en borrador
         $asientoModel = new ContAsientosHeadModel();
-        $borradores = $asientoModel->where('periodo_id', $id)->where('estado', 'BORRADOR')->countAllResults();
+        $borradores   = $asientoModel->where('periodo_id', $id)->where('estado', 'BORRADOR')->countAllResults();
         if ($borradores > 0) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => "Existen $borradores asiento(s) en borrador. Deben aprobarse o anularse antes de cerrar el período."
+                'message' => "Existen $borradores asiento(s) en borrador. Deben aprobarse o anularse antes de cerrar el período.",
             ]);
         }
 
@@ -94,7 +140,7 @@ class ContPeriodosController extends BaseController
         return $this->response->setJSON(['success' => true, 'message' => 'Período cerrado correctamente']);
     }
 
-    public function reabrir($id)
+    public function reabrir(int $id)
     {
         $chk = requerirPermiso('cerrar_periodo_contable');
         if ($chk !== true) return $chk;
@@ -103,10 +149,22 @@ class ContPeriodosController extends BaseController
         $periodo = $model->find($id);
 
         if (!$periodo || $periodo->estado === 'ABIERTO') {
-            return $this->response->setJSON(['success' => false, 'message' => 'No se puede reabrir']);
+            return $this->response->setJSON(['success' => false, 'message' => 'No se puede reabrir este período']);
         }
 
-        $model->update($id, ['estado' => 'ABIERTO', 'fecha_cierre' => null, 'usuario_cierre_id' => null]);
-        return $this->response->setJSON(['success' => true, 'message' => 'Período reabierto']);
+        if (!empty($periodo->cierre_anual) && (int)$periodo->cierre_anual === 1) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => "El año {$periodo->anio} tiene cierre anual ejecutado. No es posible reabrir períodos de un año cerrado anualmente.",
+            ]);
+        }
+
+        $model->update($id, [
+            'estado'            => 'ABIERTO',
+            'fecha_cierre'      => null,
+            'usuario_cierre_id' => null,
+        ]);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Período reabierto correctamente']);
     }
 }

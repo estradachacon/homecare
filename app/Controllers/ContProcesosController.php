@@ -7,8 +7,6 @@ use App\Models\ContAsientosHeadModel;
 use App\Models\ContAsientosDetalleModel;
 use App\Models\ContSaldosCuentasModel;
 use App\Models\ContSaldosHistoricosModel;
-use App\Models\ContTransaccionesHistModel;
-use App\Models\ContPlanCuentasModel;
 use App\Models\ContConfiguracionModel;
 
 class ContProcesosController extends BaseController
@@ -41,7 +39,6 @@ class ContProcesosController extends BaseController
 
         $periodosModel = new ContPeriodosModel();
         $headModel     = new ContAsientosHeadModel();
-        $detalleModel  = new ContAsientosDetalleModel();
         $saldosModel   = new ContSaldosCuentasModel();
         $histModel     = new ContSaldosHistoricosModel();
 
@@ -143,13 +140,33 @@ class ContProcesosController extends BaseController
         $chk = requerirPermiso('ejecutar_cierre_anual');
         if ($chk !== true) return $chk;
 
-        $db   = \Config\Database::connect();
+        $db = \Config\Database::connect();
+
+        // Solo años donde todos los períodos existentes están CERRADO y el cierre anual NO ha sido ejecutado
         $anios = $db->query(
-            'SELECT DISTINCT anio FROM cont_periodos WHERE estado="CERRADO" ORDER BY anio DESC'
+            "SELECT anio
+             FROM cont_periodos
+             GROUP BY anio
+             HAVING COUNT(*) > 0
+                AND COUNT(*) = SUM(estado = 'CERRADO')
+                AND MAX(cierre_anual) = 0
+             ORDER BY anio DESC"
         )->getResultArray();
         $anios = array_column($anios, 'anio');
 
-        return view('contabilidad/procesos/cierre_anual', ['anios' => $anios]);
+        // Años ya cerrados anualmente (para mostrar historial)
+        $aniosCerrados = $db->query(
+            "SELECT anio, MAX(fecha_cierre_anual) AS fecha_cierre_anual
+             FROM cont_periodos
+             WHERE cierre_anual = 1
+             GROUP BY anio
+             ORDER BY anio DESC"
+        )->getResult();
+
+        return view('contabilidad/procesos/cierre_anual', [
+            'anios'         => $anios,
+            'aniosCerrados' => $aniosCerrados,
+        ]);
     }
 
     public function ejecutarCierreAnual()
@@ -168,7 +185,6 @@ class ContProcesosController extends BaseController
         $configModel   = new ContConfiguracionModel();
         $headModel     = new ContAsientosHeadModel();
         $detalleModel  = new ContAsientosDetalleModel();
-        $saldosModel   = new ContSaldosCuentasModel();
 
         // Verificar que todos los períodos del año estén cerrados
         $abiertos = $periodosModel->where('anio', $anio)->where('estado','ABIERTO')->countAllResults();
@@ -240,6 +256,9 @@ class ContProcesosController extends BaseController
         if ($db->transStatus() === false) {
             return $this->response->setJSON(['success' => false, 'message' => 'Error en la base de datos']);
         }
+
+        // Marcar todos los períodos del año como cierre anual ejecutado
+        $periodosModel->marcarCierreAnual($anio);
 
         return $this->response->setJSON([
             'success'  => true,
