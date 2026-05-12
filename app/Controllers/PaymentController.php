@@ -485,6 +485,8 @@ class PaymentController extends BaseController
                     'total_debe'         => $monto,
                     'total_haber'        => $monto,
                     'referencia'         => 'PAGO-' . $pagoId,
+                    'documento_tipo'     => 'pago',
+                    'documento_id'       => $pagoId,
                     'usuario_id'         => $userId,
                     'usuario_aprueba_id' => $userId,
                     'fecha_aprobacion'   => date('Y-m-d H:i:s'),

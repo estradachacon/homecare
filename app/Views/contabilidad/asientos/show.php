@@ -124,6 +124,31 @@ $mesesN = [
                             <strong><?= esc($asiento->referencia) ?></strong>
                         </div>
                     <?php endif; ?>
+                    <?php
+                    $docLinks = [
+                        'factura' => ['url' => 'facturas/',  'label' => 'Factura', 'icon' => 'fa-file-invoice'],
+                        'pago'    => ['url' => 'payments/', 'label' => 'Pago',    'icon' => 'fa-money-bill'],
+                    ];
+                    if (!empty($asiento->documento_tipo) && !empty($asiento->documento_id) && isset($docLinks[$asiento->documento_tipo])):
+                        $dl = $docLinks[$asiento->documento_tipo];
+                    ?>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Documento origen</small>
+                            <a href="<?= base_url($dl['url'] . $asiento->documento_id) ?>" class="fw-bold">
+                                <i class="fa-solid <?= $dl['icon'] ?> mr-1"></i>
+                                <?= $dl['label'] ?> #<?= $asiento->documento_id ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($asiento->reversa_de)): ?>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Reversión de</small>
+                            <a href="<?= base_url('contabilidad/asientos/' . $asiento->reversa_de) ?>" class="fw-bold text-danger">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>
+                                AST-<?= str_pad($asiento->reversa_de, 5, '0', STR_PAD_LEFT) ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($asiento->usuario_nombre): ?>
                         <div class="col-md-3">
                             <small class="text-muted d-block">Creado por</small>

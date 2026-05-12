@@ -619,6 +619,7 @@ CCF YA VIENE SIN IVA
                     'retencion'        => (float)($json['resumen']['ivaRete1'] ?? 0),
                     'fechaEmision'     => $json['identificacion']['fecEmi'] ?? date('Y-m-d'),
                     'numeroControl'    => $dataHead['numero_control'],
+                    'facturaId'        => $facturaId,
                     'clienteId'        => $clienteId ?? null,
                     'tipoLinea'        => $tipoLineas[$index] ?? 'producto',
                     'cuentaOverrideId' => (($tipoLineas[$index] ?? '') === 'servicio' && !empty($cuentaVentasOverrides[$index]))
@@ -817,6 +818,8 @@ CCF YA VIENE SIN IVA
                         'total_debe'         => $totalDebe,
                         'total_haber'        => $totalHaber,
                         'referencia'         => $payload['referencia'],
+                        'documento_tipo'     => 'factura',
+                        'documento_id'       => $item['facturaId'] ?? null,
                         'usuario_id'         => $user_id,
                         'usuario_aprueba_id' => $user_id,
                         'fecha_aprobacion'   => date('Y-m-d H:i:s'),
@@ -1082,6 +1085,27 @@ CCF YA VIENE SIN IVA
             ]);
         }
 
+        // Reversar asiento contable vinculado (si existe)
+        $mensajeContable = '';
+        try {
+            $contHeadModel = new \App\Models\ContAsientosHeadModel();
+            $asientoOrig   = $contHeadModel->buscarPorDocumento('factura', $id);
+
+            if ($asientoOrig) {
+                $reversaId = $contHeadModel->crearReversa(
+                    $asientoOrig->id,
+                    'Anulación factura ' . substr($factura->numero_control, -6),
+                    $user_id
+                );
+                $mensajeContable = ' Asiento de reversión AST-' . str_pad(
+                    $contHeadModel->find($reversaId)->numero_asiento,
+                    5, '0', STR_PAD_LEFT
+                ) . ' generado.';
+            }
+        } catch (\Throwable $e) {
+            $mensajeContable = ' (Nota: no se pudo crear reversión contable: ' . $e->getMessage() . ')';
+        }
+
         // Bitácora
         registrar_bitacora(
             'Anulación de factura',
@@ -1102,7 +1126,7 @@ CCF YA VIENE SIN IVA
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Factura anulada correctamente y saldo reintegrado.'
+            'message' => 'Factura anulada correctamente y saldo reintegrado.' . $mensajeContable,
         ]);
     }
 

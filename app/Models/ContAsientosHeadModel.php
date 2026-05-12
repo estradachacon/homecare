@@ -14,6 +14,7 @@ class ContAsientosHeadModel extends Model
     protected $allowedFields = [
         'numero_asiento', 'numero_partida', 'fecha', 'descripcion', 'tipo', 'tipo_partida_id', 'estado',
         'periodo_id', 'total_debe', 'total_haber', 'referencia',
+        'documento_tipo', 'documento_id', 'reversa_de',
         'usuario_id', 'usuario_aprueba_id', 'fecha_aprobacion', 'motivo_anulacion',
     ];
 
@@ -91,6 +92,95 @@ class ContAsientosHeadModel extends Model
                 'created_at'      => date('Y-m-d H:i:s'),
             ]);
         }
+    }
+
+    public function buscarPorDocumento(string $tipo, int $id): ?object
+    {
+        return $this->where('documento_tipo', $tipo)
+                    ->where('documento_id', $id)
+                    ->where('estado !=', 'ANULADO')
+                    ->first();
+    }
+
+    /**
+     * Crea un asiento de reversión (DEBE/HABER invertidos) del asiento dado.
+     * Actualiza saldos e histórico con el efecto inverso.
+     * Retorna el ID del asiento de reversa creado.
+     */
+    public function crearReversa(int $asientoId, string $motivo, int $userId): int
+    {
+        $detalleModel  = new \App\Models\ContAsientosDetalleModel();
+        $periodosModel = new \App\Models\ContPeriodosModel();
+
+        $original = $this->find($asientoId);
+        if (!$original) {
+            throw new \Exception("Asiento #{$asientoId} no encontrado para reversión");
+        }
+
+        $periodo = $periodosModel->getPeriodoActual();
+        if (!$periodo) {
+            throw new \Exception('No hay período contable abierto para registrar la reversión');
+        }
+
+        $lineasOriginales = $detalleModel
+            ->where('asiento_id', $asientoId)
+            ->orderBy('orden', 'ASC')
+            ->findAll();
+
+        if (empty($lineasOriginales)) {
+            throw new \Exception("El asiento #{$asientoId} no tiene líneas de detalle");
+        }
+
+        $fechaReversa  = date('Y-m-d');
+        $numPartida    = $original->tipo_partida_id
+            ? $this->getSiguienteNumeroPartida((int)$original->tipo_partida_id, (int)substr($fechaReversa, 0, 4))
+            : null;
+
+        $reversaId = $this->insert([
+            'numero_asiento'     => $this->getSiguienteNumero(),
+            'numero_partida'     => $numPartida,
+            'fecha'              => $fechaReversa,
+            'descripcion'        => 'REVERSA: ' . $original->descripcion,
+            'tipo'               => $original->tipo,
+            'tipo_partida_id'    => $original->tipo_partida_id,
+            'estado'             => 'APROBADO',
+            'periodo_id'         => $periodo->id,
+            'total_debe'         => $original->total_haber,
+            'total_haber'        => $original->total_debe,
+            'referencia'         => $motivo,
+            'documento_tipo'     => $original->documento_tipo,
+            'documento_id'       => $original->documento_id,
+            'reversa_de'         => $asientoId,
+            'usuario_id'         => $userId,
+            'usuario_aprueba_id' => $userId,
+            'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+        ]);
+
+        if (!$reversaId) {
+            throw new \Exception('No se pudo insertar el encabezado del asiento de reversión');
+        }
+
+        $lineasReversa = [];
+        foreach ($lineasOriginales as $i => $l) {
+            $detalleModel->insert([
+                'asiento_id'  => $reversaId,
+                'cuenta_id'   => $l->cuenta_id,
+                'descripcion' => 'REVERSA: ' . $l->descripcion,
+                'debe'        => $l->haber,
+                'haber'       => $l->debe,
+                'orden'       => $i + 1,
+            ]);
+            $lineasReversa[] = [
+                'cuenta_id'   => $l->cuenta_id,
+                'debe'        => $l->haber,
+                'haber'       => $l->debe,
+                'descripcion' => 'REVERSA: ' . $l->descripcion,
+            ];
+        }
+
+        $this->aprobarConSaldos($reversaId, $lineasReversa, $periodo->id, $fechaReversa, 'REVERSA: ' . $original->descripcion, $original->tipo, $periodo);
+
+        return (int)$reversaId;
     }
 
     public function getByPeriodo(int $periodoId)
