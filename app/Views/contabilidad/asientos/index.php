@@ -95,7 +95,7 @@ select.form-select option {
                             <th class="text-center" style="width:100px">N° Asiento</th>
                             <th class="text-center" style="width:100px">Fecha</th>
                             <th>Descripción</th>
-                            <th class="text-center" style="width:90px">Tipo</th>
+                            <th class="text-center" style="width:200px">Tipo</th>
                             <th class="text-center" style="width:90px">Estado</th>
                             <th class="text-end" style="width:110px">Debe</th>
                             <th class="text-end" style="width:110px">Haber</th>

@@ -368,6 +368,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('contabilidad/reportes/diario',             'ContReportesController::diario');
     $routes->get('contabilidad/reportes/mayor',              'ContReportesController::mayor');
     $routes->get('contabilidad/reportes/auxiliar',           'ContReportesController::auxiliar');
+    $routes->get('contabilidad/reportes/auxiliar/excel',     'ContReportesController::auxiliarExcel');
 
     // Procesos
     $routes->get('contabilidad/procesos/cierre-mes',                 'ContProcesosController::cierreMes');

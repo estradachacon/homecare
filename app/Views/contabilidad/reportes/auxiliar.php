@@ -77,15 +77,147 @@ foreach ($porCuenta as $cId => $lines) {
 ?>
 
 <style>
+/* ─── Screen-only: hide print elements ─────────────────────── */
 .print-header { display: none; }
+
+/* ─── @page: tight margins + native pagination ──────────────── */
+@page {
+    size: letter portrait;
+    margin: 8mm 6mm 12mm 6mm;
+    @bottom-right {
+        content: "Pág. " counter(page) " / " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 6.5pt;
+        color: #555;
+    }
+    @bottom-left {
+        content: "Libro Auxiliar de Cuentas";
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 6.5pt;
+        color: #888;
+    }
+}
+
 @media print {
-    .no-print  { display: none !important; }
+    /* hide screen chrome */
+    .no-print, .card-header, nav, aside,
+    .sidebar-wrapper, #sidebar-wrapper { display: none !important; }
+
+    /* show print-only elements */
     .print-header { display: block !important; }
-    .card { border: none !important; box-shadow: none !important; }
-    .card-header { background: none !important; border-bottom: 2px solid #333 !important; padding: 4px 0 !important; }
-    .account-section { page-break-inside: avoid; margin-bottom: 18pt !important; }
-    body, table, td, th { font-size: 9pt !important; }
-    .badge { border: 1px solid #555 !important; background: #eee !important; color: #000 !important; }
+
+    /* reset card wrapper */
+    .card, .card-body { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+    .col-md-12, .row  { padding: 0 !important; margin: 0 !important; }
+
+    /* base */
+    body { background: #fff !important; color: #000 !important; }
+    * { font-family: Arial, Helvetica, sans-serif !important; }
+
+    /* tables */
+    table { width: 100% !important; border-collapse: collapse !important; }
+    thead { display: table-header-group; }
+    tr    { page-break-inside: avoid; }
+
+    /* thead — black bold, navy bottom rule, tight vertical */
+    thead th {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 7.5pt !important;
+        font-weight: bold !important;
+        padding: 0.8pt 4pt !important;
+        border: 0.4pt solid #ccc !important;
+        border-bottom: 1.5pt solid #1f4e79 !important;
+        line-height: 1.15 !important;
+    }
+
+    /* body cells */
+    tbody td {
+        font-size: 7.5pt !important;
+        padding: 1.2pt 4pt !important;
+        border: 0.4pt solid #ccc !important;
+        line-height: 1.2 !important;
+    }
+
+    /* row types */
+    .tr-saldo-prev td {
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-style: italic !important;
+        font-size: 7pt !important;
+        color: #111 !important;
+        border-bottom: 0.8pt solid #aaa !important;
+        padding: 1pt 4pt !important;
+    }
+    .tr-day-sub td {
+        background: #fff3cd !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-size: 7pt !important;
+        font-style: italic !important;
+        padding: 1pt 4pt !important;
+        border-top: 0.8pt solid #e6ac00 !important;
+        border-bottom: 0.8pt solid #e6ac00 !important;
+    }
+    .tr-month-sub td {
+        background: #d1ecf1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-size: 7.5pt !important;
+        padding: 1pt 4pt !important;
+        border-top: 1pt solid #17a2b8 !important;
+        border-bottom: 1pt solid #17a2b8 !important;
+    }
+    .tr-total td {
+        background: #e2efda !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-weight: bold !important;
+        font-size: 7.5pt !important;
+        padding: 1.5pt 4pt !important;
+        border-top: 1.5pt solid #548235 !important;
+        border-bottom: 1pt solid #548235 !important;
+    }
+
+    /* account section */
+    .account-section { page-break-inside: avoid; margin-bottom: 8pt !important; }
+    .acct-hdr {
+        background: #dce6f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 2pt 5pt !important;
+        font-size: 8pt !important;
+        font-weight: bold !important;
+        border: 0.5pt solid #1f4e79 !important;
+        border-bottom: none !important;
+        display: block !important;
+    }
+
+    /* badges */
+    .badge {
+        border: 0.4pt solid #555 !important;
+        background: #eee !important;
+        color: #000 !important;
+        font-size: 7pt !important;
+    }
+
+    /* grand total bar */
+    .grand-total-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        border: 1.5pt solid #1f4e79 !important;
+        background: #dce6f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 4pt 8pt !important;
+        font-size: 9pt !important;
+        font-weight: bold !important;
+        margin-top: 8pt !important;
+        page-break-inside: avoid;
+    }
+    .grand-total-row .text-danger  { color: #c00 !important; }
+    .grand-total-row .text-success { color: #276221 !important; }
 }
 </style>
 
@@ -99,9 +231,23 @@ foreach ($porCuenta as $cId => $lines) {
           <i class="fa-solid fa-book-open text-primary mr-2"></i>Libro Auxiliar de Cuentas
         </h5>
         <?php if ($filtrado && !empty($movimientos)): ?>
-        <button class="btn btn-sm btn-outline-secondary no-print" onclick="window.print()">
-          <i class="fa-solid fa-print"></i> Imprimir
-        </button>
+        <div class="d-flex gap-2 no-print">
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Imprimir
+          </button>
+          <a href="<?= site_url('contabilidad/reportes/auxiliar/excel') . '?' . http_build_query(array_filter([
+                'periodo_id'   => $periodoId,
+                'fecha_desde'  => $fechaDesde,
+                'fecha_hasta'  => $fechaHasta,
+                'cuenta_id'    => $cuentaId,
+                'subtotal_dia' => $subtotalDia ? '1' : null,
+                'subtotal_mes' => $subtotalMes ? '1' : null,
+                'formato'      => $formato,
+              ])) ?>"
+             class="btn btn-sm btn-outline-success">
+            <i class="fa-solid fa-file-excel"></i> Excel
+          </a>
+        </div>
         <?php endif; ?>
       </div>
 
@@ -203,8 +349,8 @@ foreach ($porCuenta as $cId => $lines) {
 
         <?php else: ?>
 
-        <!-- ── Info banner ── -->
-        <div class="alert alert-light border-left border-primary border-4 py-2 mb-3 no-print"
+        <!-- ── Info banner (screen only) ── -->
+        <div class="alert alert-light border-left border-primary py-2 mb-3 no-print"
              style="font-size:0.82rem; border-left-width:4px !important;">
           <i class="fa-solid fa-circle-info text-primary mr-1"></i>
           Muestra <strong><?= count($movimientos) ?></strong> movimiento(s) en
@@ -212,29 +358,67 @@ foreach ($porCuenta as $cId => $lines) {
           Incluye todos los registros <strong>aprobados</strong> sin importar si el período está abierto o cerrado.
         </div>
 
-        <!-- ── Print header (hidden on screen) ── -->
-        <div class="print-header text-center mb-3">
-          <h4 class="mb-0">Libro Auxiliar de Cuentas</h4>
-          <small>
-            <?php
-            $partes = [];
-            if ($periodoId) {
-                foreach ($periodos as $p) {
-                    if ($p->id == $periodoId) { $partes[] = 'Período: ' . $mn[$p->mes] . ' ' . $p->anio; break; }
-                }
-            }
-            if ($fechaDesde) $partes[] = 'Desde: ' . date('d/m/Y', strtotime($fechaDesde));
-            if ($fechaHasta) $partes[] = 'Hasta: ' . date('d/m/Y', strtotime($fechaHasta));
-            if ($cuentaId) {
-                foreach ($cuentas as $c) {
-                    if ($c->id == $cuentaId) { $partes[] = 'Cuenta: ' . $c->codigo . ' ' . $c->nombre; break; }
-                }
-            }
-            echo esc(implode(' · ', $partes) ?: 'Todos los movimientos');
-            ?>
-            — Generado: <?= date('d/m/Y H:i') ?>
-          </small>
-        </div>
+        <!-- ════════════════════════════════════════════════════════════
+             PRINT HEADER — empresa + título + filtros (sólo pág. 1)
+             ════════════════════════════════════════════════════════════ -->
+        <div class="print-header" style="margin-bottom:8pt;">
+
+          <!-- Empresa -->
+          <div style="display:flex; justify-content:space-between; align-items:center;
+                      border-bottom:1.5pt solid #1f4e79; padding-bottom:4pt; margin-bottom:6pt;">
+            <div>
+              <?php $logo = setting('logo'); if ($logo): ?>
+              <img src="<?= base_url('upload/settings/' . $logo) ?>"
+                   style="height:13mm; max-width:42mm; object-fit:contain;"
+                   onerror="this.style.display='none'">
+              <?php endif; ?>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10pt; font-weight:bold; color:#1f4e79; line-height:1.2;">
+                <?= esc(setting('company_name') ?? 'Empresa') ?>
+              </div>
+              <?php $addr = setting('company_address'); if ($addr): ?>
+              <div style="font-size:7pt; color:#555; margin-top:1pt;"><?= esc($addr) ?></div>
+              <?php endif; ?>
+            </div>
+          </div>
+
+          <!-- Título + filtros -->
+          <div style="margin-bottom:6pt;">
+            <div style="font-size:10pt; font-weight:bold; color:#1f4e79; text-transform:uppercase; letter-spacing:0.3pt;">
+              Libro Auxiliar de Cuentas
+            </div>
+            <div style="font-size:7.5pt; color:#222; margin-top:3pt;">
+              <?php
+              $partes = [];
+              if ($periodoId) {
+                  foreach ($periodos as $p) {
+                      if ($p->id == $periodoId) {
+                          $partes[] = 'Período: ' . $mn[$p->mes] . ' ' . $p->anio
+                                    . ($p->estado === 'CERRADO' ? ' (Cerrado)' : '');
+                          break;
+                      }
+                  }
+              }
+              if ($fechaDesde) $partes[] = 'Desde: '  . date('d/m/Y', strtotime($fechaDesde));
+              if ($fechaHasta) $partes[] = 'Hasta: '   . date('d/m/Y', strtotime($fechaHasta));
+              if ($cuentaId) {
+                  foreach ($cuentas as $c) {
+                      if ($c->id == $cuentaId) {
+                          $partes[] = 'Cuenta: ' . $c->codigo . ' — ' . $c->nombre;
+                          break;
+                      }
+                  }
+              }
+              echo esc(implode('   ·   ', $partes) ?: 'Todos los movimientos');
+              ?>
+            </div>
+            <div style="font-size:6pt; color:#999; margin-top:2pt;">
+              Generado: <?= date('d/m/Y H:i') ?> — Solo movimientos aprobados — Incluye períodos abiertos y cerrados
+            </div>
+          </div>
+
+        </div><!-- /print-header -->
 
         <?php if ($formato === 'contable'): ?>
         <!-- ═══════════════════════════════════════════════════════════
@@ -245,8 +429,10 @@ foreach ($porCuenta as $cId => $lines) {
           <?php $meta = $ac['meta']; ?>
           <div class="account-section mb-4">
 
-            <div class="d-flex mb-1" style="gap:.4rem">
-              <span class="badge badge-<?= $tipoBadge[$meta->tipo] ?? 'secondary' ?> px-2"
+            <!-- Account heading (screen + print styled via .acct-hdr) -->
+            <div class="acct-hdr d-flex mb-0" style="gap:.4rem; padding:3px 6px;
+                 background:#eef3fa; border:1px solid #c8d9ee; border-bottom:none; border-radius:3px 3px 0 0;">
+              <span class="badge badge-<?= $tipoBadge[$meta->tipo] ?? 'secondary' ?>"
                     style="font-size:0.68rem"><?= $meta->tipo ?></span>
               <strong style="font-size:0.88rem"><?= esc($meta->codigo) ?></strong>
               <span style="font-size:0.88rem"><?= esc($meta->cuenta_nombre) ?></span>
@@ -256,7 +442,7 @@ foreach ($porCuenta as $cId => $lines) {
               <thead class="table-dark">
                 <tr>
                   <th style="width:88px">Fecha</th>
-                  <th style="width:84px">Asiento</th>
+                  <th style="width:90px">Asiento</th>
                   <th>Descripción</th>
                   <th class="text-right" style="width:108px">Debe</th>
                   <th class="text-right" style="width:108px">Haber</th>
@@ -265,9 +451,8 @@ foreach ($porCuenta as $cId => $lines) {
               </thead>
               <tbody>
 
-                <!-- Saldo anterior -->
-                <tr class="table-secondary" style="font-size:0.76rem; font-style:italic">
-                  <td colspan="3" class="text-right text-muted">Saldo anterior</td>
+                <tr class="tr-saldo-prev table-secondary" style="font-size:0.76rem; font-style:italic">
+                  <td colspan="3" class="text-right">Saldo anterior</td>
                   <td></td><td></td>
                   <td class="text-right font-weight-bold">
                     <?= $ac['previo'] != 0 ? '$ ' . number_format($ac['previo'], 2) : '—' ?>
@@ -289,8 +474,8 @@ foreach ($porCuenta as $cId => $lines) {
                           <small class="text-muted"> · <?= esc($l->referencia) ?></small>
                         <?php endif; ?>
                       </td>
-                      <td class="text-right <?= (float)$l->debe > 0 ? '' : 'text-muted' ?>">
-                        <?= (float)$l->debe > 0 ? number_format($l->debe, 2) : '—' ?>
+                      <td class="text-right <?= (float)$l->debe  > 0 ? '' : 'text-muted' ?>">
+                        <?= (float)$l->debe  > 0 ? number_format($l->debe,  2) : '—' ?>
                       </td>
                       <td class="text-right <?= (float)$l->haber > 0 ? '' : 'text-muted' ?>">
                         <?= (float)$l->haber > 0 ? number_format($l->haber, 2) : '—' ?>
@@ -301,7 +486,7 @@ foreach ($porCuenta as $cId => $lines) {
                     </tr>
 
                   <?php elseif ($row['type'] === 'day_sub'): ?>
-                    <tr class="table-warning" style="font-size:0.76rem; font-style:italic">
+                    <tr class="tr-day-sub table-warning" style="font-size:0.76rem; font-style:italic">
                       <td colspan="2" class="text-muted">
                         Subtotal <?= date('d/m/Y', strtotime($row['label'])) ?>
                       </td>
@@ -313,7 +498,7 @@ foreach ($porCuenta as $cId => $lines) {
 
                   <?php elseif ($row['type'] === 'month_sub'): ?>
                     <?php [$anioM, $mesM] = explode('-', $row['label']); ?>
-                    <tr class="table-info" style="font-size:0.76rem; font-style:italic">
+                    <tr class="tr-month-sub table-info" style="font-size:0.76rem; font-style:italic">
                       <td colspan="2" class="text-muted">
                         Subtotal <?= $mn[(int)$mesM] ?> <?= $anioM ?>
                       </td>
@@ -324,7 +509,7 @@ foreach ($porCuenta as $cId => $lines) {
                     </tr>
 
                   <?php elseif ($row['type'] === 'total'): ?>
-                    <tr class="table-light font-weight-bold" style="font-size:0.81rem">
+                    <tr class="tr-total table-light font-weight-bold" style="font-size:0.81rem">
                       <td colspan="3" class="text-right">Total <?= esc($meta->codigo) ?></td>
                       <td class="text-right text-primary">$ <?= number_format($row['debe'],  2) ?></td>
                       <td class="text-right text-success">$ <?= number_format($row['haber'], 2) ?></td>
@@ -363,8 +548,7 @@ foreach ($porCuenta as $cId => $lines) {
           <?php foreach ($cuentasRender as $cId => $ac): ?>
             <?php $meta = $ac['meta']; ?>
 
-            <!-- Account separator + saldo anterior -->
-            <tr class="table-secondary" style="font-size:0.76rem; font-style:italic">
+            <tr class="tr-saldo-prev table-secondary" style="font-size:0.76rem; font-style:italic">
               <td><code><?= esc($meta->codigo) ?></code></td>
               <td colspan="4">
                 <span class="badge badge-<?= $tipoBadge[$meta->tipo] ?? 'secondary' ?>"
@@ -407,7 +591,7 @@ foreach ($porCuenta as $cId => $lines) {
                 </tr>
 
               <?php elseif ($row['type'] === 'day_sub'): ?>
-                <tr class="table-warning" style="font-size:0.76rem; font-style:italic">
+                <tr class="tr-day-sub table-warning" style="font-size:0.76rem; font-style:italic">
                   <td colspan="5" class="text-right text-muted">
                     Subtotal <?= esc($meta->cuenta_nombre) ?> — <?= date('d/m/Y', strtotime($row['label'])) ?>
                   </td>
@@ -418,7 +602,7 @@ foreach ($porCuenta as $cId => $lines) {
 
               <?php elseif ($row['type'] === 'month_sub'): ?>
                 <?php [$anioM, $mesM] = explode('-', $row['label']); ?>
-                <tr class="table-info" style="font-size:0.76rem; font-style:italic">
+                <tr class="tr-month-sub table-info" style="font-size:0.76rem; font-style:italic">
                   <td colspan="5" class="text-right text-muted">
                     Subtotal <?= esc($meta->cuenta_nombre) ?> — <?= $mn[(int)$mesM] ?> <?= $anioM ?>
                   </td>
@@ -428,7 +612,7 @@ foreach ($porCuenta as $cId => $lines) {
                 </tr>
 
               <?php elseif ($row['type'] === 'total'): ?>
-                <tr class="table-light font-weight-bold" style="font-size:0.81rem">
+                <tr class="tr-total table-light font-weight-bold" style="font-size:0.81rem">
                   <td colspan="5" class="text-right">
                     Total <?= esc($meta->codigo) ?> <?= esc($meta->cuenta_nombre) ?>
                   </td>
@@ -449,12 +633,15 @@ foreach ($porCuenta as $cId => $lines) {
         <?php endif; ?>
 
         <!-- ── Grand total ── -->
-        <div class="alert alert-light border font-weight-bold d-flex justify-content-between mt-3">
-          <span><i class="fa-solid fa-sigma mr-2"></i>GRAN TOTAL</span>
+        <div class="grand-total-row alert alert-light border font-weight-bold d-flex justify-content-between mt-3">
+          <span><i class="fa-solid fa-sigma mr-2 no-print"></i>GRAN TOTAL</span>
           <span>
-            Debe: $<?= number_format($grandTotalD, 2) ?> &nbsp;&nbsp;|&nbsp;&nbsp;
-            Haber: $<?= number_format($grandTotalH, 2) ?> &nbsp;&nbsp;|&nbsp;&nbsp;
-            Diferencia: <span class="<?= abs($grandTotalD - $grandTotalH) > 0.01 ? 'text-danger' : 'text-success' ?>">
+            Debe: $<?= number_format($grandTotalD, 2) ?>
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            Haber: $<?= number_format($grandTotalH, 2) ?>
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            Diferencia:
+            <span class="<?= abs($grandTotalD - $grandTotalH) > 0.01 ? 'text-danger' : 'text-success' ?>">
               $<?= number_format(abs($grandTotalD - $grandTotalH), 2) ?>
             </span>
           </span>

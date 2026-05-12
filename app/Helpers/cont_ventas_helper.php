@@ -298,7 +298,7 @@ if (!function_exists('cont_lineas_venta')) {
         $cuentaVentasId = $ventasOverrideId ?? (int)$cuentas['ventas'];
         $lineas[] = [
             'cuenta_id'   => $cuentaVentasId,
-            'descripcion' => "Ingresos por venta {$tipo}{$label}",
+            'descripcion' => "Provisión de venta {$tipo}{$label}",
             'debe'        => 0.0,
             'haber'       => $desglose['venta_sin_iva'],
         ];
