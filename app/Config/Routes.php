@@ -387,6 +387,14 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('contabilidad/procesos/cierre-anual/ejecutar',     'ContProcesosController::ejecutarCierreAnual');
     $routes->post('contabilidad/procesos/cierre-anual/reabrir',      'ContProcesosController::reabrirCierreAnual');
 
+    // Remesas Contables
+    $routes->get('contabilidad/remesas',                         'ContRemesasController::index');
+    $routes->get('contabilidad/remesas/nuevo',                   'ContRemesasController::nuevo');
+    $routes->post('contabilidad/remesas/store',                  'ContRemesasController::store');
+    $routes->get('contabilidad/remesas/asientos-disponibles',    'ContRemesasController::asientosDisponibles');
+    $routes->post('contabilidad/remesas/anular/(:num)',          'ContRemesasController::anular/$1');
+    $routes->get('contabilidad/remesas/(:num)',                  'ContRemesasController::show/$1');
+
     // Mantenimientos — Tipos de Partida
     $routes->get('contabilidad/mantenimientos/tipos-partida',                  'ContTiposPartidaController::index');
     $routes->post('contabilidad/mantenimientos/tipos-partida/store',           'ContTiposPartidaController::store');

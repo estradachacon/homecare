@@ -74,6 +74,25 @@
 .saldo-bar-fill { height: 100%; background: #16a34a; border-radius: 2px; }
 .badge-dias { font-size: .70rem; }
 
+/* ── Fila con recupero pendiente ─────────────────────────────── */
+.factura-row.row-recupero-pendiente {
+    background: #fffbeb !important;
+    opacity: 1;
+}
+.factura-row.row-recupero-pendiente td { color: #92400e; }
+.factura-row.row-recupero-pendiente .chk-factura { cursor: not-allowed; }
+.badge-recupero-pendiente {
+    font-size: .62rem;
+    background: #f59e0b;
+    color: #fff;
+    padding: 2px 5px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
 /* ── Select2 sm ──────────────────────────────────────────────── */
 #clienteId + .select2-container .select2-selection--single,
 .select2-container .select2-selection--single {
@@ -351,7 +370,10 @@ function cargarFacturasCliente(clienteId) {
             renderTabla(data);
             document.getElementById('contenedorTabla').classList.remove('d-none');
             document.getElementById('badgeFacturas').classList.remove('d-none');
-            document.getElementById('badgeCount').textContent = data.length + ' factura(s)';
+            const conRecupero = data.filter(f => f.recupero_id).length;
+            const disponibles = data.length - conRecupero;
+            document.getElementById('badgeCount').textContent =
+                disponibles + ' disponible(s)' + (conRecupero ? ' · ' + conRecupero + ' con recupero pendiente' : '');
 
             const totalSaldo = data.reduce((a, f) => a + parseFloat(f.saldo), 0);
             document.getElementById('totalSaldoCliente').textContent = '$' + totalSaldo.toFixed(2);
@@ -373,8 +395,8 @@ function resetPanelFacturas() {
 
 // ─── Renderizar tabla ─────────────────────────────────────────────
 function renderTabla(facturas) {
-    const tbody = document.getElementById('tbodyFacturas');
-    const tipos = { '01': 'FAC', '03': 'CCF', '05': 'N.C.', '06': 'N.D.' };
+    const tbody     = document.getElementById('tbodyFacturas');
+    const tipos     = { '01': 'FAC', '03': 'CCF', '05': 'N.C.', '06': 'N.D.' };
     const tipoBadge = { '01': 'secondary', '03': 'info', '05': 'warning', '06': 'danger' };
 
     tbody.innerHTML = facturas.map(f => {
@@ -392,6 +414,47 @@ function renderTabla(facturas) {
         const tipoLabel = tipos[f.tipo_dte] ?? f.tipo_dte;
         const tipoColor = tipoBadge[f.tipo_dte] ?? 'secondary';
 
+        // ── Factura con recupero activo pendiente de aplicar ──────────
+        if (f.recupero_id) {
+            const montoRec = parseFloat(f.monto_recuperado || 0);
+            return `<tr class="factura-row row-recupero-pendiente" data-id="${f.id}" data-saldo="${saldo}" data-bloqueada="1">
+                <td class="pl-2 text-center align-middle" style="width:36px;">
+                    <input type="checkbox" class="chk-factura" value="${f.id}" disabled
+                           title="Esta factura ya tiene un recupero pendiente de aplicar">
+                </td>
+                <td>
+                    <button class="btn-detalle" onclick="verDetalleFactura(${f.id})" title="Ver productos facturados">
+                        <i class="fa-solid fa-magnifying-glass-plus" style="font-size:.7rem;margin-right:3px;"></i>${f.numero_control}
+                    </button>
+                    ${badgeDias}
+                    <div class="mt-1">
+                        <a href="<?= base_url('recuperos/') ?>${f.recupero_id}" target="_blank"
+                           class="badge-recupero-pendiente" title="Ver recupero">
+                            <i class="fa-solid fa-clock"></i> Recupero pendiente: ${f.numero_recupero}
+                        </a>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-${tipoColor}" style="font-size:.65rem;">${tipoLabel}</span>
+                </td>
+                <td class="small">${formatDate(f.fecha_emision)}</td>
+                <td class="text-right small">$${total.toFixed(2)}</td>
+                <td class="text-right">
+                    <strong>$${saldo.toFixed(2)}</strong>
+                    <div class="saldo-bar">
+                        <div class="saldo-bar-fill" style="width:${pct}%;background:#f59e0b;"></div>
+                    </div>
+                </td>
+                <td class="text-right">
+                    <input type="number" class="form-control form-control-sm text-right monto-input"
+                           value="${montoRec.toFixed(2)}" disabled
+                           title="Monto ya asignado en recupero ${f.numero_recupero}">
+                    <small class="text-muted" style="font-size:.6rem;">remesado</small>
+                </td>
+            </tr>`;
+        }
+
+        // ── Factura normal seleccionable ───────────────────────────────
         return `<tr class="factura-row row-inactive" data-id="${f.id}" data-saldo="${saldo}">
             <td class="pl-2 text-center align-middle" style="width:36px;">
                 <input type="checkbox" class="chk-factura" value="${f.id}"
@@ -440,9 +503,9 @@ function onCheckFactura(chk, saldo) {
     actualizarTotal();
 }
 
-// ─── Checkbox "seleccionar todas" ─────────────────────────────────
+// ─── Checkbox "seleccionar todas" (solo las no bloqueadas) ────────
 function toggleTodas(checked) {
-    document.querySelectorAll('.chk-factura').forEach(chk => {
+    document.querySelectorAll('.chk-factura:not(:disabled)').forEach(chk => {
         chk.checked = checked;
         const id    = parseInt(chk.value);
         const row   = chk.closest('tr');

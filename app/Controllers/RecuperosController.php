@@ -289,7 +289,19 @@ class RecuperosController extends BaseController
                     fh.fecha_emision,
                     fh.total_pagar,
                     fh.saldo,
-                    DATEDIFF(NOW(), fh.fecha_emision) AS dias_pendiente
+                    DATEDIFF(NOW(), fh.fecha_emision) AS dias_pendiente,
+                    (SELECT r.id FROM recuperos r
+                     JOIN recuperos_detalle rd ON rd.recupero_id = r.id
+                     WHERE rd.factura_id = fh.id AND r.estado = 'ACTIVO'
+                     LIMIT 1) AS recupero_id,
+                    (SELECT r.numero_recupero FROM recuperos r
+                     JOIN recuperos_detalle rd ON rd.recupero_id = r.id
+                     WHERE rd.factura_id = fh.id AND r.estado = 'ACTIVO'
+                     LIMIT 1) AS numero_recupero,
+                    (SELECT rd2.monto_aplicado FROM recuperos_detalle rd2
+                     JOIN recuperos r2 ON r2.id = rd2.recupero_id
+                     WHERE rd2.factura_id = fh.id AND r2.estado = 'ACTIVO'
+                     LIMIT 1) AS monto_recuperado
              FROM facturas_head fh
              WHERE fh.receptor_id = ?
                AND fh.saldo > 0.001

@@ -24,6 +24,8 @@ class ContConfiguracionModel extends Model
         'cuenta_ventas_servicio2_id', 'cuenta_ventas_servicio2_label',
         // Tipos de partida para procesos automáticos — migración 2026-05-08-000006
         'tipo_partida_ventas_id', 'tipo_partida_pagos_id',
+        // Tipo de partida para remesas contables — migración 2026-05-13-000005
+        'tipo_partida_remesas_id',
         'moneda', 'digitos_decimales',
     ];
 

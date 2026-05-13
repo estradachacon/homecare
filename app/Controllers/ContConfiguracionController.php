@@ -56,6 +56,7 @@ class ContConfiguracionController extends BaseController
             'cuenta_ventas_servicio2_label' => $this->request->getPost('cuenta_ventas_servicio2_label') ?: null,
             'tipo_partida_ventas_id'        => $this->request->getPost('tipo_partida_ventas_id')        ?: null,
             'tipo_partida_pagos_id'         => $this->request->getPost('tipo_partida_pagos_id')         ?: null,
+            'tipo_partida_remesas_id'       => $this->request->getPost('tipo_partida_remesas_id')       ?: null,
             'moneda'                        => $this->request->getPost('moneda')                        ?: 'USD',
             'digitos_decimales'      => (int)($this->request->getPost('digitos_decimales') ?: 2),
         ];

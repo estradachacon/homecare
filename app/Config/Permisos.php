@@ -140,6 +140,9 @@ class Permisos extends BaseConfig
             'ejecutar_cierre_anual',
             'ver_mantenimientos_contables',
             'configurar_contabilidad',
+            'ver_remesas_contables',
+            'crear_remesa_contable',
+            'anular_remesa_contable',
         ],
     ];
 }

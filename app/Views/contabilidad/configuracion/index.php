@@ -135,6 +135,18 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Remesas Contables</label>
+                            <small class="text-muted d-block mb-1">Tipo de partida que se pre-selecciona al crear una remesa (cuadre de caja grande)</small>
+                            <select name="tipo_partida_remesas_id" class="form-select">
+                                <option value="">— Sin tipo de partida —</option>
+                                <?php foreach ($tiposPartida as $tp): ?>
+                                    <option value="<?= $tp->id ?>" <?= ($config->tipo_partida_remesas_id ?? null) == $tp->id ? 'selected' : '' ?>>
+                                        <?= esc($tp->nombre) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
 
                         <div class="col-12"><h6 class="fw-bold text-muted border-bottom pb-1 mt-2">OPCIONES GENERALES</h6></div>
 

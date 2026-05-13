@@ -203,6 +203,9 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                             <?php if (tienePermiso('ver_asientos')): ?>
                                 <a class="nav-link" href="/contabilidad/asientos">Asientos Contables</a>
                             <?php endif; ?>
+                            <?php if (tienePermiso('ver_remesas_contables')): ?>
+                                <a class="nav-link" href="/contabilidad/remesas">Remesas Contables</a>
+                            <?php endif; ?>
                             <?php if (tienePermiso('ver_listados_contables')): ?>
                                 <a class="nav-link collapsed" href="#"
                                    data-toggle="collapse" data-target="#contListados"
