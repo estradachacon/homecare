@@ -297,6 +297,23 @@ class PaymentController extends BaseController
                 ]);
             }
 
+            // ================= VINCULAR RECUPERO (opcional) =================
+
+            if (!empty($data['recupero_id'])) {
+                $recModel = new \App\Models\RecuperosModel();
+                $rec = $recModel->where('id', (int)$data['recupero_id'])
+                                ->where('cliente_id', (int)$data['cliente_id'])
+                                ->where('estado', 'ACTIVO')
+                                ->first();
+                if (!$rec) {
+                    throw new \Exception('El recupero seleccionado no está disponible o no pertenece a este cliente');
+                }
+                $recModel->update($rec->id, [
+                    'estado'  => 'APLICADO',
+                    'pago_id' => $pagoId,
+                ]);
+            }
+
             $db->transCommit();
 
             registrar_bitacora(

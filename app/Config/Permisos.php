@@ -59,7 +59,10 @@ class Permisos extends BaseConfig
             'anular_pagos',
             'ver_quedans',
             'crear_quedans',
-            'anular_quedans'
+            'anular_quedans',
+            'ver_recuperos',
+            'crear_recupero',
+            'anular_recupero',
         ],
 
         'Finanzas' => [

@@ -77,7 +77,7 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                 <?php endif; ?>
 
                 <!-- CUENTAS POR COBRAR -->
-                <?php if (tienePermiso('ingresar_pagos') || tienePermiso('ver_pagos')): ?>
+                <?php if (tienePermiso('ingresar_pagos') || tienePermiso('ver_pagos') || tienePermiso('ver_recuperos')): ?>
                     <a class="nav-link collapsed" href="#"
                        data-toggle="collapse" data-target="#cuentasCobrar"
                        aria-expanded="false" aria-controls="cuentasCobrar">
@@ -87,6 +87,12 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                     </a>
                     <div class="collapse" id="cuentasCobrar" data-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
+                            <?php if (tienePermiso('ver_recuperos')): ?>
+                                <a class="nav-link" href="/recuperos">Recuperos</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('crear_recupero')): ?>
+                                <a class="nav-link" href="/recuperos/nuevo">Nuevo Recupero</a>
+                            <?php endif; ?>
                             <?php if (tienePermiso('ingresar_pagos')): ?>
                                 <a class="nav-link" href="/payments/new">Ingresar Pagos</a>
                             <?php endif; ?>

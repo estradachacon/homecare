@@ -107,7 +107,6 @@
 
     .mini-loader {
         display: flex;
-        align-items: center;
         justify-content: center;
         color: #6c757d;
     }
@@ -147,6 +146,9 @@
 
                     <div class="row">
                         <div class="col-lg-8">
+                            <!-- Banner recuperos activos -->
+                            <div id="alertaRecuperos" class="d-none mb-3"></div>
+
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="clienteSelect">Cliente</label>
@@ -188,7 +190,7 @@
 
                         <div class="col-lg-4 mt-3 mt-lg-0">
                             <div class="payment-summary-panel h-100">
-                                <div class="d-flex align-items-center mb-3">
+                                <div class="d-flex mb-3">
                                     <div class="mr-2 text-success">
                                         <i class="fa-solid fa-calculator fa-lg"></i>
                                     </div>
@@ -292,6 +294,34 @@
         </div>
     </div>
 
+    <!-- Modal recuperos activos -->
+    <div class="modal fade" id="modalRecuperos" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2" style="background:#1e3a5f;">
+                    <h6 class="modal-title text-white mb-0">
+                        <i class="fa-solid fa-wallet mr-2"></i>Recuperos activos del cliente
+                    </h6>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body" id="cuerpoModalRecuperos">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recargarRecuperos()">
+                        <i class="fa-solid fa-rotate-right mr-1"></i>Re-consultar
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnAplicarRecupero">
+                        <i class="fa-solid fa-link mr-1"></i>Vincular selección
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal preview de factura -->
     <div class="modal fade" id="modalFactura">
         <div class="modal-dialog modal-lg">
@@ -313,6 +343,107 @@
     </div>
 </div>
 <script>
+    // ── Variables y funciones de recuperos en scope global (son llamadas desde onclick dinámico) ──
+    let recuperoSeleccionado = null;
+    let clienteIdActual      = null;
+    let recuperosData        = [];
+
+    function mostrarBannerRecuperos() {
+        const fc = { efectivo:'Efectivo', cheque:'Cheque', transferencia:'Transferencia', deposito:'Depósito' };
+        if (recuperoSeleccionado) {
+            $('#alertaRecuperos').removeClass('d-none').html(`
+                <div class="alert alert-success py-2 mb-0 d-flex justify-content-between">
+                    <span class="small">
+                        <i class="fa-solid fa-circle-check mr-1"></i>
+                        Recupero vinculado: <strong>${recuperoSeleccionado.numero_recupero}</strong>
+                        <span class="badge badge-secondary mx-1">${fc[recuperoSeleccionado.forma_cobro] ?? recuperoSeleccionado.forma_cobro}</span>
+                        $${parseFloat(recuperoSeleccionado.total).toFixed(2)}
+                    </span>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-warning mr-1" onclick="abrirModalRecuperos()">Cambiar</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="quitarRecupero()" title="Quitar recupero">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>`);
+        } else if (recuperosData.length) {
+            $('#alertaRecuperos').removeClass('d-none').html(`
+                <div class="alert alert-warning py-2 mb-0 d-flex justify-content-between">
+                    <span class="small">
+                        <i class="fa-solid fa-wallet mr-1"></i>
+                        Este cliente tiene <strong>${recuperosData.length}</strong> recupero(s) activo(s) sin aplicar
+                    </span>
+                    <button type="button" class="btn btn-sm btn-warning" onclick="abrirModalRecuperos()">
+                        <i class="fa-solid fa-list mr-1"></i>Ver recuperos
+                    </button>
+                </div>`);
+        } else {
+            $('#alertaRecuperos').addClass('d-none').html('');
+        }
+    }
+
+    function abrirModalRecuperos() {
+        const fc = { efectivo:'Efectivo', cheque:'Cheque', transferencia:'Transferencia', deposito:'Depósito bancario' };
+        let html = '<p class="small text-muted mb-3">Selecciona el recupero que respalda este pago. Es opcional: el pago funciona sin recupero vinculado.</p>';
+
+        if (!recuperosData.length) {
+            html += '<div class="text-center text-muted py-3"><i class="fa-solid fa-circle-check fa-2x mb-2 d-block text-success"></i>No hay recuperos activos para este cliente.</div>';
+        } else {
+            html += '<div class="list-group">';
+            recuperosData.forEach(r => {
+                const checked  = recuperoSeleccionado?.id == r.id ? 'checked' : '';
+                const active   = recuperoSeleccionado?.id == r.id ? 'active'  : '';
+                const fechaFmt = r.fecha ? r.fecha.substring(0, 10).split('-').reverse().join('/') : '—';
+                html += `
+                    <label class="list-group-item list-group-item-action py-2 ${active}" for="rec_${r.id}" style="cursor:pointer;">
+                        <div class="d-flex align-items-start">
+                            <input type="radio" name="recuperoRadio" id="rec_${r.id}"
+                                   value="${r.id}" class="mr-2 mt-1" ${checked}>
+                            <div>
+                                <strong>${r.numero_recupero}</strong>
+                                <span class="badge badge-secondary ml-1">${fc[r.forma_cobro] ?? r.forma_cobro}</span>
+                                <div class="small text-muted mt-1">
+                                    ${fechaFmt} &mdash; Total: <strong class="text-dark">$${parseFloat(r.total).toFixed(2)}</strong>
+                                    ${r.referencia ? ' &mdash; Ref: ' + r.referencia : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </label>`;
+            });
+            html += '</div>';
+        }
+        $('#cuerpoModalRecuperos').html(html);
+        $('#modalRecuperos').modal('show');
+    }
+
+    function recargarRecuperos() {
+        if (!clienteIdActual) return;
+        $('#cuerpoModalRecuperos').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+        fetch('<?= base_url('recuperos/activos-cliente/') ?>' + clienteIdActual)
+            .then(r => r.json())
+            .then(data => { recuperosData = data; abrirModalRecuperos(); });
+    }
+
+    function quitarRecupero() {
+        recuperoSeleccionado = null;
+        // Desbloquear filas que fueron bloqueadas por el recupero
+        $('[data-bloqueada-por-recupero="1"]').each(function() {
+            const row = $(this);
+            row.find('.aplicarMonto').prop('readonly', false).css({ background: '', cursor: '' });
+            row.find('.btnConfigPago')
+               .prop('disabled', false)
+               .removeClass('btn-secondary')
+               .addClass('btn-outline-primary')
+               .attr('title', '')
+               .html('<i class="fa-solid fa-pen"></i>');
+            row.removeAttr('data-bloqueada-por-recupero');
+        });
+        // Limpiar montos y comentarios que puso el recupero
+        $('.aplicarMonto').val('0.00').trigger('input');
+        $('.comentarioFactura').val('');
+        mostrarBannerRecuperos();
+    }
+
     $(function() {
         $(document).on('click', '#btnGuardarPago', function(e) {
 
@@ -395,6 +526,10 @@
                 detallePago = `<p><strong>Cuenta destino:</strong> ${cuenta}</p>`;
             }
 
+            if (recuperoSeleccionado) {
+                detallePago += `<p class="text-success mb-0"><i class="fa-solid fa-link mr-1"></i><strong>Recupero vinculado:</strong> ${recuperoSeleccionado.numero_recupero} ($${parseFloat(recuperoSeleccionado.total).toFixed(2)})</p>`;
+            }
+
             Swal.fire({
                 icon: 'question',
                 title: 'Confirmar pago',
@@ -438,13 +573,14 @@
                     });
 
                     const pago = {
-                        cliente_id: cliente,
-                        fecha_pago: fecha,
-                        tipo_pago: tipoPago,
-                        recupero: descRecupero,
+                        cliente_id:   cliente,
+                        fecha_pago:   fecha,
+                        tipo_pago:    tipoPago,
+                        recupero:     descRecupero,
+                        recupero_id:  recuperoSeleccionado ? recuperoSeleccionado.id : null,
                         cuenta_bancaria: tipoPago === 'transferencia' ? cuenta : 1,
                         observaciones: $('#observacionesPago').val() || '',
-                        total: total,
+                        total:    total,
                         facturas: facturas
                     };
 
@@ -555,6 +691,79 @@
             comentarioActual.val($('#modalComentario').val());
 
             $('#modalPagoFactura').modal('hide');
+        });
+
+        // ================= RECUPEROS =================
+
+        function cargarRecuperos(clienteId) {
+            fetch('<?= base_url('recuperos/activos-cliente/') ?>' + clienteId)
+                .then(r => r.json())
+                .then(data => {
+                    recuperosData = data;
+                    if (!data.length) {
+                        $('#alertaRecuperos').addClass('d-none').html('');
+                        return;
+                    }
+                    mostrarBannerRecuperos();
+                })
+                .catch(() => { /* silencioso — recuperos son opcionales */ });
+        }
+
+        $('#btnAplicarRecupero').on('click', function() {
+            const checked = $('input[name="recuperoRadio"]:checked');
+            if (!checked.length) {
+                Swal.fire('Sin selección', 'Selecciona un recupero o cancela.', 'warning');
+                return;
+            }
+            const id = parseInt(checked.val());
+            recuperoSeleccionado = recuperosData.find(r => r.id == id) ?? null;
+            $('#modalRecuperos').modal('hide');
+            mostrarBannerRecuperos();
+
+            // ── Precargar montos desde el recupero ───────────────────
+            if (recuperoSeleccionado?.detalles?.length) {
+                // Limpiar todos los montos primero
+                $('.aplicarMonto').val('0.00').trigger('input');
+
+                let aplicadas = 0;
+                recuperoSeleccionado.detalles.forEach(d => {
+                    const btn = $(`.btnConfigPago[data-id="${d.factura_id}"]`);
+                    if (!btn.length) return; // factura no está en la tabla (ya pagada u otro motivo)
+
+                    const row   = btn.closest('tr');
+                    const input = row.find('.aplicarMonto');
+                    const saldo = parseFloat(btn.data('saldo')) || 0;
+                    // No aplicar más del saldo pendiente actual
+                    const monto = Math.min(parseFloat(d.monto_aplicado) || 0, saldo);
+                    if (monto > 0) {
+                        input.val(monto.toFixed(2)).trigger('input');
+                        row.find('.comentarioFactura').val('Recupero ' + recuperoSeleccionado.numero_recupero);
+                        // Bloquear edición — el monto viene del recupero
+                        input.prop('readonly', true).css({ background: '#e9ecef', cursor: 'not-allowed' });
+                        btn.prop('disabled', true)
+                           .removeClass('btn-outline-primary')
+                           .addClass('btn-secondary')
+                           .attr('title', 'Monto fijado por recupero ' + recuperoSeleccionado.numero_recupero)
+                           .html('<i class="fa-solid fa-lock"></i>');
+                        row.attr('data-bloqueada-por-recupero', '1');
+                        aplicadas++;
+                    }
+                });
+
+                if (aplicadas === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin facturas coincidentes',
+                        text:  'Las facturas del recupero ya no tienen saldo pendiente o no están en la lista actual.',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            }
+
+            // Auto-rellenar campo de texto de recupero si está visible
+            if (recuperoSeleccionado && $('#descripcionRecupero').is(':visible')) {
+                $('#descripcionRecupero').val(recuperoSeleccionado.numero_recupero);
+            }
         });
 
         // ================= CLIENTE SELECT2 =================
@@ -679,6 +888,12 @@
             $('#facturasAplicadasCount').text('0');
             const clienteId = $(this).val();
 
+            // Reset recupero al cambiar de cliente
+            recuperoSeleccionado = null;
+            recuperosData        = [];
+            clienteIdActual      = clienteId || null;
+            $('#alertaRecuperos').addClass('d-none').html('');
+
             if (!clienteId) {
                 $('#facturasContainer').html(`
                     <tr>
@@ -690,6 +905,9 @@
                 `);
                 return;
             }
+
+            // Cargar recuperos activos en paralelo
+            cargarRecuperos(clienteId);
 
             $('#facturasContainer').html(`
                 <tr class="loader-row">

@@ -624,6 +624,126 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     </div>
 
                 <?php endif; ?>
+
+                <!-- ── REMESAS (RECUPEROS) ── -->
+                <?php if (!empty($remesas)): ?>
+
+                    <?php
+                    $formaCobroLabel = [
+                        'efectivo'      => 'Efectivo',
+                        'cheque'        => 'Cheque',
+                        'transferencia' => 'Transferencia',
+                        'deposito'      => 'Depósito bancario',
+                    ];
+                    $totalRemesado = 0;
+                    $totalRemesaAplicada = 0;
+                    foreach ($remesas as $rm) {
+                        if ($rm->estado !== 'ANULADO') $totalRemesado += (float)$rm->monto_aplicado;
+                        if ($rm->estado === 'APLICADO') $totalRemesaAplicada += (float)$rm->monto_aplicado;
+                    }
+                    ?>
+
+                    <div class="mt-4">
+
+                        <button class="btn btn-outline-primary btn-sm"
+                                type="button"
+                                data-toggle="collapse"
+                                data-target="#tablaRemesasFactura"
+                                aria-expanded="false"
+                                aria-controls="tablaRemesasFactura">
+                            <i class="fa-solid fa-wallet mr-1"></i>
+                            Remesas recibidas
+                            <span class="badge badge-primary ml-1"><?= count($remesas) ?></span>
+                        </button>
+
+                        <div class="collapse mt-3" id="tablaRemesasFactura">
+
+                            <div class="alert alert-info py-2 mb-3" style="font-size:.85rem;">
+                                <i class="fa-solid fa-circle-info mr-1"></i>
+                                Las remesas son cobros recibidos por el vendedor que aún no han sido aplicados como pago formal.
+                                <strong>No afectan el saldo de la factura</strong> hasta que se registre el pago correspondiente.
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered table-hover">
+                                    <thead style="background:#1e3a5f;">
+                                        <tr>
+                                            <th style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Recupero</th>
+                                            <th style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Fecha</th>
+                                            <th style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Forma cobro</th>
+                                            <th class="text-right" style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Monto remesado</th>
+                                            <th class="text-center" style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Estado</th>
+                                            <th class="text-center" style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Pago</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($remesas as $rm):
+                                            $rmAnulado  = ($rm->estado === 'ANULADO');
+                                            $rmAplicado = ($rm->estado === 'APLICADO');
+                                            $rmColor    = $rmAnulado ? 'danger' : ($rmAplicado ? 'primary' : 'warning');
+                                            $rmIcon     = $rmAnulado ? 'fa-ban' : ($rmAplicado ? 'fa-link' : 'fa-clock');
+                                        ?>
+                                            <tr class="<?= $rmAnulado ? 'table-danger text-muted' : '' ?>">
+                                                <td>
+                                                    <a href="<?= base_url('recuperos/' . $rm->recupero_id) ?>"
+                                                       class="font-weight-bold <?= $rmAnulado ? 'text-muted' : '' ?>">
+                                                        <?= esc($rm->numero_recupero) ?>
+                                                    </a>
+                                                </td>
+                                                <td class="small"><?= date('d/m/Y', strtotime($rm->fecha)) ?></td>
+                                                <td class="small"><?= $formaCobroLabel[$rm->forma_cobro] ?? ucfirst($rm->forma_cobro) ?></td>
+                                                <td class="text-right font-weight-bold <?= $rmAnulado ? 'text-muted' : 'text-dark' ?>">
+                                                    <?= $rmAnulado ? '<s>' : '' ?>
+                                                    $<?= number_format($rm->monto_aplicado, 2) ?>
+                                                    <?= $rmAnulado ? '</s>' : '' ?>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-<?= $rmColor ?>">
+                                                        <i class="fa-solid <?= $rmIcon ?> mr-1"></i><?= $rm->estado ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <?php if ($rm->pago_id): ?>
+                                                        <a href="<?= base_url('payments/' . $rm->pago_id) ?>"
+                                                           class="badge badge-success" title="Ver pago aplicado">
+                                                            <i class="fa-solid fa-receipt mr-1"></i>#<?= $rm->pago_id ?>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">—</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light">
+                                            <th colspan="3" class="text-right small">Total remesado (activo + aplicado):</th>
+                                            <th class="text-right text-primary">$<?= number_format($totalRemesado, 2) ?></th>
+                                            <th colspan="2"></th>
+                                        </tr>
+                                        <?php if ($totalRemesaAplicada > 0): ?>
+                                            <tr class="table-light">
+                                                <th colspan="3" class="text-right small">Ya convertido a pago:</th>
+                                                <th class="text-right text-success">$<?= number_format($totalRemesaAplicada, 2) ?></th>
+                                                <th colspan="2"></th>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <tr class="table-light">
+                                            <th colspan="3" class="text-right small">Pendiente de aplicar:</th>
+                                            <th class="text-right <?= ($totalRemesado - $totalRemesaAplicada) > 0 ? 'text-warning' : 'text-muted' ?>">
+                                                $<?= number_format($totalRemesado - $totalRemesaAplicada, 2) ?>
+                                            </th>
+                                            <th colspan="2"></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+
+                <?php endif; ?>
+
             </div>
         </div>
     </div>

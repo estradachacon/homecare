@@ -299,6 +299,16 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('consignaciones/reportes/doctores',             'ConsignacionesController::reporteDoctores');
     $routes->get('consignaciones/reportes/clientes',             'ConsignacionesController::reporteClientes');
 
+    // Rutas para el módulo de recuperos (CXC)
+    $routes->get('recuperos',                          'RecuperosController::index');
+    $routes->get('recuperos/nuevo',                    'RecuperosController::nuevo');
+    $routes->post('recuperos/guardar',                 'RecuperosController::store');
+    $routes->get('recuperos/(:num)',                   'RecuperosController::show/$1');
+    $routes->post('recuperos/anular/(:num)',            'RecuperosController::anular/$1');
+    $routes->get('recuperos/facturas-pendientes/(:num)', 'RecuperosController::facturasPendientes/$1');
+    $routes->get('recuperos/detalle-factura/(:num)',     'RecuperosController::detalleFactura/$1');
+    $routes->get('recuperos/activos-cliente/(:num)',     'RecuperosController::activosPorCliente/$1');
+
     // Rutas para mantenimiento de Queda
     $routes->get('quedans', 'Quedans::index');
     $routes->get('quedans/crear', 'Quedans::crear');

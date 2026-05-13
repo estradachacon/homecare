@@ -953,12 +953,29 @@ CCF YA VIENE SIN IVA
             ->orderBy('pagos_head.fecha_pago', 'ASC')
             ->findAll();
 
+        // Recuperos (remesas) vinculadas a esta factura
+        $remesas = $db->query(
+            "SELECT rd.monto_aplicado,
+                    r.id            AS recupero_id,
+                    r.numero_recupero,
+                    r.fecha,
+                    r.forma_cobro,
+                    r.estado,
+                    r.pago_id
+             FROM recuperos_detalle rd
+             JOIN recuperos r ON r.id = rd.recupero_id
+             WHERE rd.factura_id = ?
+             ORDER BY r.fecha ASC, r.id ASC",
+            [$id]
+        )->getResult();
+
         return view('facturas/detalle', [
-            'factura' => $factura,
-            'detalles' => $detalles,
+            'factura'           => $factura,
+            'detalles'          => $detalles,
             'facturaRelacionada' => $facturaRelacionada,
-            'notasCredito' => $notasCredito,
-            'pagos' => $pagos
+            'notasCredito'      => $notasCredito,
+            'pagos'             => $pagos,
+            'remesas'           => $remesas,
         ]);
     }
 
