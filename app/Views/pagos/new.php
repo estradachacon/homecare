@@ -69,6 +69,10 @@
         vertical-align: middle !important;
     }
 
+    .payment-mobile-date {
+        display: none;
+    }
+
     .payment-actions {
         border-top: 1px solid #eef1f5;
         padding-top: 1rem;
@@ -124,6 +128,160 @@
     @keyframes spin {
         to {
             transform: rotate(360deg)
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .payment-new-page .card-body {
+            padding: 1rem !important;
+        }
+
+        .payment-new-page .card-header {
+            gap: .75rem;
+            align-items: flex-start;
+        }
+
+        .payment-new-page .header-title {
+            font-size: 1.1rem;
+            line-height: 1.25;
+        }
+
+        .payment-summary-panel {
+            padding: 12px;
+        }
+
+        .payment-table-wrap {
+            overflow: visible;
+            width: 100%;
+        }
+
+        .payment-table {
+            border-collapse: separate;
+            border-spacing: 0 .7rem;
+            display: block;
+            width: 100%;
+        }
+
+        .payment-table thead {
+            display: none;
+        }
+
+        .payment-table tbody {
+            display: block;
+            width: 100%;
+        }
+
+        .payment-table tbody tr.factura-row {
+            display: block;
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: .5rem;
+            padding: .75rem;
+            background: #fff;
+            box-shadow: 0 .125rem .45rem rgba(15, 23, 42, .06);
+        }
+
+        .payment-table tbody tr.factura-row td {
+            display: block;
+            width: 100%;
+            border: 0;
+            padding: .18rem 0;
+        }
+
+        .payment-table .payment-invoice-cell {
+            display: flex !important;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: .75rem;
+        }
+
+        .payment-table .payment-invoice-main {
+            min-width: 0;
+        }
+
+        .payment-table .payment-invoice-number {
+            font-weight: 700;
+            color: #1f2d3d;
+        }
+
+        .payment-mobile-date {
+            display: block;
+            margin-top: .15rem;
+            line-height: 1.2;
+        }
+
+        .payment-table .payment-date-cell,
+        .payment-table .payment-age-cell {
+            display: none !important;
+        }
+
+        .payment-table .payment-seller-cell,
+        .payment-table .payment-type-cell,
+        .payment-table .payment-balance-cell {
+            display: flex !important;
+            justify-content: space-between;
+            gap: .75rem;
+            font-size: .88rem;
+        }
+
+        .payment-table .payment-seller-cell::before,
+        .payment-table .payment-type-cell::before,
+        .payment-table .payment-balance-cell::before {
+            content: attr(data-label);
+            flex: 0 0 auto;
+            color: #6c757d;
+            font-size: .76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .payment-table .payment-seller-cell span,
+        .payment-table .payment-type-cell span {
+            min-width: 0;
+            text-align: right;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .payment-table .payment-balance-cell {
+            align-items: flex-start;
+            margin-top: .25rem;
+        }
+
+        .payment-table .payment-balance-content {
+            text-align: right;
+        }
+
+        .payment-table .payment-apply-cell {
+            margin-top: .55rem;
+            padding-top: .65rem !important;
+            border-top: 1px solid #eef1f5;
+        }
+
+        .payment-table .payment-apply-cell::before {
+            content: attr(data-label);
+            display: block;
+            color: #6c757d;
+            font-size: .76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: .25rem;
+        }
+
+        .payment-table .payment-apply-cell .input-group {
+            width: 100%;
+        }
+
+        .payment-table .payment-empty-state {
+            padding: 28px 12px !important;
+        }
+
+        .payment-actions {
+            justify-content: stretch !important;
+        }
+
+        .payment-actions .btn {
+            width: 100%;
         }
     }
 </style>
@@ -217,7 +375,7 @@
 
                     <div class="payment-section-title mt-4">Facturas pendientes</div>
 
-                    <div class="table-responsive">
+                    <div class="table-responsive payment-table-wrap">
                         <table class="table table-bordered table-hover payment-table">
 
                             <thead>
@@ -951,6 +1109,8 @@
 
                     data.forEach(f => {
                         let tipoTexto = 'Factura';
+                        const fechaTexto = new Date(f.fecha_emision).toLocaleDateString();
+                        const diasAntiguedad = diasDeAntiguedad(f.fecha_emision);
 
                         if (f.tipo_dte === '03') {
                             tipoTexto = 'Crédito fiscal';
@@ -960,25 +1120,30 @@
                         }
                         html += `
                         <tr class="factura-row">
-                            <td>
-                                ${f.numero_control.substr(-6)}
+                            <td class="payment-invoice-cell" data-label="Factura">
+                                <div class="payment-invoice-main">
+                                    <span class="payment-invoice-number">${f.numero_control.substr(-6)}</span>
+                                    <small class="text-muted payment-mobile-date">${fechaTexto} · ${diasAntiguedad} dias</small>
+                                </div>
                                 <button type="button"
                                     class="btn btn-link p-0 ml-1 verFactura"
                                     data-id="${f.id}">
                                     <i class="fa-solid fa-eye text-muted"></i>
                                 </button>
                             </td>
-                            <td>${new Date(f.fecha_emision).toLocaleDateString()}</td>
-                            <td class="text-center">${diasDeAntiguedad(f.fecha_emision)}</td>
-                            <td>${f.vendedor}</td>
-                            <td>${f.tipo_venta_nombre}</td>
-                            <td class="text-right">
-                                $${parseFloat(f.saldo).toFixed(2)}
-                                <div class="mt-1">
-                                    <span class="badge badge-secondary pagoBadge d-none"></span>
+                            <td class="payment-date-cell" data-label="Fecha">${fechaTexto}</td>
+                            <td class="text-center payment-age-cell" data-label="Dias">${diasAntiguedad}</td>
+                            <td class="payment-seller-cell" data-label="Vendedor"><span>${f.vendedor ?? ''}</span></td>
+                            <td class="payment-type-cell" data-label="Tipo venta"><span>${f.tipo_venta_nombre ?? ''}</span></td>
+                            <td class="text-right payment-balance-cell" data-label="Saldo">
+                                <div class="payment-balance-content">
+                                    $${parseFloat(f.saldo).toFixed(2)}
+                                    <div class="mt-1">
+                                        <span class="badge badge-secondary pagoBadge d-none"></span>
+                                    </div>
                                 </div>
                             </td>
-                            <td>
+                            <td class="payment-apply-cell" data-label="Set pago">
                                 <div class="input-group input-group-sm">
                                     <input type="text"
                                         class="form-control text-right aplicarMonto"

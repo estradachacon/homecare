@@ -1,27 +1,29 @@
 <?php if (!empty($pagos)): ?>
     <?php foreach ($pagos as $pago): ?>
-        <tr>
-            <td>
-                <?= esc($pago->id) ?>
+        <tr class="pago-mobile-row" data-href="<?= base_url('payments/' . $pago->id) ?>">
+            <td class="pago-id-cell" data-label="Pago">
+                <span class="badge bg-light text-dark">#<?= esc($pago->id) ?></span>
             </td>
 
-            <td>
-                <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
-                <br>
-                <small class="text-muted">
-                    <?= date('H:i', strtotime($pago->created_at)) ?>
-                </small>
+            <td class="pago-fecha-cell" data-label="Fecha">
+                <span>
+                    <?= date('d/m/Y', strtotime($pago->fecha_pago)) ?>
+                    <small class="text-muted d-block">
+                        <?= date('H:i', strtotime($pago->created_at)) ?>
+                    </small>
+                </span>
             </td>
 
-            <td>
+            <td class="pago-cliente-cell" data-label="Cliente">
                 <?= esc($pago->cliente_nombre ?? 'Sin cliente') ?>
             </td>
 
-            <td>
+            <td class="pago-forma-cell" data-label="Forma">
                 <?= esc(ucfirst($pago->forma_pago)) ?>
             </td>
 
-            <td class="text-end">
+            <td class="text-end pago-total-cell" data-label="Total">
+                <div class="pago-total-content">
 
                 <div class="fw-semibold fs-6">
                     $<?= number_format($pago->total, 2) ?>
@@ -44,10 +46,11 @@
                     </div>
 
                 <?php endif; ?>
+                </div>
 
             </td>
 
-            <td class="text-center">
+            <td class="text-center pago-estado-cell" data-label="Estado">
 
                 <div class="d-flex flex-column align-items-center gap-1 text-white">
 
@@ -78,7 +81,7 @@
 
             </td>
 
-            <td class="text-center">
+            <td class="text-center pago-menu-cell" data-label="Menu">
                 <a href="<?= base_url('payments/' . $pago->id) ?>"
                     class="btn btn-sm btn-info">
                     <i class="fa-solid fa-eye"></i>
