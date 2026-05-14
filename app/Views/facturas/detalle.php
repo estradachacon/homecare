@@ -18,6 +18,124 @@
     .swal2-container .select2-container {
         width: 100% !important;
     }
+
+    .invoice-detail-table th,
+    .invoice-detail-table td,
+    .invoice-payments-table th,
+    .invoice-payments-table td,
+    .invoice-remesas-table th,
+    .invoice-remesas-table td {
+        vertical-align: middle;
+    }
+
+    @media (max-width: 767.98px) {
+        .invoice-card {
+            border: 0;
+            box-shadow: none;
+        }
+        .invoice-header {
+            display: block !important;
+            padding: .85rem !important;
+        }
+        .invoice-title-wrap h4 {
+            font-size: 1.1rem;
+        }
+        .invoice-summary-row {
+            margin-top: .75rem;
+        }
+        .invoice-summary-row > [class*="col-"],
+        .invoice-info-row > [class*="col-"] {
+            margin-bottom: .75rem;
+        }
+        .invoice-card .card-body {
+            padding: .85rem;
+        }
+        .invoice-actions-col,
+        .invoice-totals-col {
+            margin-bottom: 1rem;
+        }
+        #btnAnularFactura,
+        .invoice-collapse-btn {
+            width: 100%;
+        }
+        .invoice-table-wrap {
+            overflow: visible;
+        }
+        .invoice-mobile-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+        }
+        .invoice-mobile-table thead {
+            display: none;
+        }
+        .invoice-mobile-table,
+        .invoice-mobile-table tbody,
+        .invoice-mobile-table tr,
+        .invoice-mobile-table td {
+            display: block;
+            width: 100%;
+        }
+        .invoice-mobile-table tbody tr {
+            border: 1px solid #e5e9f0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, .06);
+            overflow: hidden;
+        }
+        .invoice-mobile-table tbody tr.table-danger {
+            background: #fff7f7;
+            border-color: #f1c3c3;
+        }
+        .invoice-mobile-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            border-top: 1px solid #eef1f5 !important;
+            padding: .55rem .75rem;
+            text-align: right !important;
+        }
+        .invoice-mobile-table td:first-child {
+            border-top: 0 !important;
+            background: #f8fafc;
+            font-weight: 700;
+        }
+        .invoice-mobile-table td::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            text-align: left;
+            flex: 0 0 40%;
+        }
+        .invoice-mobile-table td > * {
+            max-width: 60%;
+        }
+        .invoice-mobile-table .invoice-description {
+            text-align: left !important;
+            word-break: break-word;
+        }
+        .invoice-mobile-table tfoot,
+        .invoice-mobile-table tfoot tr,
+        .invoice-mobile-table tfoot th {
+            display: block;
+            width: 100%;
+        }
+        .invoice-mobile-table tfoot tr {
+            border: 1px solid #d8e2f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            margin-bottom: .5rem;
+            padding: .45rem .75rem;
+            text-align: right;
+        }
+        .invoice-mobile-table tfoot th {
+            border: 0 !important;
+            padding: .15rem 0;
+        }
+    }
 </style>
 <?php
 // Calcular subtotal desde los productos
@@ -54,16 +172,16 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
 <div class="row">
     <div class="col-md-12">
-        <div class="card">
+        <div class="card invoice-card">
 
             <!-- HEADER -->
-            <div class="card-header d-flex justify-content-between">
+            <div class="card-header d-flex justify-content-between invoice-header">
 
-                <div>
+                <div class="invoice-title-wrap">
                     <h4 class="mb-0">
                         Factura
                         <span class="badge bg-info text-white ms-2">
-                            <?= substr($factura->numero_control, -6) ?>
+                            <?= esc($numeroCorto) ?>
                         </span>
                     </h4>
 
@@ -156,14 +274,14 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     <?php endif; ?>
                 </div>
 
-                <div class="row">
+                <div class="row invoice-summary-row">
                     <!-- PANEL DOCUMENTO -->
                     <div class="col-md-6">
                         <div class="text-end border rounded px-3 py-2 bg-light h-100">
 
-                            <small class="text-muted d-block">Nº Control</small>
+                            <small class="text-muted d-block">Correlativo</small>
                             <small class="text-muted d-block mt-1">
-                                <?= esc($numeroCompleto) ?>
+                                <?= esc($numeroCorto) ?>
                             </small>
 
                             <?php if (!empty($tipoVenta)): ?>
@@ -323,7 +441,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
             <div class="card-body">
 
                 <!-- INFO PRINCIPAL -->
-                <div class="row mb-4">
+                <div class="row mb-4 invoice-info-row">
 
                     <div class="col-md-8">
                         <div class="p-3 border rounded h-100">
@@ -373,8 +491,8 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                 </div>
 
                 <!-- TABLA DETALLES -->
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle">
+                <div class="table-responsive invoice-table-wrap">
+                    <table class="table table-bordered table-hover align-middle invoice-mobile-table invoice-detail-table">
 
                         <thead class="table-light">
                             <tr>
@@ -391,21 +509,21 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                             <?php foreach ($detalles as $d): ?>
 
                                 <tr>
-                                    <td><?= $d->num_item ?></td>
+                                    <td data-label="#"><?= $d->num_item ?></td>
 
-                                    <td>
+                                    <td data-label="Descripcion" class="invoice-description">
                                         <?= nl2br(esc($d->descripcion)) ?>
                                     </td>
 
-                                    <td class="text-end">
+                                    <td data-label="Cantidad" class="text-end">
                                         <?= number_format($d->cantidad, 2) ?>
                                     </td>
 
-                                    <td class="text-end">
+                                    <td data-label="Precio" class="text-end">
                                         $<?= number_format($d->precio_unitario, 2) ?>
                                     </td>
 
-                                    <td class="text-end">
+                                    <td data-label="Total" class="text-end">
                                         $<?= number_format($d->cantidad * $d->precio_unitario, 2) ?>
                                     </td>
                                 </tr>
@@ -418,10 +536,10 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                 </div>
 
                 <!-- BLOQUE TOTALES -->
-                <div class="row mt-4">
+                <div class="row mt-4 invoice-actions-row">
 
                     <!-- BOTÓN ANULAR -->
-                    <div class="col-md-6">
+                    <div class="col-md-6 invoice-actions-col">
 
                         <?php if (tienePermiso('anular_factura') && ($factura->anulada ?? 0) == 0): ?>
 
@@ -444,7 +562,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     </div>
 
                     <!-- TOTALES -->
-                    <div class="col-md-4 offset-md-2">
+                    <div class="col-md-4 offset-md-2 invoice-totals-col">
 
                         <table class="table table-borderless">
 
@@ -494,7 +612,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                     <div class="mt-4">
 
-                        <button class="btn btn-outline-secondary btn-sm"
+                        <button class="btn btn-outline-secondary btn-sm invoice-collapse-btn"
                             type="button"
                             data-toggle="collapse"
                             data-target="#tablaPagosFactura"
@@ -511,9 +629,9 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                         <div class="collapse mt-3" id="tablaPagosFactura">
 
-                            <div class="table-responsive">
+                            <div class="table-responsive invoice-table-wrap">
 
-                                <table class="table table-sm table-bordered table-hover align-middle">
+                                <table class="table table-sm table-bordered table-hover align-middle invoice-mobile-table invoice-payments-table">
 
                                     <thead class="table-light">
                                         <tr>
@@ -545,25 +663,25 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                                             <tr class="<?= $esAnulado ? 'table-danger text-muted' : '' ?>">
 
-                                                <td>
+                                                <td data-label="Pago">
                                                     <span class="badge badge-secondary">
                                                         #<?= $p->pago_id ?>
                                                     </span>
                                                 </td>
 
-                                                <td>
+                                                <td data-label="Fecha">
                                                     <?= date('d/m/Y', strtotime($p->fecha_pago)) ?>
                                                 </td>
 
-                                                <td>
+                                                <td data-label="Forma">
                                                     <?= ucfirst($p->forma_pago) ?>
                                                 </td>
 
-                                                <td class="text-end">
+                                                <td data-label="Monto" class="text-end">
                                                     $<?= number_format($p->monto, 2) ?>
                                                 </td>
 
-                                                <td class="text-center">
+                                                <td data-label="Estado" class="text-center">
 
                                                     <?php if ($esAnulado): ?>
 
@@ -645,7 +763,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                     <div class="mt-4">
 
-                        <button class="btn btn-outline-primary btn-sm"
+                        <button class="btn btn-outline-primary btn-sm invoice-collapse-btn"
                                 type="button"
                                 data-toggle="collapse"
                                 data-target="#tablaRemesasFactura"
@@ -664,8 +782,8 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                 <strong>No afectan el saldo de la factura</strong> hasta que se registre el pago correspondiente.
                             </div>
 
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered table-hover">
+                            <div class="table-responsive invoice-table-wrap">
+                                <table class="table table-sm table-bordered table-hover invoice-mobile-table invoice-remesas-table">
                                     <thead style="background:#1e3a5f;">
                                         <tr>
                                             <th style="color:#fff;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Recupero</th>
@@ -684,25 +802,25 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                             $rmIcon     = $rmAnulado ? 'fa-ban' : ($rmAplicado ? 'fa-link' : 'fa-clock');
                                         ?>
                                             <tr class="<?= $rmAnulado ? 'table-danger text-muted' : '' ?>">
-                                                <td>
+                                                <td data-label="Recupero">
                                                     <a href="<?= base_url('recuperos/' . $rm->recupero_id) ?>"
                                                        class="font-weight-bold <?= $rmAnulado ? 'text-muted' : '' ?>">
                                                         <?= esc($rm->numero_recupero) ?>
                                                     </a>
                                                 </td>
-                                                <td class="small"><?= date('d/m/Y', strtotime($rm->fecha)) ?></td>
-                                                <td class="small"><?= $formaCobroLabel[$rm->forma_cobro] ?? ucfirst($rm->forma_cobro) ?></td>
-                                                <td class="text-right font-weight-bold <?= $rmAnulado ? 'text-muted' : 'text-dark' ?>">
+                                                <td data-label="Fecha" class="small"><?= date('d/m/Y', strtotime($rm->fecha)) ?></td>
+                                                <td data-label="Forma cobro" class="small"><?= $formaCobroLabel[$rm->forma_cobro] ?? ucfirst($rm->forma_cobro) ?></td>
+                                                <td data-label="Monto remesado" class="text-right font-weight-bold <?= $rmAnulado ? 'text-muted' : 'text-dark' ?>">
                                                     <?= $rmAnulado ? '<s>' : '' ?>
                                                     $<?= number_format($rm->monto_aplicado, 2) ?>
                                                     <?= $rmAnulado ? '</s>' : '' ?>
                                                 </td>
-                                                <td class="text-center">
+                                                <td data-label="Estado" class="text-center">
                                                     <span class="badge badge-<?= $rmColor ?>">
                                                         <i class="fa-solid <?= $rmIcon ?> mr-1"></i><?= $rm->estado ?>
                                                     </span>
                                                 </td>
-                                                <td class="text-center">
+                                                <td data-label="Pago" class="text-center">
                                                     <?php if ($rm->pago_id): ?>
                                                         <a href="<?= base_url('payments/' . $rm->pago_id) ?>"
                                                            class="badge badge-success" title="Ver pago aplicado">

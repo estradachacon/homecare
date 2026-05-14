@@ -1,5 +1,103 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    .recupero-detail-table th,
+    .recupero-detail-table td {
+        vertical-align: middle;
+    }
+    .recupero-detail-table .document-link {
+        word-break: break-word;
+    }
+    @media (max-width: 767.98px) {
+        .recupero-show-header {
+            gap: .75rem;
+        }
+        .recupero-show-actions {
+            width: 100%;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+        .recupero-show-actions .btn,
+        .recupero-show-actions .badge {
+            margin-right: 0 !important;
+        }
+        .recupero-show-actions .btn {
+            flex: 1 1 130px;
+        }
+        .recupero-detail-wrap {
+            overflow: visible;
+        }
+        .recupero-detail-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+        }
+        .recupero-detail-table thead {
+            display: none;
+        }
+        .recupero-detail-table,
+        .recupero-detail-table tbody,
+        .recupero-detail-table tr,
+        .recupero-detail-table td {
+            display: block;
+            width: 100%;
+        }
+        .recupero-detail-table tbody tr {
+            border: 1px solid #e5e9f0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, .06);
+            overflow: hidden;
+        }
+        .recupero-detail-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            border-top: 1px solid #eef1f5 !important;
+            padding: .55rem .75rem;
+            text-align: right !important;
+        }
+        .recupero-detail-table td:first-child {
+            border-top: 0 !important;
+            background: #f8fafc;
+            font-weight: 700;
+        }
+        .recupero-detail-table td::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .73rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            text-align: left;
+            flex: 0 0 42%;
+        }
+        .recupero-detail-table td > * {
+            max-width: 58%;
+        }
+        .recupero-detail-table tfoot,
+        .recupero-detail-table tfoot tr,
+        .recupero-detail-table tfoot td {
+            display: block;
+            width: 100%;
+        }
+        .recupero-detail-table tfoot tr {
+            border: 1px solid #cbd9ff;
+            border-radius: 8px;
+            background: #f5f8ff;
+            overflow: hidden;
+        }
+        .recupero-detail-table tfoot td {
+            border: 0 !important;
+            text-align: right !important;
+        }
+        .recupero-detail-table tfoot td:first-child {
+            padding-bottom: 0;
+            color: #6c757d;
+            font-size: .75rem;
+        }
+    }
+</style>
 
 <?php
 $formaCobro = [
@@ -12,6 +110,9 @@ $fc      = $formaCobro[$recupero->forma_cobro] ?? ['label' => ucfirst($recupero-
 $anulado   = ($recupero->estado === 'ANULADO');
 $aplicado  = ($recupero->estado === 'APLICADO');
 $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
+$correlativoFactura = static function ($numeroControl) {
+    return !empty($numeroControl) ? substr($numeroControl, -6) : 'N/D';
+};
 ?>
 
 <?php if (session()->getFlashdata('success')): ?>
@@ -24,7 +125,7 @@ $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
 <div class="card">
     <!-- Cabecera -->
     <div class="card-header py-2">
-        <div class="d-flex flex-wrap justify-content-between">
+        <div class="d-flex flex-wrap justify-content-between recupero-show-header">
 
             <!-- Izquierda: número + badges -->
             <div class="d-flex align-items-center flex-wrap">
@@ -45,7 +146,7 @@ $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
             </div>
 
             <!-- Derecha: acciones -->
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center recupero-show-actions">
                 <?php if ($aplicado): ?>
                     <span class="badge badge-primary px-2 py-1 mr-2" style="font-size:.8rem;">
                         <i class="fa-solid fa-lock mr-1"></i>Vinculado al pago
@@ -150,8 +251,8 @@ $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
         <?php if (empty($detalles)): ?>
             <div class="text-muted small">Sin facturas registradas.</div>
         <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered">
+            <div class="table-responsive recupero-detail-wrap">
+                <table class="table table-sm table-bordered recupero-detail-table">
                     <thead class="thead-dark">
                         <tr>
                             <th class="text-dark">#</th>
@@ -168,20 +269,20 @@ $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
                         <?php foreach ($detalles as $i => $d): ?>
                             <?php $totalRemesado += (float)$d->monto_aplicado; ?>
                             <tr>
-                                <td class="text-center text-muted"><?= $i + 1 ?></td>
-                                <td>
-                                    <a href="<?= base_url('facturas/' . $d->factura_id) ?>" class="font-weight-bold">
-                                        <?= esc($d->numero_control) ?>
+                                <td data-label="#" class="text-center text-muted"><?= $i + 1 ?></td>
+                                <td data-label="Documento">
+                                    <a href="<?= base_url('facturas/' . $d->factura_id) ?>" class="font-weight-bold document-link">
+                                        <?= esc($correlativoFactura($d->numero_control)) ?>
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="Tipo">
                                     <span class="badge badge-secondary">
                                         <?= $tipos[$d->tipo_dte] ?? esc($d->tipo_dte) ?>
                                     </span>
                                 </td>
-                                <td class="small"><?= $d->fecha_emision ? date('d/m/Y', strtotime($d->fecha_emision)) : '—' ?></td>
-                                <td class="text-right text-muted">$<?= number_format($d->total_pagar, 2) ?></td>
-                                <td class="text-right">
+                                <td data-label="Fecha factura" class="small"><?= $d->fecha_emision ? date('d/m/Y', strtotime($d->fecha_emision)) : '—' ?></td>
+                                <td data-label="Total factura" class="text-right text-muted">$<?= number_format($d->total_pagar, 2) ?></td>
+                                <td data-label="Saldo pendiente" class="text-right">
                                     <?php $saldo = (float)($d->saldo_actual ?? 0); ?>
                                     <span class="<?= $saldo > 0 ? 'text-danger' : 'text-success' ?>">
                                         $<?= number_format($saldo, 2) ?>
@@ -190,7 +291,7 @@ $tipos     = ['01' => 'FAC', '03' => 'CCF', '05' => 'N.C.', '06' => 'N.D.'];
                                         <span class="badge badge-success ml-1" style="font-size:.6rem;">Pagada</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-right font-weight-bold text-primary">
+                                <td data-label="Monto remesado" class="text-right font-weight-bold text-primary">
                                     $<?= number_format($d->monto_aplicado, 2) ?>
                                 </td>
                             </tr>

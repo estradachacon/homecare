@@ -13,10 +13,117 @@
     .remesa-table tbody tr.selected-row { background: #e8f4fd; }
     #totalRemesa { font-size: 1.2rem; font-weight: 700; color: #0d6efd; }
     .check-asiento:checked + label { color: #0d6efd; }
+    .remesa-table .asiento-desc,
+    .remesa-table .asiento-ref {
+        max-width: 240px;
+        word-break: break-word;
+    }
+    @media (max-width: 767.98px) {
+        .remesa-new-header {
+            align-items: flex-start !important;
+            gap: .75rem;
+        }
+        .remesa-new-header .btn,
+        .remesa-search-actions .btn {
+            width: 100%;
+            margin-left: 0 !important;
+            margin-top: .35rem;
+        }
+        .remesa-actions-footer {
+            display: grid !important;
+            grid-template-columns: 1fr;
+            gap: .5rem;
+        }
+        .remesa-actions-footer .btn {
+            width: 100%;
+            margin-right: 0 !important;
+        }
+        .remesa-table-wrap {
+            overflow: visible;
+        }
+        .remesa-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+        }
+        .remesa-table thead {
+            display: none;
+        }
+        .remesa-table,
+        .remesa-table tbody,
+        .remesa-table tr,
+        .remesa-table td {
+            display: block;
+            width: 100%;
+        }
+        .remesa-table tbody tr.asiento-row {
+            border: 1px solid #e5e9f0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, .06);
+            overflow: hidden;
+        }
+        .remesa-table tbody tr.asiento-row.selected-row {
+            background: #eef7ff;
+            border-color: #9dccff;
+        }
+        .remesa-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            border-top: 1px solid #eef1f5 !important;
+            padding: .55rem .75rem;
+            text-align: right !important;
+        }
+        .remesa-table td:first-child {
+            border-top: 0 !important;
+            background: #f8fafc;
+        }
+        .remesa-table td::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            text-align: left;
+            flex: 0 0 42%;
+        }
+        .remesa-table td > * {
+            max-width: 58%;
+        }
+        .remesa-table .asiento-desc,
+        .remesa-table .asiento-ref {
+            max-width: 58%;
+        }
+        .remesa-table tbody tr:not(.asiento-row) td {
+            display: block;
+            text-align: center !important;
+        }
+        .remesa-table tbody tr:not(.asiento-row) td::before {
+            display: none;
+        }
+        .remesa-table tfoot,
+        .remesa-table tfoot tr,
+        .remesa-table tfoot td {
+            display: block;
+            width: 100%;
+        }
+        .remesa-table tfoot tr {
+            border: 1px solid #cbd9ff;
+            border-radius: 8px;
+            background: #f5f8ff;
+            overflow: hidden;
+        }
+        .remesa-table tfoot td {
+            border: 0 !important;
+            text-align: right !important;
+        }
+    }
 </style>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between py-2">
+    <div class="card-header d-flex flex-wrap justify-content-between py-2 remesa-new-header">
         <h5 class="header-title mb-0">
             <i class="fa-solid fa-layer-group text-primary mr-2"></i>Nueva Remesa Contable
         </h5>
@@ -55,7 +162,7 @@
         </p>
 
         <div class="form-row align-items-end mb-3">
-            <div class="form-group col-md-4 mb-2">
+            <div class="form-group col-md-4 mb-2 remesa-search-actions">
                 <label class="small font-weight-bold">Tipo de partida</label>
                 <select id="filtroTipoPartida" class="form-control form-control-sm">
                     <option value="">— Todos los tipos —</option>
@@ -92,7 +199,7 @@
         </div>
 
         <!-- ── Tabla de asientos ── -->
-        <div class="table-responsive">
+        <div class="table-responsive remesa-table-wrap">
             <table class="table table-sm table-bordered remesa-table">
                 <thead>
                     <tr>
@@ -132,7 +239,7 @@
         </div>
 
         <!-- ── Acciones ── -->
-        <div class="d-flex justify-content-end mt-3 pt-3 border-top">
+        <div class="d-flex justify-content-end mt-3 pt-3 border-top remesa-actions-footer">
             <a href="<?= base_url('contabilidad/remesas') ?>" class="btn btn-secondary btn-sm mr-2">
                 Cancelar
             </a>
@@ -201,21 +308,21 @@ function renderTabla(data) {
             : '<span class="text-muted">—</span>';
         html += `
         <tr class="asiento-row" data-id="${a.id}" data-monto="${a.total_debe}">
-            <td class="text-center">
+            <td data-label="Seleccionar" class="text-center">
                 <input type="checkbox" class="chk-asiento" value="${a.id}" data-monto="${a.total_debe}">
             </td>
-            <td>
+            <td data-label="Asiento">
                 <a href="<?= base_url('contabilidad/asientos/') ?>${a.id}" target="_blank"
                    class="font-weight-bold text-dark">
                     #${a.numero_asiento}
                 </a>
             </td>
-            <td class="small">${fecha}</td>
-            <td class="small text-muted">${a.periodo || '—'}</td>
-            <td>${tpHtml}</td>
-            <td class="small">${esc(a.descripcion)}</td>
-            <td>${refHtml}</td>
-            <td class="text-right font-weight-bold">$${monto}</td>
+            <td data-label="Fecha" class="small">${fecha}</td>
+            <td data-label="Periodo" class="small text-muted">${a.periodo || '—'}</td>
+            <td data-label="Tipo partida">${tpHtml}</td>
+            <td data-label="Descripcion" class="small asiento-desc">${esc(a.descripcion)}</td>
+            <td data-label="Referencia" class="asiento-ref">${refHtml}</td>
+            <td data-label="Monto" class="text-right font-weight-bold">$${monto}</td>
         </tr>`;
     });
 

@@ -39,12 +39,185 @@
         border-radius: 5px;
         font-weight: 500;
     }
+    .facturas-table th,
+    .facturas-table td {
+        vertical-align: middle;
+    }
+    .facturas-table .factura-client-cell {
+        min-width: 220px;
+    }
+    @media (max-width: 767.98px) {
+        .facturas-card-header {
+            align-items: flex-start !important;
+            gap: .75rem;
+        }
+        .facturas-card-header .btn {
+            width: 100%;
+            margin-left: 0 !important;
+        }
+        .facturas-filter-row > [class*="col-"] {
+            margin-bottom: .6rem;
+        }
+        .facturas-table-wrap {
+            overflow: visible;
+        }
+        .facturas-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+        }
+        .facturas-table thead {
+            display: none;
+        }
+        .facturas-table,
+        .facturas-table tbody,
+        .facturas-table tr,
+        .facturas-table td {
+            display: block;
+            width: 100%;
+        }
+        .facturas-table tbody tr.factura-row-card {
+            border: 1px solid #e5e9f0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, .06);
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .facturas-table tbody tr.factura-row-anulada {
+            background: #fff7f7;
+            border-color: #f1c3c3;
+        }
+        .facturas-table tbody tr.factura-row-pagada {
+            background: #f5fbff;
+            border-color: #cdeaf7;
+        }
+        .facturas-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            border-top: 1px solid #eef1f5 !important;
+            padding: .55rem .75rem;
+            text-align: right !important;
+        }
+        .facturas-table td:first-child {
+            border-top: 0 !important;
+            background: #f8fafc;
+            font-size: .95rem;
+        }
+        .facturas-table td::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            text-align: left;
+            flex: 0 0 42%;
+        }
+        .facturas-table td > * {
+            max-width: 58%;
+        }
+        .facturas-table .factura-card-head {
+            align-items: center;
+            background: #f8fafc;
+        }
+        .facturas-table .factura-card-head::before {
+            display: none;
+        }
+        .facturas-table .factura-main-link {
+            min-width: 0;
+            max-width: 54%;
+            text-align: left;
+            color: #212529;
+        }
+        .factura-mobile-date {
+            display: inline-block !important;
+            max-width: 46%;
+            color: #6c757d;
+            font-size: .78rem;
+            white-space: nowrap;
+        }
+        .facturas-table .factura-client-cell {
+            display: block;
+            min-width: 0;
+            text-align: left !important;
+        }
+        .facturas-table .factura-client-cell::before {
+            display: block;
+            margin-bottom: .25rem;
+            text-align: left;
+            flex: none;
+        }
+        .facturas-table .factura-client-name,
+        .facturas-table .factura-seller {
+            display: block;
+            max-width: 100%;
+            text-align: left;
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: normal;
+            line-height: 1.25;
+        }
+        .facturas-table .factura-client-name {
+            width: 100%;
+        }
+        .facturas-table .factura-type-cell {
+            display: none;
+        }
+        .facturas-table .factura-doc-desc {
+            display: none;
+        }
+        .facturas-table .factura-condition-cell {
+            align-items: center;
+        }
+        .facturas-table .factura-condition-badges {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .4rem;
+            max-width: 58%;
+            flex-wrap: wrap;
+        }
+        .facturas-table .factura-mobile-type-badge {
+            display: inline-block !important;
+        }
+        .facturas-table .factura-date-cell,
+        .facturas-table .factura-state-cell,
+        .facturas-table .factura-action-cell {
+            display: none;
+        }
+        .facturas-table .factura-total-cell {
+            align-items: center;
+        }
+        .facturas-table .factura-total-state {
+            display: inline-flex !important;
+            align-items: center;
+            gap: .45rem;
+            max-width: 58%;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .facturas-table .factura-total-state > * {
+            max-width: none;
+        }
+        .facturas-table .factura-mobile-state {
+            display: inline-block !important;
+        }
+        .facturas-table .factura-empty-row td {
+            display: block;
+            text-align: center !important;
+        }
+        .facturas-table .factura-empty-row td::before {
+            display: none;
+        }
+    }
 </style>
 
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex">
+            <div class="card-header d-flex flex-wrap facturas-card-header">
                 <h4 class="header-title">Listado de facturas</h4>
                 <?php if (tienePermiso('cargar_facturas')): ?>
                     <a class="btn btn-primary btn-sm ml-auto" href="<?= base_url('facturas/carga') ?>"><i
@@ -53,7 +226,7 @@
             </div>
             <div class="card-body">
                 <form onsubmit="return false" class="mb-3">
-                    <div class="row g-2">
+                    <div class="row g-2 facturas-filter-row">
 
                         <div class="col-md-4">
                             <small class="text-muted">Cliente</small>
@@ -125,7 +298,8 @@
 
                     </div>
                 </form>
-                <table class="table table-striped table-bordered table-hover">
+                <div class="table-responsive facturas-table-wrap">
+                <table class="table table-striped table-bordered table-hover facturas-table">
                     <thead>
                         <tr>
                             <th>Correlativo</th>
@@ -142,12 +316,22 @@
                     <tbody>
                         <?php if (!empty($facturas)): ?>
                             <?php foreach ($facturas as $factura): ?>
-                                <tr>
-                                    <td class="text-center">
-                                        <?= esc(substr($factura->numero_control, -6)) ?>
+                                <?php
+                                $facturaAnulada = (($factura->anulada ?? 0) == 1);
+                                $facturaPagada  = (($factura->saldo ?? 0) == 0);
+                                $rowClass       = $facturaAnulada ? 'factura-row-anulada' : ($facturaPagada ? 'factura-row-pagada' : '');
+                                ?>
+                                <tr class="factura-row-card <?= $rowClass ?>" data-href="<?= base_url('facturas/' . $factura->id) ?>">
+                                    <td data-label="Correlativo" class="text-center factura-card-head">
+                                        <a href="<?= base_url('facturas/' . $factura->id) ?>" class="font-weight-bold factura-main-link">
+                                            <?= esc(substr($factura->numero_control, -6)) ?>
+                                        </a>
+                                        <span class="factura-mobile-date d-none">
+                                            <?= date('d/m/Y', strtotime($factura->fecha_emision)) ?>
+                                        </span>
                                     </td>
 
-                                    <td>
+                                    <td data-label="Tipo doc" class="factura-type-cell">
                                         <?php
                                         $siglas = dte_siglas();
                                         $descripciones = dte_descripciones();
@@ -162,7 +346,7 @@
                                                 <?= esc($sigla) ?>
                                             </span>
                                             <br>
-                                            <small class="text-muted">
+                                            <small class="text-muted factura-doc-desc">
                                                 <?= esc($descripcion) ?>
                                             </small>
                                         <?php else: ?>
@@ -170,16 +354,16 @@
                                         <?php endif; ?>
                                     </td>
 
-                                    <td>
-                                        <?= esc($factura->cliente_nombre ?? 'Sin cliente') ?>
-                                        <div class="text-right">
+                                    <td data-label="Cliente" class="factura-client-cell">
+                                        <span class="factura-client-name"><?= esc($factura->cliente_nombre ?? 'Sin cliente') ?></span>
+                                        <div class="factura-seller">
                                             <small class="text-muted">
                                                 Vendedor: <?= esc($factura->vendedor ?? 'Sin vendedor') ?>
                                             </small>
                                         </div>
                                     </td>
 
-                                    <td class="text-center">
+                                    <td data-label="Fecha" class="text-center factura-date-cell">
                                         <?= date('d/m/Y', strtotime($factura->fecha_emision)) ?>
                                         <br>
                                         <small class="text-muted">
@@ -187,7 +371,7 @@
                                         </small>
                                     </td>
 
-                                    <td class="text-center">
+                                    <td data-label="Condicion" class="text-center factura-condition-cell">
                                         <?php
                                         $condicion = $factura->condicion_operacion ?? 1;
 
@@ -199,25 +383,41 @@
                                             echo '<span class="badge badge-estado bg-secondary text-white">N/D</span>';
                                         }
                                         ?>
+                                        <?php if ($sigla && $descripcion): ?>
+                                            <span class="badge badge-estado1 bg-info text-white d-none factura-mobile-type-badge">
+                                                <?= esc($sigla) ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
 
-                                    <td class="text-end">
-                                        $ <?= number_format($factura->total_pagar, 2) ?>
+                                    <td data-label="Total" class="text-end factura-total-cell">
+                                        <span class="factura-total-state">
+                                            <span>$ <?= number_format($factura->total_pagar, 2) ?></span>
+                                            <?php if ($facturaAnulada): ?>
+                                                <span class="badge badge-estado bg-danger text-white d-none factura-mobile-state">Anulado</span>
+                                            <?php elseif ($facturaPagada): ?>
+                                                <span class="badge bg-info badge-estado text-white d-none factura-mobile-state">
+                                                    <i class="fa-solid fa-check-circle"></i> Pagada
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge bg-warning badge-estado text-dark d-none factura-mobile-state">Activa</span>
+                                            <?php endif; ?>
+                                        </span>
                                     </td>
 
-                                    <td class="text-end">
+                                    <td data-label="Saldo" class="text-end">
                                         $ <?= number_format($factura->saldo, 2) ?>
                                     </td>
 
-                                    <td class="text-center">
+                                    <td data-label="Estado" class="text-center factura-state-cell">
 
-                                        <?php if (($factura->anulada ?? 0) == 1): ?>
+                                        <?php if ($facturaAnulada): ?>
 
                                             <span class="badge badge-estado bg-danger text-white">
                                                 Anulado
                                             </span>
 
-                                        <?php elseif (($factura->saldo ?? 0) == 0): ?>
+                                        <?php elseif ($facturaPagada): ?>
 
                                             <span class="badge bg-info badge-estado text-white">
                                                 <i class="fa-solid fa-check-circle"></i> Pagada
@@ -233,7 +433,7 @@
 
                                     </td>
 
-                                    <td class="text-center">
+                                    <td data-label="Menu" class="text-center factura-action-cell">
                                         <a href="<?= base_url('facturas/' . $factura->id) ?>"
                                             class="btn btn-sm btn-info">
                                             <i class="fa-solid fa-eye"></i>
@@ -242,7 +442,7 @@
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr>
+                            <tr class="factura-empty-row">
                                 <td colspan="9" class="text-center">
                                     No hay facturas registradas
                                 </td>
@@ -250,6 +450,7 @@
                         <?php endif; ?>
                     </tbody>
                 </table>
+                </div>
                 <div id="pagerContainer" class="d-flex mt-3">
                     <?= $pager->links('default', 'bootstrap_full') ?>
                 </div>
@@ -348,6 +549,11 @@
         $('#numeroFactura').on('input', function() {
             this.value = this.value.replace(/\D/g, '');
             cargarFacturas();
+        });
+
+        $('.facturas-table tbody').on('click', 'tr[data-href]', function(e) {
+            if ($(e.target).closest('a, button, input, select, textarea').length) return;
+            window.location = $(this).data('href');
         });
 
         // ================= FECHA MASK =================

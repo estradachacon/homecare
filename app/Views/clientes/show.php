@@ -3,189 +3,58 @@
 <?= csrf_field() ?>
 <div class="row">
     <div class="col-md-12">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm cliente-detail-card">
             <div class="card-header d-flex">
-                <h4 class="mb-0">
+                <h4 class="mb-0 cliente-detail-title">
                     <?= esc($cliente->nombre) ?>
                 </h4>
+                <?php if (tienePermiso('editar_clientes')): ?>
+                    <a href="<?= base_url('clientes/edit/' . $cliente->id) ?>"
+                        class="btn btn-sm btn-warning cliente-mobile-edit-btn">
+                        <i class="fa-solid fa-pen"></i>
+                        <span>Editar</span>
+                    </a>
+                <?php endif; ?>
             </div>
             <div class="card-body">
-                <div class="row">
+                <div class="row cliente-detail-grid">
 
-                    <div class="col-md-4">
+                    <div class="col-md-4 cliente-info-item">
                         <small class="text-muted">Documento</small>
                         <div class="fw-semibold">
                             <?= esc($cliente->numero_documento) ?>
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-4 cliente-info-item">
                         <small class="text-muted">NRC</small>
                         <div class="fw-semibold">
                             <?= esc($cliente->nrc ?? 'N/D') ?>
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-4 cliente-info-item">
                         <small class="text-muted">Teléfono</small>
                         <div class="fw-semibold">
                             <?= esc($cliente->telefono ?? 'N/D') ?>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 cliente-info-item cliente-account-item">
                         <small class="text-muted">Cuenta Contable</small>
                         <div class="d-flex align-items-center gap-2 mt-1">
-                            <span id="cuentaLabel" class="fw-semibold">
+                            <span class="fw-semibold">
                                 <?php if (!empty($cliente->cuenta_codigo)): ?>
                                     <?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>
                                 <?php else: ?>
                                     <span class="text-danger">Sin cuenta</span>
                                 <?php endif; ?>
                             </span>
-                            <button class="btn btn-sm btn-outline-primary py-0 px-2"
-                                    data-bs-toggle="modal" data-bs-target="#modalCuentaCliente">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
 
             </div>
         </div>
-
-<!-- Modal Cuenta Contable -->
-<div class="modal fade" id="modalCuentaCliente" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Cuenta Contable del Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <label class="form-label fw-semibold">Seleccionar subcuenta existente</label>
-                <div class="input-group mb-3">
-                    <select id="selectCuentaCliente" class="form-select"></select>
-                    <button class="btn btn-success" type="button" id="btnCrearSubcuenta">
-                        <i class="fa-solid fa-plus"></i> Nueva
-                    </button>
-                </div>
-                <div id="formCrearSubcuenta" class="d-none">
-                    <label class="form-label fw-semibold small">Nombre para la nueva subcuenta</label>
-                    <div class="input-group">
-                        <input type="text" id="inputNombreSubcuenta" class="form-control"
-                               value="<?= esc($cliente->nombre) ?>">
-                        <button class="btn btn-primary" type="button" id="btnConfirmarSubcuenta">
-                            Crear y asignar
-                        </button>
-                    </div>
-                    <small class="text-muted">Se creará como subcuenta de 110201 CLIENTES LOCALES</small>
-                </div>
-                <div id="alertaCuenta" class="mt-2"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnGuardarCuenta">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-$(function () {
-    const clienteId  = <?= (int)$cliente->id ?>;
-    const csrfName   = '<?= csrf_token() ?>';
-    let   csrfHash   = '<?= csrf_hash() ?>';
-    let   cuentaIdSeleccionada = <?= !empty($cliente->cuenta_contable_id) ? (int)$cliente->cuenta_contable_id : 'null' ?>;
-
-    $('#selectCuentaCliente').select2({
-        dropdownParent: $('#modalCuentaCliente'),
-        placeholder: 'Buscar subcuenta...',
-        allowClear: true,
-        minimumInputLength: 0,
-        ajax: {
-            url: '<?= base_url('clientes/cuentas-contables-select2') ?>',
-            dataType: 'json',
-            delay: 200,
-            data: p => ({ q: p.term ?? '' }),
-            processResults: d => d,
-            cache: true,
-        }
-    });
-
-    // Precargar cuenta actual
-    <?php if (!empty($cliente->cuenta_contable_id) && !empty($cliente->cuenta_codigo)): ?>
-    const optActual = new Option(
-        '<?= esc($cliente->cuenta_codigo . ' - ' . $cliente->cuenta_nombre) ?>',
-        <?= (int)$cliente->cuenta_contable_id ?>, true, true
-    );
-    $('#selectCuentaCliente').append(optActual).trigger('change');
-    <?php endif; ?>
-
-    $('#selectCuentaCliente').on('select2:select', function (e) {
-        cuentaIdSeleccionada = e.params.data.id;
-    }).on('select2:clear', function () {
-        cuentaIdSeleccionada = null;
-    });
-
-    // Toggle formulario crear
-    $('#btnCrearSubcuenta').on('click', function () {
-        $('#formCrearSubcuenta').toggleClass('d-none');
-    });
-
-    // Crear subcuenta + asignar directamente
-    $('#btnConfirmarSubcuenta').on('click', function () {
-        const nombre = $('#inputNombreSubcuenta').val().trim();
-        if (!nombre) return;
-
-        $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
-
-        $.post('<?= base_url('clientes/cuentas-contables-crear') ?>', {
-            [csrfName]: csrfHash,
-            nombre: nombre
-        }, null, 'json')
-        .done(function (r) {
-            csrfHash = r.csrf ?? csrfHash;
-            if (!r.success) {
-                $('#alertaCuenta').html('<div class="alert alert-danger">' + r.message + '</div>');
-                return;
-            }
-            const opt = new Option(r.cuenta.text, r.cuenta.id, true, true);
-            $('#selectCuentaCliente').append(opt).trigger('change');
-            cuentaIdSeleccionada = r.cuenta.id;
-            $('#formCrearSubcuenta').addClass('d-none');
-            $('#alertaCuenta').html('<div class="alert alert-success">Subcuenta creada: ' + r.cuenta.text + '</div>');
-        })
-        .always(function () {
-            $('#btnConfirmarSubcuenta').prop('disabled', false).html('Crear y asignar');
-        });
-    });
-
-    // Guardar asignación
-    $('#btnGuardarCuenta').on('click', function () {
-        $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
-
-        $.ajax({
-            url: '<?= base_url('clientes/asignar-cuenta/') ?>' + clienteId,
-            type: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            data: { [csrfName]: csrfHash, cuenta_contable_id: cuentaIdSeleccionada ?? '' },
-            dataType: 'json'
-        })
-        .done(function (r) {
-            csrfHash = r.csrf ?? csrfHash;
-            if (!r.success) {
-                $('#alertaCuenta').html('<div class="alert alert-danger">' + (r.message ?? 'Error') + '</div>');
-                return;
-            }
-            const texto = r.cuenta ? r.cuenta.text : '<span class="text-danger">Sin cuenta</span>';
-            $('#cuentaLabel').html('<span class="fw-semibold">' + texto + '</span>');
-            $('#modalCuentaCliente').modal('hide');
-        })
-        .always(function () {
-            $('#btnGuardarCuenta').prop('disabled', false).html('Guardar');
-        });
-    });
-});
-</script>
 
         <!-- FACTURAS -->
 
@@ -195,7 +64,7 @@ $(function () {
             </div>
 
             <div class="card-body">
-                <form method="get" class="mb-3">
+                <form method="get" class="mb-3 cliente-filter-form">
                     <div class="row align-items-end">
                         <div class="col-md-3">
                             <label>Desde</label>
@@ -226,9 +95,9 @@ $(function () {
                         </div>
                     </div>
                 </form>
-                <div class="table-responsive">
+                <div class="table-responsive cliente-facturas-wrap">
 
-                    <table class="table table-bordered table-hover align-middle">
+                    <table class="table table-bordered table-hover align-middle cliente-facturas-table">
 
                         <thead class="table-light">
                             <tr>
@@ -248,29 +117,42 @@ $(function () {
 
                                 <?php foreach ($facturas as $f): ?>
 
-                                    <tr class="<?= ($f->anulada ?? 0) == 1 ? 'table-danger' : '' ?>">
-                                        <td><?= $f->id ?></td>
+                                    <tr class="cliente-factura-row <?= ($f->anulada ?? 0) == 1 ? 'table-danger' : '' ?>" data-href="<?= base_url('facturas/' . $f->id) ?>">
+                                        <td class="factura-id-cell" data-label="#">
+                                            <span class="badge bg-light text-dark">#<?= $f->id ?></span>
+                                        </td>
 
-                                        <td>
+                                        <td class="factura-correlativo-cell" data-label="Correlativo">
                                             <span class="badge bg-info text-white badge-lg">
                                                 <?= substr($f->numero_control, -6) ?>
                                             </span>
+                                            <small class="text-muted factura-mobile-date">
+                                                <?= date('d/m/Y', strtotime($f->fecha_emision)) ?>
+                                            </small>
                                         </td>
 
-                                        <td>
+                                        <td class="factura-fecha-cell" data-label="Fecha">
                                             <?= date('d/m/Y', strtotime($f->fecha_emision)) ?>
                                             <br>
                                             <small class="text-muted">
                                                 <?= date('H:i:s', strtotime($f->hora_emision)) ?>
+                                            </small>
                                         </td>
 
-                                        <td class="text-end fw-bold">
+                                        <td class="text-end fw-bold factura-total-cell" data-label="Total">
                                             $<?= number_format($f->total_pagar, 2) ?>
+                                            <span class="factura-mobile-status">
+                                                <?php if (($f->anulada ?? 0) == 1): ?>
+                                                    <span class="badge bg-danger text-white">Anulada</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success text-white">Activa</span>
+                                                <?php endif; ?>
+                                            </span>
                                         </td>
-                                        <td>
+                                        <td class="factura-saldo-cell" data-label="Saldo">
                                             $<?= number_format($f->saldo, 2) ?>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center factura-estado-cell" data-label="Estado">
                                             <?php if (($f->anulada ?? 0) == 1): ?>
                                                 <span class="badge bg-danger text-white">
                                                     Anulada
@@ -281,7 +163,7 @@ $(function () {
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center factura-action-cell" data-label="Accion">
                                             <a href="<?= base_url('facturas/' . $f->id) ?>"
                                                 class="btn btn-sm btn-info">
                                                 <i class="fa-solid fa-eye"></i>
@@ -294,7 +176,7 @@ $(function () {
                             <?php else: ?>
 
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">
+                                    <td colspan="7" class="text-center text-muted">
                                         Este cliente no tiene facturas.
                                     </td>
                                 </tr>
@@ -313,4 +195,185 @@ $(function () {
         </div>
     </div>
 </div>
+<style>
+    .factura-mobile-date,
+    .factura-mobile-status {
+        display: none;
+    }
+
+    .cliente-mobile-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        margin-left: auto;
+    }
+
+    @media (max-width: 767.98px) {
+        .cliente-detail-card .card-header {
+            align-items: flex-start;
+            gap: .75rem;
+            justify-content: space-between;
+        }
+
+        .cliente-mobile-edit-btn {
+            flex: 0 0 auto;
+        }
+
+        .cliente-detail-title {
+            font-size: 1.1rem;
+            line-height: 1.25;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .cliente-detail-grid {
+            gap: .65rem;
+        }
+
+        .cliente-info-item {
+            display: flex;
+            justify-content: space-between;
+            gap: .75rem;
+            padding: .45rem 0;
+            border-bottom: 1px solid #eef1f4;
+        }
+
+        .cliente-info-item small {
+            flex: 0 0 auto;
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .cliente-info-item .fw-semibold {
+            min-width: 0;
+            text-align: right;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .cliente-account-item {
+            display: block;
+            border-bottom: 0;
+        }
+
+        .cliente-account-item .d-flex {
+            align-items: flex-start !important;
+        }
+
+        .cliente-account-item .fw-semibold {
+            flex: 1;
+            text-align: left;
+        }
+
+        .cliente-filter-form .row {
+            gap: .65rem;
+        }
+
+        .cliente-filter-form .btn {
+            width: 100%;
+            margin-top: .35rem;
+        }
+
+        .cliente-filter-form .text-end {
+            text-align: left !important;
+        }
+
+        .cliente-facturas-wrap {
+            overflow: visible;
+        }
+
+        .cliente-facturas-table {
+            border-collapse: separate;
+            border-spacing: 0 .65rem;
+        }
+
+        .cliente-facturas-table thead {
+            display: none;
+        }
+
+        .cliente-facturas-table tbody,
+        .cliente-facturas-table tr,
+        .cliente-facturas-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .cliente-facturas-table tr.cliente-factura-row {
+            cursor: pointer;
+            border: 1px solid #dee2e6;
+            border-radius: .5rem;
+            padding: .75rem;
+            background: #fff;
+            box-shadow: 0 .125rem .45rem rgba(15, 23, 42, .06);
+        }
+
+        .cliente-facturas-table tr.cliente-factura-row.table-danger {
+            background: #fff5f5;
+        }
+
+        .cliente-facturas-table td {
+            border: 0;
+            padding: .18rem 0;
+        }
+
+        .cliente-facturas-table .factura-id-cell,
+        .cliente-facturas-table .factura-fecha-cell,
+        .cliente-facturas-table .factura-saldo-cell,
+        .cliente-facturas-table .factura-estado-cell {
+            display: none;
+        }
+
+        .cliente-facturas-table .factura-correlativo-cell,
+        .cliente-facturas-table .factura-total-cell {
+            display: flex;
+            justify-content: space-between;
+            gap: .75rem;
+            align-items: center;
+        }
+
+        .cliente-facturas-table .factura-correlativo-cell {
+            flex-wrap: wrap;
+        }
+
+        .cliente-facturas-table .factura-correlativo-cell::before,
+        .cliente-facturas-table .factura-total-cell::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .cliente-facturas-table .factura-mobile-date {
+            display: block;
+            flex-basis: 100%;
+            padding-left: calc(.75rem + 78px);
+        }
+
+        .cliente-facturas-table .factura-mobile-status {
+            display: inline-flex;
+            margin-left: .4rem;
+        }
+
+        .cliente-facturas-table .factura-action-cell {
+            display: none;
+        }
+
+        #pagerContainer {
+            overflow-x: auto;
+            justify-content: flex-start;
+        }
+    }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.cliente-factura-row[data-href]').forEach(row => {
+            row.addEventListener('click', function(event) {
+                if (event.target.closest('a, button')) return;
+                window.location.href = this.dataset.href;
+            });
+        });
+    });
+</script>
 <?= $this->endSection() ?>

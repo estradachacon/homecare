@@ -1,5 +1,101 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
+<style>
+    .remesa-detail-table th,
+    .remesa-detail-table td {
+        vertical-align: middle;
+    }
+    .remesa-detail-table .remesa-detail-desc,
+    .remesa-detail-table .remesa-detail-ref {
+        max-width: 240px;
+        word-break: break-word;
+    }
+    @media (max-width: 767.98px) {
+        .remesa-show-header {
+            gap: .75rem;
+        }
+        .remesa-show-actions {
+            width: 100%;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+        .remesa-show-actions .btn {
+            flex: 1 1 130px;
+            margin-right: 0 !important;
+        }
+        .remesa-detail-wrap {
+            overflow: visible;
+        }
+        .remesa-detail-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+        }
+        .remesa-detail-table thead {
+            display: none;
+        }
+        .remesa-detail-table,
+        .remesa-detail-table tbody,
+        .remesa-detail-table tr,
+        .remesa-detail-table td {
+            display: block;
+            width: 100%;
+        }
+        .remesa-detail-table tbody tr {
+            border: 1px solid #e5e9f0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, .06);
+            overflow: hidden;
+        }
+        .remesa-detail-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            border-top: 1px solid #eef1f5 !important;
+            padding: .55rem .75rem;
+            text-align: right !important;
+        }
+        .remesa-detail-table td:first-child {
+            border-top: 0 !important;
+            background: #f8fafc;
+            font-weight: 700;
+        }
+        .remesa-detail-table td::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            text-align: left;
+            flex: 0 0 42%;
+        }
+        .remesa-detail-table td > * {
+            max-width: 58%;
+        }
+        .remesa-detail-table .remesa-detail-desc,
+        .remesa-detail-table .remesa-detail-ref {
+            max-width: 58%;
+        }
+        .remesa-detail-table tfoot,
+        .remesa-detail-table tfoot tr,
+        .remesa-detail-table tfoot td {
+            display: block;
+            width: 100%;
+        }
+        .remesa-detail-table tfoot tr {
+            border: 1px solid #cbd9ff;
+            border-radius: 8px;
+            background: #f5f8ff;
+            overflow: hidden;
+        }
+        .remesa-detail-table tfoot td {
+            border: 0 !important;
+            text-align: right !important;
+        }
+    }
+</style>
 
 <?php
 $anulado = ($remesa->estado === 'ANULADO');
@@ -9,7 +105,7 @@ $cerrado = ($remesa->estado === 'CERRADO');
 <div class="card">
     <!-- Cabecera -->
     <div class="card-header py-2">
-        <div class="d-flex flex-wrap justify-content-between">
+        <div class="d-flex flex-wrap justify-content-between remesa-show-header">
 
             <div class="d-flex align-items-center flex-wrap">
                 <h5 class="mb-0 mr-2">
@@ -30,7 +126,7 @@ $cerrado = ($remesa->estado === 'CERRADO');
                 <?php endif; ?>
             </div>
 
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center remesa-show-actions">
                 <?php if (!$anulado && !$cerrado && tienePermiso('anular_remesa_contable')): ?>
                     <button class="btn btn-outline-danger btn-sm mr-2" onclick="abrirModalAnular()">
                         <i class="fa-solid fa-ban mr-1"></i>Anular remesa
@@ -101,8 +197,8 @@ $cerrado = ($remesa->estado === 'CERRADO');
         <?php if (empty($detalles)): ?>
             <div class="text-muted small">Sin asientos registrados.</div>
         <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-sm table-bordered">
+            <div class="table-responsive remesa-detail-wrap">
+                <table class="table table-sm table-bordered remesa-detail-table">
                     <thead class="thead-dark">
                         <tr>
                             <th>#</th>
@@ -120,29 +216,29 @@ $cerrado = ($remesa->estado === 'CERRADO');
                         <?php foreach ($detalles as $i => $d): ?>
                             <?php $totalDetalle += (float)$d->monto; ?>
                             <tr>
-                                <td class="text-center text-muted"><?= $i + 1 ?></td>
-                                <td>
+                                <td data-label="#" class="text-center text-muted"><?= $i + 1 ?></td>
+                                <td data-label="Asiento">
                                     <a href="<?= base_url('contabilidad/asientos/' . $d->asiento_id) ?>"
                                        class="font-weight-bold text-dark" target="_blank">
                                         #<?= $d->numero_asiento ?>
                                     </a>
                                 </td>
-                                <td class="small"><?= $d->fecha ? date('d/m/Y', strtotime($d->fecha)) : '—' ?></td>
-                                <td class="small text-muted">
+                                <td data-label="Fecha" class="small"><?= $d->fecha ? date('d/m/Y', strtotime($d->fecha)) : '—' ?></td>
+                                <td data-label="Periodo" class="small text-muted">
                                     <?= (!empty($d->anio) && !empty($d->mes))
                                         ? $d->anio . '-' . str_pad($d->mes, 2, '0', STR_PAD_LEFT)
                                         : '—' ?>
                                 </td>
-                                <td>
+                                <td data-label="Tipo partida">
                                     <?php if ($d->tipo_partida_nombre): ?>
                                         <span class="badge badge-light border"><?= esc($d->tipo_partida_nombre) ?></span>
                                     <?php else: ?>
                                         <span class="text-muted">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="small"><?= esc($d->descripcion) ?></td>
-                                <td class="small text-muted"><?= esc($d->referencia ?? '—') ?></td>
-                                <td class="text-right font-weight-bold text-primary">
+                                <td data-label="Descripcion" class="small remesa-detail-desc"><?= esc($d->descripcion) ?></td>
+                                <td data-label="Referencia" class="small text-muted remesa-detail-ref"><?= esc($d->referencia ?? '—') ?></td>
+                                <td data-label="Monto" class="text-right font-weight-bold text-primary">
                                     $<?= number_format($d->monto, 2) ?>
                                 </td>
                             </tr>

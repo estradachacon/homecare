@@ -413,6 +413,7 @@ function renderTabla(facturas) {
 
         const tipoLabel = tipos[f.tipo_dte] ?? f.tipo_dte;
         const tipoColor = tipoBadge[f.tipo_dte] ?? 'secondary';
+        const correlativo = numeroControlCorto(f.numero_control);
 
         // ── Factura con recupero activo pendiente de aplicar ──────────
         if (f.recupero_id) {
@@ -424,7 +425,7 @@ function renderTabla(facturas) {
                 </td>
                 <td>
                     <button class="btn-detalle" onclick="verDetalleFactura(${f.id})" title="Ver productos facturados">
-                        <i class="fa-solid fa-magnifying-glass-plus" style="font-size:.7rem;margin-right:3px;"></i>${f.numero_control}
+                        <i class="fa-solid fa-magnifying-glass-plus" style="font-size:.7rem;margin-right:3px;"></i>${correlativo}
                     </button>
                     ${badgeDias}
                     <div class="mt-1">
@@ -462,7 +463,7 @@ function renderTabla(facturas) {
             </td>
             <td>
                 <button class="btn-detalle" onclick="verDetalleFactura(${f.id})" title="Ver productos facturados">
-                    <i class="fa-solid fa-magnifying-glass-plus" style="font-size:.7rem;margin-right:3px;"></i>${f.numero_control}
+                    <i class="fa-solid fa-magnifying-glass-plus" style="font-size:.7rem;margin-right:3px;"></i>${correlativo}
                 </button>
                 ${badgeDias}
             </td>
@@ -582,7 +583,7 @@ function guardarRecupero() {
         const f = facturasData.find(x => x.id == id);
         facturas.push({
             factura_id:      parseInt(id),
-            numero_control:  f?.numero_control ?? id,
+            numero_control:  numeroControlCorto(f?.numero_control ?? id),
             monto:           parseFloat(monto.toFixed(2)),
         });
     }
@@ -714,6 +715,11 @@ function formatDate(str) {
     return `${d}/${m}/${y}`;
 }
 
+function numeroControlCorto(numero) {
+    const valor = String(numero ?? '');
+    return valor.length > 6 ? valor.slice(-6) : (valor || 'N/D');
+}
+
 // ─── Detalle de factura (mini modal) ─────────────────────────────
 function verDetalleFactura(facturaId) {
     const tipos = { '01': 'FAC', '03': 'CCF', '05': 'N.C.', '06': 'N.D.' };
@@ -749,7 +755,7 @@ function verDetalleFactura(facturaId) {
                 <div class="row mb-3">
                     <div class="col-6">
                         <small class="text-muted d-block">Documento</small>
-                        <strong>${f.numero_control}</strong>
+                        <strong>${numeroControlCorto(f.numero_control)}</strong>
                         <span class="badge badge-secondary ml-1">${tipo}</span>
                     </div>
                     <div class="col-3">

@@ -36,8 +36,8 @@
 
                 </form>
 
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle">
+                <div class="table-responsive clientes-table-wrap">
+                    <table class="table table-bordered table-hover align-middle clientes-mobile-table">
 
                         <thead class="table-light">
                             <tr>
@@ -55,20 +55,28 @@
                         <?php if (!empty($clientes)): ?>
 
                             <?php foreach ($clientes as $c): ?>
-                                <tr>
-                                    <td><?= $c->id ?></td>
+                                <tr class="cliente-mobile-row" data-href="<?= base_url('clientes/'.$c->id) ?>">
+                                    <td class="cliente-id-cell" data-label="#">
+                                        <span class="badge bg-light text-dark">#<?= $c->id ?></span>
+                                    </td>
 
-                                    <td>
+                                    <td class="cliente-name-cell" data-label="Cliente">
                                         <strong><?= esc($c->nombre) ?></strong>
                                     </td>
 
-                                    <td><?= esc($c->numero_documento) ?></td>
+                                    <td class="cliente-doc-cell" data-label="Documento">
+                                        <?= esc($c->numero_documento) ?>
+                                    </td>
 
-                                    <td><?= esc($c->nrc) ?></td>
+                                    <td class="cliente-nrc-cell" data-label="NRC">
+                                        <?= esc($c->nrc) ?>
+                                    </td>
 
-                                    <td><?= esc($c->telefono) ?></td>
+                                    <td class="cliente-phone-cell" data-label="Telefono">
+                                        <?= esc($c->telefono) ?>
+                                    </td>
 
-                                    <td class="text-center">
+                                    <td class="text-center cliente-actions-cell" data-label="Acciones">
 
                                         <a href="<?= base_url('clientes/'.$c->id) ?>"
                                            class="btn btn-sm btn-info">
@@ -226,13 +234,114 @@
     });
 </script>
 
+<style>
+    @media (max-width: 767.98px) {
+        .card-header.d-flex {
+            gap: .75rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .clientes-table-wrap {
+            overflow: visible;
+        }
+
+        .clientes-mobile-table {
+            border-collapse: separate;
+            border-spacing: 0 .65rem;
+        }
+
+        .clientes-mobile-table thead {
+            display: none;
+        }
+
+        .clientes-mobile-table tbody,
+        .clientes-mobile-table tr,
+        .clientes-mobile-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .clientes-mobile-table tr.cliente-mobile-row {
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #dee2e6;
+            border-radius: .5rem;
+            padding: .75rem;
+            background: #fff;
+            box-shadow: 0 .125rem .45rem rgba(15, 23, 42, .06);
+        }
+
+        .clientes-mobile-table tr.cliente-mobile-row:active {
+            background: #f8fafc;
+        }
+
+        .clientes-mobile-table td {
+            border: 0;
+            padding: .18rem 0;
+        }
+
+        .clientes-mobile-table .cliente-id-cell,
+        .clientes-mobile-table .cliente-doc-cell,
+        .clientes-mobile-table .cliente-nrc-cell,
+        .clientes-mobile-table .cliente-phone-cell {
+            display: flex;
+            justify-content: space-between;
+            gap: .75rem;
+            font-size: .9rem;
+        }
+
+        .clientes-mobile-table .cliente-id-cell::before,
+        .clientes-mobile-table .cliente-doc-cell::before,
+        .clientes-mobile-table .cliente-nrc-cell::before,
+        .clientes-mobile-table .cliente-phone-cell::before {
+            content: attr(data-label);
+            color: #6c757d;
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .clientes-mobile-table .cliente-name-cell {
+            margin: .35rem 0 .45rem;
+            font-size: 1rem;
+            line-height: 1.25;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+        .clientes-mobile-table .cliente-nrc-cell {
+            display: none;
+        }
+
+        .clientes-mobile-table .cliente-actions-cell {
+            display: none;
+        }
+
+        .clientes-mobile-table .text-muted[colspan] {
+            display: table-cell;
+        }
+    }
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.cliente-mobile-row[data-href]').forEach(row => {
+            row.addEventListener('click', function(event) {
+                if (event.target.closest('a, button')) return;
+                window.location.href = this.dataset.href;
+            });
+        });
+
         const searchInput = document.getElementById('searchInput');
         const tableContainer = document.getElementById('table-container');
         const loadingSpinner = document.getElementById('loading-spinner');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         const perPageSelect = document.getElementById('perPageSelect');
+        if (!searchInput || !tableContainer || !loadingSpinner || !clearSearchBtn || !perPageSelect) {
+            return;
+        }
         const baseUrl = '<?= base_url('accounts/searchAjax') ?>';
 
         let searchTimeout;

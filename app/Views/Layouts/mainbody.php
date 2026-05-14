@@ -229,6 +229,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             z-index: 1038 !important;
+            transition: transform .18s ease, margin-left .18s ease;
         }
         /* Contenido: desplazado 250px para no quedar detrás del sidebar fijo */
         #layoutSidenav #layoutSidenav_content {
@@ -253,6 +254,19 @@
                 top: 0 !important;
                 height: 100vh !important;
                 z-index: 9999 !important;
+                transform: translateX(-250px) !important;
+            }
+            body.sb-mobile-open #layoutSidenav_nav,
+            body.sb-mobile-open #layoutSidenav #layoutSidenav_nav,
+            body.sb-mobile-open.sb-nav-fixed #layoutSidenav #layoutSidenav_nav {
+                transform: translateX(0) !important;
+            }
+            body.sb-mobile-open::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, .45);
+                z-index: 9998;
             }
             #layoutSidenav #layoutSidenav_content {
                 margin-left: 0 !important;
@@ -780,6 +794,41 @@
     </script>
     <script>
         /* ── Reloj en vivo ──────────────────────── */
+        (function sidebarMobileInit() {
+            var btn = document.getElementById('sidebarToggle');
+            var mobileQuery = window.matchMedia('(max-width: 991.98px)');
+
+            function closeMobileSidebar() {
+                document.body.classList.remove('sb-mobile-open');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            }
+
+            if (btn) {
+                btn.setAttribute('aria-controls', 'layoutSidenav_nav');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.addEventListener('click', function () {
+                    if (!mobileQuery.matches) return;
+                    var isOpen = document.body.classList.toggle('sb-mobile-open');
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
+            document.addEventListener('click', function (event) {
+                if (!mobileQuery.matches || !document.body.classList.contains('sb-mobile-open')) return;
+                if (event.target.closest('#layoutSidenav_nav') || event.target.closest('#sidebarToggle')) return;
+                closeMobileSidebar();
+            });
+
+            document.querySelectorAll('.close-mobile-nav, #layoutSidenav_nav a.nav-link[href]:not([href="#"])')
+                .forEach(function (el) {
+                    el.addEventListener('click', closeMobileSidebar);
+                });
+
+            mobileQuery.addEventListener('change', function (event) {
+                if (!event.matches) closeMobileSidebar();
+            });
+        })();
+
         (function clockInit() {
             function tick() {
                 var now  = new Date();
