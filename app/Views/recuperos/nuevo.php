@@ -671,6 +671,16 @@ function guardarRecupero() {
             formData.append('archivo', archivo);
         }
 
+        Swal.fire({
+            title: 'Guardando recupero',
+            html: archivo && archivo.type.startsWith('image/')
+                ? 'Estamos subiendo y optimizando la foto. Esto puede tardar unos segundos.'
+                : 'Estamos procesando la informacion. Espera un momento.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
         fetch('<?= base_url('recuperos/guardar') ?>', {
             method:  'POST',
             body:    formData,

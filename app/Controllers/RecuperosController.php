@@ -144,7 +144,27 @@ class RecuperosController extends BaseController
             }
 
             $fileName = $archivo->getRandomName();
-            $archivo->move($uploadPath, $fileName);
+
+            if (in_array($archivoMime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+                $fileName = pathinfo($fileName, PATHINFO_FILENAME) . '.jpg';
+                $targetPath = $uploadPath . DIRECTORY_SEPARATOR . $fileName;
+
+                try {
+                    \Config\Services::image('gd')
+                        ->withFile($archivo->getTempName())
+                        ->resize(1600, 1600, true, 'auto')
+                        ->save($targetPath, 78);
+
+                    $archivoMime = 'image/jpeg';
+                    $archivoSize = is_file($targetPath) ? filesize($targetPath) : $archivoSize;
+                } catch (\Throwable $e) {
+                    log_message('error', 'No se pudo optimizar comprobante de recupero: ' . $e->getMessage());
+                    $fileName = $archivo->getRandomName();
+                    $archivo->move($uploadPath, $fileName);
+                }
+            } else {
+                $archivo->move($uploadPath, $fileName);
+            }
 
             $archivoData = [
                 'archivo_ruta'   => 'uploads/recuperos/' . $fileName,
