@@ -10,6 +10,11 @@ use App\Models\ClienteModel;
 
 class RecuperosController extends BaseController
 {
+    private function puedeConsultarRecuperos(): bool
+    {
+        return tienePermiso('ver_recuperos') || tienePermiso('crear_recupero');
+    }
+
     // ─── LISTADO ──────────────────────────────────────────────────
 
     public function index()
@@ -77,9 +82,10 @@ class RecuperosController extends BaseController
         $detalleModel   = new RecuperosDetalleModel();
         $facturaModel   = new FacturaHeadModel();
         $db             = \Config\Database::connect();
-        $sellerScope     = puedeVerDocumentosTodosVendedores() ? null : vendedorUsuarioActual();
+        $verTodos       = puedeVerDocumentosTodosVendedores();
+        $sellerScope    = $verTodos ? null : vendedorUsuarioActual();
 
-        if (!puedeVerDocumentosTodosVendedores() && !$sellerScope) {
+        if (!$verTodos && !$sellerScope) {
             return $this->response->setJSON(['success' => false, 'message' => 'Tu usuario no tiene vendedor asociado para registrar recuperos.']);
         }
 
@@ -160,16 +166,33 @@ class RecuperosController extends BaseController
         ];
 
         $recuperoId = $recuperosModel->insert(array_merge($recuperoData, $archivoData));
+        if (!$recuperoId) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo guardar el encabezado del recupero.',
+                'errors'  => $recuperosModel->errors(),
+            ]);
+        }
 
         foreach ($data['facturas'] as $f) {
             $monto     = round((float)$f['monto'], 2);
             $facturaId = (int)$f['factura_id'];
 
-            $detalleModel->insert([
+            $detalleId = $detalleModel->insert([
                 'recupero_id'    => $recuperoId,
                 'factura_id'     => $facturaId,
                 'monto_aplicado' => $monto,
             ]);
+
+            if (!$detalleId) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo guardar el detalle del recupero.',
+                    'errors'  => $detalleModel->errors(),
+                ]);
+            }
         }
 
         $db->transComplete();
@@ -364,8 +387,10 @@ class RecuperosController extends BaseController
 
     public function detalleFactura($id)
     {
-        $chk = requerirPermiso('ver_recuperos');
-        if ($chk !== true) return $chk;
+        if (!$this->puedeConsultarRecuperos()) {
+            $chk = requerirPermiso('ver_recuperos');
+            if ($chk !== true) return $chk;
+        }
 
         $db = \Config\Database::connect();
         $params = [(int)$id];
@@ -408,8 +433,10 @@ class RecuperosController extends BaseController
 
     public function facturasPendientes($clienteId)
     {
-        $chk = requerirPermiso('ver_recuperos');
-        if ($chk !== true) return $chk;
+        if (!$this->puedeConsultarRecuperos()) {
+            $chk = requerirPermiso('ver_recuperos');
+            if ($chk !== true) return $chk;
+        }
 
         $db = \Config\Database::connect();
         $params = [(int)$clienteId];
