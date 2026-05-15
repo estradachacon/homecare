@@ -215,6 +215,14 @@ $correlativoFactura = static function ($numeroControl) {
                 <small class="text-muted d-block">Forma de cobro</small>
                 <strong><i class="fa-solid <?= $fc['icon'] ?> mr-1 text-<?= $fc['color'] ?>"></i><?= $fc['label'] ?></strong>
             </div>
+            <div class="col-md-2 mb-2">
+                <small class="text-muted d-block">Vendedor</small>
+                <strong><?= esc($recupero->vendedor_nombre ?? 'Sin vendedor') ?></strong>
+            </div>
+            <div class="col-md-2 mb-2">
+                <small class="text-muted d-block">Generado por</small>
+                <strong><?= esc($recupero->usuario_nombre ?? 'N/D') ?></strong>
+            </div>
             <?php if ($recupero->referencia): ?>
                 <div class="col-md-2 mb-2">
                     <small class="text-muted d-block">Referencia</small>
@@ -229,6 +237,20 @@ $correlativoFactura = static function ($numeroControl) {
                     <?= $anulado ? '</s>' : '' ?>
                 </strong>
             </div>
+            <?php if (!empty($recupero->archivo_ruta)): ?>
+                <div class="col-md-12 mb-2">
+                    <small class="text-muted d-block">Comprobante</small>
+                    <a href="<?= base_url('recuperos/archivo/' . $recupero->id) ?>"
+                       class="btn btn-outline-primary btn-sm"
+                       target="_blank" rel="noopener">
+                        <i class="fa-solid fa-paperclip mr-1"></i>
+                        <?= esc($recupero->archivo_nombre ?? 'Ver archivo') ?>
+                    </a>
+                    <?php if (!empty($recupero->archivo_tamano)): ?>
+                        <small class="text-muted ml-2"><?= number_format($recupero->archivo_tamano / 1024, 1) ?> KB</small>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             <?php if ($recupero->observaciones): ?>
                 <div class="col-md-12 mb-2">
                     <small class="text-muted d-block">Observaciones</small>
@@ -257,6 +279,7 @@ $correlativoFactura = static function ($numeroControl) {
                         <tr>
                             <th class="text-dark">#</th>
                             <th class="text-dark">Documento</th>
+                            <th class="text-dark">Vendedor</th>
                             <th class="text-dark">Tipo</th>
                             <th class="text-dark">Fecha factura</th>
                             <th class="text-right text-dark">Total factura</th>
@@ -274,6 +297,9 @@ $correlativoFactura = static function ($numeroControl) {
                                     <a href="<?= base_url('facturas/' . $d->factura_id) ?>" class="font-weight-bold document-link">
                                         <?= esc($correlativoFactura($d->numero_control)) ?>
                                     </a>
+                                </td>
+                                <td data-label="Vendedor" class="small">
+                                    <?= esc($d->vendedor_nombre ?? 'Sin vendedor') ?>
                                 </td>
                                 <td data-label="Tipo">
                                     <span class="badge badge-secondary">
@@ -299,7 +325,7 @@ $correlativoFactura = static function ($numeroControl) {
                     </tbody>
                     <tfoot>
                         <tr class="table-light font-weight-bold">
-                            <td colspan="6" class="text-right">TOTAL REMESADO:</td>
+                            <td colspan="7" class="text-right">TOTAL REMESADO:</td>
                             <td class="text-right text-primary">$<?= number_format($totalRemesado, 2) ?></td>
                         </tr>
                     </tfoot>

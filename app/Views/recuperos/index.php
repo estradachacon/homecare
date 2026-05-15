@@ -263,14 +263,16 @@ $formaCobro = [
                 <table class="table table-sm table-hover mb-0 recuperos-table">
                     <thead class="thead-dark">
                         <tr>
-                            <th>N° Recupero</th>
-                            <th>Fecha</th>
-                            <th>Cliente</th>
-                            <th>Forma de cobro</th>
-                            <th>Referencia</th>
-                            <th class="text-right">Total</th>
-                            <th class="text-center">Estado</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-dark">N° Recupero</th>
+                            <th class="text-dark">Fecha</th>
+                            <th class="text-dark">Cliente</th>
+                            <th class="text-dark">Vendedor</th>
+                            <th class="text-dark">Usuario</th>
+                            <th class="text-dark">Forma de cobro</th>
+                            <th class="text-dark">Referencia</th>
+                            <th class="text-right text-dark">Total</th>
+                            <th class="text-center text-dark">Estado</th>
+                            <th class="text-center text-dark">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -295,6 +297,12 @@ $formaCobro = [
                                 <td data-label="Fecha" class="recupero-date-cell"><?= date('d/m/Y', strtotime($r->fecha)) ?></td>
                                 <td data-label="Cliente" class="recupero-client-cell">
                                     <span class="recupero-client-name"><?= esc($r->cliente_nombre) ?></span>
+                                </td>
+                                <td data-label="Vendedor">
+                                    <span><?= esc($r->vendedor_nombre ?? 'Sin vendedor') ?></span>
+                                </td>
+                                <td data-label="Usuario">
+                                    <span><?= esc($r->usuario_nombre ?? 'N/D') ?></span>
                                 </td>
                                 <td data-label="Forma">
                                     <span class="badge badge-<?= $fc['color'] ?>">

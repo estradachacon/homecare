@@ -48,7 +48,9 @@ class Facturas extends BaseController
             $model->where('facturas_head.receptor_id', $clienteId);
         }
 
-        if (is_numeric($sellerId)) {
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $model->where('facturas_head.vendedor_id', vendedorUsuarioActual() ?? -1);
+        } elseif (is_numeric($sellerId)) {
             $model->where('facturas_head.vendedor_id', $sellerId);
         }
 
@@ -891,6 +893,12 @@ CCF YA VIENE SIN IVA
         if (!$factura) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            }
+        }
 
         // Detalles
         $detalles = $facturaDetalleModel
@@ -1024,6 +1032,15 @@ CCF YA VIENE SIN IVA
                 'success' => false,
                 'message' => 'Factura no encontrada.'
             ]);
+        }
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No tienes acceso a esta factura.'
+                ]);
+            }
         }
 
         if ($factura->anulada == 1) {
@@ -1272,6 +1289,12 @@ CCF YA VIENE SIN IVA
             ->first();
 
         if (!$factura) return 'Factura no encontrada';
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                return 'Factura no encontrada';
+            }
+        }
 
         $detalles = $facturaDetalleModel
             ->where('factura_id', $id)
@@ -1300,6 +1323,17 @@ CCF YA VIENE SIN IVA
     }
     public function checkPagos($facturaId)
     {
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $factura = (new FacturaHeadModel())->find((int)$facturaId);
+            $sellerScope = vendedorUsuarioActual();
+            if (!$factura || !$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                return $this->response->setJSON([
+                    'tiene_pagos' => false,
+                    'pagos' => []
+                ]);
+            }
+        }
+
         $detalleModel = new PagosDetailsModel();
         $pagoHeadModel = new PagosHeadModel();
 
@@ -1398,6 +1432,15 @@ CCF YA VIENE SIN IVA
                 'success' => false,
                 'message' => 'Factura no encontrada.'
             ]);
+        }
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No tienes acceso a esta factura.'
+                ]);
+            }
         }
 
         $vendedorModel = new \App\Models\SellerModel();

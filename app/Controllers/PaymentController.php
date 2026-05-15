@@ -194,7 +194,13 @@ class PaymentController extends BaseController
             ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
             ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
             ->where('facturas_head.receptor_id', $clienteId)
-            ->where('facturas_head.saldo >', 0)
+            ->where('facturas_head.saldo >', 0);
+
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $facturas->where('facturas_head.vendedor_id', vendedorUsuarioActual() ?? -1);
+        }
+
+        $facturas = $facturas
             ->orderBy('facturas_head.fecha_emision', 'ASC')
             ->orderBy('numero_control', 'ASC')
             ->findAll();
@@ -249,6 +255,12 @@ class PaymentController extends BaseController
 
                 if (!$factura) {
                     throw new \Exception('Factura no encontrada');
+                }
+                if (!puedeVerDocumentosTodosVendedores()) {
+                    $sellerScope = vendedorUsuarioActual();
+                    if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
+                        throw new \Exception('No puedes aplicar pagos a facturas de otro vendedor');
+                    }
                 }
 
                 $nuevoSaldo = $factura->saldo - $f['monto'];

@@ -180,6 +180,13 @@
                               placeholder="Notas adicionales del recupero..."></textarea>
                 </div>
 
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small">Comprobante / foto</label>
+                    <input type="file" id="archivoRecupero" class="form-control form-control-sm"
+                           accept="image/*,application/pdf">
+                    <small class="text-muted">Opcional. Imagen o PDF, max. 8 MB.</small>
+                </div>
+
                 <!-- Total acumulado -->
                 <div class="alert alert-success py-2 mb-3" id="resumenTotal" style="display:none;">
                     <div class="d-flex justify-content-between">
@@ -657,10 +664,16 @@ function guardarRecupero() {
             facturas:     facturas.map(f => ({ factura_id: f.factura_id, monto: f.monto })),
         };
 
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        const archivo = document.getElementById('archivoRecupero').files[0];
+        if (archivo) {
+            formData.append('archivo', archivo);
+        }
+
         fetch('<?= base_url('recuperos/guardar') ?>', {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify(payload),
+            body:    formData,
         })
         .then(res => res.json())
         .then(d => {

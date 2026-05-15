@@ -34,6 +34,28 @@ function requerirPermiso($accion)
     return true;
 }
 
+function vendedorUsuarioActual(): ?int
+{
+    $userId = session()->get('id') ?? session()->get('user_id');
+    if (!$userId) {
+        return null;
+    }
+
+    $user = (new \App\Models\UserModel())
+        ->select('seller_id')
+        ->find((int)$userId);
+
+    $sellerId = $user['seller_id'] ?? null;
+    session()->set('seller_id', $sellerId ?: null);
+
+    return is_numeric($sellerId) && (int)$sellerId > 0 ? (int)$sellerId : null;
+}
+
+function puedeVerDocumentosTodosVendedores(): bool
+{
+    return tienePermiso('ver_documentos_todos_vendedores');
+}
+
 function refrescarPermisos()
 {
     if (!session()->get('logged_in')) {

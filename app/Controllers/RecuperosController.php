@@ -25,6 +25,10 @@ class RecuperosController extends BaseController
             'fecha_hasta' => $this->request->getGet('fecha_hasta'),
         ];
 
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $filtros['seller_id'] = vendedorUsuarioActual() ?? -1;
+        }
+
         $recuperos = $model->getListado($filtros, 20);
         $pager     = $model->pager;
         $clientes  = (new ClienteModel())->orderBy('nombre')->findAll();
@@ -54,7 +58,12 @@ class RecuperosController extends BaseController
         $chk = requerirPermiso('crear_recupero');
         if ($chk !== true) return $chk;
 
-        $data = $this->request->getJSON(true);
+        $payload = $this->request->getPost('payload');
+        $data = $payload ? json_decode($payload, true) : $this->request->getJSON(true);
+
+        if (!is_array($data)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo leer la informacion enviada.']);
+        }
 
         if (empty($data['cliente_id']) || empty($data['fecha']) || empty($data['facturas'])) {
             return $this->response->setJSON(['success' => false, 'message' => 'Datos incompletos. Verifica cliente, fecha y facturas.']);
@@ -68,6 +77,11 @@ class RecuperosController extends BaseController
         $detalleModel   = new RecuperosDetalleModel();
         $facturaModel   = new FacturaHeadModel();
         $db             = \Config\Database::connect();
+        $sellerScope     = puedeVerDocumentosTodosVendedores() ? null : vendedorUsuarioActual();
+
+        if (!puedeVerDocumentosTodosVendedores() && !$sellerScope) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Tu usuario no tiene vendedor asociado para registrar recuperos.']);
+        }
 
         // Validar montos antes de la transacción
         $total = 0;
@@ -83,6 +97,9 @@ class RecuperosController extends BaseController
             if (!$factura) {
                 return $this->response->setJSON(['success' => false, 'message' => "Factura ID {$facturaId} no encontrada"]);
             }
+            if ($sellerScope && (int)$factura->vendedor_id !== (int)$sellerScope) {
+                return $this->response->setJSON(['success' => false, 'message' => 'No puedes registrar recuperos sobre facturas de otro vendedor.']);
+            }
             if ($monto > (float)$factura->saldo + 0.01) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -93,10 +110,44 @@ class RecuperosController extends BaseController
             $total += $monto;
         }
 
+        $archivoData = [];
+        $archivo = $this->request->getFile('archivo');
+
+        if ($archivo && $archivo->isValid() && !$archivo->hasMoved()) {
+            $maxSize = 8 * 1024 * 1024;
+            $allowed = [
+                'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                'application/pdf',
+            ];
+
+            if ($archivo->getSize() > $maxSize) {
+                return $this->response->setJSON(['success' => false, 'message' => 'El archivo no debe superar 8 MB.']);
+            }
+
+            if (!in_array($archivo->getMimeType(), $allowed, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Solo se permiten imagenes o PDF como respaldo.']);
+            }
+
+            $uploadPath = WRITEPATH . 'uploads/recuperos';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0775, true);
+            }
+
+            $fileName = $archivo->getRandomName();
+            $archivo->move($uploadPath, $fileName);
+
+            $archivoData = [
+                'archivo_ruta'   => 'uploads/recuperos/' . $fileName,
+                'archivo_nombre' => $archivo->getClientName(),
+                'archivo_tipo'   => $archivo->getMimeType(),
+                'archivo_tamano' => $archivo->getSize(),
+            ];
+        }
+
         $db->transStart();
 
         $numero     = $recuperosModel->getSiguienteNumero();
-        $recuperoId = $recuperosModel->insert([
+        $recuperoData = [
             'numero_recupero' => $numero,
             'cliente_id'      => (int)$data['cliente_id'],
             'fecha'           => $data['fecha'],
@@ -106,7 +157,9 @@ class RecuperosController extends BaseController
             'observaciones'   => $data['observaciones'] ?? null,
             'estado'          => 'ACTIVO',
             'usuario_id'      => (int)session()->get('id'),
-        ]);
+        ];
+
+        $recuperoId = $recuperosModel->insert(array_merge($recuperoData, $archivoData));
 
         foreach ($data['facturas'] as $f) {
             $monto     = round((float)$f['monto'], 2);
@@ -140,6 +193,40 @@ class RecuperosController extends BaseController
         ]);
     }
 
+    public function archivo($id)
+    {
+        $chk = requerirPermiso('ver_recuperos');
+        if ($chk !== true) return $chk;
+
+        $recuperosModel = new RecuperosModel();
+        $recupero = $recuperosModel->find((int)$id);
+
+        if (!$recupero || empty($recupero->archivo_ruta)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || !$recuperosModel->perteneceAVendedor((int)$id, $sellerScope)) {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            }
+        }
+
+        $path = WRITEPATH . $recupero->archivo_ruta;
+        if (!is_file($path)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $disposition = str_starts_with((string)$recupero->archivo_tipo, 'image/') || $recupero->archivo_tipo === 'application/pdf'
+            ? 'inline'
+            : 'attachment';
+
+        return $this->response
+            ->setHeader('Content-Type', $recupero->archivo_tipo ?: 'application/octet-stream')
+            ->setHeader('Content-Disposition', $disposition . '; filename="' . addslashes($recupero->archivo_nombre ?: basename($path)) . '"')
+            ->setBody(file_get_contents($path));
+    }
+
     // ─── DETALLE ──────────────────────────────────────────────────
 
     public function show($id)
@@ -155,7 +242,14 @@ class RecuperosController extends BaseController
             return redirect()->to(base_url('recuperos'))->with('error', 'Recupero no encontrado');
         }
 
-        $detalles = $detalleModel->getByRecupero((int)$id);
+        $sellerScope = puedeVerDocumentosTodosVendedores() ? null : vendedorUsuarioActual();
+        if (!puedeVerDocumentosTodosVendedores()) {
+            if (!$sellerScope || !$recuperosModel->perteneceAVendedor((int)$id, $sellerScope)) {
+                return redirect()->to(base_url('recuperos'))->with('error', 'No tienes acceso a este recupero');
+            }
+        }
+
+        $detalles = $detalleModel->getByRecupero((int)$id, $sellerScope);
 
         return view('recuperos/show', [
             'recupero' => $recupero,
@@ -181,6 +275,12 @@ class RecuperosController extends BaseController
         $recupero = $recuperosModel->find((int)$id);
         if (!$recupero) {
             return $this->response->setJSON(['success' => false, 'message' => 'Recupero no encontrado']);
+        }
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope || !$recuperosModel->perteneceAVendedor((int)$id, $sellerScope)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'No tienes acceso a este recupero']);
+            }
         }
         if ($recupero->estado === 'ANULADO') {
             return $this->response->setJSON(['success' => false, 'message' => 'Este recupero ya está anulado']);
@@ -225,16 +325,35 @@ class RecuperosController extends BaseController
         $chk = requerirPermiso('ver_recuperos');
         if ($chk !== true) return $chk;
 
-        $db        = \Config\Database::connect();
-        $recuperos = (new RecuperosModel())->getActivosByCliente((int)$clienteId);
+        $db             = \Config\Database::connect();
+        $recuperosModel = new RecuperosModel();
+        $recuperos      = $recuperosModel->getActivosByCliente((int)$clienteId);
+        $sellerScope    = puedeVerDocumentosTodosVendedores() ? null : vendedorUsuarioActual();
+
+        if (!puedeVerDocumentosTodosVendedores()) {
+            if (!$sellerScope) {
+                return $this->response->setJSON([]);
+            }
+
+            $recuperos = array_values(array_filter($recuperos, function ($rec) use ($recuperosModel, $sellerScope) {
+                return $recuperosModel->perteneceAVendedor((int)$rec->id, $sellerScope);
+            }));
+        }
 
         foreach ($recuperos as $rec) {
+            $params = [$rec->id];
+            $sellerSql = '';
+            if ($sellerScope) {
+                $sellerSql = ' AND fh.vendedor_id = ?';
+                $params[] = $sellerScope;
+            }
+
             $rec->detalles = $db->query(
                 "SELECT rd.factura_id, rd.monto_aplicado, fh.numero_control
                  FROM recuperos_detalle rd
                  LEFT JOIN facturas_head fh ON fh.id = rd.factura_id
-                 WHERE rd.recupero_id = ?",
-                [$rec->id]
+                 WHERE rd.recupero_id = ?{$sellerSql}",
+                $params
             )->getResult();
         }
 
@@ -249,6 +368,18 @@ class RecuperosController extends BaseController
         if ($chk !== true) return $chk;
 
         $db = \Config\Database::connect();
+        $params = [(int)$id];
+        $sellerSql = '';
+
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Tu usuario no tiene vendedor asociado.']);
+            }
+
+            $sellerSql = ' AND fh.vendedor_id = ?';
+            $params[] = $sellerScope;
+        }
 
         $factura = $db->query(
             "SELECT fh.id, fh.numero_control, fh.tipo_dte, fh.fecha_emision,
@@ -256,8 +387,8 @@ class RecuperosController extends BaseController
                     COALESCE(s.seller, '—') AS vendedor
              FROM facturas_head fh
              LEFT JOIN sellers s ON s.id = fh.vendedor_id
-             WHERE fh.id = ?",
-            [(int)$id]
+             WHERE fh.id = ?{$sellerSql}",
+            $params
         )->getRow();
 
         if (!$factura) {
@@ -281,6 +412,18 @@ class RecuperosController extends BaseController
         if ($chk !== true) return $chk;
 
         $db = \Config\Database::connect();
+        $params = [(int)$clienteId];
+        $sellerSql = '';
+
+        if (!puedeVerDocumentosTodosVendedores()) {
+            $sellerScope = vendedorUsuarioActual();
+            if (!$sellerScope) {
+                return $this->response->setJSON([]);
+            }
+
+            $sellerSql = ' AND fh.vendedor_id = ?';
+            $params[] = $sellerScope;
+        }
 
         $facturas = $db->query(
             "SELECT fh.id,
@@ -306,8 +449,9 @@ class RecuperosController extends BaseController
              WHERE fh.receptor_id = ?
                AND fh.saldo > 0.001
                AND fh.anulada = 0
+               {$sellerSql}
              ORDER BY fh.fecha_emision ASC",
-            [(int)$clienteId]
+            $params
         )->getResult();
 
         return $this->response->setJSON($facturas);

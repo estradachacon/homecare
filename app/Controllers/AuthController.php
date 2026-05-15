@@ -78,6 +78,7 @@ class AuthController extends BaseController
             'foto' => $user_complete['foto'] ?? null,
             'role_id' => $user_complete['role_id'],
             'branch_id' => $user_complete['branch_id'],
+            'seller_id' => $user_complete['seller_id'] ?? $user['seller_id'] ?? null,
             'branch_name' => $user_complete['branch_name'],
             'branch_direction' => $user_complete['branch_direction'],
             'permisos' => array_column($permisos, 'habilitado', 'nombre_accion'),

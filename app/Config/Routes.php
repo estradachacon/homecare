@@ -303,6 +303,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('recuperos',                          'RecuperosController::index');
     $routes->get('recuperos/nuevo',                    'RecuperosController::nuevo');
     $routes->post('recuperos/guardar',                 'RecuperosController::store');
+    $routes->get('recuperos/archivo/(:num)',           'RecuperosController::archivo/$1');
     $routes->get('recuperos/(:num)',                   'RecuperosController::show/$1');
     $routes->post('recuperos/anular/(:num)',            'RecuperosController::anular/$1');
     $routes->get('recuperos/facturas-pendientes/(:num)', 'RecuperosController::facturasPendientes/$1');
