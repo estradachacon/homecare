@@ -126,11 +126,15 @@ class RecuperosController extends BaseController
                 'application/pdf',
             ];
 
-            if ($archivo->getSize() > $maxSize) {
+            $archivoSize = $archivo->getSize();
+            $archivoMime = $archivo->getMimeType() ?: $archivo->getClientMimeType();
+            $archivoNombre = $archivo->getClientName();
+
+            if ($archivoSize > $maxSize) {
                 return $this->response->setJSON(['success' => false, 'message' => 'El archivo no debe superar 8 MB.']);
             }
 
-            if (!in_array($archivo->getMimeType(), $allowed, true)) {
+            if (!in_array($archivoMime, $allowed, true)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Solo se permiten imagenes o PDF como respaldo.']);
             }
 
@@ -144,9 +148,9 @@ class RecuperosController extends BaseController
 
             $archivoData = [
                 'archivo_ruta'   => 'uploads/recuperos/' . $fileName,
-                'archivo_nombre' => $archivo->getClientName(),
-                'archivo_tipo'   => $archivo->getMimeType(),
-                'archivo_tamano' => $archivo->getSize(),
+                'archivo_nombre' => $archivoNombre,
+                'archivo_tipo'   => $archivoMime,
+                'archivo_tamano' => $archivoSize,
             ];
         }
 
