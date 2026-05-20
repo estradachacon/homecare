@@ -278,6 +278,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('consignaciones',                               'ConsignacionesController::index');
     $routes->get('consignaciones/crear',                         'ConsignacionesController::crear');
     $routes->post('consignaciones/guardar',                      'ConsignacionesController::guardar');
+    $routes->get('consignaciones/crear-emergencia',              'ConsignacionesController::crearEmergencia');
+    $routes->post('consignaciones/guardar-emergencia',           'ConsignacionesController::guardarEmergencia');
     $routes->get('consignaciones/(:num)',                        'ConsignacionesController::show/$1');
     $routes->get('consignaciones/(:num)/imprimir',               'ConsignacionesController::imprimir/$1');
     $routes->get('consignaciones/(:num)/cerrar',                 'ConsignacionesController::cerrar/$1');

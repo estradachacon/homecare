@@ -186,6 +186,180 @@ class ConsignacionesController extends BaseController
     }
 
     // ─────────────────────────────────────────────
+    //  FORMULARIO CREAR — STOCK DE EMERGENCIA
+    // ─────────────────────────────────────────────
+
+    public function crearEmergencia()
+    {
+        $chk = requerirPermiso('crear_consignacion_emergencia');
+        if ($chk !== true) return $chk;
+
+        $headModel   = new ConsignacionHeadModel();
+        $sellerModel = new SellerModel();
+        $session     = session();
+
+        $db     = \Config\Database::connect();
+        $seller = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id, sellers.seller')
+            ->get()->getRow();
+
+        return view('consignaciones/crear_emergencia', [
+            'numero_sugerido' => $headModel->siguienteNumero(),
+            'vendedor_id'     => $seller->id     ?? null,
+            'vendedor_nombre' => $seller->seller  ?? null,
+            'vendedores'      => $seller ? [] : $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  GUARDAR — STOCK DE EMERGENCIA
+    // ─────────────────────────────────────────────
+
+    public function guardarEmergencia()
+    {
+        $chk = requerirPermiso('crear_consignacion_emergencia');
+        if ($chk !== true) return $chk;
+
+        $db      = \Config\Database::connect();
+        $session = session();
+        $userId  = $session->get('id');
+        $now     = date('Y-m-d H:i:s');
+
+        $productos = $this->request->getPost('productos') ?? [];
+
+        if (empty($productos)) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Debe agregar al menos un producto.');
+        }
+
+        // Validar que cada producto tenga lotes con suma exacta
+        foreach ($productos as $idx => $p) {
+            if (empty($p['producto_id']) || empty($p['cantidad'])) continue;
+
+            $cantReq  = (float)$p['cantidad'];
+            $lotes    = $p['lotes'] ?? [];
+
+            if (empty($lotes)) {
+                return redirect()->back()->withInput()
+                    ->with('error', "El producto #" . ($idx + 1) . " no tiene lotes asignados.");
+            }
+
+            $cantAsignada = 0;
+            foreach ($lotes as $l) {
+                $cantAsignada += (float)($l['cantidad'] ?? 0);
+            }
+
+            if (abs($cantAsignada - $cantReq) > 0.001) {
+                return redirect()->back()->withInput()
+                    ->with('error', "Producto #" . ($idx + 1) . ": la suma de lotes ({$cantAsignada}) no coincide con la cantidad requerida ({$cantReq}).");
+            }
+        }
+
+        $headModel    = new ConsignacionHeadModel();
+        $detModel     = new ConsignacionDetalleModel();
+        $loteModel    = new ConsignacionLoteModel();
+        $detLoteModel = new ConsignacionDetalleLoteModel();
+
+        $fecha = $this->request->getPost('fecha') ?: date('Y-m-d');
+        $hora  = $this->request->getPost('hora')  ?: date('H:i');
+
+        $subtotal = 0;
+        foreach ($productos as $p) {
+            $subtotal += (float)($p['subtotal'] ?? 0);
+        }
+
+        $db->transStart();
+
+        $pacienteId = (int)$this->request->getPost('paciente_id') ?: null;
+        $nombre     = null;
+        if ($pacienteId) {
+            $pRow   = (new PacienteModel())->select('nombre')->find($pacienteId);
+            $nombre = $pRow ? $pRow->nombre : null;
+        }
+
+        $id = $headModel->insert([
+            'numero'                => $this->request->getPost('numero'),
+            'vendedor_id'           => $this->request->getPost('vendedor_id'),
+            'nombre'                => $nombre,
+            'paciente_id'           => $pacienteId,
+            'concepto'              => $this->request->getPost('concepto'),
+            'tipo_nota_id'          => $this->request->getPost('tipo_nota_id') ?: null,
+            'fecha'                 => $fecha,
+            'hora'                  => $hora,
+            'fecha_generacion'      => $now,
+            'subtotal'              => $subtotal,
+            'doctor_id'             => $this->request->getPost('doctor_id') ?: null,
+            'cliente_id'            => $this->request->getPost('cliente_id') ?: null,
+            'observaciones'         => $this->request->getPost('observaciones'),
+            'estado'                => 'abierta',
+            'origen'                => 'emergencia',
+            'created_by'            => $userId,
+            'lotes_autorizados_por' => $userId,
+            'lotes_autorizados_at'  => $now,
+            'aprobacion_estado'     => 'aprobada',
+            'aprobado_por'          => $userId,
+            'aprobado_at'           => $now,
+        ]);
+
+        foreach ($productos as $p) {
+            if (empty($p['producto_id']) || empty($p['cantidad'])) continue;
+
+            $cant      = (float)$p['cantidad'];
+            $precio    = (float)$p['precio_unitario'];
+            $detalleId = $detModel->insert([
+                'consignacion_id' => $id,
+                'producto_id'     => (int)$p['producto_id'],
+                'cantidad'        => $cant,
+                'precio_unitario' => $precio,
+                'subtotal'        => round($cant * $precio, 2),
+            ]);
+
+            $lotesArr = [];
+            foreach ($p['lotes'] ?? [] as $l) {
+                if (!empty($l['nuevo']) && $l['nuevo'] == '1') {
+                    $nroLote = trim($l['numero_lote'] ?? '');
+                    if ($nroLote === '') continue;
+                    $loteId = $loteModel->insert([
+                        'producto_id'       => (int)$p['producto_id'],
+                        'numero_lote'       => $nroLote,
+                        'fecha_vencimiento' => $l['vencimiento'] ?: null,
+                        'manufactura'       => $l['manufactura'] ?: null,
+                        'activo'            => 1,
+                    ]);
+                } else {
+                    $loteId = (int)($l['lote_id'] ?? 0);
+                }
+                if (!$loteId) continue;
+                $lotesArr[] = ['lote_id' => $loteId, 'cantidad' => (float)$l['cantidad']];
+            }
+
+            $detLoteModel->reemplazarPorDetalle($detalleId, $lotesArr);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Error al guardar la nota de emergencia.');
+        }
+
+        $numero = $this->request->getPost('numero');
+        registrar_bitacora(
+            'Crear NE Stock de Emergencia',
+            'Consignaciones',
+            "Se creó la NE emergencia {$numero}.",
+            $userId
+        );
+
+        $this->registrarLog($id, 'NE Emergencia creada');
+
+        return redirect()->to('/consignaciones/' . $id)
+            ->with('success', 'NE Stock de Emergencia creada correctamente.');
+    }
+
+    // ─────────────────────────────────────────────
     //  DETALLE / VIEW
     // ─────────────────────────────────────────────
 

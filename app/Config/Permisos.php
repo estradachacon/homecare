@@ -51,6 +51,7 @@ class Permisos extends BaseConfig
             'gestionar_lotes_consignaciones',
             'ver_precios_consignaciones',
             'gestionar_precios_consignaciones',
+            'crear_consignacion_emergencia',
         ],
         
         'Cuentas por cobrar' => [

@@ -338,7 +338,7 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                             <?php endif; ?>
 
                             <!-- Notas de Envío -->
-                            <?php if (tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') || tienePermiso('ver_precios_consignaciones')): ?>
+                            <?php if (tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') || tienePermiso('ver_precios_consignaciones') || tienePermiso('crear_consignacion_emergencia')): ?>
                                 <a class="nav-link collapsed" href="#"
                                    data-toggle="collapse" data-target="#subConsig"
                                    aria-expanded="false" aria-controls="subConsig">
@@ -352,6 +352,11 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                                         <?php endif; ?>
                                         <?php if (tienePermiso('crear_consignaciones')): ?>
                                             <a class="nav-link" href="/consignaciones/crear">Nueva Nota</a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('crear_consignacion_emergencia')): ?>
+                                            <a class="nav-link" href="/consignaciones/crear-emergencia">
+                                                <i class="fa-solid fa-bolt text-warning mr-1" style="font-size:.65rem;"></i>NE Stock Emergencia
+                                            </a>
                                         <?php endif; ?>
                                         <?php if (tienePermiso('ver_precios_consignaciones')): ?>
                                             <a class="nav-link" href="/consignaciones/precios">Precios por Vendedor</a>

@@ -19,6 +19,7 @@ class ConsignacionHeadModel extends Model
         'doctor_id', 'cliente_id',
         'aprobacion_estado', 'aprobado_por', 'aprobado_at', 'rechazo_motivo',
         'lotes_autorizados_por', 'lotes_autorizados_at',
+        'origen',
     ];
 
     public function listar(array $filtros = [])
