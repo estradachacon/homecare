@@ -1,8 +1,7 @@
 <?= $this->extend('Layouts/mainbody') ?>
 <?= $this->section('content') ?>
 <style>
-    .stock-badge,
-    .badge {
+    .stock-badge {
         font-size: 14px;
         padding: 5px 16px;
         min-width: 40px;

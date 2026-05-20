@@ -650,6 +650,13 @@
                 0 0 12px rgba(240, 165, 0, 0.6);
         }
 
+        /* Suprimir transiciones durante la restauración inicial del sidebar */
+        body.sb-sidebar-restoring #layoutSidenav_nav,
+        body.sb-sidebar-restoring #layoutSidenav #layoutSidenav_nav,
+        body.sb-sidebar-restoring #layoutSidenav #layoutSidenav_content {
+            transition: none !important;
+        }
+
         #sidebarToggle i {
             font-size: 1.5rem;
             transition: 0.25s ease;
@@ -663,6 +670,18 @@
 </head>
 
 <body class="sb-nav-fixed">
+    <script>
+        (function () {
+            if (localStorage.getItem('sidebar_collapsed') === '1') {
+                document.body.classList.add('sb-sidenav-toggled', 'sb-sidebar-restoring');
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        document.body.classList.remove('sb-sidebar-restoring');
+                    });
+                });
+            }
+        })();
+    </script>
     <!--Header Nav-->
     <nav class="navbar navbar-expand navbar-dark sb-topnav"
          style="background-color:<?= setting('primary_color') ?? '#1d2744' ?>;">
@@ -858,10 +877,24 @@
     </script>
     <script>
         /* ── Reloj en vivo ──────────────────────── */
-        (function sidebarMobileInit() {
-            var btn = document.getElementById('sidebarToggle');
+        (function sidebarInit() {
+            var btn         = document.getElementById('sidebarToggle');
             var mobileQuery = window.matchMedia('(max-width: 991.98px)');
+            var LS_KEY      = 'sidebar_collapsed';
 
+            /* scripts.js ya hace el toggle de sb-sidenav-toggled en desktop.
+               Solo guardamos el estado resultante después de que ese handler corra. */
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    if (mobileQuery.matches) return;
+                    setTimeout(function () {
+                        var collapsed = document.body.classList.contains('sb-sidenav-toggled');
+                        localStorage.setItem(LS_KEY, collapsed ? '1' : '0');
+                    }, 0);
+                });
+            }
+
+            /* ── Mobile: overlay deslizante ── */
             function closeMobileSidebar() {
                 document.body.classList.remove('sb-mobile-open');
                 if (btn) btn.setAttribute('aria-expanded', 'false');
@@ -889,7 +922,14 @@
                 });
 
             mobileQuery.addEventListener('change', function (event) {
-                if (!event.matches) closeMobileSidebar();
+                if (event.matches) {
+                    document.body.classList.remove('sb-sidenav-toggled');
+                } else {
+                    closeMobileSidebar();
+                    if (localStorage.getItem(LS_KEY) === '1') {
+                        document.body.classList.add('sb-sidenav-toggled');
+                    }
+                }
             });
         })();
 
@@ -916,7 +956,7 @@
                 'compraspagos':'Inventario','cashiers':'Finanzas','cashier':'Finanzas',
                 'transactions':'Finanzas','accounts':'Finanzas',
                 'contabilidad':'Contabilidad','comisiones':'Comisiones',
-                'pedidos':'Pedidos','consignaciones':'Consignaciones',
+                'pedidos':'Módulo de Vendedores','consignaciones':'Módulo de Vendedores','recuperos':'Módulo de Vendedores',
                 'sellers':'Vendedores','tipo_venta':'Tipos de Venta',
                 'users':'Administración','roles':'Administración',
                 'branches':'Administración','settings':'Configuración',
