@@ -178,6 +178,19 @@
                     <div id="seccionProductos" class="paso-seccion d-none">
                         <hr>
 
+                        <!-- Importar desde nota de envío -->
+                        <div id="alertaNE" class="d-none mb-2"></div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAbrirModalNE">
+                                    <i class="fa-solid fa-file-import mr-1"></i> Importar desde nota de envío
+                                </button>
+                                <small class="text-muted ml-2">Solo notas del mismo vendedor, abiertas y con autorización completa.</small>
+                            </div>
+                        </div>
+                        <input type="hidden" name="consignacion_id" id="hiddenConsignacionId">
+                        <input type="hidden" name="consignacion_ids" id="hiddenConsignacionIds">
+
                         <div class="d-flex justify-content-between mb-2">
                             <h6 class="mb-0">Productos</h6>
                             <button type="button" id="btnAgregarProducto" class="btn btn-outline-primary btn-sm">
@@ -253,6 +266,7 @@
                 <span class="prod-chip-nombre"></span>
                 <button type="button" class="prod-chip-clear" title="Cambiar producto"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <div class="ne-lotes-wrap mt-1" style="display:none"></div>
         </td>
         <td data-label="Cantidad">
             <input type="number" name="productos[IDX][cantidad]" class="form-control form-control-sm input-cantidad"
@@ -335,6 +349,34 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Modal Notas de Envío -->
+<div class="modal fade" id="modalNotasEnvio" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2" style="background:#1e4d2b;">
+                <h6 class="modal-title text-white mb-0">
+                    <i class="fa-solid fa-file-import mr-2"></i>Notas de envío disponibles
+                </h6>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body" id="cuerpoModalNE">
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recargarListaNE()">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>Re-cargar
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnCargarNESeleccion">
+                    <i class="fa-solid fa-check mr-1"></i>Aplicar selección
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -601,6 +643,71 @@ function limpiarProductos() {
     recalcularTotal();
 }
 
+// ── Notas de Envío – scope global (llamadas desde onclick) ──────────────────
+let nesCargadas = []; // [{id, text}]
+let listaNEs    = [];
+
+function mostrarBannerNE() {
+    const alertDiv = $('#alertaNE');
+    if (!nesCargadas.length) {
+        alertDiv.addClass('d-none').html('');
+        return;
+    }
+    const badges = nesCargadas.map(ne =>
+        `<span class="badge badge-success mr-1" style="font-size:.82em;font-weight:500;padding:.35em .55em;">` +
+        `<i class="fa-solid fa-circle-check mr-1"></i>${ne.text}</span>`
+    ).join('');
+    alertDiv.removeClass('d-none').html(`
+        <div class="alert alert-success py-2 mb-0 d-flex justify-content-between align-items-center flex-wrap" style="gap:.25rem;">
+            <span class="small"><i class="fa-solid fa-circle-check mr-1"></i>NEs importadas: ${badges}</span>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="abrirModalNE()">
+                <i class="fa-solid fa-pen-to-square mr-1"></i>Editar selección
+            </button>
+        </div>`);
+}
+
+function abrirModalNE() {
+    $('#cuerpoModalNE').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+    $('#modalNotasEnvio').modal('show');
+    recargarListaNE();
+}
+
+function recargarListaNE() {
+    $('#cuerpoModalNE').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+    fetch('<?= base_url('consignaciones/search-para-pedido') ?>')
+        .then(r => r.json())
+        .then(data => {
+            listaNEs = data.results || [];
+            renderListaNE();
+        })
+        .catch(() => {
+            $('#cuerpoModalNE').html('<div class="text-center text-danger py-3"><i class="fa-solid fa-triangle-exclamation fa-2x mb-2 d-block"></i><small>Error al cargar las notas de envío.</small></div>');
+        });
+}
+
+function renderListaNE() {
+    let html = '<p class="small text-muted mb-3">Marca las notas de envío que deseas incluir. Al aplicar, los productos se reconstruyen desde la selección actual.</p>';
+    if (!listaNEs.length) {
+        html += '<div class="text-center text-muted py-3"><i class="fa-solid fa-circle-info fa-2x mb-2 d-block text-info"></i><small>No hay notas de envío disponibles con autorización completa para este vendedor.</small></div>';
+    } else {
+        html += '<div class="list-group">';
+        listaNEs.forEach(ne => {
+            const cargada  = nesCargadas.some(n => String(n.id) === String(ne.id));
+            const checked  = cargada ? 'checked' : '';
+            const active   = cargada ? 'active'  : '';
+            html += `
+                <label class="list-group-item list-group-item-action py-2 ${active}" for="ne_${ne.id}" style="cursor:pointer;">
+                    <div class="d-flex align-items-center">
+                        <input type="checkbox" name="neCheck" id="ne_${ne.id}" value="${ne.id}" class="mr-2" ${checked}>
+                        <strong class="small">${ne.text}</strong>
+                    </div>
+                </label>`;
+        });
+        html += '</div>';
+    }
+    $('#cuerpoModalNE').html(html);
+}
+
 // ── Select2 Cliente ───────────────────────────────────────────────────────────
 $(function () {
     $('#selectCliente').select2({
@@ -673,6 +780,171 @@ $(function () {
     }).on('change', function () {
         if ($(this).val()) mostrarPaso('seccionDocumento');
     });
+
+    // ── Modal Notas de Envío ──────────────────────────────────────────────────
+    document.getElementById('btnAbrirModalNE').addEventListener('click', abrirModalNE);
+
+    document.getElementById('btnCargarNESeleccion').addEventListener('click', async function () {
+        const seleccionadas = [...document.querySelectorAll('input[name="neCheck"]:checked')];
+
+        const btn = document.getElementById('btnCargarNESeleccion');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        // Limpiar estado anterior — reconstruir desde cero
+        limpiarProductos();
+        nesCargadas = [];
+        document.querySelector('textarea[name="notas"]').value = '';
+        document.getElementById('hiddenConsignacionId').value  = '';
+        document.getElementById('hiddenConsignacionIds').value = '';
+
+        let importadas = 0;
+
+        for (const chk of seleccionadas) {
+            const neId   = chk.value;
+            const neObj  = listaNEs.find(n => String(n.id) === String(neId));
+            const neText = neObj ? neObj.text : ('NE #' + neId);
+
+            try {
+                const res = await fetch('<?= base_url('consignaciones/productos-para-pedido') ?>/' + neId)
+                    .then(r => r.json());
+
+                if (!res.success) {
+                    Swal.fire('Error', `${neText}: ${res.message || 'No se pudo cargar.'}`, 'error');
+                    continue;
+                }
+
+                // Pre-llenar cliente solo desde la primera NE si aún no hay uno
+                if (res.cliente && !$('#selectCliente').val()) {
+                    const opt = new Option(res.cliente.text, res.cliente.id, true, true);
+                    $('#selectCliente').empty().append(opt).trigger('change');
+                    clienteNrcActual = res.cliente.nrc || '';
+                    prevClienteId    = String(res.cliente.id);
+                    prevClienteText  = res.cliente.text;
+                    actualizarBtnProducto();
+                }
+
+                // Construir línea de notas para esta NE
+                const notasEl = document.querySelector('textarea[name="notas"]');
+                const partes  = [`Ref. NE: ${res.numero}`];
+                if (res.paciente) partes.push(`Pac.: ${res.paciente.text}`);
+                if (res.doctor)   partes.push(`Dr.: ${res.doctor.text}`);
+                const lineaNE = partes.join(' · ');
+                notasEl.value = notasEl.value ? `${notasEl.value}\n${lineaNE}` : lineaNE;
+
+                res.productos.forEach(p => agregarFilaDesdeNE(p, res.numero));
+
+                nesCargadas.push({ id: neId, text: neText });
+                importadas++;
+
+            } catch {
+                Swal.fire('Error', `Error de conexión al cargar ${neText}.`, 'error');
+            }
+        }
+
+        const first = nesCargadas[0];
+        document.getElementById('hiddenConsignacionId').value  = first ? first.id : '';
+        document.getElementById('hiddenConsignacionIds').value = JSON.stringify(nesCargadas.map(n => n.id));
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Aplicar selección';
+
+        $('#modalNotasEnvio').modal('hide');
+        mostrarBannerNE();
+
+        const msg = importadas > 0
+            ? `${importadas} NE(s) aplicada(s)`
+            : 'Selección vacía — productos limpiados';
+        Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 })
+            .fire({ icon: importadas > 0 ? 'success' : 'info', title: msg });
+    });
+
+    function agregarFilaDesdeNE(p, neNumero) {
+        const tpl  = document.getElementById('tplFila').content.cloneNode(true);
+        const fila = tpl.querySelector('tr');
+        const idx  = filaIdx++;
+
+        fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
+        document.getElementById('filaVacia')?.remove();
+        document.getElementById('cuerpoProductos').appendChild(fila);
+
+        const filaEl  = document.getElementById('cuerpoProductos').lastElementChild;
+        const select  = filaEl.querySelector('.select-producto');
+        const chip    = filaEl.querySelector('.prod-chip');
+        const chipNom = filaEl.querySelector('.prod-chip-nombre');
+
+        // Pre-inyectar la opción antes de inicializar Select2
+        const opt = new Option(p.producto_text, p.producto_id, true, true);
+        select.appendChild(opt);
+
+        initSelectProducto(select);
+
+        // Mostrar chip en lugar del select
+        chipNom.textContent = p.producto_text;
+        chip.classList.remove('d-none');
+        $(select).next('.select2-container').hide();
+
+        // Cantidad y precio desde la NE
+        filaEl.querySelector('.input-cantidad').value = p.cantidad;
+        filaEl.querySelector('.input-precio').value   = parseFloat(p.precio_unitario).toFixed(2);
+        filaEl.querySelector('.input-precio-minimo').value = '0';
+
+        // Lotes de la NE
+        if (p.lotes && p.lotes.length > 0) {
+            const wrap = filaEl.querySelector('.ne-lotes-wrap');
+            wrap.style.display = '';
+            wrap.innerHTML = p.lotes.map(l => {
+                const venc = l.fecha_vencimiento ? ` &nbsp;·&nbsp; Vence: ${l.fecha_vencimiento}` : '';
+                return `<span class="badge badge-light border text-secondary small mr-1 mb-1" style="font-weight:400">` +
+                    `<i class="fa-solid fa-tag fa-xs mr-1"></i>` +
+                    `Lote: <strong>${l.numero_lote}</strong>` +
+                    `${venc}` +
+                    ` &nbsp;·&nbsp; ${neNumero} &nbsp;·&nbsp; ${parseFloat(l.cantidad).toFixed(2)} un` +
+                    `</span>`;
+            }).join('');
+        }
+
+        calcularSubtotal(filaEl);
+
+        // Vincular eventos
+        filaEl.querySelector('.input-cantidad').addEventListener('input', () => calcularSubtotal(filaEl));
+        filaEl.querySelector('.input-precio').addEventListener('change', () => validarPrecioConfigurado(filaEl));
+        filaEl.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
+            filaEl.remove();
+            recalcularTotal();
+            if (document.querySelectorAll('.fila-producto').length === 0) {
+                const tr = document.createElement('tr');
+                tr.id = 'filaVacia';
+                tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos.</td>';
+                document.getElementById('cuerpoProductos').appendChild(tr);
+            }
+        });
+
+        // Buscar precio mínimo en segundo plano para activar la validación
+        const clienteId = $('#selectCliente').val() || '';
+        fetch(`<?= base_url('pedidos/precio-producto') ?>?producto_id=${p.producto_id}&cliente_id=${clienteId}`)
+            .then(r => r.json())
+            .then(data => {
+                const tipoDoc   = document.getElementById('selectTipoDoc').value;
+                const ivaFactor = tipoDoc === 'factura' ? 1.13 : 1;
+                const min   = (parseFloat(data.precio_minimo) || 0) * ivaFactor;
+                const rec   = data.precio_recomendado !== null ? parseFloat(data.precio_recomendado) * ivaFactor : null;
+                const floor = rec !== null ? Math.max(min, rec) : min;
+                const inp   = filaEl.querySelector('.input-precio');
+                const hint  = filaEl.querySelector('.input-precio-hint');
+
+                filaEl.querySelector('.input-precio-minimo').value = floor.toFixed(2);
+                if (floor > 0) {
+                    inp.min = floor.toFixed(2);
+                    hint.textContent = 'Mín: $' + floor.toFixed(2);
+                    // Ajustar al mínimo si el precio de la NE está por debajo
+                    if (parseFloat(inp.value) < floor) {
+                        inp.value = floor.toFixed(2);
+                        calcularSubtotal(filaEl);
+                    }
+                }
+            });
+    }
 
     // Modal crear cliente
     $('#formCliente').on('submit', function (e) {

@@ -50,12 +50,17 @@
 
                         <div class="col-md-4">
                             <label class="form-label text-muted small">Vendedor / Representante <span class="text-danger">*</span></label>
-                            <select name="vendedor_id" id="selectVendedor" class="form-control" required>
-                                <option value="">Seleccione...</option>
-                                <?php foreach ($vendedores as $v): ?>
-                                    <option value="<?= $v->id ?>"><?= esc($v->seller) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <?php if (!empty($vendedor_id)): ?>
+                                <input type="text" id="vendedorNombre" class="form-control" value="<?= esc($vendedor_nombre) ?>" readonly>
+                                <input type="hidden" name="vendedor_id" value="<?= esc($vendedor_id) ?>">
+                            <?php else: ?>
+                                <select name="vendedor_id" id="selectVendedor" class="form-control" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($vendedores as $v): ?>
+                                        <option value="<?= $v->id ?>"><?= esc($v->seller) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php endif; ?>
                         </div>
 
                         <div class="col-md-3">
@@ -358,7 +363,13 @@
 </div>
 <script>
     let filaIdx = 0;
-    const vendedorSelect = document.getElementById('selectVendedor');
+
+    function getVendedorId() {
+        const sel = document.getElementById('selectVendedor');
+        if (sel) return sel.value;
+        const hidden = document.querySelector('input[name="vendedor_id"]');
+        return hidden ? hidden.value : '';
+    }
 
     function calcularSubtotal(fila) {
         const cant = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
@@ -394,7 +405,7 @@
             },
         }).on('select2:select', function(e) {
             const productoId = e.params.data.id;
-            const vendedorId = vendedorSelect.value;
+            const vendedorId = getVendedorId();
             if (!vendedorId || !productoId) return;
 
             fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
@@ -548,21 +559,28 @@
             });
         });
 
-        // Select2 para tipo de nota
-        $('#selectTipoNota').select2({
-            language: 'es',
-            placeholder: 'Seleccione tipo de nota...',
-            allowClear: true,
-            width: '100%',
-            ajax: {
-                url: '<?= base_url('tipo-notas/searchAjax') ?>',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) { return { q: params.term || '' }; },
-                processResults: function(data) { return { results: data.results }; },
-                cache: true
-            }
-        });
+        // Inicializador de Select2 para Tipo de Nota (se define como función para fallback)
+        function initSelectTipoNota() {
+            if (typeof $.fn.select2 === 'undefined') return;
+            if ($('#selectTipoNota').data('select2')) return; // ya inicializado
+            $('#selectTipoNota').select2({
+                language: 'es',
+                placeholder: 'Seleccione tipo de nota...',
+                allowClear: true,
+                width: '100%',
+                ajax: {
+                    url: '<?= base_url('tipo-notas/searchAjax') ?>',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) { return { q: params.term || '' }; },
+                    processResults: function(data) { return { results: data.results }; },
+                    cache: true
+                }
+            });
+        }
+
+        // Inicialización inmediata
+        initSelectTipoNota();
 
         // Abrir modal para nuevo tipo de nota
         $('#btnNuevoTipoNota').on('click', function(){
@@ -646,6 +664,9 @@
             }
         });
 
+        // Fallback: asegurar inicialización de tipo de nota si no se ejecutó antes
+        initSelectTipoNota();
+
     });
 
     document.getElementById('formCrear').addEventListener('submit', function(e) {
@@ -656,7 +677,10 @@
             return;
         }
 
-        const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
+        const vendedorSel = document.getElementById('selectVendedor');
+        const vendedor = vendedorSel
+            ? (vendedorSel.options[vendedorSel.selectedIndex]?.text ?? '')
+            : (document.getElementById('vendedorNombre')?.value ?? '');
         const numero = document.querySelector('[name="numero"]').value;
         const total = document.getElementById('totalGeneral').textContent;
 

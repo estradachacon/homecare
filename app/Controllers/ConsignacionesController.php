@@ -27,7 +27,16 @@ class ConsignacionesController extends BaseController
         $chk = requerirPermiso('ver_consignaciones');
         if ($chk !== true) return $chk;
 
-        $headModel = new ConsignacionHeadModel();
+        $headModel     = new ConsignacionHeadModel();
+        $session       = session();
+        $db            = \Config\Database::connect();
+        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores');
+
+        $sellerUsuario = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id, sellers.seller')
+            ->get()->getRow();
 
         $filtros = [
             'vendedor_id'  => $this->request->getGet('vendedor_id'),
@@ -37,6 +46,11 @@ class ConsignacionesController extends BaseController
             'lote_estado'  => $this->request->getGet('lote_estado'),
         ];
 
+        // Sin permiso de ver todos: forzar el filtro al vendedor del usuario
+        if (!$puedeVerTodos) {
+            $filtros['vendedor_id'] = $sellerUsuario->id ?? 0;
+        }
+
         $perPage = 15;
 
         $consignaciones = $headModel->listar($filtros)->paginate($perPage);
@@ -45,10 +59,12 @@ class ConsignacionesController extends BaseController
         $sellerModel = new SellerModel();
 
         return view('consignaciones/index', [
-            'consignaciones' => $consignaciones,
-            'pager'          => $pager,
-            'filtros'        => $filtros,
-            'vendedores'     => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'consignaciones'  => $consignaciones,
+            'pager'           => $pager,
+            'filtros'         => $filtros,
+            'vendedores'      => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'puede_ver_todos' => $puedeVerTodos,
+            'seller_usuario'  => $sellerUsuario,
         ]);
     }
 
@@ -63,10 +79,20 @@ class ConsignacionesController extends BaseController
 
         $headModel   = new ConsignacionHeadModel();
         $sellerModel = new SellerModel();
+        $session     = session();
+
+        $db     = \Config\Database::connect();
+        $seller = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id, sellers.seller')
+            ->get()->getRow();
 
         return view('consignaciones/crear', [
             'numero_sugerido' => $headModel->siguienteNumero(),
-            'vendedores'      => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+            'vendedor_id'     => $seller->id     ?? null,
+            'vendedor_nombre' => $seller->seller  ?? null,
+            'vendedores'      => $seller ? [] : $sellerModel->orderBy('seller', 'ASC')->findAll(),
         ]);
     }
 
@@ -722,6 +748,12 @@ class ConsignacionesController extends BaseController
             $paciente = (new PacienteModel())->find($consignacion->paciente_id);
         }
 
+        // Cargar nombre de tipo de nota para mostrar en el select si aplica
+        if (!empty($consignacion->tipo_nota_id)) {
+            $tipo = $db->table('tipo_notas')->select('nombre')->where('id', $consignacion->tipo_nota_id)->get()->getRow();
+            $consignacion->tipo_nota_nombre = $tipo ? $tipo->nombre : null;
+        }
+
         $detalleLoteModel = new ConsignacionDetalleLoteModel();
         $lotesPorDetalle  = [];
 
@@ -837,6 +869,7 @@ class ConsignacionesController extends BaseController
             'paciente_id'   => $pacienteId,
             'doctor_id'     => $this->request->getPost('doctor_id') ?: null,
             'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
+            'tipo_nota_id'  => $this->request->getPost('tipo_nota_id') ?: null,
             'concepto'      => $this->request->getPost('concepto'),
             'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
             'hora'          => $this->request->getPost('hora') ?: date('H:i'),
@@ -1103,7 +1136,16 @@ class ConsignacionesController extends BaseController
 
         (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
 
-        $this->registrarLog((int)$detRow->consignacion_id, 'Lotes actualizados', 'Detalle #' . $detalleId);
+        // Construir detalle legible con los números de lote y cantidades asignadas
+        $parts = [];
+        foreach ($lotes as $l) {
+            $num = $l['numero_lote'] ?? ($l['lote_id'] ?? 'Lote');
+            $cant = number_format((float)($l['cantidad'] ?? 0), 2);
+            $parts[] = "$num: $cant";
+        }
+        $detalleText = !empty($parts) ? implode('; ', $parts) : ('Detalle #' . $detalleId);
+
+        $this->registrarLog((int)$detRow->consignacion_id, 'Lotes actualizados', $detalleText);
 
         return $this->response->setJSON([
             'success'        => true,
@@ -1630,6 +1672,165 @@ class ConsignacionesController extends BaseController
             'clientes'   => $clientes,
             'filtros'    => $filtros,
             'vendedores' => $sellerModel->orderBy('seller', 'ASC')->findAll(),
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  AJAX: buscar NEs elegibles para importar en pedido
+    //  Criterios: mismo vendedor del usuario en sesión,
+    //  estado = 'abierta', aprobacion_estado = 'aprobada',
+    //  lotes_autorizados_por IS NOT NULL
+    // ─────────────────────────────────────────────
+
+    public function searchParaPedidoAjax()
+    {
+        $chk = requerirPermiso('crear_pedidos');
+        if ($chk !== true) return $this->response->setJSON(['results' => []]);
+
+        $session = session();
+        $db      = \Config\Database::connect();
+
+        $seller = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id')
+            ->get()->getRow();
+
+        if (!$seller) {
+            return $this->response->setJSON(['results' => []]);
+        }
+
+        $q = trim($this->request->getGet('q') ?? '');
+
+        $builder = $db->table('consignaciones_head')
+            ->select('consignaciones_head.id, consignaciones_head.numero, pacientes.nombre AS paciente_nombre')
+            ->join('pacientes', 'pacientes.id = consignaciones_head.paciente_id', 'left')
+            ->where('consignaciones_head.vendedor_id', $seller->id)
+            ->where('consignaciones_head.estado', 'abierta')
+            ->where('consignaciones_head.aprobacion_estado', 'aprobada')
+            ->where('consignaciones_head.lotes_autorizados_por IS NOT NULL', null, false)
+            ->orderBy('consignaciones_head.id', 'DESC')
+            ->limit(50);
+
+        if ($q !== '') {
+            $builder->groupStart()
+                ->like('consignaciones_head.numero', $q)
+                ->orLike('pacientes.nombre', $q)
+                ->groupEnd();
+        }
+
+        $rows    = $builder->get()->getResult();
+        $results = [];
+        foreach ($rows as $row) {
+            $label = $row->numero;
+            if (!empty($row->paciente_nombre)) {
+                $label .= ' — ' . $row->paciente_nombre;
+            }
+            $results[] = ['id' => $row->id, 'text' => $label];
+        }
+
+        return $this->response->setJSON(['results' => $results]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  AJAX: productos de una NE para importar en pedido
+    // ─────────────────────────────────────────────
+
+    public function productosParaPedidoAjax(int $id)
+    {
+        $chk = requerirPermiso('crear_pedidos');
+        if ($chk !== true) return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+
+        $session = session();
+        $db      = \Config\Database::connect();
+
+        $seller = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id')
+            ->get()->getRow();
+
+        if (!$seller) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Usuario sin vendedor asignado.']);
+        }
+
+        $ne = $db->table('consignaciones_head')
+            ->where('id', $id)
+            ->where('vendedor_id', $seller->id)
+            ->where('estado', 'abierta')
+            ->where('aprobacion_estado', 'aprobada')
+            ->where('lotes_autorizados_por IS NOT NULL', null, false)
+            ->get()->getRow();
+
+        if (!$ne) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nota de envío no válida o no disponible.']);
+        }
+
+        // Cliente
+        $clienteRow = $ne->cliente_id
+            ? $db->table('clientes')->select('id, nombre, nrc')->where('id', $ne->cliente_id)->get()->getRow()
+            : null;
+
+        // Doctor
+        $doctorRow = $ne->doctor_id
+            ? $db->table('doctores')->select('id, nombre')->where('id', $ne->doctor_id)->get()->getRow()
+            : null;
+
+        // Paciente
+        $pacienteRow = $ne->paciente_id
+            ? $db->table('pacientes')->select('id, nombre, identificacion')->where('id', $ne->paciente_id)->get()->getRow()
+            : null;
+
+        // Detalles con lotes
+        $detalles = $db->table('consignaciones_detalles cd')
+            ->select('cd.id AS detalle_id, cd.producto_id, cd.cantidad, cd.precio_unitario, p.codigo, p.descripcion')
+            ->join('productos p', 'p.id = cd.producto_id')
+            ->where('cd.consignacion_id', $id)
+            ->get()->getResult();
+
+        $productos = [];
+        foreach ($detalles as $d) {
+            $loteRows = $db->table('consignacion_detalle_lotes cdl')
+                ->select('cl.numero_lote, cl.fecha_vencimiento, cdl.cantidad')
+                ->join('consignacion_lotes cl', 'cl.id = cdl.lote_id')
+                ->where('cdl.detalle_id', $d->detalle_id)
+                ->get()->getResult();
+
+            $lotes = [];
+            foreach ($loteRows as $l) {
+                $lotes[] = [
+                    'numero_lote'      => $l->numero_lote,
+                    'fecha_vencimiento' => $l->fecha_vencimiento,
+                    'cantidad'         => (float)$l->cantidad,
+                ];
+            }
+
+            $productos[] = [
+                'producto_id'     => (int)$d->producto_id,
+                'producto_text'   => trim(($d->codigo ?? '') . ' — ' . $d->descripcion),
+                'cantidad'        => (float)$d->cantidad,
+                'precio_unitario' => (float)$d->precio_unitario,
+                'lotes'           => $lotes,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'numero'    => $ne->numero,
+            'cliente'   => $clienteRow ? [
+                'id'   => (int)$clienteRow->id,
+                'text' => $clienteRow->nombre,
+                'nrc'  => $clienteRow->nrc ?? '',
+            ] : null,
+            'doctor'    => $doctorRow ? [
+                'id'   => (int)$doctorRow->id,
+                'text' => $doctorRow->nombre,
+            ] : null,
+            'paciente'  => $pacienteRow ? [
+                'id'   => (int)$pacienteRow->id,
+                'text' => $pacienteRow->nombre . (!empty($pacienteRow->identificacion) ? ' | ' . $pacienteRow->identificacion : ''),
+            ] : null,
+            'productos' => $productos,
         ]);
     }
 }

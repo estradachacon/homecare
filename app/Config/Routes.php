@@ -289,6 +289,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('consignaciones/(:num)/rechazar',              'ConsignacionesController::rechazar/$1');
     $routes->post('consignaciones/(:num)/autorizar-lotes',       'ConsignacionesController::autorizarLotes/$1');
     $routes->get('consignaciones/precio-ajax',                   'ConsignacionesController::getPrecioAjax');
+    $routes->get('consignaciones/search-para-pedido',            'ConsignacionesController::searchParaPedidoAjax');
+    // Alertas operativas
+    $routes->get('alertas/conteos',                              'AlertasController::conteos');
+    $routes->get('consignaciones/productos-para-pedido/(:num)',  'ConsignacionesController::productosParaPedidoAjax/$1');
     $routes->get('consignaciones/facturas-vendedor/(:num)',       'ConsignacionesController::facturasVendedor/$1');
     // Lotes
     $routes->get('consignaciones/lotes',                         'ConsignacionesController::lotes');

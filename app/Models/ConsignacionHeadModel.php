@@ -12,7 +12,7 @@ class ConsignacionHeadModel extends Model
     protected $useTimestamps = true;
 
     protected $allowedFields = [
-        'numero', 'vendedor_id', 'nombre', 'paciente_id', 'concepto',
+        'numero', 'vendedor_id', 'nombre', 'paciente_id', 'concepto', 'tipo_nota_id',
         'fecha', 'hora', 'fecha_generacion',
         'subtotal', 'observaciones', 'estado',
         'anulada', 'anulada_por', 'fecha_anulacion', 'created_by',
@@ -34,8 +34,8 @@ class ConsignacionHeadModel extends Model
                         {$lotesSub} AS lotes_asignados_count")
              ->join('sellers', 'sellers.id = consignaciones_head.vendedor_id', 'left');
 
-        if (!empty($filtros['vendedor_id'])) {
-            $this->where('consignaciones_head.vendedor_id', $filtros['vendedor_id']);
+        if (isset($filtros['vendedor_id']) && $filtros['vendedor_id'] !== '' && $filtros['vendedor_id'] !== null) {
+            $this->where('consignaciones_head.vendedor_id', (int)$filtros['vendedor_id']);
         }
         if (!empty($filtros['estado'])) {
             $this->where('consignaciones_head.estado', $filtros['estado']);

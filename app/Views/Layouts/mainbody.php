@@ -608,8 +608,46 @@
             max-height: 400px;
             overflow-y: auto;
             overflow-x: hidden;
-            /* evita barra lateral */
             padding: 0;
+        }
+
+        /* ── Alertas operativas ────────────────────────────── */
+        .alertas-dropdown {
+            width: 360px;
+            padding: 0;
+        }
+
+        .alerta-card {
+            display: flex;
+            gap: 12px;
+            padding: 11px 14px;
+            border-bottom: 1px solid #f1f1f1;
+            transition: background .15s ease;
+        }
+
+        .alerta-card:hover { background: #f8f9fa; }
+
+        .alerta-icon {
+            font-size: 18px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            width: 22px;
+            text-align: center;
+        }
+
+        .alerta-icon-warning { color: #f0a500; }
+        .alerta-icon-danger  { color: #dc3545; }
+        .alerta-icon-success { color: #28a745; }
+
+        .alerta-count-ok      { font-size: 12px; color: #28a745; font-weight: 600; }
+        .alerta-count-pending { font-size: 12px; font-weight: 700; }
+        .alerta-count-warning { color: #d97706; }
+        .alerta-count-danger  { color: #dc3545; }
+
+        .alerta-bell-glow {
+            text-shadow:
+                0 0 5px rgba(240, 165, 0, 0.8),
+                0 0 12px rgba(240, 165, 0, 0.6);
         }
 
         #sidebarToggle i {
@@ -680,6 +718,32 @@
                     </div>
                 </li>
 
+                <!-- Campana de alertas operativas -->
+                <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes')): ?>
+                <li class="nav-item dropdown mr-3" style="list-style:none;">
+                    <a class="nav-link text-white position-relative" href="#"
+                       id="alertasDropdown" data-toggle="dropdown"
+                       aria-haspopup="true" aria-expanded="false"
+                       title="Alertas operativas">
+                        <i id="alertasBell" class="fa-solid fa-triangle-exclamation fa-lg"></i>
+                        <span id="alertasCount" class="badge badge-warning position-absolute"
+                              style="top:-5px;right:-10px;font-size:11px;display:none;"></span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow alertas-dropdown"
+                         aria-labelledby="alertasDropdown">
+                        <div class="dropdown-header">
+                            <i class="fa-solid fa-triangle-exclamation text-warning mr-1"></i>
+                            <strong>Alertas operativas</strong>
+                        </div>
+                        <div id="alertasList">
+                            <div class="dropdown-item text-muted text-center small py-3">
+                                <div class="spinner-border spinner-border-sm mr-1"></div> Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <?php endif; ?>
+
                 <!-- Usuario -->
                 <?php
                 $foto = session('foto');
@@ -724,7 +788,7 @@
 
     <!--Start layoutSidenav_nav-->
     <div id="layoutSidenav" class="container-fluid d-flex align-items-stretch">
-        <?php include('sidebar.php'); ?>
+        <?php include 'sidebar.php'; ?>
         <!--End layoutSidenav_nav-->
 
         <div id="layoutSidenav_content">
@@ -955,6 +1019,92 @@
 
         // refrescar cada 30 segundos
         setInterval(cargarNotificaciones, 15000);
+
+        <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes')): ?>
+        // ── Alertas operativas ────────────────────────────────────────────────
+        let alertasTotales = 0;
+
+        // ── Animación de tab ─────────────────────────────────────────────────
+        const _tabTituloOriginal = document.title;
+        let   _tabAnimInterval   = null;
+
+        function animarTab(count) {
+            if (_tabAnimInterval) clearInterval(_tabAnimInterval);
+            let flip = false;
+            _tabAnimInterval = setInterval(function () {
+                document.title = flip ? _tabTituloOriginal : `⚠ (${count}) Alerta(s)`;
+                flip = !flip;
+            }, 900);
+        }
+
+        function detenerAnimTab() {
+            if (_tabAnimInterval) {
+                clearInterval(_tabAnimInterval);
+                _tabAnimInterval = null;
+            }
+            document.title = _tabTituloOriginal;
+        }
+
+        // Detener cuando el usuario vuelve al tab
+        window.addEventListener('focus', detenerAnimTab);
+
+        function cargarAlertas() {
+            fetch('<?= base_url('alertas/conteos') ?>')
+                .then(r => r.json())
+                .then(data => {
+                    const alertas = data.alertas || [];
+                    const total   = data.total   || 0;
+
+                    if (total > 0) {
+                        $('#alertasCount').text(total).show();
+                        $('#alertasBell')
+                            .removeClass('bell-alert alerta-bell-glow')
+                            .addClass('bell-alert alerta-bell-glow');
+                        // Animar tab solo si el conteo subió o estaba en 0
+                        if (total > alertasTotales) {
+                            animarTab(total);
+                        }
+                    } else {
+                        $('#alertasCount').hide();
+                        $('#alertasBell').removeClass('bell-alert alerta-bell-glow');
+                        detenerAnimTab();
+                    }
+                    alertasTotales = total;
+
+                    if (!alertas.length) {
+                        $('#alertasList').html('<div class="dropdown-item text-muted text-center small py-3">Sin alertas configuradas</div>');
+                        return;
+                    }
+
+                    let html = '';
+                    alertas.forEach(a => {
+                        const hayPendientes = a.count > 0;
+                        const iconColor     = hayPendientes ? `alerta-icon-${a.color}` : 'alerta-icon-success';
+                        const countClass    = hayPendientes
+                            ? `alerta-count-pending alerta-count-${a.color}`
+                            : 'alerta-count-ok';
+                        const countText     = hayPendientes ? `${a.count} pendiente(s)` : 'Al día ✓';
+
+                        html += `
+                            <a class="dropdown-item alerta-card" href="${a.link}">
+                                <div class="alerta-icon ${iconColor}">
+                                    <i class="fa-solid ${a.icon}"></i>
+                                </div>
+                                <div class="notif-content">
+                                    <div class="notif-title" style="font-size:13px;">${a.label}</div>
+                                    <div class="${countClass}">${countText}</div>
+                                </div>
+                            </a>`;
+                    });
+
+                    $('#alertasList').html(html);
+                })
+                .catch(() => {});
+        }
+
+        cargarAlertas();
+        setInterval(cargarAlertas, 15000);
+        <?php endif; ?>
     </script>
     <?= $this->include('Layouts/toast') ?>
 </body>

@@ -157,20 +157,24 @@ class PedidosController extends BaseController
             ->get()->getRow();
 
         $pedidoId = $headModel->insert([
-            'numero'         => $numero,
-            'anio'           => $anio,
-            'secuencia'      => $secuencia,
-            'cliente_id'     => $clienteId,
-            'vendedor_id'    => $seller->id ?? null,
-            'tipo_documento' => $tipoDoc,
-            'tipo_pago'      => $tipoPago,
-            'dias_credito'   => $diasCredito,
-            'notas'          => $this->request->getPost('notas'),
-            'subtotal'       => $subtotal,
-            'iva'            => $iva,
-            'total'          => $total,
-            'estado'         => 'pendiente',
-            'created_by'     => $session->get('id'),
+            'numero'          => $numero,
+            'anio'            => $anio,
+            'secuencia'       => $secuencia,
+            'cliente_id'      => $clienteId,
+            'vendedor_id'     => $seller->id ?? null,
+            'consignacion_id'  => (int)$this->request->getPost('consignacion_id') ?: null,
+            'consignacion_ids' => $this->request->getPost('consignacion_ids') ?: null,
+            'doctor_id'        => (int)$this->request->getPost('doctor_id')       ?: null,
+            'paciente_id'      => (int)$this->request->getPost('paciente_id')     ?: null,
+            'tipo_documento'  => $tipoDoc,
+            'tipo_pago'       => $tipoPago,
+            'dias_credito'    => $diasCredito,
+            'notas'           => $this->request->getPost('notas'),
+            'subtotal'        => $subtotal,
+            'iva'             => $iva,
+            'total'           => $total,
+            'estado'          => 'pendiente',
+            'created_by'      => $session->get('id'),
         ]);
 
         foreach ($productos as $p) {

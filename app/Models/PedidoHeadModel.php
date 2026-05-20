@@ -13,7 +13,7 @@ class PedidoHeadModel extends Model
 
     protected $allowedFields = [
         'numero', 'anio', 'secuencia',
-        'cliente_id', 'vendedor_id',
+        'cliente_id', 'vendedor_id', 'consignacion_id', 'consignacion_ids', 'doctor_id', 'paciente_id',
         'tipo_documento', 'tipo_pago', 'dias_credito',
         'notas', 'subtotal', 'iva', 'total',
         'estado', 'factura_id',

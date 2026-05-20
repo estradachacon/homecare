@@ -2,11 +2,29 @@
 <?= $this->section('content') ?>
 
 <style>
-    .select2-container .select2-selection--single { height: 38px !important; border: 1px solid #ced4da; border-radius: .375rem; }
-    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 36px !important; padding-left: .75rem; }
-    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px !important; }
-    #tablaProductos td { vertical-align: middle; }
-    .lotes-badge .badge { font-size: 10px; cursor: default; }
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px !important;
+        padding-left: .75rem;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+    }
+
+    #tablaProductos td {
+        vertical-align: middle;
+    }
+
+    .lotes-badge .badge {
+        font-size: 10px;
+        cursor: default;
+    }
 </style>
 
 <div class="row">
@@ -100,6 +118,26 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Tipo de nota</label>
+                            <div class="d-flex">
+                                <select name="tipo_nota_id" id="selectTipoNota" class="form-control flex-grow-1">
+                                    <option value=""></option>
+                                    <?php if (!empty($consignacion->tipo_nota_id)): ?>
+                                        <option value="<?= esc($consignacion->tipo_nota_id) ?>" selected>
+                                            <?= esc($consignacion->tipo_nota_nombre ?? '') ?>
+                                        </option>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-success ml-2" id="btnNuevoTipoNota">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Opcional: ejemplo "Colocación de terapia", "Cambio 1", "Retiro".</small>
+                        </div>
+                    </div>
+
                     <!-- Fila 3 -->
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -151,50 +189,50 @@
                                         $lotesCount = count($lotes);
                                         $lotesTotal = array_sum(array_map(fn($l) => (float)$l->cantidad, $lotes));
                                     ?>
-                                    <tr class="fila-producto"
-                                        data-idx="<?= $i ?>"
-                                        data-detalle-id="<?= $d->id ?>"
-                                        data-orig-cantidad="<?= $d->cantidad ?>"
-                                        data-orig-producto-id="<?= $d->producto_id ?>"
-                                        data-lotes-count="<?= $lotesCount ?>"
-                                        data-lotes-total="<?= $lotesTotal ?>">
-                                        <td>
-                                            <input type="hidden" name="productos[<?= $i ?>][detalle_id]" value="<?= $d->id ?>">
-                                            <select name="productos[<?= $i ?>][producto_id]"
-                                                class="form-control form-control-sm select-producto" required>
-                                                <option value="<?= $d->producto_id ?>" selected>
-                                                    <?= esc($d->producto_codigo . ' — ' . $d->producto_nombre) ?>
-                                                </option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="productos[<?= $i ?>][cantidad]"
-                                                class="form-control form-control-sm input-cantidad"
-                                                value="<?= $d->cantidad ?>" min="0.01" step="0.01" required>
-                                            <div class="lotes-badge mt-1"<?= $lotesCount === 0 ? ' style="display:none"' : '' ?>>
-                                                <?php if ($lotesCount > 0): ?>
-                                                <span class="badge badge-info small">
-                                                    <?= $lotesCount ?> lote<?= $lotesCount > 1 ? 's' : '' ?> &middot; <?= number_format($lotesTotal, 2) ?> u
-                                                </span>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="productos[<?= $i ?>][precio_unitario]"
-                                                class="form-control form-control-sm input-precio"
-                                                value="<?= $d->precio_unitario ?>" min="0" step="0.01" required>
-                                        </td>
-                                        <td class="text-end">
-                                            <input type="hidden" name="productos[<?= $i ?>][subtotal]"
-                                                class="input-subtotal" value="<?= $d->subtotal ?>">
-                                            <span class="subtotal-texto">$<?= number_format($d->subtotal, 2) ?></span>
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-danger btn-xs btn-eliminar-fila">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        <tr class="fila-producto"
+                                            data-idx="<?= $i ?>"
+                                            data-detalle-id="<?= $d->id ?>"
+                                            data-orig-cantidad="<?= $d->cantidad ?>"
+                                            data-orig-producto-id="<?= $d->producto_id ?>"
+                                            data-lotes-count="<?= $lotesCount ?>"
+                                            data-lotes-total="<?= $lotesTotal ?>">
+                                            <td>
+                                                <input type="hidden" name="productos[<?= $i ?>][detalle_id]" value="<?= $d->id ?>">
+                                                <select name="productos[<?= $i ?>][producto_id]"
+                                                    class="form-control form-control-sm select-producto" required>
+                                                    <option value="<?= $d->producto_id ?>" selected>
+                                                        <?= esc($d->producto_codigo . ' — ' . $d->producto_nombre) ?>
+                                                    </option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="productos[<?= $i ?>][cantidad]"
+                                                    class="form-control form-control-sm input-cantidad"
+                                                    value="<?= $d->cantidad ?>" min="0.01" step="0.01" required>
+                                                <div class="lotes-badge mt-1" <?= $lotesCount === 0 ? ' style="display:none"' : '' ?>>
+                                                    <?php if ($lotesCount > 0): ?>
+                                                        <span class="badge badge-info small">
+                                                            <?= $lotesCount ?> lote<?= $lotesCount > 1 ? 's' : '' ?> &middot; <?= number_format($lotesTotal, 2) ?> u
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="productos[<?= $i ?>][precio_unitario]"
+                                                    class="form-control form-control-sm input-precio"
+                                                    value="<?= $d->precio_unitario ?>" min="0" step="0.01" required>
+                                            </td>
+                                            <td class="text-end">
+                                                <input type="hidden" name="productos[<?= $i ?>][subtotal]"
+                                                    class="input-subtotal" value="<?= $d->subtotal ?>">
+                                                <span class="subtotal-texto">$<?= number_format($d->subtotal, 2) ?></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-danger btn-xs btn-eliminar-fila">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
@@ -280,6 +318,14 @@
                         <label>Correo</label>
                         <input type="email" name="correo" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>Foto / documento</label>
+                        <input type="file" name="foto" id="pacienteFoto" accept="image/*" capture="environment" class="form-control">
+                        <small class="form-text text-muted">Toca el ícono de cámara para tomar una foto desde el celular.</small>
+                        <div id="pacienteFotoPreview" class="mt-2 d-none">
+                            <img src="" class="img-fluid rounded" style="max-height: 180px;">
+                        </div>
+                    </div>
                     <div id="pacienteError" class="alert alert-danger d-none"></div>
                 </div>
                 <div class="modal-footer">
@@ -293,7 +339,6 @@
     </div>
 </div>
 
-<!-- Modal Nuevo Doctor -->
 <div class="modal fade" id="modalDoctor" tabindex="-1">
     <div class="modal-dialog">
         <form id="formDoctor">
@@ -302,25 +347,56 @@
                     <h5 class="modal-title">Nuevo Doctor</h5>
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
+
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Nombre del doctor</label>
-                        <input type="text" name="nombre" id="doctorNombre" class="form-control" required>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nombre <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre1" id="doctorNombre1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Nombre</label>
+                            <input type="text" name="nombre2" id="doctorNombre2" class="form-control">
+                        </div>
                     </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Apellido <span class="text-danger">*</span></label>
+                            <input type="text" name="apellido1" id="doctorApellido1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Apellido</label>
+                            <input type="text" name="apellido2" id="doctorApellido2" class="form-control">
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>Especialidad</label>
                         <input type="text" name="especialidad" class="form-control">
                     </div>
+
                     <div class="form-group">
                         <label>Teléfono</label>
                         <input type="text" name="telefono" class="form-control">
                     </div>
+
                     <div class="form-group">
                         <label>Correo</label>
                         <input type="email" name="correo" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>Foto / documento</label>
+                        <input type="file" name="foto" id="doctorFoto" accept="image/*" capture="environment" class="form-control">
+                        <small class="form-text text-muted">Toca el ícono de cámara para tomar una foto desde el celular.</small>
+                        <div id="doctorFotoPreview" class="mt-2 d-none">
+                            <img src="" class="img-fluid rounded" style="max-height: 180px;">
+                        </div>
+                    </div>
+
                     <div id="doctorError" class="alert alert-danger d-none"></div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btnGuardarDoctor">
@@ -332,282 +408,490 @@
     </div>
 </div>
 
+<!-- Modal Tipo de Nota (creación rápida) -->
+<div class="modal fade" id="tipoNotaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="tipoNotaForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Tipo de Nota</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre <span class="text-danger">*</span></label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                    <div id="tipoNotaError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="tipoNotaGuardar">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-let filaIdx = <?= count($detalles) ?>;
-const vendedorSelect  = document.getElementById('selectVendedor');
-const cuerpoProductos = document.getElementById('cuerpoProductos');
+    let filaIdx = <?= count($detalles) ?>;
+    const vendedorSelect = document.getElementById('selectVendedor');
+    const cuerpoProductos = document.getElementById('cuerpoProductos');
 
-function calcularSubtotal(fila) {
-    const cant   = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
-    const precio = parseFloat(fila.querySelector('.input-precio').value)   || 0;
-    const sub    = cant * precio;
-    fila.querySelector('.input-subtotal').value       = sub.toFixed(2);
-    fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
-    recalcularTotal();
-}
-
-function recalcularTotal() {
-    let total = 0;
-    document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
-    document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
-}
-
-function actualizarBadgeLotes(fila) {
-    const lotesCount = parseInt(fila.dataset.lotesCount || '0');
-    if (lotesCount === 0) return;
-
-    const badge = fila.querySelector('.lotes-badge');
-    if (!badge) return;
-    badge.style.display = '';
-
-    const origCant   = parseFloat(fila.dataset.origCantidad   || '0');
-    const origProdId = String(fila.dataset.origProductoId      || '');
-    const currCant   = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
-    const sel        = fila.querySelector('.select-producto');
-    const currProdId = String(sel ? sel.value : '');
-
-    const changed = Math.abs(currCant - origCant) > 0.001 || currProdId !== origProdId;
-
-    if (changed) {
-        badge.innerHTML = '<span class="badge badge-warning text-dark small"><i class="fa-solid fa-triangle-exclamation"></i> Lotes serán eliminados</span>';
-    } else {
-        const lotesTotal = parseFloat(fila.dataset.lotesTotal || '0');
-        badge.innerHTML  = `<span class="badge badge-info small">${lotesCount} lote${lotesCount > 1 ? 's' : ''} &middot; ${lotesTotal.toFixed(2)} u</span>`;
+    function calcularSubtotal(fila) {
+        const cant = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
+        const precio = parseFloat(fila.querySelector('.input-precio').value) || 0;
+        const sub = cant * precio;
+        fila.querySelector('.input-subtotal').value = sub.toFixed(2);
+        fila.querySelector('.subtotal-texto').textContent = '$' + sub.toFixed(2);
+        recalcularTotal();
     }
-}
 
-function initSelectProducto(select) {
-    $(select).select2({
-        language: 'es',
-        placeholder: 'Buscar producto...',
-        allowClear: true,
-        ajax: {
-            url: '<?= base_url('productos/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term }),
-            processResults: data => ({ results: data.results }),
-            cache: true,
-        },
-    }).on('select2:select', function (e) {
-        const productoId = e.params.data.id;
-        const vendedorId = vendedorSelect.value;
-        const fila       = $(select).closest('tr')[0];
+    function recalcularTotal() {
+        let total = 0;
+        document.querySelectorAll('.input-subtotal').forEach(i => total += parseFloat(i.value) || 0);
+        document.getElementById('totalGeneral').textContent = '$' + total.toFixed(2);
+    }
 
-        actualizarBadgeLotes(fila);
+    function actualizarBadgeLotes(fila) {
+        const lotesCount = parseInt(fila.dataset.lotesCount || '0');
+        if (lotesCount === 0) return;
 
-        if (!vendedorId || !productoId) return;
+        const badge = fila.querySelector('.lotes-badge');
+        if (!badge) return;
+        badge.style.display = '';
 
-        fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.precio !== null) {
-                    fila.querySelector('.input-precio').value = parseFloat(data.precio).toFixed(2);
-                    calcularSubtotal(fila);
+        const origCant = parseFloat(fila.dataset.origCantidad || '0');
+        const origProdId = String(fila.dataset.origProductoId || '');
+        const currCant = parseFloat(fila.querySelector('.input-cantidad').value) || 0;
+        const sel = fila.querySelector('.select-producto');
+        const currProdId = String(sel ? sel.value : '');
+
+        const changed = Math.abs(currCant - origCant) > 0.001 || currProdId !== origProdId;
+
+        if (changed) {
+            badge.innerHTML = '<span class="badge badge-warning text-dark small"><i class="fa-solid fa-triangle-exclamation"></i> Lotes serán eliminados</span>';
+        } else {
+            const lotesTotal = parseFloat(fila.dataset.lotesTotal || '0');
+            badge.innerHTML = `<span class="badge badge-info small">${lotesCount} lote${lotesCount > 1 ? 's' : ''} &middot; ${lotesTotal.toFixed(2)} u</span>`;
+        }
+    }
+
+    function initSelectProducto(select) {
+        $(select).select2({
+            language: 'es',
+            placeholder: 'Buscar producto...',
+            allowClear: true,
+            ajax: {
+                url: '<?= base_url('productos/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({
+                    q: params.term
+                }),
+                processResults: data => ({
+                    results: data.results
+                }),
+                cache: true,
+            },
+        }).on('select2:select', function(e) {
+            const productoId = e.params.data.id;
+            const vendedorId = vendedorSelect.value;
+            const fila = $(select).closest('tr')[0];
+
+            actualizarBadgeLotes(fila);
+
+            if (!vendedorId || !productoId) return;
+
+            fetch(`<?= base_url('consignaciones/precio-ajax') ?>?vendedor_id=${vendedorId}&producto_id=${productoId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.precio !== null) {
+                        fila.querySelector('.input-precio').value = parseFloat(data.precio).toFixed(2);
+                        calcularSubtotal(fila);
+                    }
+                });
+        });
+    }
+
+    // Subtotales y badge de lotes
+    cuerpoProductos.addEventListener('input', function(e) {
+        if (e.target.classList.contains('input-cantidad') || e.target.classList.contains('input-precio')) {
+            const fila = e.target.closest('.fila-producto');
+            if (fila) {
+                calcularSubtotal(fila);
+                if (e.target.classList.contains('input-cantidad')) {
+                    actualizarBadgeLotes(fila);
                 }
-            });
-    });
-}
-
-// Subtotales y badge de lotes
-cuerpoProductos.addEventListener('input', function (e) {
-    if (e.target.classList.contains('input-cantidad') || e.target.classList.contains('input-precio')) {
-        const fila = e.target.closest('.fila-producto');
-        if (fila) {
-            calcularSubtotal(fila);
-            if (e.target.classList.contains('input-cantidad')) {
-                actualizarBadgeLotes(fila);
             }
         }
-    }
-});
+    });
 
-// Eliminar fila — con advertencia si tiene lotes
-cuerpoProductos.addEventListener('click', function (e) {
-    const btn = e.target.closest('.btn-eliminar-fila');
-    if (!btn) return;
-    const fila = btn.closest('.fila-producto');
-    if (!fila) return;
+    // Eliminar fila — con advertencia si tiene lotes
+    cuerpoProductos.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-eliminar-fila');
+        if (!btn) return;
+        const fila = btn.closest('.fila-producto');
+        if (!fila) return;
 
-    const lotesCount = parseInt(fila.dataset.lotesCount || '0');
+        const lotesCount = parseInt(fila.dataset.lotesCount || '0');
 
-    const eliminarFila = () => {
-        fila.remove();
-        recalcularTotal();
-        if (!cuerpoProductos.querySelector('.fila-producto')) {
-            const tr = document.createElement('tr');
-            tr.id = 'filaVacia';
-            tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
-            cuerpoProductos.appendChild(tr);
+        const eliminarFila = () => {
+            fila.remove();
+            recalcularTotal();
+            if (!cuerpoProductos.querySelector('.fila-producto')) {
+                const tr = document.createElement('tr');
+                tr.id = 'filaVacia';
+                tr.innerHTML = '<td colspan="5" class="text-center text-muted py-3">Use el botón para agregar productos</td>';
+                cuerpoProductos.appendChild(tr);
+            }
+        };
+
+        if (lotesCount > 0) {
+            Swal.fire({
+                title: '¿Eliminar producto?',
+                html: `Este producto tiene <strong>${lotesCount} lote${lotesCount > 1 ? 's' : ''}</strong> asignado${lotesCount > 1 ? 's' : ''}.<br>Al eliminarlo, las asignaciones de lotes se perderán al guardar.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545',
+            }).then(r => {
+                if (r.isConfirmed) eliminarFila();
+            });
+        } else {
+            eliminarFila();
         }
-    };
-
-    if (lotesCount > 0) {
-        Swal.fire({
-            title: '¿Eliminar producto?',
-            html: `Este producto tiene <strong>${lotesCount} lote${lotesCount > 1 ? 's' : ''}</strong> asignado${lotesCount > 1 ? 's' : ''}.<br>Al eliminarlo, las asignaciones de lotes se perderán al guardar.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Eliminar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc3545',
-        }).then(r => { if (r.isConfirmed) eliminarFila(); });
-    } else {
-        eliminarFila();
-    }
-});
-
-// Inicialización
-window.addEventListener('load', function () {
-
-    if (typeof $ === 'undefined' || !$.fn.select2) {
-        console.error('jQuery o Select2 no están cargados');
-        return;
-    }
-
-    document.querySelectorAll('.fila-producto').forEach(fila => {
-        initSelectProducto(fila.querySelector('.select-producto'));
     });
 
-    recalcularTotal();
+    // Inicialización
+    window.addEventListener('load', function() {
 
-    document.getElementById('btnAgregarProducto').addEventListener('click', function () {
-        const tpl  = document.getElementById('tplFilaProducto').content.cloneNode(true);
-        const fila = tpl.querySelector('tr');
-        const idx  = filaIdx++;
+        if (typeof $ === 'undefined' || !$.fn.select2) {
+            console.error('jQuery o Select2 no están cargados');
+            return;
+        }
 
-        fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
-        document.getElementById('filaVacia')?.remove();
-        cuerpoProductos.appendChild(fila);
+        document.querySelectorAll('.fila-producto').forEach(fila => {
+            initSelectProducto(fila.querySelector('.select-producto'));
+        });
 
-        initSelectProducto(cuerpoProductos.lastElementChild.querySelector('.select-producto'));
-    });
+        recalcularTotal();
 
-    $('#selectPaciente').select2({
-        language: 'es',
-        placeholder: 'Buscar paciente...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('pacientes/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results || [] }),
-            cache: true,
-        },
-    });
+        document.getElementById('btnAgregarProducto').addEventListener('click', function() {
+            const tpl = document.getElementById('tplFilaProducto').content.cloneNode(true);
+            const fila = tpl.querySelector('tr');
+            const idx = filaIdx++;
 
-    $('#formPaciente').on('submit', function(e) {
-        e.preventDefault();
-        const form = $(this);
-        const btn  = $('#btnGuardarPaciente');
-        const err  = $('#pacienteError');
-        err.addClass('d-none').text('');
-        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+            fila.innerHTML = fila.innerHTML.replaceAll('IDX', idx);
+            document.getElementById('filaVacia')?.remove();
+            cuerpoProductos.appendChild(fila);
 
-        $.ajax({
-            url: '<?= base_url('pacientes/storeAjax') ?>',
-            type: 'POST',
-            data: form.serialize(),
-            dataType: 'json',
-            success: function(res) {
-                if (!res.success) {
-                    err.removeClass('d-none').text(res.message || 'No se pudo crear el paciente.');
-                    return;
+            initSelectProducto(cuerpoProductos.lastElementChild.querySelector('.select-producto'));
+        });
+
+        $('#selectPaciente').select2({
+            language: 'es',
+            placeholder: 'Buscar paciente...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('pacientes/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term || ''
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results
+                    };
+                },
+                cache: true
+            }
+        });
+
+        // Select cliente (movido aquí, mismo nivel que todo lo demás)
+        $('#selectCliente').select2({
+            language: 'es',
+            placeholder: 'Buscar cliente...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('clientes/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term || ''
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $('#formPaciente').on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this)[0];
+            const btn = $('#btnGuardarPaciente');
+            const err = $('#pacienteError');
+            err.addClass('d-none').text('');
+            btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+            const formData = new FormData(form);
+            $.ajax({
+                url: '<?= base_url('pacientes/storeAjax') ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (!res.success) {
+                        err.removeClass('d-none').text(res.message || 'No se pudo crear el paciente.');
+                        return;
+                    }
+                    const option = new Option(res.paciente.text, res.paciente.id, true, true);
+                    $('#selectPaciente').append(option).trigger('change');
+                    $('#modalPaciente').modal('hide');
+                    form.reset();
+                    $('#pacienteFotoPreview').addClass('d-none').find('img').attr('src', '');
+                },
+                error: function() {
+                    err.removeClass('d-none').text('Error al comunicarse con el servidor.');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar paciente');
                 }
-                const option = new Option(res.paciente.text, res.paciente.id, true, true);
-                $('#selectPaciente').append(option).trigger('change');
-                $('#modalPaciente').modal('hide');
-                form[0].reset();
-            },
-            error: function() { err.removeClass('d-none').text('Error al comunicarse con el servidor.'); },
-            complete: function() { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar paciente'); }
+            });
+        });
+
+        $('#selectDoctor').select2({
+            language: 'es',
+            placeholder: 'Buscar doctor...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('doctores/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        q: params.term || ''
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.results
+                    };
+                },
+                cache: true
+            }
+        });
+
+        $('#formDoctor').on('submit', function(e) {
+            e.preventDefault();
+
+            const form = $(this)[0];
+            const btn = $('#btnGuardarDoctor');
+            const errorBox = $('#doctorError');
+
+            errorBox.addClass('d-none').text('');
+            btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+            const formData = new FormData(form);
+            $.ajax({
+                url: '<?= base_url('doctores/storeAjax') ?>',
+                type: 'POST',
+                data: formData,
+                dataType: 'json',
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (!res.success) {
+                        errorBox.removeClass('d-none').text(res.message || 'No se pudo crear el doctor.');
+                        return;
+                    }
+
+                    const option = new Option(res.doctor.text, res.doctor.id, true, true);
+
+                    $('#selectDoctor')
+                        .append(option)
+                        .trigger('change');
+
+                    $('#modalDoctor').modal('hide');
+                    form.reset();
+                    $('#doctorFotoPreview').addClass('d-none').find('img').attr('src', '');
+                },
+                error: function() {
+                    errorBox.removeClass('d-none').text('Error al comunicarse con el servidor.');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar doctor');
+                }
+            });
+        });
+
+        function initSelectTipoNota() {
+            if (typeof $.fn.select2 === 'undefined') return;
+            if ($('#selectTipoNota').data('select2')) return;
+
+            $('#selectTipoNota').select2({
+                language: 'es',
+                placeholder: 'Seleccione tipo de nota...',
+                allowClear: true,
+                width: '100%',
+                ajax: {
+                    url: '<?= base_url('tipo-notas/searchAjax') ?>',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            q: params.term || ''
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data.results
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            // Si ya hay un tipo_nota_id pre-seleccionado desde PHP,
+            // Select2 con AJAX necesita que la opción sea explícitamente disparada
+            const $sel = $('#selectTipoNota');
+            if ($sel.val()) {
+                $sel.trigger('change'); // fuerza que Select2 muestre el label
+            }
+        }
+
+        // Inicialización inmediata
+        initSelectTipoNota();
+
+        // Abrir modal para nuevo tipo de nota
+        $('#btnNuevoTipoNota').on('click', function() {
+            $('#tipoNotaModal').modal('show');
+            $('#tipoNotaForm')[0].reset();
+            $('#tipoNotaError').addClass('d-none').text('');
+        });
+
+        $('#tipoNotaForm').on('submit', function(e) {
+            e.preventDefault();
+            const btn = $('#tipoNotaGuardar');
+            const err = $('#tipoNotaError');
+            err.addClass('d-none').text('');
+            btn.prop('disabled', true).text('Guardando...');
+
+            $.ajax({
+                url: '<?= base_url('tipo-notas/storeAjax') ?>',
+                method: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success(res) {
+                    if (!res.success) {
+                        err.removeClass('d-none').text(res.message || 'Error');
+                        return;
+                    }
+                    const option = new Option(res.tipo_nota.text, res.tipo_nota.id, true, true);
+                    $('#selectTipoNota').append(option).trigger('change');
+                    $('#tipoNotaModal').modal('hide');
+                },
+                error() {
+                    err.removeClass('d-none').text('Error de conexión.');
+                },
+                complete() {
+                    btn.prop('disabled', false).text('Guardar');
+                }
+            });
+        });
+
+        function previewImage(input, previewSelector) {
+            const file = input.files && input.files[0];
+            const preview = $(previewSelector);
+            if (!file) {
+                preview.addClass('d-none').find('img').attr('src', '');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.removeClass('d-none').find('img').attr('src', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        $('#pacienteFoto').on('change', function() {
+            previewImage(this, '#pacienteFotoPreview');
+        });
+
+        $('#doctorFoto').on('change', function() {
+            previewImage(this, '#doctorFotoPreview');
         });
     });
 
-    $('#selectDoctor').select2({
-        language: 'es',
-        placeholder: 'Buscar doctor...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('doctores/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results || [] }),
-            cache: true,
-        },
-    });
+    // Submit con doble confirmación cuando hay lotes afectados
+    document.getElementById('formEditar').addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    $('#selectCliente').select2({
-        language: 'es',
-        placeholder: 'Buscar cliente...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('clientes/searchAjax') ?>',
-            dataType: 'json',
-            delay: 250,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results || [] }),
-            cache: true,
-        },
-    });
-});
+        if (!cuerpoProductos.querySelector('.fila-producto')) {
+            Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
+            return;
+        }
 
-// Submit con doble confirmación cuando hay lotes afectados
-document.getElementById('formEditar').addEventListener('submit', function (e) {
-    e.preventDefault();
+        // Buscar filas con lotes que cambiaron
+        const productosAfectados = [];
+        document.querySelectorAll('.fila-producto').forEach(fila => {
+            if (parseInt(fila.dataset.lotesCount || '0') === 0) return;
+            const badge = fila.querySelector('.lotes-badge span');
+            if (badge && badge.classList.contains('badge-warning')) {
+                const sel = fila.querySelector('.select-producto');
+                const text = sel?.options[sel.selectedIndex]?.textContent?.trim() || 'Producto';
+                productosAfectados.push(text);
+            }
+        });
 
-    if (!cuerpoProductos.querySelector('.fila-producto')) {
-        Swal.fire('Sin productos', 'Debe agregar al menos un producto.', 'warning');
-        return;
-    }
+        const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
+        const total = document.getElementById('totalGeneral').textContent;
 
-    // Buscar filas con lotes que cambiaron
-    const productosAfectados = [];
-    document.querySelectorAll('.fila-producto').forEach(fila => {
-        if (parseInt(fila.dataset.lotesCount || '0') === 0) return;
-        const badge = fila.querySelector('.lotes-badge span');
-        if (badge && badge.classList.contains('badge-warning')) {
-            const sel  = fila.querySelector('.select-producto');
-            const text = sel?.options[sel.selectedIndex]?.textContent?.trim() || 'Producto';
-            productosAfectados.push(text);
+        const confirmarGuardar = () => {
+            Swal.fire({
+                title: 'Confirmar cambios',
+                html: `<b>Vendedor:</b> ${vendedor}<br><b>Total: ${total}</b>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#28a745',
+            }).then(r => {
+                if (r.isConfirmed) document.getElementById('formEditar').submit();
+            });
+        };
+
+        if (productosAfectados.length > 0) {
+            const lista = productosAfectados.map(p => `<li style="text-align:left">${p}</li>`).join('');
+            Swal.fire({
+                title: 'Advertencia: lotes serán eliminados',
+                html: `Los lotes de los siguientes productos serán eliminados al guardar:<ul style="margin-top:8px">${lista}</ul>Podrá reasignarlos desde la vista de detalle.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Continuar de todas formas',
+                cancelButtonText: 'Volver',
+                confirmButtonColor: '#fd7e14',
+            }).then(r => {
+                if (r.isConfirmed) confirmarGuardar();
+            });
+        } else {
+            confirmarGuardar();
         }
     });
-
-    const vendedor = vendedorSelect.options[vendedorSelect.selectedIndex]?.text ?? '';
-    const total    = document.getElementById('totalGeneral').textContent;
-
-    const confirmarGuardar = () => {
-        Swal.fire({
-            title: 'Confirmar cambios',
-            html: `<b>Vendedor:</b> ${vendedor}<br><b>Total: ${total}</b>`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Guardar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#28a745',
-        }).then(r => { if (r.isConfirmed) document.getElementById('formEditar').submit(); });
-    };
-
-    if (productosAfectados.length > 0) {
-        const lista = productosAfectados.map(p => `<li style="text-align:left">${p}</li>`).join('');
-        Swal.fire({
-            title: 'Advertencia: lotes serán eliminados',
-            html: `Los lotes de los siguientes productos serán eliminados al guardar:<ul style="margin-top:8px">${lista}</ul>Podrá reasignarlos desde la vista de detalle.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Continuar de todas formas',
-            cancelButtonText: 'Volver',
-            confirmButtonColor: '#fd7e14',
-        }).then(r => { if (r.isConfirmed) confirmarGuardar(); });
-    } else {
-        confirmarGuardar();
-    }
-});
 </script>
 
 <?= $this->endSection() ?>

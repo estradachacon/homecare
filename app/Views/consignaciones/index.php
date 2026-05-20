@@ -101,6 +101,7 @@
                         <span class="font-weight-bold text-muted small text-uppercase">Filtros</span>
                     </div>
                     <div class="row no-gutters align-items-end">
+                        <?php if ($puede_ver_todos): ?>
                         <div class="col-lg-3 col-md-6 pr-md-2 mb-2">
                             <label for="filtro_vendedor">Vendedor</label>
                             <select name="vendedor_id" id="filtro_vendedor" class="form-control form-control-sm">
@@ -112,6 +113,14 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <?php else: ?>
+                        <div class="col-lg-3 col-md-6 pr-md-2 mb-2 d-flex align-items-end">
+                            <div class="form-control form-control-sm bg-light text-muted d-flex align-items-center" style="height:calc(1.5em + .5rem + 2px);">
+                                <i class="fa-solid fa-user-tie mr-1 text-secondary"></i>
+                                <?= esc($seller_usuario->seller ?? 'Sin vendedor asignado') ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <div class="col-lg-2 col-md-6 pr-lg-2 mb-2">
                             <label for="filtro_estado">Estado</label>
                             <select name="estado" id="filtro_estado" class="form-control form-control-sm">

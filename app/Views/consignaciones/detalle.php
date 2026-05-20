@@ -996,6 +996,9 @@
                             title: 'Lotes guardados',
                             timer: 1000,
                             showConfirmButton: false
+                        }).then(() => {
+                            // Recargar la página completa para que se muestre el log actualizado
+                            location.reload();
                         });
                     } else {
                         Swal.fire('Error', d.message, 'error');
