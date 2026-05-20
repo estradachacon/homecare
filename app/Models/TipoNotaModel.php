@@ -4,23 +4,15 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DoctorModel extends Model
+class TipoNotaModel extends Model
 {
-    protected $table         = 'doctores';
+    protected $table         = 'tipo_notas';
     protected $primaryKey    = 'id';
     protected $returnType    = 'object';
     protected $useTimestamps = true;
 
     protected $allowedFields = [
         'nombre',
-        'nombre1',
-        'nombre2',
-        'apellido1',
-        'apellido2',
-        'telefono',
-        'correo',
-        'especialidad',
-        'foto',
         'activo',
     ];
 }

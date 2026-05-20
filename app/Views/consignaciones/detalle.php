@@ -82,47 +82,90 @@
         <?php endif; ?>
 
         <div class="card">
-            <div class="card-header d-flex flex-wrap justify-content-between">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-start flex-wrap">
+                    <div>
+                        <h4 class="header-title mb-0">Nota de Envío <strong><?= esc($consignacion->numero) ?></strong></h4>
+                        <small class="text-muted d-block mb-2">Generada: <?= date('d/m/Y H:i', strtotime($consignacion->fecha_generacion)) ?></small>
 
-                <div>
-                    <h4 class="header-title mb-0">
-                        Nota de Envío <strong><?= esc($consignacion->numero) ?></strong>
-                    </h4>
-                    <small class="text-muted">
-                        Generada: <?= date('d/m/Y H:i', strtotime($consignacion->fecha_generacion)) ?>
-                    </small>
-                </div>
+                        <!-- Estados (badges) -->
+                        <div class="mb-2">
+                            <?php if ($consignacion->estado === 'abierta'): ?>
+                                <span class="badge badge-success">ACTIVA</span>
+                            <?php elseif ($consignacion->estado === 'cerrada'): ?>
+                                <span class="badge badge-secondary">CERRADA</span>
+                            <?php else: ?>
+                                <span class="badge badge-danger">ANULADA</span>
+                            <?php endif; ?>
 
-                <div>
-                    <div class="btn-group btn-group-sm">
-                        <a href="<?= base_url('consignaciones/' . $consignacion->id . '/imprimir') ?>"
-                            target="_blank" class="btn btn-outline-secondary">
-                            <i class="fa-solid fa-print mr-1"></i> Imprimir
-                        </a>
-                        <a href="<?= base_url('consignaciones') ?>" class="btn btn-outline-secondary">
-                            <i class="fa-solid fa-arrow-left mr-1"></i> Volver
-                        </a>
+                            <?php
+                                $apEst = $consignacion->aprobacion_estado ?? 'pendiente';
+                                $apBadge = match ($apEst) {
+                                    'aprobada'  => ['badge-success', 'fa-check-circle', 'Aprobada'],
+                                    'rechazada' => ['badge-danger',  'fa-times-circle', 'Rechazada'],
+                                    default     => ['badge-warning text-dark', 'fa-clock', 'Pendiente aprobación del despacho'],
+                                };
+                            ?>
+                            <span class="badge <?= $apBadge[0] ?>">
+                                <i class="fa-solid <?= $apBadge[1] ?> mr-1"></i><?= $apBadge[2] ?>
+                            </span>
+                        </div>
+
+                        <!-- Botones de aprobación / autorización (debajo de los badges) -->
+                        <div class="d-flex gap-2 mb-1">
+                            <?php if ($consignacion->estado === 'abierta' && tienePermiso('aprobar_consignaciones')): ?>
+                                <?php if ($apEst !== 'aprobada'): ?>
+                                    <button class="btn btn-sm btn-success mr-1" id="btnAprobar">
+                                        <i class="fa-solid fa-check mr-1"></i> Aprobar
+                                    </button>
+                                <?php endif; ?>
+                                <?php if ($apEst !== 'rechazada'): ?>
+                                    <button class="btn btn-sm btn-outline-danger" id="btnRechazar">
+                                        <i class="fa-solid fa-times mr-1"></i> Rechazar
+                                    </button>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php if (!empty($consignacion->lotes_autorizados_por)): ?>
+                                <span class="badge badge-success ml-1">
+                                    <i class="fa-solid fa-unlock mr-1 mt-1"></i> Autorizado para selección de lotes
+                                </span>
+                            <?php elseif ($consignacion->estado === 'abierta' && tienePermiso('autorizar_lotes_consignacion')): ?>
+                                <button class="btn btn-sm btn-warning ml-1" id="btnAutorizarLotes">
+                                    <i class="fa-solid fa-unlock mr-1"></i> Autorizar edición de lotes
+                                </button>
+                            <?php elseif ($consignacion->estado === 'abierta' && $puedeGestionarLotes): ?>
+                                <span class="badge badge-secondary ml-1">
+                                    <i class="fa-solid fa-lock mr-1"></i> Lotes pendientes de autorización
+                                </span>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <?php if ($consignacion->estado === 'abierta' && tienePermiso('crear_consignaciones')): ?>
-                        <a href="<?= base_url('consignaciones/' . $consignacion->id . '/editar') ?>"
-                            class="btn btn-info btn-sm">
-                            <i class="fa-solid fa-edit mr-1"></i> Editar
-                        </a>
-                    <?php endif; ?>
+                    <div class="text-right">
+                        <div class="mb-2">
+                            <a href="<?= base_url('consignaciones/' . $consignacion->id . '/imprimir') ?>" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                <i class="fa-solid fa-print mr-1"></i> Imprimir
+                            </a>
+                            <a href="<?= base_url('consignaciones') ?>" class="btn btn-outline-secondary btn-sm">
+                                <i class="fa-solid fa-arrow-left mr-1"></i> Volver
+                            </a>
+                        </div>
 
-                    <?php if ($consignacion->estado === 'abierta' && tienePermiso('cerrar_consignaciones')): ?>
-                        <a href="<?= base_url('consignaciones/' . $consignacion->id . '/cerrar') ?>"
-                            class="btn btn-warning btn-sm px-3">
-                            <i class="fa-solid fa-lock mr-1"></i> Cerrar
-                        </a>
-                    <?php endif; ?>
+                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                            <?php if ($consignacion->estado === 'abierta' && tienePermiso('crear_consignaciones')): ?>
+                                <a href="<?= base_url('consignaciones/' . $consignacion->id . '/editar') ?>" class="btn btn-info btn-sm mr-1"> <i class="fa-solid fa-edit mr-1"></i> Editar</a>
+                            <?php endif; ?>
 
-                    <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
-                        <button class="btn btn-danger btn-sm px-3" id="btnAnular">
-                            <i class="fa-solid fa-ban mr-1"></i> Anular
-                        </button>
-                    <?php endif; ?>
+                            <?php if ($consignacion->estado === 'abierta' && tienePermiso('cerrar_consignaciones')): ?>
+                                <a href="<?= base_url('consignaciones/' . $consignacion->id . '/cerrar') ?>" class="btn btn-warning btn-sm mr-1"> <i class="fa-solid fa-lock mr-1"></i> Cerrar</a>
+                            <?php endif; ?>
+
+                            <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
+                                <button class="btn btn-danger btn-sm" id="btnAnular"> <i class="fa-solid fa-ban mr-1"></i> Anular</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -133,61 +176,7 @@
                                      && !empty($consignacion->lotes_autorizados_por);
                 ?>
 
-                <!-- Estado badge -->
-                <div class="mb-3">
-                    <?php if ($consignacion->estado === 'abierta'): ?>
-                        <span class="badge badge-success">ABIERTA</span>
-                    <?php elseif ($consignacion->estado === 'cerrada'): ?>
-                        <span class="badge badge-secondary">CERRADA</span>
-                    <?php else: ?>
-                        <span class="badge badge-danger">ANULADA</span>
-                    <?php endif; ?>
-
-                    <!-- Aprobación badge -->
-                    <?php
-                    $apEst = $consignacion->aprobacion_estado ?? 'pendiente';
-                    $apBadge = match ($apEst) {
-                        'aprobada'  => ['badge-success', 'fa-check-circle', 'Aprobada'],
-                        'rechazada' => ['badge-danger',  'fa-times-circle', 'Rechazada'],
-                        default     => ['badge-warning text-dark', 'fa-clock', 'Pendiente aprobación'],
-                    };
-                    ?>
-                    <span class="badge <?= $apBadge[0] ?>">
-                        <i class="fa-solid <?= $apBadge[1] ?> mr-1"></i><?= $apBadge[2] ?>
-                    </span>
-
-                    <?php if ($consignacion->estado === 'abierta' && tienePermiso('aprobar_consignaciones')): ?>
-                        <?php if ($apEst !== 'aprobada'): ?>
-                            <button class="btn btn-sm btn-success" id="btnAprobar">
-                                <i class="fa-solid fa-check mr-1"></i> Aprobar
-                            </button>
-                        <?php endif; ?>
-                        <?php if ($apEst !== 'rechazada'): ?>
-                            <button class="btn btn-sm btn-outline-danger" id="btnRechazar">
-                                <i class="fa-solid fa-times mr-1"></i> Rechazar
-                            </button>
-                        <?php endif; ?>
-                    <?php endif; ?>
-
-                    <!-- Autorización de lotes -->
-                    <?php if (!empty($consignacion->lotes_autorizados_por)): ?>
-                        <span class="badge badge-success ml-1">
-                            <i class="fa-solid fa-unlock mr-1"></i> Lotes autorizados
-                        </span>
-                        <small class="text-muted ml-1">
-                            por <strong><?= esc($consignacion->autorizador_nombre ?? 'Usuario') ?></strong>
-                            el <?= date('d/m/Y H:i', strtotime($consignacion->lotes_autorizados_at)) ?>
-                        </small>
-                    <?php elseif ($consignacion->estado === 'abierta' && tienePermiso('autorizar_lotes_consignacion')): ?>
-                        <button class="btn btn-sm btn-warning ml-1" id="btnAutorizarLotes">
-                            <i class="fa-solid fa-unlock mr-1"></i> Autorizar edición de lotes
-                        </button>
-                    <?php elseif ($consignacion->estado === 'abierta' && $puedeGestionarLotes): ?>
-                        <span class="badge badge-secondary ml-1">
-                            <i class="fa-solid fa-lock mr-1"></i> Lotes pendientes de autorización
-                        </span>
-                    <?php endif; ?>
-                </div>
+                
 
                 <?php if ($apEst === 'rechazada' && !empty($consignacion->rechazo_motivo)): ?>
                     <div class="alert alert-danger py-2 mb-3" style="font-size:13px;">

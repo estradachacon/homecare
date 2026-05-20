@@ -168,8 +168,18 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('clientes/exportar-excel/(:num)', 'ClienteController::exportarExcel/$1');
     $routes->get('clientes/searchAjax', 'ClienteController::searchAjax');
 
+    $routes->get('doctores', 'Doctores::index');
+    $routes->post('doctores/guardar', 'Doctores::guardar');
+    $routes->post('doctores/eliminar/(:num)', 'Doctores::eliminar/$1');
     $routes->get('doctores/searchAjax',  'Doctores::searchAjax');
     $routes->post('doctores/storeAjax', 'Doctores::storeAjax');
+
+    // Catálogo Tipo de Nota
+    $routes->get('tipo-notas', 'TipoNotas::index');
+    $routes->get('tipo-notas/searchAjax', 'TipoNotas::searchAjax');
+    $routes->post('tipo-notas/storeAjax', 'TipoNotas::storeAjax');
+    $routes->post('tipo-notas/guardar', 'TipoNotas::guardar');
+    $routes->post('tipo-notas/eliminar/(:num)', 'TipoNotas::eliminar/$1');
 
     // Pacientes
     $routes->get('pacientes',                      'PacientesController::index');

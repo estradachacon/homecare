@@ -20,6 +20,7 @@ class PacienteModel extends Model
         'identificacion',
         'telefono',
         'correo',
+        'foto',
         'activo',
     ];
 }

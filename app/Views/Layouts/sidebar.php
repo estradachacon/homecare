@@ -345,6 +345,11 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                                 <a class="nav-link" href="/consignaciones/precios">Precios por Vendedor</a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_consignaciones')): ?>
+                                <a class="nav-link" href="/pacientes">Pacientes</a>
+                                <a class="nav-link" href="/doctores">Doctores</a>
+                                <a class="nav-link" href="/tipo-notas">Tipo de Nota</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('ver_consignaciones')): ?>
                                 <a class="nav-link" href="/consignaciones/reportes">Reportes</a>
                             <?php endif; ?>
                         </nav>

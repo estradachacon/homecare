@@ -34,6 +34,24 @@ class PacientesController extends BaseController
         ]);
     }
 
+    private function saveFoto(string $inputName, string $folder): ?string
+    {
+        $file = $this->request->getFile($inputName);
+        if (!$file || !$file->isValid() || strpos($file->getMimeType(), 'image/') !== 0) {
+            return null;
+        }
+
+        $uploadDir = FCPATH . 'upload/' . trim($folder, '/') . '/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $fileName = $file->getRandomName();
+        $file->move($uploadDir, $fileName);
+
+        return $fileName;
+    }
+
     public function guardar()
     {
         $chk = requerirPermiso('ver_consignaciones');
@@ -56,6 +74,10 @@ class PacientesController extends BaseController
             'correo'         => $this->request->getPost('correo')         ?: null,
             'activo'         => 1,
         ];
+
+        if ($foto = $this->saveFoto('foto', 'pacientes')) {
+            $data['foto'] = $foto;
+        }
 
         if ($id) {
             $model->update($id, $data);
@@ -125,6 +147,10 @@ class PacientesController extends BaseController
             'correo'         => $this->request->getPost('correo')         ?: null,
             'activo'         => 1,
         ];
+
+        if ($foto = $this->saveFoto('foto', 'pacientes')) {
+            $data['foto'] = $foto;
+        }
 
         $id = $model->insert($data);
 

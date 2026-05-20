@@ -102,6 +102,21 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Tipo de nota</label>
+                            <div class="d-flex">
+                                <select name="tipo_nota_id" id="selectTipoNota" class="form-control flex-grow-1">
+                                    <option value=""></option>
+                                </select>
+                                <button type="button" class="btn btn-success ml-2" id="btnNuevoTipoNota">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Opcional: ejemplo "Colocación de terapia", "Cambio 1", "Retiro".</small>
+                        </div>
+                    </div>
+
                     <!-- FILA 3 -->
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -226,6 +241,14 @@
                         <label>Correo</label>
                         <input type="email" name="correo" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>Foto / documento</label>
+                        <input type="file" name="foto" id="pacienteFoto" accept="image/*" capture="environment" class="form-control">
+                        <small class="form-text text-muted">Toca el ícono de cámara para tomar una foto desde el celular.</small>
+                        <div id="pacienteFotoPreview" class="mt-2 d-none">
+                            <img src="" class="img-fluid rounded" style="max-height: 180px;">
+                        </div>
+                    </div>
                     <div id="pacienteError" class="alert alert-danger d-none"></div>
                 </div>
                 <div class="modal-footer">
@@ -251,9 +274,26 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Nombre del doctor</label>
-                        <input type="text" name="nombre" id="doctorNombre" class="form-control" required>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nombre <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre1" id="doctorNombre1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Nombre</label>
+                            <input type="text" name="nombre2" id="doctorNombre2" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Apellido <span class="text-danger">*</span></label>
+                            <input type="text" name="apellido1" id="doctorApellido1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Apellido</label>
+                            <input type="text" name="apellido2" id="doctorApellido2" class="form-control">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -270,6 +310,14 @@
                         <label>Correo</label>
                         <input type="email" name="correo" class="form-control">
                     </div>
+                    <div class="form-group">
+                        <label>Foto / documento</label>
+                        <input type="file" name="foto" id="doctorFoto" accept="image/*" capture="environment" class="form-control">
+                        <small class="form-text text-muted">Toca el ícono de cámara para tomar una foto desde el celular.</small>
+                        <div id="doctorFotoPreview" class="mt-2 d-none">
+                            <img src="" class="img-fluid rounded" style="max-height: 180px;">
+                        </div>
+                    </div>
 
                     <div id="doctorError" class="alert alert-danger d-none"></div>
                 </div>
@@ -279,6 +327,30 @@
                     <button type="submit" class="btn btn-primary" id="btnGuardarDoctor">
                         <i class="fa-solid fa-save"></i> Guardar doctor
                     </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Modal Tipo de Nota (creación rápida) -->
+<div class="modal fade" id="tipoNotaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="tipoNotaForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Tipo de Nota</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nombre <span class="text-danger">*</span></label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                    <div id="tipoNotaError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="tipoNotaGuardar">Guardar</button>
                 </div>
             </div>
         </form>
@@ -380,17 +452,20 @@
 
         $('#formPaciente').on('submit', function(e) {
             e.preventDefault();
-            const form = $(this);
+            const form = $(this)[0];
             const btn  = $('#btnGuardarPaciente');
             const err  = $('#pacienteError');
             err.addClass('d-none').text('');
             btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
 
+            const formData = new FormData(form);
             $.ajax({
                 url: '<?= base_url('pacientes/storeAjax') ?>',
                 type: 'POST',
-                data: form.serialize(),
+                data: formData,
                 dataType: 'json',
+                processData: false,
+                contentType: false,
                 success: function(res) {
                     if (!res.success) {
                         err.removeClass('d-none').text(res.message || 'No se pudo crear el paciente.');
@@ -399,7 +474,8 @@
                     const option = new Option(res.paciente.text, res.paciente.id, true, true);
                     $('#selectPaciente').append(option).trigger('change');
                     $('#modalPaciente').modal('hide');
-                    form[0].reset();
+                    form.reset();
+                    $('#pacienteFotoPreview').addClass('d-none').find('img').attr('src', '');
                 },
                 error: function() { err.removeClass('d-none').text('Error al comunicarse con el servidor.'); },
                 complete: function() { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar paciente'); }
@@ -432,18 +508,21 @@
         $('#formDoctor').on('submit', function(e) {
             e.preventDefault();
 
-            const form = $(this);
+            const form = $(this)[0];
             const btn = $('#btnGuardarDoctor');
             const errorBox = $('#doctorError');
 
             errorBox.addClass('d-none').text('');
             btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
 
+            const formData = new FormData(form);
             $.ajax({
                 url: '<?= base_url('doctores/storeAjax') ?>',
                 type: 'POST',
-                data: form.serialize(),
+                data: formData,
                 dataType: 'json',
+                processData: false,
+                contentType: false,
                 success: function(res) {
                     if (!res.success) {
                         errorBox.removeClass('d-none').text(res.message || 'No se pudo crear el doctor.');
@@ -457,7 +536,8 @@
                         .trigger('change');
 
                     $('#modalDoctor').modal('hide');
-                    form[0].reset();
+                    form.reset();
+                    $('#doctorFotoPreview').addClass('d-none').find('img').attr('src', '');
                 },
                 error: function() {
                     errorBox.removeClass('d-none').text('Error al comunicarse con el servidor.');
@@ -466,6 +546,74 @@
                     btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar doctor');
                 }
             });
+        });
+
+        // Select2 para tipo de nota
+        $('#selectTipoNota').select2({
+            language: 'es',
+            placeholder: 'Seleccione tipo de nota...',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('tipo-notas/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) { return { q: params.term || '' }; },
+                processResults: function(data) { return { results: data.results }; },
+                cache: true
+            }
+        });
+
+        // Abrir modal para nuevo tipo de nota
+        $('#btnNuevoTipoNota').on('click', function(){
+            $('#tipoNotaModal').modal('show');
+            $('#tipoNotaForm')[0].reset();
+            $('#tipoNotaError').addClass('d-none').text('');
+        });
+
+        $('#tipoNotaForm').on('submit', function(e){
+            e.preventDefault();
+            const btn = $('#tipoNotaGuardar');
+            const err = $('#tipoNotaError');
+            err.addClass('d-none').text('');
+            btn.prop('disabled', true).text('Guardando...');
+
+            $.ajax({
+                url: '<?= base_url('tipo-notas/storeAjax') ?>',
+                method: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success(res){
+                    if(!res.success){ err.removeClass('d-none').text(res.message || 'Error'); return; }
+                    const option = new Option(res.tipo_nota.text, res.tipo_nota.id, true, true);
+                    $('#selectTipoNota').append(option).trigger('change');
+                    $('#tipoNotaModal').modal('hide');
+                },
+                error(){ err.removeClass('d-none').text('Error de conexión.'); },
+                complete(){ btn.prop('disabled', false).text('Guardar'); }
+            });
+        });
+
+        function previewImage(input, previewSelector) {
+            const file = input.files && input.files[0];
+            const preview = $(previewSelector);
+            if (!file) {
+                preview.addClass('d-none').find('img').attr('src', '');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.removeClass('d-none').find('img').attr('src', e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        $('#pacienteFoto').on('change', function() {
+            previewImage(this, '#pacienteFotoPreview');
+        });
+
+        $('#doctorFoto').on('change', function() {
+            previewImage(this, '#doctorFotoPreview');
         });
     });
     $(document).ready(function() {

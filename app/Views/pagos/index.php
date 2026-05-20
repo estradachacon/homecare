@@ -331,9 +331,11 @@
 </div>
 <script>
     $(document).ready(function() {
+        
         $('form').on('submit', function(e) {
             e.preventDefault();
         });
+
         $('input').on('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();

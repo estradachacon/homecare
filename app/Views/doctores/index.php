@@ -13,19 +13,18 @@
 
         <div class="card">
             <div class="card-header d-flex justify-content-between">
-                <h4 class="header-title mb-0">Catálogo de Pacientes</h4>
+                <h4 class="header-title mb-0">Catálogo de Doctores</h4>
 
                 <button type="button" class="btn btn-primary btn-sm" id="btnNuevo">
-                    <i class="fa-solid fa-plus mr-1"></i> Nuevo paciente
+                    <i class="fa-solid fa-plus mr-1"></i> Nuevo doctor
                 </button>
             </div>
 
             <div class="card-body">
-                <!-- Filtro búsqueda -->
                 <form method="GET" class="mb-3">
                     <div class="input-group" style="max-width:400px;">
                         <input type="text" name="q" class="form-control"
-                            placeholder="Buscar por nombre o identificación..."
+                            placeholder="Buscar por nombre o especialidad..."
                             value="<?= esc($q) ?>">
                         <div class="input-group-append">
                             <button class="btn btn-outline-secondary" type="submit">
@@ -40,7 +39,7 @@
                         <thead class="thead-light">
                             <tr>
                                 <th>Nombre</th>
-                                <th>Identificación</th>
+                                <th>Especialidad</th>
                                 <th>Teléfono</th>
                                 <th>Correo</th>
                                 <th class="text-center" style="width:120px">Foto</th>
@@ -48,18 +47,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (!empty($pacientes)): ?>
-                                <?php foreach ($pacientes as $p): ?>
+                            <?php if (!empty($doctores)): ?>
+                                <?php foreach ($doctores as $d): ?>
                                     <tr>
-                                        <td><?= esc($p->nombre) ?></td>
-                                        <td><?= esc($p->identificacion ?? '—') ?></td>
-                                        <td><?= esc($p->telefono ?? '—') ?></td>
-                                        <td><?= esc($p->correo ?? '—') ?></td>
+                                        <td><?= esc($d->nombre) ?></td>
+                                        <td><?= esc($d->especialidad ?? '—') ?></td>
+                                        <td><?= esc($d->telefono ?? '—') ?></td>
+                                        <td><?= esc($d->correo ?? '—') ?></td>
                                         <td class="text-center">
-                                            <?php if (!empty($p->foto)): ?>
+                                            <?php if (!empty($d->foto)): ?>
                                                 <button type="button" class="btn btn-sm btn-info btn-ver-foto"
-                                                    data-foto="<?= base_url('upload/pacientes/' . $p->foto) ?>"
-                                                    data-nombre="<?= esc($p->nombre) ?>">
+                                                    data-foto="<?= base_url('upload/doctores/' . $d->foto) ?>"
+                                                    data-nombre="<?= esc($d->nombre) ?>">
                                                     <i class="fa-solid fa-image"></i>
                                                 </button>
                                             <?php else: ?>
@@ -68,17 +67,20 @@
                                         </td>
                                         <td class="text-center">
                                             <button class="btn btn-sm btn-warning btnEditar"
-                                                data-id="<?= $p->id ?>"
-                                                data-nombre="<?= esc($p->nombre) ?>"
-                                                data-identificacion="<?= esc($p->identificacion ?? '') ?>"
-                                                data-telefono="<?= esc($p->telefono ?? '') ?>"
-                                                data-correo="<?= esc($p->correo ?? '') ?>"
-                                                data-foto="<?= esc($p->foto ?? '') ?>">
+                                                data-id="<?= $d->id ?>"
+                                                data-nombre1="<?= esc($d->nombre1 ?? '') ?>"
+                                                data-nombre2="<?= esc($d->nombre2 ?? '') ?>"
+                                                data-apellido1="<?= esc($d->apellido1 ?? '') ?>"
+                                                data-apellido2="<?= esc($d->apellido2 ?? '') ?>"
+                                                data-especialidad="<?= esc($d->especialidad ?? '') ?>"
+                                                data-telefono="<?= esc($d->telefono ?? '') ?>"
+                                                data-correo="<?= esc($d->correo ?? '') ?>"
+                                                data-foto="<?= esc($d->foto ?? '') ?>">
                                                 <i class="fa-solid fa-pen"></i>
                                             </button>
                                             <button class="btn btn-sm btn-danger btnEliminar"
-                                                data-id="<?= $p->id ?>"
-                                                data-nombre="<?= esc($p->nombre) ?>">
+                                                data-id="<?= $d->id ?>"
+                                                data-nombre="<?= esc($d->nombre) ?>">
                                                 <i class="fa-solid fa-trash"></i>
                                             </button>
                                         </td>
@@ -86,8 +88,8 @@
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">
-                                        No hay pacientes registrados.
+                                    <td colspan="6" class="text-center text-muted">
+                                        No hay doctores registrados.
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -101,29 +103,45 @@
     </div>
 </div>
 
-<!-- Modal crear / editar -->
-<div class="modal fade" id="modalPaciente" tabindex="-1">
+<div class="modal fade" id="modalDoctor" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalTitulo">Nuevo Paciente</h5>
+                <h5 class="modal-title" id="modalTitulo">Nuevo Doctor</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
-            <form id="formPaciente">
+            <form id="formDoctor">
                 <div class="modal-body">
-                    <input type="hidden" id="pacienteId" name="id" value="">
+                    <input type="hidden" id="doctorId" name="id" value="">
 
-                    <div class="form-group">
-                        <label>Nombre <span class="text-danger">*</span></label>
-                        <input type="text" id="fNombre" name="nombre" class="form-control" required>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nombre <span class="text-danger">*</span></label>
+                            <input type="text" id="fNombre1" name="nombre1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Nombre</label>
+                            <input type="text" id="fNombre2" name="nombre2" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Apellido <span class="text-danger">*</span></label>
+                            <input type="text" id="fApellido1" name="apellido1" class="form-control" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>2do Apellido</label>
+                            <input type="text" id="fApellido2" name="apellido2" class="form-control">
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label>Identificación</label>
-                        <input type="text" id="fIdentificacion" name="identificacion" class="form-control"
-                            placeholder="DUI, pasaporte, etc.">
+                        <label>Especialidad</label>
+                        <input type="text" id="fEspecialidad" name="especialidad" class="form-control"
+                            placeholder="Ej. Medicina General">
                     </div>
 
                     <div class="row">
@@ -166,30 +184,40 @@
 <script>
     const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-    // ── Abrir modal nuevo ────────────────────────────────────────────
     $('#btnNuevo').on('click', function() {
-        $('#modalTitulo').text('Nuevo Paciente');
-        $('#formPaciente')[0].reset();
-        $('#pacienteId').val('');
+        $('#modalTitulo').text('Nuevo Doctor');
+        $('#formDoctor')[0].reset();
+        $('#doctorId').val('');
         $('#formError').addClass('d-none').text('');
-        $('#modalPaciente').modal('show');
+        $('#modalDoctor').modal('show');
     });
 
-    // ── Abrir modal editar ───────────────────────────────────────────
     $(document).on('click', '.btnEditar', function() {
         const $btn = $(this);
-        $('#modalTitulo').text('Editar Paciente');
-        $('#pacienteId').val($btn.data('id'));
-        $('#fNombre').val($btn.data('nombre'));
-        $('#fIdentificacion').val($btn.data('identificacion'));
+        const fotoUrl = $btn.data('foto') ? '<?= base_url('upload/doctores/') ?>' + $btn.data('foto') : null;
+
+        $('#modalTitulo').text('Editar Doctor');
+        $('#doctorId').val($btn.data('id'));
+        $('#fNombre1').val($btn.data('nombre1'));
+        $('#fNombre2').val($btn.data('nombre2'));
+        $('#fApellido1').val($btn.data('apellido1'));
+        $('#fApellido2').val($btn.data('apellido2'));
+        $('#fEspecialidad').val($btn.data('especialidad'));
         $('#fTelefono').val($btn.data('telefono'));
         $('#fCorreo').val($btn.data('correo'));
         $('#formError').addClass('d-none').text('');
-        $('#modalPaciente').modal('show');
+        $('#fFoto').val('');
+
+        if (fotoUrl) {
+            $('#fotoPreview').removeClass('d-none').find('img').attr('src', fotoUrl);
+        } else {
+            $('#fotoPreview').addClass('d-none').find('img').attr('src', '');
+        }
+
+        $('#modalDoctor').modal('show');
     });
 
-    // ── Guardar ──────────────────────────────────────────────────────
-    $('#formPaciente').on('submit', function(e) {
+    $('#formDoctor').on('submit', function(e) {
         e.preventDefault();
 
         const btn = $('#btnGuardar');
@@ -200,7 +228,7 @@
         const formData = new FormData(this);
 
         $.ajax({
-            url: '<?= base_url('pacientes/guardar') ?>',
+            url: '<?= base_url('doctores/guardar') ?>',
             method: 'POST',
             data: formData,
             processData: false,
@@ -211,7 +239,7 @@
                     err.removeClass('d-none').text(res.message || 'Error al guardar.');
                     return;
                 }
-                $('#modalPaciente').modal('hide');
+                $('#modalDoctor').modal('hide');
                 location.reload();
             },
             error() {
@@ -242,20 +270,19 @@
     });
 
     $(document).on('click', '.btn-ver-foto', function() {
-        const foto = $(this).data('foto');
+        const fotoUrl = $(this).data('foto');
         const nombre = $(this).data('nombre');
-        $('#fotoModalLabel').text('Foto: ' + nombre);
-        $('#fotoModalImg').attr('src', foto);
+        $('#fotoModalLabel').text(`Foto de ${nombre}`);
+        $('#fotoModalImg').attr('src', fotoUrl);
         $('#fotoModal').modal('show');
     });
 
-    // ── Eliminar ─────────────────────────────────────────────────────
     $(document).on('click', '.btnEliminar', function() {
         const id     = $(this).data('id');
         const nombre = $(this).data('nombre');
 
         Swal.fire({
-            title: '¿Eliminar paciente?',
+            title: '¿Eliminar doctor?',
             html: `<strong>${nombre}</strong> será marcado como inactivo.`,
             icon: 'warning',
             showCancelButton: true,
@@ -266,7 +293,7 @@
             if (!r.isConfirmed) return;
 
             $.ajax({
-                url: `<?= base_url('pacientes/eliminar') ?>/${id}`,
+                url: `<?= base_url('doctores/eliminar') ?>/${id}`,
                 method: 'POST',
                 data: { '<?= csrf_token() ?>': CSRF },
                 dataType: 'json',
@@ -284,13 +311,13 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="fotoModalLabel">Foto del paciente</h5>
+                <h5 class="modal-title" id="fotoModalLabel">Foto del doctor</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
             <div class="modal-body text-center">
-                <img id="fotoModalImg" src="" class="img-fluid rounded" alt="Foto del paciente">
+                <img id="fotoModalImg" src="" class="img-fluid rounded" alt="Foto del doctor">
             </div>
         </div>
     </div>
