@@ -51,6 +51,17 @@
         padding: .24rem .42rem;
     }
 
+    .badge-emergencia {
+        background: #7b1a1a;
+        color: #fff;
+        font-size: .62rem;
+        font-weight: 700;
+        padding: .2rem .4rem;
+        border-radius: .25rem;
+        vertical-align: middle;
+        letter-spacing: .03em;
+    }
+
     @media (max-width: 767.98px) {
         .consignaciones-filtros .acciones-filtro {
             flex-direction: column;
@@ -96,7 +107,7 @@
             <div class="card-body">
                 <!-- Filtros -->
                 <form method="GET" action="<?= base_url('consignaciones') ?>" class="consignaciones-filtros mb-3">
-                    <div class="d-flex align-items-center mb-2">
+                    <div class="d-flex mb-2">
                         <i class="fa-solid fa-filter text-primary mr-2"></i>
                         <span class="font-weight-bold text-muted small text-uppercase">Filtros</span>
                     </div>
@@ -125,7 +136,7 @@
                             <label for="filtro_estado">Estado</label>
                             <select name="estado" id="filtro_estado" class="form-control form-control-sm">
                                 <option value="">Todos los estados</option>
-                                <option value="abierta" <?= ($filtros['estado'] === 'abierta')  ? 'selected' : '' ?>>Abierta</option>
+                                <option value="abierta" <?= ($filtros['estado'] === 'abierta')  ? 'selected' : '' ?>>Activa</option>
                                 <option value="cerrada" <?= ($filtros['estado'] === 'cerrada')  ? 'selected' : '' ?>>Cerrada</option>
                                 <option value="anulada" <?= ($filtros['estado'] === 'anulada')  ? 'selected' : '' ?>>Anulada</option>
                             </select>
@@ -145,6 +156,16 @@
                                 <option value="sin_autorizar"  <?= ($filtros['lote_estado'] === 'sin_autorizar')  ? 'selected' : '' ?>>Sin autorizar</option>
                                 <option value="pendiente_lotes" <?= ($filtros['lote_estado'] === 'pendiente_lotes') ? 'selected' : '' ?>>Pendiente asignación</option>
                                 <option value="lotes_ok"       <?= ($filtros['lote_estado'] === 'lotes_ok')       ? 'selected' : '' ?>>Lotes asignados</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-6 pr-md-2 mb-2">
+                            <label for="filtro_origen">Origen</label>
+                            <select name="origen" id="filtro_origen" class="form-control form-control-sm">
+                                <option value="">Todos</option>
+                                <option value="normal"     <?= (($filtros['origen'] ?? '') === 'normal')     ? 'selected' : '' ?>>Normal</option>
+                                <option value="emergencia" <?= (($filtros['origen'] ?? '') === 'emergencia') ? 'selected' : '' ?>>
+                                    ⚡ Emergencia
+                                </option>
                             </select>
                         </div>
                         <div class="col-lg-1 col-md-6 mb-2">
@@ -168,7 +189,7 @@
                                 <th>#</th>
                                 <th>Número</th>
                                 <th>Vendedor</th>
-                                <th>Nombre</th>
+                                <th>Paciente</th>
                                 <th>Fecha</th>
                                 <th class="text-end">Subtotal</th>
                                 <th class="text-center">Estado</th>
@@ -191,6 +212,12 @@
                                             <a href="<?= base_url('consignaciones/' . $c->id) ?>">
                                                 <strong><?= esc($c->numero) ?></strong>
                                             </a>
+                                            <br>
+                                            <?php if (($c->origen ?? 'normal') === 'emergencia'): ?>
+                                                <span class="badge-emergencia ml-1">
+                                                    <i class="fa-solid fa-bolt"></i> Emergencia
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= esc($c->vendedor_nombre) ?></td>
                                         <td><?= esc($c->nombre) ?></td>
@@ -198,7 +225,7 @@
                                         <td class="text-end">$<?= number_format($c->subtotal, 2) ?></td>
                                         <td class="text-center">
                                             <?php if ($c->estado === 'abierta'): ?>
-                                                <span class="badge badge-success estado-consignacion-badge">Abierta</span>
+                                                <span class="badge badge-success estado-consignacion-badge">Activa</span>
                                             <?php elseif ($c->estado === 'cerrada'): ?>
                                                 <span class="badge badge-secondary estado-consignacion-badge">Cerrada</span>
                                             <?php else: ?>

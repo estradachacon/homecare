@@ -66,13 +66,17 @@
                             <i class="fa-solid fa-check me-1"></i> Aplicado
                         </span>
 
-                        <?php if (!empty($pago->total_anulado) && $pago->total_anulado > 0): ?>
+                        <?php if (!empty($pago->total_retencion) && $pago->total_retencion > 0): ?>
+                            <span class="badge w-100 mb-1 text-white" style="background:#c0392b;" title="Retención: $<?= number_format($pago->total_retencion, 2) ?>">
+                                <i class="fa-solid fa-percent me-1"></i> Con retención
+                            </span>
+                        <?php endif; ?>
 
+                        <?php if (!empty($pago->total_anulado) && $pago->total_anulado > 0): ?>
                             <span class="badge bg-warning text-dark w-100">
                                 <i class="fa-solid fa-triangle-exclamation me-1"></i>
                                 Con facturas anuladas
                             </span>
-
                         <?php endif; ?>
 
                     <?php endif; ?>

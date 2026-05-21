@@ -8,6 +8,17 @@
         padding: 5px 10px;
     }
 
+    .badge-emergencia {
+        background: #7b1a1a;
+        color: #fff;
+        font-size: .68rem;
+        font-weight: 700;
+        padding: .25rem .5rem;
+        border-radius: .3rem;
+        vertical-align: middle;
+        letter-spacing: .03em;
+    }
+
     .lotes-panel {
         background: #f8f9fa;
         border-left: 3px solid #0d6efd;
@@ -90,6 +101,11 @@
 
                         <!-- Estados (badges) -->
                         <div class="mb-2">
+                            <?php if (($consignacion->origen ?? 'normal') === 'emergencia'): ?>
+                                <span class="badge-emergencia mr-1">
+                                    <i class="fa-solid fa-bolt"></i> Stock de Emergencia
+                                </span>
+                            <?php endif; ?>
                             <?php if ($consignacion->estado === 'abierta'): ?>
                                 <span class="badge badge-success">ACTIVA</span>
                             <?php elseif ($consignacion->estado === 'cerrada'): ?>
@@ -412,6 +428,71 @@
                     <hr>
                     <div class="alert alert-danger">
                         Nota anulada el <?= date('d/m/Y H:i', strtotime($consignacion->fecha_anulacion)) ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Notas de Pedido asociadas -->
+                <?php if (!empty($notasPedido)): ?>
+                    <hr>
+                    <?php
+                        $npVivas     = array_filter($notasPedido, fn($np) => $np->estado === 'pendiente');
+                        $npCerradas  = array_filter($notasPedido, fn($np) => $np->estado !== 'pendiente');
+                        $todasCerradas = empty($npVivas);
+                    ?>
+                    <div class="d-flex justify-content-between mb-2">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-file-invoice mr-1 text-primary"></i>
+                            Notas de Pedido asociadas
+                            <span class="badge badge-primary ml-1"><?= count($notasPedido) ?></span>
+                        </h6>
+                        <?php if ($todasCerradas): ?>
+                            <span class="badge badge-success" style="font-size:.75rem;">
+                                <i class="fa-solid fa-check mr-1"></i> Todas facturadas — apta para cerrar
+                            </span>
+                        <?php else: ?>
+                            <span class="badge badge-warning text-dark" style="font-size:.75rem;">
+                                <i class="fa-solid fa-clock mr-1"></i> <?= count($npVivas) ?> pendiente<?= count($npVivas) !== 1 ? 's' : '' ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0" style="font-size:.82rem;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>NP</th>
+                                    <th>Cliente</th>
+                                    <th>Documento</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Estado</th>
+                                    <th class="text-center">Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($notasPedido as $np): ?>
+                                    <?php $esPendiente = $np->estado === 'pendiente'; ?>
+                                    <tr class="<?= $esPendiente ? '' : 'text-muted' ?>">
+                                        <td>
+                                            <a href="<?= base_url('pedidos/' . $np->id) ?>" target="_blank">
+                                                <strong><?= esc($np->numero) ?></strong>
+                                            </a>
+                                        </td>
+                                        <td><?= esc($np->cliente_nombre) ?></td>
+                                        <td><?= esc(ucfirst(str_replace('_', ' ', $np->tipo_documento))) ?></td>
+                                        <td class="text-end">$<?= number_format($np->total, 2) ?></td>
+                                        <td class="text-center">
+                                            <?php if ($np->estado === 'pendiente'): ?>
+                                                <span class="badge badge-warning text-dark">Pendiente</span>
+                                            <?php elseif ($np->estado === 'facturada'): ?>
+                                                <span class="badge badge-success">Facturada</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-secondary"><?= esc(ucfirst($np->estado)) ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-center"><?= date('d/m/Y', strtotime($np->created_at)) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 <?php endif; ?>
 

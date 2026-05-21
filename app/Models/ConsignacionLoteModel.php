@@ -15,12 +15,15 @@ class ConsignacionLoteModel extends Model
         'producto_id', 'numero_lote', 'fecha_vencimiento', 'manufactura', 'descripcion', 'activo',
     ];
 
-    public function getPorProducto(int $productoId): array
+    public function getPorProducto(int $productoId, string $q = ''): array
     {
-        return $this->where('producto_id', $productoId)
-            ->where('activo', 1)
-            ->orderBy('fecha_vencimiento', 'ASC')
-            ->findAll();
+        $builder = $this->where('producto_id', $productoId)->where('activo', 1);
+
+        if ($q !== '') {
+            $builder->like('numero_lote', $q, 'both');
+        }
+
+        return $builder->orderBy('fecha_vencimiento', 'ASC')->findAll();
     }
 
     public function listarConProducto(array $filtros = [])

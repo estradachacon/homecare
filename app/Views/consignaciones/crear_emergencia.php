@@ -49,20 +49,20 @@
         margin-bottom: .35rem;
     }
     .lote-row-nuevo { border: 1px dashed #0d6efd; background: #f8f9ff; }
-    .badge-lotes-ok   { background: #28a745 !important; }
+    .badge-lotes-ok   { background: #28a745 !important; color: #ffffff !important; }
     .badge-lotes-warn { background: #ffc107 !important; color: #212529 !important; }
-    .badge-lotes-none { background: #6c757d !important; }
+    .badge-lotes-none { background: #6c757d !important; color: #ffffff !important; }
 </style>
 
 <div class="row">
     <div class="col-md-12">
 
-        <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
+        <?php if ($flashError = session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger"><?= esc(is_array($flashError) ? implode(' ', $flashError) : $flashError) ?></div>
         <?php endif; ?>
 
         <div class="card border-danger">
-            <div class="card-header d-flex justify-content-between align-items-center"
+            <div class="card-header d-flex justify-content-between"
                  style="background:#7b1a1a; color:#fff;">
                 <h4 class="header-title mb-0">
                     <i class="fa-solid fa-bolt mr-1"></i> NE Stock de Emergencia
@@ -145,8 +145,9 @@
                         </div>
                     </div>
 
+                    <!-- FILA 3 -->
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label text-muted small">Tipo de nota</label>
                             <div class="d-flex">
                                 <select name="tipo_nota_id" id="selectTipoNota" class="form-control flex-grow-1">
@@ -156,20 +157,16 @@
                                     <i class="fa-solid fa-plus"></i>
                                 </button>
                             </div>
-                            <small class="form-text text-muted">Opcional: ejemplo "Colocación de terapia", "Cambio 1", "Retiro".</small>
                         </div>
-                    </div>
 
-                    <!-- FILA 3 -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label text-muted small">Cliente a facturar</label>
                             <select name="cliente_id" id="selectCliente" class="form-control">
                                 <option value=""></option>
                             </select>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label text-muted small">Concepto</label>
                             <input type="text" name="concepto" class="form-control" placeholder="Motivo del retiro de stock">
                         </div>
@@ -185,7 +182,7 @@
                     <hr>
 
                     <!-- ── PRODUCTOS (cards) ── -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between mb-3">
                         <h6 class="mb-0">Productos y Lotes</h6>
                         <button type="button" id="btnAgregarProducto" class="btn btn-outline-primary btn-sm">
                             <i class="fa-solid fa-plus"></i> Agregar producto
@@ -393,10 +390,10 @@ function actualizarResumenLotes(idx) {
     const pendiente = cantReq - asignada;
     const nFilas    = getLotesBody(idx).querySelectorAll('.lote-row').length;
 
-    area.querySelector('.lotes-requerido').textContent = cantReq.toFixed(2);
-    area.querySelector('.lotes-asignado').textContent  = asignada.toFixed(2);
+    area.querySelector('.lotes-requerido').textContent = Math.round(cantReq);
+    area.querySelector('.lotes-asignado').textContent  = Math.round(asignada);
     const pEl = area.querySelector('.lotes-pendiente');
-    pEl.textContent = pendiente.toFixed(2);
+    pEl.textContent = Math.round(pendiente);
     pEl.className   = 'lotes-pendiente fw-bold ' +
         (pendiente < -0.001 ? 'text-danger' : pendiente > 0.001 ? 'text-warning' : 'text-success');
 
@@ -407,23 +404,22 @@ function actualizarResumenLotes(idx) {
          Math.abs(pendiente) <= 0.001 ? 'badge-lotes-ok' : 'badge-lotes-warn');
 }
 
-function initSelectLote(selectEl, idx) {
-    $(selectEl).select2({
-        language: 'es', placeholder: 'Buscar lote...', allowClear: true, width: '100%',
-        ajax: {
-            url: '<?= base_url('consignaciones/lotes-por-producto') ?>',
-            dataType: 'json', delay: 250,
-            data: params => ({
-                producto_id: (getLotesArea(idx) || {}).dataset?.productoId || '',
-                q: params.term || ''
-            }),
-            processResults: d => d, cache: true,
-        }
-    });
-}
+function agregarLoteExistente(idx, loteId, loteTexto) {
+    const body = getLotesBody(idx);
 
-function agregarLoteExistente(idx) {
-    const body    = getLotesBody(idx);
+    // Si el lote ya está en la tabla, sumar 1 y resaltar la fila
+    const existente = body.querySelector(`input[value="${loteId}"][name*="[lote_id]"]`);
+    if (existente) {
+        const cantInput = existente.closest('.lote-row').querySelector('.input-lote-cant');
+        cantInput.value = (parseInt(cantInput.value) || 0) + 1;
+        actualizarResumenLotes(idx);
+        const fila = existente.closest('.lote-row');
+        fila.style.transition = 'background .15s';
+        fila.style.background = '#d1ecf1';
+        setTimeout(() => { fila.style.background = ''; }, 600);
+        return;
+    }
+
     const loteIdx = lotesCtrl[idx]++;
     body.querySelector('.sin-lotes')?.remove();
 
@@ -431,19 +427,21 @@ function agregarLoteExistente(idx) {
     div.className       = 'lote-row';
     div.dataset.loteIdx = loteIdx;
     div.innerHTML = `
-        <select name="productos[${idx}][lotes][${loteIdx}][lote_id]"
-                class="form-control form-control-sm w-100 mb-1"></select>
-        <div class="d-flex align-items-center">
+        <input type="hidden" name="productos[${idx}][lotes][${loteIdx}][lote_id]" value="${loteId}">
+        <div class="d-flex align-items-center mb-1">
+            <span class="badge badge-info mr-2" style="font-size:.65rem;">Lote</span>
+            <span style="font-size:.8rem; font-weight:600;">${loteTexto}</span>
+        </div>
+        <div class="d-flex">
             <input type="number" name="productos[${idx}][lotes][${loteIdx}][cantidad]"
                    class="form-control form-control-sm input-lote-cant flex-grow-1"
-                   min="0.001" step="0.001" placeholder="Cantidad">
+                   min="1" step="1" placeholder="Cantidad">
             <button type="button" class="btn btn-danger btn-xs btn-del-lote ml-1" title="Quitar">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>`;
     body.appendChild(div);
 
-    initSelectLote(div.querySelector('select'), idx);
     div.querySelector('.input-lote-cant').addEventListener('input', () => actualizarResumenLotes(idx));
     div.querySelector('.btn-del-lote').addEventListener('click', () => {
         div.remove();
@@ -454,7 +452,7 @@ function agregarLoteExistente(idx) {
     actualizarResumenLotes(idx);
 }
 
-function agregarLoteNuevo(idx) {
+function agregarLoteNuevo(idx, numeroPre) {
     const body    = getLotesBody(idx);
     const loteIdx = lotesCtrl[idx]++;
     body.querySelector('.sin-lotes')?.remove();
@@ -464,10 +462,11 @@ function agregarLoteNuevo(idx) {
     div.dataset.loteIdx = loteIdx;
     div.innerHTML = `
         <input type="hidden" name="productos[${idx}][lotes][${loteIdx}][nuevo]" value="1">
-        <div class="d-flex align-items-center mb-1">
+        <div class="d-flex mb-1">
             <span class="badge badge-primary mr-2" style="font-size:.68rem;">Nuevo</span>
             <input type="text" name="productos[${idx}][lotes][${loteIdx}][numero_lote]"
-                   class="form-control form-control-sm flex-grow-1" placeholder="Nro. Lote *">
+                   class="form-control form-control-sm flex-grow-1" placeholder="Nro. Lote *"
+                   value="${numeroPre ? numeroPre.replace(/"/g, '&quot;') : ''}">
         </div>
         <div class="form-row mb-1">
             <div class="col-6">
@@ -481,10 +480,10 @@ function agregarLoteNuevo(idx) {
                 <small class="text-muted" style="font-size:.7rem;">Manufactura</small>
             </div>
         </div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex">
             <input type="number" name="productos[${idx}][lotes][${loteIdx}][cantidad]"
                    class="form-control form-control-sm input-lote-cant flex-grow-1"
-                   min="0.001" step="0.001" placeholder="Cantidad">
+                   min="1" step="1" placeholder="Cantidad">
             <button type="button" class="btn btn-danger btn-xs btn-del-lote ml-1" title="Quitar">
                 <i class="fa-solid fa-trash"></i>
             </button>
@@ -499,6 +498,99 @@ function agregarLoteNuevo(idx) {
         actualizarResumenLotes(idx);
     });
     actualizarResumenLotes(idx);
+}
+
+function initBuscarLote(inputEl, idx) {
+    let timer = null;
+
+    // Portal: appended to <body> to escape overflow:hidden de la card
+    const resultsEl = document.createElement('div');
+    resultsEl.style.cssText = 'position:fixed; z-index:9999; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #ced4da; border-radius:.375rem; box-shadow:0 4px 12px rgba(0,0,0,.15); display:none;';
+    document.body.appendChild(resultsEl);
+
+    function posicionarDropdown() {
+        const r = inputEl.getBoundingClientRect();
+        resultsEl.style.top   = r.bottom + 'px';
+        resultsEl.style.left  = r.left   + 'px';
+        resultsEl.style.width = r.width  + 'px';
+    }
+
+    function renderItem(html, onMousedown, defaultBg) {
+        const d = document.createElement('div');
+        d.innerHTML = html;
+        d.style.cssText = `cursor:pointer; padding:.4rem .75rem; font-size:.82rem; background:${defaultBg || '#fff'}; border-bottom:1px solid #f0f0f0;`;
+        d.addEventListener('mousedown', e => { e.preventDefault(); onMousedown(); });
+        d.addEventListener('mouseover', () => { d.style.background = '#e9f5fb'; });
+        d.addEventListener('mouseout',  () => { d.style.background = defaultBg || '#fff'; });
+        return d;
+    }
+
+    function showResults(items, term) {
+        resultsEl.innerHTML = '';
+        if (!term) { resultsEl.style.display = 'none'; return; }
+
+        if (items.length) {
+            items.forEach(item => {
+                resultsEl.appendChild(renderItem(
+                    `<i class="fa-solid fa-vial mr-1 text-info"></i><strong>${item.text}</strong>`,
+                    () => {
+                        agregarLoteExistente(idx, item.id, item.text);
+                        inputEl.value = '';
+                        resultsEl.style.display = 'none';
+                    }
+                ));
+            });
+        } else {
+            const msg = document.createElement('div');
+            msg.style.cssText = 'padding:.4rem .75rem; font-size:.82rem; color:#6c757d;';
+            msg.textContent = `Sin resultados para "${term}"`;
+            resultsEl.appendChild(msg);
+        }
+
+        const exactMatch = items.some(item => (item.numero || '').toLowerCase() === term.toLowerCase());
+        if (!exactMatch) {
+            const dNuevo = renderItem(
+                `<i class="fa-solid fa-plus mr-1"></i>Crear nuevo lote <strong>"${term}"</strong>`,
+                () => {
+                    agregarLoteNuevo(idx, term);
+                    inputEl.value = '';
+                    resultsEl.style.display = 'none';
+                },
+                '#f8f9ff'
+            );
+            dNuevo.style.borderTop = '1px solid #dee2e6';
+            dNuevo.style.color = '#0d6efd';
+            resultsEl.appendChild(dNuevo);
+        }
+
+        posicionarDropdown();
+        resultsEl.style.display = 'block';
+    }
+
+    inputEl.addEventListener('input', function() {
+        clearTimeout(timer);
+        const term = this.value.trim();
+        if (!term) { resultsEl.style.display = 'none'; return; }
+        timer = setTimeout(() => {
+            const productoId = (getLotesArea(idx) || {}).dataset?.productoId || '';
+            fetch(`<?= base_url('consignaciones/lotes-por-producto') ?>?q=${encodeURIComponent(term)}&producto_id=${encodeURIComponent(productoId)}`)
+                .then(r => r.json())
+                .then(data => showResults(data.results || [], term))
+                .catch(() => showResults([], term));
+        }, 280);
+    });
+
+    inputEl.addEventListener('focus', function() {
+        if (this.value.trim()) this.dispatchEvent(new Event('input'));
+    });
+
+    inputEl.addEventListener('blur', function() {
+        setTimeout(() => resultsEl.style.display = 'none', 180);
+    });
+
+    // Reposicionar si el usuario hace scroll o resize
+    window.addEventListener('scroll', () => { if (resultsEl.style.display !== 'none') posicionarDropdown(); }, true);
+    window.addEventListener('resize', () => { if (resultsEl.style.display !== 'none') posicionarDropdown(); });
 }
 
 function initSelectProducto(select, idx) {
@@ -515,6 +607,8 @@ function initSelectProducto(select, idx) {
         const area       = getLotesArea(idx);
         if (area) area.dataset.productoId = productoId;
 
+        getCard(idx).querySelector('.btn-toggle-lotes').disabled = false;
+
         const vendedorId = getVendedorId();
         if (!vendedorId || !productoId) return;
 
@@ -530,6 +624,10 @@ function initSelectProducto(select, idx) {
     }).on('select2:clear', function() {
         const area = getLotesArea(idx);
         if (area) area.dataset.productoId = '';
+        const card = getCard(idx);
+        const btn  = card.querySelector('.btn-toggle-lotes');
+        btn.disabled = true;
+        getLotesArea(idx).classList.add('d-none');
     });
 }
 
@@ -560,7 +658,7 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
                     <label class="text-muted mb-0" style="font-size:.75rem;">Cantidad *</label>
                     <input type="number" name="productos[${idx}][cantidad]"
                            class="form-control form-control-sm input-cantidad"
-                           min="0.01" step="0.01" value="1" required>
+                           min="1" step="1" value="1" required>
                 </div>
                 <div class="col-4 pr-1">
                     <label class="text-muted mb-0" style="font-size:.75rem;">Precio *</label>
@@ -570,31 +668,32 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
                 </div>
                 <div class="col-4">
                     <label class="text-muted mb-0" style="font-size:.75rem;">Subtotal</label>
-                    <div class="form-control form-control-sm d-flex align-items-center justify-content-end"
+                    <div class="form-control form-control-sm d-flex justify-content-end"
                          style="background:#f0f4f8; font-weight:700; color:#1a56db;">
                         <input type="hidden" name="productos[${idx}][subtotal]" class="input-subtotal" value="0">
                         <span class="subtotal-texto">$0.00</span>
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-outline-info btn-sm btn-block btn-toggle-lotes">
+            <button type="button" class="btn btn-outline-info btn-sm btn-block btn-toggle-lotes" disabled title="Seleccione un producto primero">
                 <i class="fa-solid fa-vials mr-1"></i>Lotes
-                <span class="badge badge-secondary lotes-badge ml-1">0</span>
+                <span class="badge badge-secondary lotes-badge text-white ml-1">0</span>
             </button>
         </div>
         <div class="lotes-panel-area d-none" data-idx="${idx}" data-producto-id="">
             <div class="d-flex flex-wrap gap-2 mb-2" style="font-size:.82rem;">
-                <span class="text-muted">Requerido: <strong class="lotes-requerido">0.00</strong></span>
-                <span class="ml-3">Asignado: <strong class="lotes-asignado text-success">0.00</strong></span>
-                <span class="ml-3">Pendiente: <strong class="lotes-pendiente text-danger">0.00</strong></span>
+                <span class="text-muted">Requerido: <strong class="lotes-requerido">0</strong></span>
+                <span class="ml-3">Asignado: <strong class="lotes-asignado text-success">0</strong></span>
+                <span class="ml-3">Pendiente: <strong class="lotes-pendiente text-danger">0</strong></span>
             </div>
-            <div class="btn-group btn-group-sm mb-2">
-                <button type="button" class="btn btn-outline-success btn-lote-existente">
-                    <i class="fa-solid fa-magnifying-glass mr-1"></i>Existente
-                </button>
-                <button type="button" class="btn btn-outline-primary btn-lote-nuevo">
-                    <i class="fa-solid fa-plus mr-1"></i>Nuevo lote
-                </button>
+            <div class="lote-search-wrap mb-2">
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control input-buscar-lote"
+                           placeholder="Buscar lote por número..." autocomplete="off">
+                    <div class="input-group-append">
+                        <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    </div>
+                </div>
             </div>
             <div class="lotes-body">
                 <p class="text-muted small mb-0 sin-lotes"><em>Sin lotes. Agrega al menos uno.</em></p>
@@ -614,8 +713,7 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
         if (!area.classList.contains('d-none')) actualizarResumenLotes(idx);
     });
 
-    card.querySelector('.btn-lote-existente').addEventListener('click', () => agregarLoteExistente(idx));
-    card.querySelector('.btn-lote-nuevo').addEventListener('click',     () => agregarLoteNuevo(idx));
+    initBuscarLote(card.querySelector('.input-buscar-lote'), idx);
 
     card.querySelector('.btn-eliminar-fila').addEventListener('click', () => {
         card.remove();
@@ -773,7 +871,7 @@ document.getElementById('formCrearEmergencia').addEventListener('submit', functi
         let asignada = 0;
         getLotesArea(idx).querySelectorAll('.input-lote-cant').forEach(i => asignada += parseFloat(i.value) || 0);
         if (Math.abs(asignada - cantReq) > 0.001)
-            errores.push(`<b>${texto}</b>: lotes (${asignada.toFixed(3)}) ≠ cantidad (${cantReq.toFixed(3)}).`);
+            errores.push(`<b>${texto}</b>: lotes asignados (${Math.round(asignada)}) ≠ cantidad requerida (${Math.round(cantReq)}).`);
 
         rows.forEach(lr => {
             const nro = lr.querySelector('input[name*="[numero_lote]"]');

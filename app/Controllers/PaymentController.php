@@ -25,7 +25,8 @@ class PaymentController extends BaseController
         clientes.nombre AS cliente_nombre,
 
         COALESCE(SUM(CASE WHEN pagos_details.anulado = 0 THEN pagos_details.monto ELSE 0 END),0) AS total_aplicado,
-        COALESCE(SUM(CASE WHEN pagos_details.anulado = 1 THEN pagos_details.monto ELSE 0 END),0) AS total_anulado
+        COALESCE(SUM(CASE WHEN pagos_details.anulado = 1 THEN pagos_details.monto ELSE 0 END),0) AS total_anulado,
+        COALESCE(SUM(CASE WHEN pagos_details.anulado = 0 THEN pagos_details.retencion_monto ELSE 0 END),0) AS total_retencion
     ')
             ->join('clientes', 'clientes.id = pagos_head.cliente_id', 'left')
             ->join('pagos_details', 'pagos_details.pago_id = pagos_head.id', 'left')
@@ -138,8 +139,9 @@ class PaymentController extends BaseController
         }
 
         $facturas = $detalleModel
-            ->select('pagos_details.*, facturas_head.numero_control')
+            ->select('pagos_details.*, facturas_head.numero_control, cpc.codigo AS ret_cuenta_codigo, cpc.nombre AS ret_cuenta_nombre')
             ->join('facturas_head', 'facturas_head.id = pagos_details.factura_id')
+            ->join('cont_plan_cuentas cpc', 'cpc.id = pagos_details.retencion_cuenta_id', 'left')
             ->where('pagos_details.pago_id', $id)
             ->findAll();
 
@@ -150,12 +152,14 @@ class PaymentController extends BaseController
         $totalDetalles   = count($facturas);
         $totalAnulados   = 0;
         $totalActivo     = 0;
+        $totalRetencion  = 0;
 
         foreach ($facturas as $f) {
             if ($f->anulado) {
                 $totalAnulados++;
             } else {
-                $totalActivo += $f->monto;
+                $totalActivo    += $f->monto;
+                $totalRetencion += (float)($f->retencion_monto ?? 0);
             }
         }
 
@@ -169,7 +173,8 @@ class PaymentController extends BaseController
             'pago',
             'facturas',
             'anulacionParcial',
-            'totalActivo'
+            'totalActivo',
+            'totalRetencion'
         ));
     }
     public function facturas($pagoId)
@@ -224,17 +229,27 @@ class PaymentController extends BaseController
             $pagosDet  = new PagosDetailsModel();
             $facturas  = new FacturaHeadModel();
 
+            // ================= CALCULAR NETO (descontar retenciones) =================
+
+            $totalBruto     = 0;
+            $totalRetencion = 0;
+            foreach ($data['facturas'] as $f) {
+                $totalBruto     += (float)$f['monto'];
+                $totalRetencion += (float)($f['retencion_monto'] ?? 0);
+            }
+            $totalNeto = round($totalBruto - $totalRetencion, 2);
+
             // ================= HEAD =================
 
             $pagosHead->insert([
-                'cliente_id' => $data['cliente_id'],
-                'fecha_pago' => $data['fecha_pago'],
-                'forma_pago' => $data['tipo_pago'],
-                'numero_recupero' => $data['recupero'],
+                'cliente_id'             => $data['cliente_id'],
+                'fecha_pago'             => $data['fecha_pago'],
+                'forma_pago'             => $data['tipo_pago'],
+                'numero_recupero'        => $data['recupero'],
                 'numero_cuenta_bancaria' => $data['cuenta_bancaria'],
-                'total' => $data['total'],
-                'observaciones' => $data['observaciones'],
-                'anulado' => 0
+                'total'                  => $totalNeto,
+                'observaciones'          => $data['observaciones'],
+                'anulado'                => 0,
             ], true);
 
             $pagoId = $pagosHead->getInsertID();
@@ -242,12 +257,23 @@ class PaymentController extends BaseController
 
             foreach ($data['facturas'] as $f) {
 
+                $retMonto   = (float)($f['retencion_monto']    ?? 0);
+                $retCuenta  = !empty($f['retencion_cuenta_id']) ? (int)$f['retencion_cuenta_id'] : null;
+                $retAplicada = $retMonto > 0 ? 1 : 0;
+
+                if ($retAplicada && !$retCuenta) {
+                    throw new \Exception('Seleccione una cuenta contable para la retención de la factura ' . $f['factura_id']);
+                }
+
                 // detalle
                 $pagosDet->insert([
-                    'pago_id' => $pagoId,
-                    'factura_id' => $f['factura_id'],
-                    'monto' => $f['monto'],
-                    'observaciones' => $f['comentario'] ?? null
+                    'pago_id'             => $pagoId,
+                    'factura_id'          => $f['factura_id'],
+                    'monto'               => $f['monto'],
+                    'observaciones'       => $f['comentario'] ?? null,
+                    'retencion_aplicada'  => $retAplicada,
+                    'retencion_monto'     => $retMonto,
+                    'retencion_cuenta_id' => $retCuenta,
                 ]);
 
                 // obtener saldo actual
@@ -294,7 +320,7 @@ class PaymentController extends BaseController
 
                 registrarEntrada(
                     $accountId,
-                    $data['total'],
+                    $totalNeto,
                     'Pago de facturas',
                     'Pago ID ' . $pagoId,
                     $pagoId
@@ -458,10 +484,22 @@ class PaymentController extends BaseController
 
             $descLinea = 'Pago ' . $correlativo . ' — ' . $cliente->nombre;
 
-            $lineasAsiento = [
-                ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descLinea, 'debe' => $monto, 'haber' => 0],
-                ['cuenta_id' => $cxcId,          'descripcion' => $descLinea, 'debe' => 0,      'haber' => $monto],
-            ];
+            $retMonto   = round((float)($f['retencion_monto'] ?? 0), 2);
+            $retCuenta  = !empty($f['retencion_cuenta_id']) ? (int)$f['retencion_cuenta_id'] : null;
+            $montoNeto  = round($monto - $retMonto, 2);
+
+            if ($retMonto > 0 && $retCuenta) {
+                $lineasAsiento = [
+                    ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descLinea, 'debe' => $montoNeto, 'haber' => 0],
+                    ['cuenta_id' => $retCuenta,      'descripcion' => 'Ret. 10% ' . $correlativo,       'debe' => $retMonto, 'haber' => 0],
+                    ['cuenta_id' => $cxcId,          'descripcion' => $descLinea, 'debe' => 0,           'haber' => $monto],
+                ];
+            } else {
+                $lineasAsiento = [
+                    ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descLinea, 'debe' => $monto, 'haber' => 0],
+                    ['cuenta_id' => $cxcId,          'descripcion' => $descLinea, 'debe' => 0,      'haber' => $monto],
+                ];
+            }
 
             // Consolidar: buscar partida del mismo día y tipo
             $existing = $tipoPartidaId
@@ -644,7 +682,32 @@ class PaymentController extends BaseController
                 ->with('error', 'Error al anular el pago');
         }
 
+        // ======== REVERSIÓN DE ASIENTOS CONTABLES ========
+        $asientoMsg = '';
+        try {
+            $headModel = new \App\Models\ContAsientosHeadModel();
+            $userId    = $session->get('id');
+            $motivo    = 'Anulación pago #' . $id;
+
+            $asientos = $headModel
+                ->where('documento_tipo', 'pago')
+                ->where('documento_id', $id)
+                ->where('estado !=', 'ANULADO')
+                ->findAll();
+
+            foreach ($asientos as $asiento) {
+                $headModel->crearReversa((int)$asiento->id, $motivo, (int)$userId);
+                $headModel->update($asiento->id, ['estado' => 'ANULADO', 'motivo_anulacion' => $motivo]);
+            }
+
+            if (empty($asientos)) {
+                $asientoMsg = ' (sin asientos vinculados directamente — posiblemente consolidado)';
+            }
+        } catch (\Throwable $e) {
+            $asientoMsg = ' ⚠ Asientos no revertidos: ' . $e->getMessage();
+        }
+
         return redirect()->to(base_url('payments/' . $id))
-            ->with('success', 'Pago anulado correctamente y movimiento compensado');
+            ->with('success', 'Pago anulado correctamente y movimiento compensado.' . $asientoMsg);
     }
 }

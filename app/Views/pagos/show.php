@@ -148,7 +148,8 @@
                     <thead class="table-light">
                         <tr>
                             <th class="col-md-3">Factura</th>
-                            <th class="col-md-5">Observaciones</th>
+                            <th class="col-md-3">Observaciones</th>
+                            <th class="col-md-2">Retención 10%</th>
                             <th class="col-md-2 text-end">Monto aplicado</th>
                             <th class="col-md-2 text-center">Estado</th>
                         </tr>
@@ -158,7 +159,7 @@
                         <?php $hayAnulaciones = false; ?>
 
                         <?php if (!empty($facturas)): ?>
-                            
+
                             <?php foreach ($facturas as $f): ?>
 
                                 <?php
@@ -167,23 +168,45 @@
                                 } else {
                                     $hayAnulaciones = true;
                                 }
+                                $retMonto = (float)($f->retencion_monto ?? 0);
                                 ?>
 
                                 <tr class="<?= $f->anulado ? 'table-danger' : '' ?>">
                                     <td>
-                                        <?= esc($f->numero_control) ?>
+                                        <span class="font-weight-bold"><?= substr(esc($f->numero_control), -6) ?></span>
+                                        <small class="text-muted d-block" style="font-size:.75rem;"><?= esc($f->numero_control) ?></small>
                                     </td>
 
                                     <td>
                                         <?php if (!empty($f->observaciones)): ?>
                                             <?= nl2br(esc($f->observaciones)) ?>
                                         <?php else: ?>
-                                            <span>—</span>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if ($retMonto > 0): ?>
+                                            <span class="text-danger font-weight-bold">
+                                                $<?= number_format($retMonto, 2) ?>
+                                            </span>
+                                            <?php if (!empty($f->ret_cuenta_codigo)): ?>
+                                                <small class="text-muted d-block" style="font-size:.72rem;">
+                                                    <?= esc($f->ret_cuenta_codigo) ?> <?= esc($f->ret_cuenta_nombre) ?>
+                                                </small>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
                                         <?php endif; ?>
                                     </td>
 
                                     <td class="text-end">
                                         $<?= number_format($f->monto, 2) ?>
+                                        <?php if ($retMonto > 0): ?>
+                                            <small class="text-success d-block">
+                                                Recibido: $<?= number_format($f->monto - $retMonto, 2) ?>
+                                            </small>
+                                        <?php endif; ?>
                                     </td>
 
                                     <td class="text-center">
@@ -202,7 +225,7 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="4" class="text-center">
+                                <td colspan="5" class="text-center">
                                     No hay facturas aplicadas
                                 </td>
                             </tr>
@@ -210,14 +233,28 @@
                     </tbody>
 
                     <tfoot class="table-light">
+                        <?php if (!empty($totalRetencion) && $totalRetencion > 0): ?>
                         <tr>
-                            <th colspan="3" class="text-end fs-6">
-                                Total aplicado:
-                            </th>
-                            <th class="text-end fs-5 text-success">
-                                $<?= number_format($totalAplicado, 2) ?>
-                            </th>
+                            <td colspan="3" class="text-end text-muted small">Monto bruto aplicado:</td>
+                            <td class="text-end text-muted">$<?= number_format($totalAplicado, 2) ?></td>
+                            <td></td>
                         </tr>
+                        <tr>
+                            <td colspan="3" class="text-end text-danger small">Retenciones aplicadas:</td>
+                            <td class="text-end text-danger">— $<?= number_format($totalRetencion, 2) ?></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">Recibido en efectivo:</th>
+                            <th class="text-end text-success" style="font-size:1.1rem;">$<?= number_format($totalAplicado - $totalRetencion, 2) ?></th>
+                            <th></th>
+                        </tr>
+                        <?php else: ?>
+                        <tr>
+                            <th colspan="4" class="text-end">Total aplicado:</th>
+                            <th class="text-end text-success" style="font-size:1.1rem;">$<?= number_format($totalAplicado, 2) ?></th>
+                        </tr>
+                        <?php endif; ?>
                     </tfoot>
                 </table>
                 <?php if (!empty($hayAnulaciones) && $hayAnulaciones): ?>

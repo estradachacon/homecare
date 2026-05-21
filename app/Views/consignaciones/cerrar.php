@@ -298,6 +298,31 @@
                                     <!-- Bloque facturas (visible si facturada > 0) -->
                                     <div class="bloque-facturas mt-3 p-3 border rounded bg-light" id="facturas_<?= $d->id ?>">
                                         <p class="mb-2 small fw-bold text-primary"><i class="fa-solid fa-file-invoice"></i> Facturas asociadas</p>
+
+                                        <?php $sugerencias = array_values($sugerenciasPorProducto[$d->producto_id] ?? []); ?>
+                                        <?php if (!empty($sugerencias)): ?>
+                                            <div class="alert alert-success py-2 mb-2" style="font-size:.82rem;">
+                                                <i class="fa-solid fa-lightbulb mr-1"></i>
+                                                <strong>Sugerencia basada en NP asociada<?= count($sugerencias) > 1 ? 's' : '' ?>:</strong>
+                                                <div class="mt-1 d-flex flex-wrap gap-1">
+                                                    <?php foreach ($sugerencias as $s): ?>
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-success btn-aplicar-factura"
+                                                                data-detalle="<?= $d->id ?>"
+                                                                data-factura-id="<?= $s['factura_id'] ?>"
+                                                                data-factura-numero="<?= esc($s['factura_texto']) ?>"
+                                                                data-np-cantidad="<?= $s['np_cantidad'] ?>"
+                                                                data-detalle-max="<?= $d->cantidad ?>"
+                                                                title="Aplicar esta factura al selector">
+                                                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>
+                                                            <?= esc($s['np_numero']) ?> → <strong><?= esc($s['factura_texto']) ?></strong>
+                                                            <span class="text-muted ml-1">(<?= number_format($s['np_cantidad'], 0) ?> u.)</span>
+                                                        </button>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
                                         <label class="small text-muted">Seleccione una o más facturas del vendedor</label>
                                         <select name="lineas[<?= $d->id ?>][facturas][]"
                                             class="form-control select-facturas"
@@ -361,6 +386,33 @@
 
         $('.select-facturas').each(function() {
             cargarFacturasVendedor(this);
+        });
+
+        // Aplicar sugerencia de factura desde NP asociada
+        document.querySelectorAll('.btn-aplicar-factura').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const detalleId     = this.dataset.detalle;
+                const facturaId     = this.dataset.facturaId;
+                const facturaNro    = this.dataset.facturaNumero;
+                const npCantidad    = parseFloat(this.dataset.npCantidad) || 0;
+                const detalleMax    = parseFloat(this.dataset.detalleMax) || 0;
+
+                // Pre-seleccionar factura en el Select2
+                const selectEl = document.querySelector(`select[name="lineas[${detalleId}][facturas][]"]`);
+                const opt = new Option(facturaNro, facturaId, true, true);
+                $(selectEl).append(opt).trigger('change');
+
+                // Pre-llenar cantidad facturada si aún está en 0
+                const inputFact = document.querySelector(`input[name="lineas[${detalleId}][cantidad_facturada]"]`);
+                if (inputFact && (parseFloat(inputFact.value) || 0) === 0) {
+                    inputFact.value = Math.min(npCantidad, detalleMax);
+                    inputFact.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                // Feedback visual en el botón
+                this.classList.replace('btn-outline-success', 'btn-success');
+                this.innerHTML = '<i class="fa-solid fa-check mr-1"></i>' + this.innerHTML.replace(/<i[^>]*><\/i>/, '');
+            });
         });
 
         // Validar distribución por línea

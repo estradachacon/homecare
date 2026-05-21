@@ -64,6 +64,10 @@ class ConsignacionHeadModel extends Model
                 break;
         }
 
+        if (!empty($filtros['origen'])) {
+            $this->where('consignaciones_head.origen', $filtros['origen']);
+        }
+
         return $this->orderBy('consignaciones_head.id', 'DESC');
     }
 

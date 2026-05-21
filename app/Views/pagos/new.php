@@ -358,10 +358,15 @@
                                     </div>
                                 </div>
 
-                                <label for="totalPago">Total aplicado</label>
+                                <label for="totalPago">Total a recibir</label>
                                 <input type="text" id="totalPago" class="form-control text-right font-weight-bold payment-total-input" value="0.00" readonly>
 
-                                <div class="d-flex justify-content-between mt-3 small">
+                                <div id="retencionSummaryRow" class="d-flex justify-content-between mt-2 small d-none">
+                                    <span class="text-danger"><i class="fa-solid fa-percent fa-xs mr-1"></i>Retenciones</span>
+                                    <strong id="retencionSummaryMonto" class="text-danger">$0.00</strong>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-2 small">
                                     <span class="text-muted">Facturas aplicadas</span>
                                     <strong id="facturasAplicadasCount">0</strong>
                                 </div>
@@ -419,33 +424,85 @@
         <div class="modal-dialog">
             <div class="modal-content">
 
-                <div class="modal-header">
-                    <h6 class="modal-title mb-0" id="tituloModalPago"></h6>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                <div class="modal-header py-2" style="background:#1e3a5f;">
+                    <h6 class="modal-title mb-0 text-white" id="tituloModalPago"></h6>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
 
                 <div class="modal-body">
 
-                    <label for="modalMonto">Monto a aplicar</label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">$</span>
-                        </div>
-                        <input type="number" step="0.01" min="0" id="modalMonto" class="form-control text-right">
+                    <!-- Saldo del documento (solo lectura) -->
+                    <div class="d-flex justify-content-between mb-3 px-3 py-2 rounded" style="background:#eef3f8;">
+                        <span class="text-muted small font-weight-bold text-uppercase" style="letter-spacing:.05em;">Saldo del documento</span>
+                        <span id="modalSaldoDisplay" class="font-weight-bold text-dark" style="font-size:1.5rem;">$0.00</span>
                     </div>
 
-                    <label for="modalComentario" class="mt-3">Comentario</label>
-                    <textarea id="modalComentario" class="form-control" rows="2"></textarea>
+                    <!-- Toggle retención -->
+                    <div class="custom-control custom-switch mb-3">
+                        <input type="checkbox" class="custom-control-input" id="toggleRetencion">
+                        <label class="custom-control-label font-weight-bold" for="toggleRetencion">
+                            El pagador aplica retención del 10%
+                        </label>
+                    </div>
+
+                    <!-- Bloque retención (visible solo con toggle ON) -->
+                    <div id="bloqueRetencion" class="d-none">
+                        <div class="border rounded p-3 mb-3 small" style="background:#fff8f8;">
+                            <div class="d-flex justify-content-between py-1 border-bottom mb-1 text-muted">
+                                <span>IVA 13%</span>
+                                <span id="calcIva">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 border-bottom mb-2 text-muted">
+                                <span>Subtotal sin IVA</span>
+                                <span id="calcSubtotal">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-1 text-danger font-weight-bold">
+                                <span><i class="fa-solid fa-percent fa-xs mr-1"></i>10% retención</span>
+                                <span id="calcRetencion">$0.00</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="small font-weight-bold text-danger">
+                                <i class="fa-solid fa-sitemap mr-1"></i>Cuenta contable de la retención
+                            </label>
+                            <select id="modalRetencionCuenta" style="width:100%;"></select>
+                        </div>
+                    </div>
+
+                    <!-- Valor a recibir (input principal editable) -->
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-baseline mb-1">
+                            <label class="small font-weight-bold text-success mb-0">Valor a recibir en efectivo</label>
+                            <small class="text-muted">Sugerido: <strong id="calcSugerido" class="text-primary">$0.00</strong></small>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text text-success font-weight-bold">$</span>
+                            </div>
+                            <input type="number" step="0.01" min="0.01" id="modalValorRecibido"
+                                   class="form-control text-right font-weight-bold text-success" style="font-size:1.1rem;">
+                        </div>
+                    </div>
+
+                    <!-- Monto aplicado al documento (derivado) -->
+                    <div class="d-flex justify-content-between mb-3 small border-top pt-2 mt-2">
+                        <span class="text-muted">Monto aplicado al documento</span>
+                        <span id="calcTotal" class="font-weight-bold text-dark">$0.00</span>
+                    </div>
+
+                    <label for="modalComentario" class="small font-weight-bold">Comentario</label>
+                    <textarea id="modalComentario" class="form-control form-control-sm" rows="2"></textarea>
 
                 </div>
 
                 <div class="modal-footer">
-
                     <button class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success btn-sm" id="guardarMonto">Aplicar</button>
-
+                    <button type="button" class="btn btn-success btn-sm" id="guardarMonto">
+                        <i class="fa-solid fa-check mr-1"></i>Aplicar
+                    </button>
                 </div>
 
             </div>
@@ -654,13 +711,11 @@
 
             // ================= FACTURAS =================
 
-            let total = 0;
+            let total    = 0;
             let cantidad = 0;
 
             $('.aplicarMonto').each(function() {
-
                 let v = parseFloat($(this).val()) || 0;
-
                 if (v > 0) {
                     total += v;
                     cantidad++;
@@ -719,13 +774,16 @@
                         const monto = parseFloat($(this).find('.aplicarMonto').val()) || 0;
 
                         if (monto > 0) {
+                            const retCuentaId = $(this).find('.retencionCuentaId').val() || null;
                             facturas.push({
-                                factura_id: $(this).find('.btnConfigPago').data('id'),
-                                monto: monto,
-                                comentario: $(this).find('.comentarioFactura').val() || '',
-                                saldo: parseFloat($(this).find('.btnConfigPago').data('saldo')),
-                                tipo: $(this).find('.btnConfigPago').data('tipo'),
-                                numero: $(this).find('.btnConfigPago').data('numero')
+                                factura_id:          $(this).find('.btnConfigPago').data('id'),
+                                monto:               monto,
+                                comentario:          $(this).find('.comentarioFactura').val() || '',
+                                saldo:               parseFloat($(this).find('.btnConfigPago').data('saldo')),
+                                tipo:                $(this).find('.btnConfigPago').data('tipo'),
+                                numero:              $(this).find('.btnConfigPago').data('numero'),
+                                retencion_monto:     parseFloat($(this).find('.retencionMonto').val()) || 0,
+                                retencion_cuenta_id: retCuentaId ? parseInt(retCuentaId) : null,
                             });
                         }
                     });
@@ -806,47 +864,147 @@
 
         });
 
-        let inputActual = null;
+        let inputActual      = null;
         let comentarioActual = null;
+        let rowActual        = null;
+        let retencionSelect2Init = false;
+
+        function fmt(v) { return '$' + parseFloat(v).toFixed(2); }
+
+        let modalSaldoActual = 0;
+
+        // Factor de back-cálculo cuando hay retención:
+        // montoAplicado = valorRecibido * 1.13 / 1.03
+        // porque: valorRecibido = monto - monto/1.13*0.10 = monto*(1.13-0.10)/1.13 = monto*1.03/1.13
+        const RET_FACTOR = 1.13 / 1.03;
+
+        function updateCalc() {
+            const conRet    = $('#toggleRetencion').is(':checked');
+            const valorRec  = parseFloat($('#modalValorRecibido').val()) || 0;
+            const monto     = conRet ? valorRec * RET_FACTOR : valorRec;
+            const iva       = monto * 13 / 113;
+            const subtotal  = monto - iva;
+            const retencion = monto - valorRec;
+
+            // Sugerido = saldo completo → cuánto debería recibir idealmente
+            const sugerido  = conRet ? modalSaldoActual / RET_FACTOR : modalSaldoActual;
+
+            $('#calcIva').text(fmt(iva));
+            $('#calcSubtotal').text(fmt(subtotal));
+            $('#calcRetencion').text(fmt(retencion));
+            $('#calcTotal').text(fmt(monto));
+            $('#calcSugerido').text(fmt(sugerido));
+        }
+
+        $('#modalValorRecibido').on('input', updateCalc);
+
+        $('#toggleRetencion').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#bloqueRetencion').removeClass('d-none');
+            } else {
+                $('#bloqueRetencion').addClass('d-none');
+                $('#modalRetencionCuenta').val(null).trigger('change');
+            }
+            updateCalc();
+        });
+
+        $('#modalPagoFactura').on('shown.bs.modal', function() {
+            if (!retencionSelect2Init) {
+                $('#modalRetencionCuenta').select2({
+                    theme: 'bootstrap4',
+                    placeholder: 'Buscar cuenta contable...',
+                    allowClear: true,
+                    minimumInputLength: 1,
+                    width: '100%',
+                    dropdownParent: $('#modalPagoFactura'),
+                    ajax: {
+                        url: '<?= base_url("contabilidad/plan-cuentas/search") ?>',
+                        dataType: 'json',
+                        delay: 250,
+                        data: p => ({ q: p.term }),
+                        processResults: d => ({ results: d.results || [] }),
+                    }
+                });
+                retencionSelect2Init = true;
+            }
+        });
 
         $(document).on('click', '.btnConfigPago', function() {
 
             const row = $(this).closest('tr');
-
-            inputActual = row.find('.aplicarMonto');
+            rowActual        = row;
+            inputActual      = row.find('.aplicarMonto');
             comentarioActual = row.find('.comentarioFactura');
 
-            const saldo = $(this).data('saldo');
-            const tipo = $(this).data('tipo');
+            const saldo  = parseFloat($(this).data('saldo'));
+            const tipo   = $(this).data('tipo');
             const numero = $(this).data('numero');
 
-            $('#tituloModalPago').text(`${tipo} #${numero}`);
+            modalSaldoActual = saldo;
 
-            $('#modalMonto').attr('max', saldo).val(inputActual.val());
+            $('#tituloModalPago').text(`${tipo} — ${String(numero).slice(-6)}`);
+            $('#modalSaldoDisplay').text(fmt(saldo));
             $('#modalComentario').val(comentarioActual.val());
 
+            // Valor a recibir: si ya había un monto aplicado, mostrarlo como valor recibido previo
+            const montoAnterior = parseFloat(inputActual.val()) || 0;
+            const retAnterior   = parseFloat(row.find('.retencionMonto').val()) || 0;
+            const valorPrevio   = montoAnterior > 0 ? montoAnterior - retAnterior : saldo;
+            $('#modalValorRecibido').val(valorPrevio.toFixed(2));
+            updateCalc();
+
+            // Restaurar estado de retención desde los hidden inputs de la fila
+            const retMonto    = parseFloat(row.find('.retencionMonto').val()) || 0;
+            const retCuentaId  = row.find('.retencionCuentaId').val()   || '';
+            const retCuentaTxt = row.find('.retencionCuentaTexto').val() || '';
+
+            const tieneRet = retMonto > 0;
+            $('#toggleRetencion').prop('checked', tieneRet);
+            if (tieneRet) {
+                $('#bloqueRetencion').removeClass('d-none');
+                if (retCuentaId && retCuentaTxt) {
+                    if ($('#modalRetencionCuenta').find('option[value="' + retCuentaId + '"]').length === 0) {
+                        $('#modalRetencionCuenta').append(new Option(retCuentaTxt, retCuentaId, true, true)).trigger('change');
+                    } else {
+                        $('#modalRetencionCuenta').val(retCuentaId).trigger('change');
+                    }
+                }
+            } else {
+                $('#bloqueRetencion').addClass('d-none');
+                $('#modalRetencionCuenta').val(null).trigger('change');
+            }
+
+            updateCalc();
             $('#modalPagoFactura').modal('show');
         });
 
         $('#guardarMonto').on('click', function() {
-            const monto = parseFloat($('#modalMonto').val()) || 0;
-            const saldo = parseFloat($('#modalMonto').attr('max')) || 0;
+            const conRet    = $('#toggleRetencion').is(':checked');
+            const valorRec  = parseFloat($('#modalValorRecibido').val()) || 0;
+            const monto     = conRet ? valorRec * RET_FACTOR : valorRec;
+            const retMonto  = monto - valorRec;
 
-            if (monto < 0) {
-                Swal.fire('Monto inválido', 'El monto no puede ser negativo.', 'warning');
+            if (valorRec <= 0) {
+                Swal.fire('Monto inválido', 'El valor a recibir debe ser mayor a cero.', 'warning');
+                return;
+            }
+            if (monto > modalSaldoActual + 0.01) {
+                Swal.fire('Monto inválido', `El monto aplicado ($${monto.toFixed(2)}) supera el saldo del documento ($${modalSaldoActual.toFixed(2)}).`, 'warning');
+                return;
+            }
+            if (conRet && !$('#modalRetencionCuenta').val()) {
+                Swal.fire('Cuenta requerida', 'Seleccione la cuenta contable de la retención antes de aplicar.', 'warning');
                 return;
             }
 
-            if (saldo > 0 && monto > saldo) {
-                Swal.fire('Monto inválido', 'El monto aplicado no puede superar el saldo de la factura.', 'warning');
-                return;
-            }
+            const cuentaId  = conRet ? ($('#modalRetencionCuenta').val() || '') : '';
+            const cuentaTxt = conRet ? ($('#modalRetencionCuenta option:selected').text() || '') : '';
 
-            inputActual
-                .val(monto.toFixed(2))
-                .trigger('input');
-
+            inputActual.val(monto.toFixed(2)).trigger('input');
             comentarioActual.val($('#modalComentario').val());
+            rowActual.find('.retencionMonto').val(retMonto.toFixed(2));
+            rowActual.find('.retencionCuentaId').val(cuentaId);
+            rowActual.find('.retencionCuentaTexto').val(cuentaTxt);
 
             $('#modalPagoFactura').modal('hide');
         });
@@ -1150,6 +1308,9 @@
                                         value="0.00"
                                         readonly>
                                     <input type="hidden" class="comentarioFactura">
+                                    <input type="hidden" class="retencionMonto" value="0">
+                                    <input type="hidden" class="retencionCuentaId" value="">
+                                    <input type="hidden" class="retencionCuentaTexto" value="">
                                     <div class="input-group-append">
                                         <button type="button"
                                             class="btn btn-outline-primary btnConfigPago"
@@ -1182,24 +1343,36 @@
         // ================= SUMA AUTOMATICA =================
 
         function actualizarTotal() {
-            let total = 0;
+            let totalBruto    = 0;
+            let totalRetencion = 0;
             let facturasAplicadas = 0;
 
             $('.aplicarMonto').each(function() {
                 const monto = parseFloat($(this).val()) || 0;
-                total += monto;
                 if (monto > 0) {
+                    totalBruto += monto;
                     facturasAplicadas++;
+                    totalRetencion += parseFloat($(this).closest('tr').find('.retencionMonto').val()) || 0;
                 }
             });
+
+            const totalNeto = totalBruto - totalRetencion;
 
             $('#totalPago').val(
                 new Intl.NumberFormat('es-SV', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
-                }).format(total)
+                }).format(totalNeto)
             );
             $('#facturasAplicadasCount').text(facturasAplicadas);
+
+            if (totalRetencion > 0) {
+                $('#retencionSummaryRow').removeClass('d-none');
+                $('#retencionSummaryMonto').text('$' + totalRetencion.toFixed(2));
+            } else {
+                $('#retencionSummaryRow').addClass('d-none');
+            }
+
             actualizarBadges();
         }
 

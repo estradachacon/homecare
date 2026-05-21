@@ -77,6 +77,29 @@ class PedidoHeadModel extends Model
             ->first();
     }
 
+    public function getPorConsignacion(int $consignacionId): array
+    {
+        $db = \Config\Database::connect();
+
+        return $db->query(
+            "SELECT ph.id, ph.numero, ph.estado, ph.total, ph.tipo_documento,
+                    ph.tipo_pago, ph.created_at,
+                    s.seller AS vendedor_nombre,
+                    c.nombre AS cliente_nombre
+             FROM pedidos_head ph
+             LEFT JOIN sellers s ON s.id = ph.vendedor_id
+             LEFT JOIN clientes c ON c.id = ph.cliente_id
+             WHERE ph.anulada = 0
+               AND (
+                   ph.consignacion_id = ?
+                   OR (ph.consignacion_ids IS NOT NULL
+                       AND JSON_CONTAINS(ph.consignacion_ids, ?))
+               )
+             ORDER BY ph.id DESC",
+            [$consignacionId, (string)$consignacionId]
+        )->getResultObject();
+    }
+
     public function siguienteNumero(): string
     {
         $anio = (int) date('Y');

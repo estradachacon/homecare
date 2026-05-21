@@ -44,6 +44,7 @@ class ConsignacionesController extends BaseController
             'fecha_inicio' => $this->request->getGet('fecha_inicio'),
             'fecha_fin'    => $this->request->getGet('fecha_fin'),
             'lote_estado'  => $this->request->getGet('lote_estado'),
+            'origen'       => $this->request->getGet('origen'),
         ];
 
         // Sin permiso de ver todos: forzar el filtro al vendedor del usuario
@@ -443,15 +444,18 @@ class ConsignacionesController extends BaseController
         $logModel = new ConsignacionLogModel();
         $log      = $logModel->where('consignacion_id', $id)->orderBy('created_at', 'ASC')->findAll();
 
+        $notasPedido = (new \App\Models\PedidoHeadModel())->getPorConsignacion($id);
+
         return view('consignaciones/detalle', [
-            'consignacion'       => $consignacion,
-            'detalles'           => $detalles,
-            'cierre'             => $cierre,
-            'facturasPorDetalle' => $facturasPorDetalle,
-            'mapCierreDetalle'   => $mapCierreDetalle,
+            'consignacion'          => $consignacion,
+            'detalles'              => $detalles,
+            'cierre'                => $cierre,
+            'facturasPorDetalle'    => $facturasPorDetalle,
+            'mapCierreDetalle'      => $mapCierreDetalle,
             'lotesCierrePorDetalle' => $lotesCierrePorDetalle,
-            'lotesPorDetalle'    => $lotesPorDetalle,
-            'log'                => $log,
+            'lotesPorDetalle'       => $lotesPorDetalle,
+            'log'                   => $log,
+            'notasPedido'           => $notasPedido,
         ]);
     }
 
@@ -512,17 +516,62 @@ class ConsignacionesController extends BaseController
         $detalles = $detModel->getPorConsignacion($id);
 
         $detalleLoteModel = new ConsignacionDetalleLoteModel();
-        $lotesPorDetalle = [];
-
+        $lotesPorDetalle  = [];
         foreach ($detalles as $d) {
             $lotesPorDetalle[$d->id] = $detalleLoteModel->getPorDetalle($d->id);
         }
 
+        // Sugerencias de factura: NPs asociadas que ya tienen factura emitida
+        $db = \Config\Database::connect();
+        $rows = $db->query(
+            "SELECT ph.id AS np_id, ph.numero AS np_numero, ph.factura_id,
+                    fh.numero_control AS factura_numero,
+                    fh.fecha_emision, fh.total_pagar,
+                    SUBSTRING_INDEX(fh.numero_control, '-', -1) AS correlativo,
+                    c.nombre AS cliente_nombre,
+                    pd.producto_id, pd.cantidad AS np_cantidad
+             FROM pedidos_head ph
+             INNER JOIN facturas_head fh ON fh.id = ph.factura_id
+             INNER JOIN pedidos_detalles pd ON pd.pedido_id = ph.id
+             LEFT JOIN clientes c ON c.id = fh.receptor_id
+             WHERE ph.anulada = 0
+               AND ph.factura_id IS NOT NULL
+               AND (ph.consignacion_id = ?
+                    OR (ph.consignacion_ids IS NOT NULL
+                        AND JSON_CONTAINS(ph.consignacion_ids, ?)))",
+            [$id, (string)$id]
+        )->getResultObject();
+
+        $sugerenciasPorProducto = [];
+        foreach ($rows as $row) {
+            $pid  = $row->producto_id;
+            $fid  = $row->factura_id;
+            $corr = substr($row->correlativo, -6);
+            $text = "#{$corr}";
+            if (!empty($row->cliente_nombre)) $text .= ' · ' . $row->cliente_nombre;
+            $text .= ' · ' . date('d/m/Y', strtotime($row->fecha_emision));
+            $text .= ' · $' . number_format($row->total_pagar, 2);
+            if (!isset($sugerenciasPorProducto[$pid][$fid])) {
+                $sugerenciasPorProducto[$pid][$fid] = [
+                    'factura_id'     => $row->factura_id,
+                    'factura_texto'  => $text,
+                    'np_numero'      => $row->np_numero,
+                    'np_id'          => $row->np_id,
+                    'np_cantidad'    => (float)$row->np_cantidad,
+                ];
+            }
+        }
+        foreach ($sugerenciasPorProducto as &$arr) {
+            $arr = array_values($arr);
+        }
+        unset($arr);
+
         return view('consignaciones/cerrar', [
-            'aprobada'        => ($consignacion->aprobacion_estado ?? '') === 'aprobada',
-            'consignacion'    => $consignacion,
-            'detalles'        => $detalles,
-            'lotesPorDetalle' => $lotesPorDetalle,
+            'aprobada'               => ($consignacion->aprobacion_estado ?? '') === 'aprobada',
+            'consignacion'           => $consignacion,
+            'detalles'               => $detalles,
+            'lotesPorDetalle'        => $lotesPorDetalle,
+            'sugerenciasPorProducto' => $sugerenciasPorProducto,
         ]);
     }
 
@@ -1216,7 +1265,8 @@ class ConsignacionesController extends BaseController
     public function lotesPorProducto()
     {
         $productoId = (int)$this->request->getGet('producto_id');
-        $lotes      = (new ConsignacionLoteModel())->getPorProducto($productoId);
+        $q          = trim((string)$this->request->getGet('q'));
+        $lotes      = (new ConsignacionLoteModel())->getPorProducto($productoId, $q);
 
         $results = array_map(function ($l) {
             $text = $l->numero_lote;
@@ -1230,8 +1280,9 @@ class ConsignacionesController extends BaseController
             }
 
             return [
-                'id'   => $l->id,
-                'text' => $text,
+                'id'     => $l->id,
+                'text'   => $text,
+                'numero' => $l->numero_lote,
             ];
         }, $lotes);
 
@@ -1440,25 +1491,34 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
         $q  = trim($this->request->getGet('q') ?? '');
 
-        $builder = $db->table('facturas_head')
-            ->select('id, numero_control, fecha_emision, total_pagar')
-            ->where('vendedor_id', $vendedorId)
-            ->where('anulada', 0)
-            ->orderBy('fecha_emision', 'DESC')
-            ->limit(100);
+        $sql = "SELECT fh.id, fh.numero_control, fh.fecha_emision, fh.total_pagar,
+                       SUBSTRING_INDEX(fh.numero_control, '-', -1) AS correlativo,
+                       c.nombre AS cliente_nombre
+                FROM facturas_head fh
+                LEFT JOIN clientes c ON c.id = fh.receptor_id
+                WHERE fh.vendedor_id = ?
+                  AND fh.anulada = 0";
+
+        $params = [$vendedorId];
 
         if ($q !== '') {
-            $builder->like('numero_control', $q);
+            $sql   .= " AND (fh.numero_control LIKE ? OR c.nombre LIKE ?)";
+            $params[] = "%{$q}%";
+            $params[] = "%{$q}%";
         }
 
-        $facturas = $builder->get()->getResult();
+        $sql .= " ORDER BY fh.fecha_emision DESC LIMIT 100";
+
+        $facturas = $db->query($sql, $params)->getResult();
 
         $results = [];
         foreach ($facturas as $f) {
-            $results[] = [
-                'id'   => $f->id,
-                'text' => $f->numero_control . ' — $' . number_format($f->total_pagar, 2),
-            ];
+            $corr   = substr($f->correlativo, -6);
+            $text   = "#{$corr}";
+            if (!empty($f->cliente_nombre)) $text .= ' · ' . $f->cliente_nombre;
+            $text  .= ' · ' . date('d/m/Y', strtotime($f->fecha_emision));
+            $text  .= ' · $' . number_format($f->total_pagar, 2);
+            $results[] = ['id' => $f->id, 'text' => $text];
         }
 
         return $this->response->setJSON(['results' => $results]);
