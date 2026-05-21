@@ -685,29 +685,109 @@ class PaymentController extends BaseController
         // ======== REVERSIÓN DE ASIENTOS CONTABLES ========
         $asientoMsg = '';
         try {
-            $headModel = new \App\Models\ContAsientosHeadModel();
-            $userId    = $session->get('id');
-            $motivo    = 'Anulación pago #' . $id;
-
-            $asientos = $headModel
-                ->where('documento_tipo', 'pago')
-                ->where('documento_id', $id)
-                ->where('estado !=', 'ANULADO')
-                ->findAll();
-
-            foreach ($asientos as $asiento) {
-                $headModel->crearReversa((int)$asiento->id, $motivo, (int)$userId);
-                $headModel->update($asiento->id, ['estado' => 'ANULADO', 'motivo_anulacion' => $motivo]);
-            }
-
-            if (empty($asientos)) {
-                $asientoMsg = ' (sin asientos vinculados directamente — posiblemente consolidado)';
-            }
+            $this->_revertirAsientosPago((int)$id, $detallesActivos, (int)$pago->cliente_id);
         } catch (\Throwable $e) {
             $asientoMsg = ' ⚠ Asientos no revertidos: ' . $e->getMessage();
         }
 
         return redirect()->to(base_url('payments/' . $id))
             ->with('success', 'Pago anulado correctamente y movimiento compensado.' . $asientoMsg);
+    }
+
+    private function _revertirAsientosPago(int $pagoId, array $detalles, int $clienteId): void
+    {
+        $planModel     = new \App\Models\ContPlanCuentasModel();
+        $clienteModel  = new \App\Models\ClienteModel();
+        $periodosModel = new \App\Models\ContPeriodosModel();
+        $headModel     = new \App\Models\ContAsientosHeadModel();
+        $detModel      = new \App\Models\ContAsientosDetalleModel();
+        $facturaModel  = new \App\Models\FacturaHeadModel();
+
+        $cuentaCaja = $planModel->where('codigo', '11010101')->first();
+        if (!$cuentaCaja) {
+            throw new \Exception('No existe la cuenta 11010101 CAJA GRANDE');
+        }
+
+        $cliente = $clienteModel->find($clienteId);
+        if (!$cliente) {
+            throw new \Exception('Cliente no encontrado');
+        }
+
+        $cxcId = (int)($cliente->cuenta_contable_id ?? 0) ?: null;
+        if (!$cxcId) {
+            throw new \Exception('El cliente no tiene cuenta CxC asignada');
+        }
+
+        $periodo = $periodosModel->getPeriodoActual();
+        if (!$periodo) {
+            throw new \Exception('No hay período contable abierto para la reversión');
+        }
+
+        $cfg           = (new \App\Models\ContConfiguracionModel())->getConfig();
+        $tipoPartidaId = !empty($cfg->tipo_partida_pagos_id) ? (int)$cfg->tipo_partida_pagos_id : null;
+
+        $fechaReversa  = date('Y-m-d');
+        $userId        = session()->get('id');
+        $totalBruto    = 0;
+        $lineasReversa = [];
+
+        foreach ($detalles as $det) {
+            $monto     = (float)$det->monto;
+            $retMonto  = round((float)($det->retencion_monto ?? 0), 2);
+            $retCuenta = !empty($det->retencion_cuenta_id) ? (int)$det->retencion_cuenta_id : null;
+            $montoNeto = round($monto - $retMonto, 2);
+
+            $factura     = $facturaModel->find($det->factura_id);
+            $correlativo = $factura ? substr($factura->numero_control, -6) : 'FAC-' . $det->factura_id;
+            $descLinea   = 'REV.Pago ' . $correlativo . ' — ' . $cliente->nombre;
+
+            // DEBE CxC: restituye la deuda del cliente (bruto)
+            $lineasReversa[] = ['cuenta_id' => $cxcId,          'descripcion' => $descLinea,                       'debe' => $monto,     'haber' => 0         ];
+            // HABER Caja: sale el efectivo recibido (neto)
+            $lineasReversa[] = ['cuenta_id' => $cuentaCaja->id, 'descripcion' => $descLinea,                       'debe' => 0,          'haber' => $montoNeto];
+            // HABER CuentaRetención si aplica
+            if ($retMonto > 0 && $retCuenta) {
+                $lineasReversa[] = ['cuenta_id' => $retCuenta, 'descripcion' => 'REV.Ret. 10% ' . $correlativo, 'debe' => 0, 'haber' => $retMonto];
+            }
+
+            $totalBruto += $monto;
+        }
+
+        $numPartida    = $tipoPartidaId ? $headModel->getSiguienteNumeroPartida($tipoPartidaId, (int)substr($fechaReversa, 0, 4)) : null;
+        $numeroAsiento = $headModel->getSiguienteNumero();
+
+        $asientoId = $headModel->insert([
+            'numero_asiento'     => $numeroAsiento,
+            'numero_partida'     => $numPartida,
+            'fecha'              => $fechaReversa,
+            'descripcion'        => 'Reversa pago #' . $pagoId . ' — ' . $cliente->nombre,
+            'tipo'               => 'DIARIO',
+            'tipo_partida_id'    => $tipoPartidaId,
+            'estado'             => 'APROBADO',
+            'periodo_id'         => $periodo->id,
+            'total_debe'         => round($totalBruto, 2),
+            'total_haber'        => round($totalBruto, 2),
+            'referencia'         => 'REVERSA-PAGO-' . $pagoId,
+            'usuario_id'         => $userId,
+            'usuario_aprueba_id' => $userId,
+            'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+        ]);
+
+        if (!$asientoId) {
+            throw new \Exception('No se pudo insertar el asiento de reversión');
+        }
+
+        foreach ($lineasReversa as $i => $linea) {
+            $detModel->insert([
+                'asiento_id'  => $asientoId,
+                'cuenta_id'   => $linea['cuenta_id'],
+                'descripcion' => $linea['descripcion'],
+                'debe'        => $linea['debe'],
+                'haber'       => $linea['haber'],
+                'orden'       => $i + 1,
+            ]);
+        }
+
+        $headModel->aprobarConSaldos($asientoId, $lineasReversa, $periodo->id, $fechaReversa, 'Reversa pago #' . $pagoId, 'DIARIO', $periodo);
     }
 }
