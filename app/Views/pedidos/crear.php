@@ -658,7 +658,7 @@ function mostrarBannerNE() {
         `<i class="fa-solid fa-circle-check mr-1"></i>${ne.text}</span>`
     ).join('');
     alertDiv.removeClass('d-none').html(`
-        <div class="alert alert-success py-2 mb-0 d-flex justify-content-between align-items-center flex-wrap" style="gap:.25rem;">
+        <div class="alert alert-success py-2 mb-0 d-flex justify-content-between flex-wrap" style="gap:.25rem;">
             <span class="small"><i class="fa-solid fa-circle-check mr-1"></i>NEs importadas: ${badges}</span>
             <button type="button" class="btn btn-sm btn-outline-success" onclick="abrirModalNE()">
                 <i class="fa-solid fa-pen-to-square mr-1"></i>Editar selección
@@ -697,7 +697,7 @@ function renderListaNE() {
             const active   = cargada ? 'active'  : '';
             html += `
                 <label class="list-group-item list-group-item-action py-2 ${active}" for="ne_${ne.id}" style="cursor:pointer;">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex">
                         <input type="checkbox" name="neCheck" id="ne_${ne.id}" value="${ne.id}" class="mr-2" ${checked}>
                         <strong class="small">${ne.text}</strong>
                     </div>
