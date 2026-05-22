@@ -128,16 +128,20 @@
                         </div>
 
                         <!-- Botones de aprobación / autorización (debajo de los badges) -->
+                        <?php
+                            $puedeGestionarLotes = tienePermiso('gestionar_lotes_consignaciones');
+                            $puedeEditarLotes    = $puedeGestionarLotes && !empty($consignacion->lotes_autorizados_por);
+                        ?>
                         <div class="d-flex gap-2 mb-1">
                             <?php if ($consignacion->estado === 'abierta' && tienePermiso('aprobar_consignaciones')): ?>
                                 <?php if ($apEst !== 'aprobada'): ?>
                                     <button class="btn btn-sm btn-success mr-1" id="btnAprobar">
-                                        <i class="fa-solid fa-check mr-1"></i> Aprobar
+                                        <i class="fa-solid fa-check mr-1"></i> Aprobar despacho
                                     </button>
                                 <?php endif; ?>
                                 <?php if ($apEst !== 'rechazada'): ?>
                                     <button class="btn btn-sm btn-outline-danger" id="btnRechazar">
-                                        <i class="fa-solid fa-times mr-1"></i> Rechazar
+                                        <i class="fa-solid fa-times mr-1"></i> Rechazar lotes
                                     </button>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -186,13 +190,6 @@
             </div>
 
             <div class="card-body">
-                <?php
-                    $puedeGestionarLotes = tienePermiso('gestionar_lotes_consignaciones');
-                    $puedeEditarLotes = $puedeGestionarLotes
-                                     && !empty($consignacion->lotes_autorizados_por);
-                ?>
-
-                
 
                 <?php if ($apEst === 'rechazada' && !empty($consignacion->rechazo_motivo)): ?>
                     <div class="alert alert-danger py-2 mb-3" style="font-size:13px;">

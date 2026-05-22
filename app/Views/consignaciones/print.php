@@ -144,10 +144,10 @@
             background: #2c2c2c;
             color: #fff;
             padding: 2px 5px;
-            font-size: 8px;
+            font-size: 11px;
             text-align: left;
         }
-        tbody td { border-bottom: 1px solid #e8e8e8; padding: 2px 5px; font-size: 9px; }
+        tbody td { border-bottom: 1px solid #e8e8e8; padding: 2px 5px; font-size: 11px; }
         tbody tr:nth-child(even) { background: #f7f7f7; }
         .fila-lotes td { background: #f3f6fa !important; border-bottom: 1px solid #dde4ee; padding: 2px 5px 4px 10px !important; }
         .lote-tag {
@@ -156,7 +156,7 @@
             border: 1px solid #c5d0e0;
             border-radius: 3px;
             padding: 1px 5px;
-            font-size: 7.5px;
+            font-size: 9.5px;
             margin-right: 3px;
             margin-bottom: 1px;
             color: #333;
@@ -172,7 +172,7 @@
             border-top: 1.5px solid #000;
             padding-top: 3px;
             margin-bottom: 4px;
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: bold;
         }
 
@@ -182,7 +182,7 @@
             border: 1px solid #ccc;
             padding: 2px 6px;
             margin-bottom: 4px;
-            font-size: 8.5px;
+            font-size: 13px;
         }
         .obs-box label { font-weight: bold; text-transform: uppercase; font-size: 7px; color: #555; }
 
@@ -370,7 +370,6 @@ $copias = ['Original – Empresa', 'Copia – Recepción'];
         <div class="firmas">
             <div class="firma-box">
                 <div>Entregado por</div>
-                <div class="firma-nombre"><strong><?= esc($user['user_name']) ?></strong></div>
             </div>
             <div class="firma-box">
                 <div>Recibido por</div>

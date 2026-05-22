@@ -62,19 +62,17 @@ function refrescarPermisos()
         return;
     }
 
-    // ⛔ Ya refrescados en este request
-    if (session()->get('_permisos_refrescados')) {
+    static $refrescado = false;
+    if ($refrescado) {
         return;
     }
+    $refrescado = true;
 
     $roleId = session()->get('role_id');
 
     $permisoModel = new \App\Models\PermisoRolModel();
     $permisos = $permisoModel->getPermisosPorRol($roleId);
 
-    session()->set([
-        'permisos' => array_column($permisos, 'habilitado', 'nombre_accion'),
-        '_permisos_refrescados' => true
-    ]);
+    session()->set('permisos', array_column($permisos, 'habilitado', 'nombre_accion'));
 }
 

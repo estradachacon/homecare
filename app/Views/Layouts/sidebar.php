@@ -348,10 +348,10 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                                 <div class="collapse" id="subConsig" data-parent="#modVendedores">
                                     <nav class="sb-sidenav-menu-nested nav">
                                         <?php if (tienePermiso('ver_consignaciones')): ?>
-                                            <a class="nav-link" href="/consignaciones">Ver Notas</a>
+                                            <a class="nav-link" href="/consignaciones">Ver Notas de Envío</a>
                                         <?php endif; ?>
                                         <?php if (tienePermiso('crear_consignaciones')): ?>
-                                            <a class="nav-link" href="/consignaciones/crear">Nueva Nota</a>
+                                            <a class="nav-link" href="/consignaciones/crear">Nueva Nota de Envío</a>
                                         <?php endif; ?>
                                         <?php if (tienePermiso('crear_consignacion_emergencia')): ?>
                                             <a class="nav-link" href="/consignaciones/crear-emergencia">

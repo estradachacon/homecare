@@ -65,12 +65,12 @@
 
                         <div class="col-md-3">
                             <label class="form-label text-muted small">Fecha <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                            <input type="date" name="fecha" class="form-control" value="<?= date('Y-m-d') ?>" required readonly>
                         </div>
 
                         <div class="col-md-3">
                             <label class="form-label text-muted small">Hora</label>
-                            <input type="time" name="hora" class="form-control" value="<?= date('H:i') ?>">
+                            <input type="time" name="hora" class="form-control" value="<?= date('H:i') ?>" readonly>
                         </div>
                     </div>
 
