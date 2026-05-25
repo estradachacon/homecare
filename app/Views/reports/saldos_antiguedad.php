@@ -286,19 +286,14 @@
                             <div class="col-md-2 mt-4">
                                 <button type="submit"
                                     formaction="<?= base_url('reports/quedans-pdf') ?>"
-                                    class="btn btn-success btn-block">
-
-                                    <i class="fas fa-file-pdf mr-2"></i>
-                                    Detalle PDF
+                                    class="btn btn-success btn-block"><i class="fas fa-file-pdf mr-1"></i> PDF
                                 </button>
                             </div>
                             <div class="col-md-2 mt-4">
                                 <button type="submit"
                                     formaction="<?= base_url('reports/quedans-excel') ?>"
                                     class="btn btn-success btn-block btn-equal">
-
-                                    <i class="fas fa-file-excel mr-2"></i>
-                                    Detalle Excel
+                                    <i class="fas fa-file-excel mr-1"></i> Excel
                                 </button>
                             </div>
 
@@ -338,13 +333,13 @@
                             </div>
 
                             <!-- Cliente -->
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label>Cliente</label>
                                 <select name="cliente_id" class="form-control cliente-select"></select>
                             </div>
 
                             <!-- Vendedor -->
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label>Vendedor</label>
                                 <select id="sellerSelectPagos" name="vendedor_id" class="form-control"></select>
                             </div>
@@ -360,7 +355,7 @@
                             </div>
 
                             <!-- Botones -->
-                            <div class="col-md-2 mt-4">
+                            <div class="col-md-4 mt-4">
                                 <div class="row">
                                     <div class="col-6 pr-1">
                                         <button type="submit"
