@@ -30,23 +30,84 @@
         padding: 4px 8px;
     }
 
+    #productosTable {
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    #productosTable thead th {
+        background: #f1f3f5;
+        border-top: 0;
+        border-bottom: 1px solid #d7dce1;
+        color: #495057;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    #productosTable th,
+    #productosTable td {
+        border-color: #e9ecef;
+    }
+
+    #productosBody tr:nth-child(even) {
+        background: #fbfcfd;
+    }
+
+    #productosBody tr:hover {
+        background: #f8fafc;
+    }
+
     #productosBody td {
         vertical-align: top;
+        padding-top: 8px;
+        padding-bottom: 8px;
     }
 
     #productosBody input,
-    #productosBody select,
     #productosBody textarea {
-        margin-top: 2px;
+        margin-top: 0;
+        border-color: #d8dee4;
+        font-size: 14px;
     }
 
-    #productosBody td {
-        padding-top: 6px;
-        padding-bottom: 6px;
+    #productosBody .desc-input {
+        resize: vertical;
+        min-height: 34px;
     }
 
-    #productosBody .select2-container {
-        min-width: 180px;
+    #productosBody .num-cell {
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1;
+    }
+
+    #productosBody .remove-row {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: 0;
+        color: #adb5bd;
+        background: transparent;
+        line-height: 22px;
+    }
+
+    #productosBody .remove-row:hover {
+        color: #dc3545;
+        background: #fff5f5;
+    }
+
+    #productosBody .money-cell {
+        color: #343a40;
+        font-size: 14px;
+        padding-top: 14px;
+        font-variant-numeric: tabular-nums;
     }
 
     .total-box {
@@ -117,11 +178,6 @@
                             <input type="hidden" id="horaIso">
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="compact-label">N° de control (próximo)</label>
-                            <input type="text" id="numeroControlPreview" class="form-control form-control-sm-dte text-muted" readonly>
-                        </div>
-
                     </div>
 
                     <!-- ═══ CLIENTE ═══ -->
@@ -179,19 +235,17 @@
                     </div>
                     <!-- ═══ PRODUCTOS ═══ -->
                     <div class="table-responsive mb-2">
-                        <table class="table table-sm table-bordered" id="productosTable">
-                            <thead class="table-light" style="font-size:12px;">
+                        <table class="table table-sm mb-0" id="productosTable">
+                            <thead>
                                 <tr>
-                                    <th style="width:32px">#</th>
-                                    <th style="width:100px">Tipo</th>
-                                    <th style="min-width:150px">Descripción</th>
+                                    <th style="width:48px">#</th>
+                                    <th style="min-width:260px">Descripción</th>
                                     <th style="width:100px">Cant.</th>
                                     <th id="thPrecioUnitario" style="width:90px">P/Unit (sin IVA)</th>
                                     <th style="width:75px">Descuento</th>
                                     <th style="width:85px" class="text-end">Gravado</th>
                                     <th id="thIva" style="width:75px" class="text-end">IVA 13%</th>
                                     <th style="width:85px" class="text-end">Total</th>
-                                    <th style="width:36px"></th>
                                 </tr>
                             </thead>
                             <tbody id="productosBody"></tbody>
@@ -223,12 +277,12 @@
                             class="form-control form-control-sm desc-input auto-expand"
                             name="items[__IDX__][descripcion]"
                             rows="2"
-                            placeholder="Descripción"></textarea>
+                            placeholder="Notas:"></textarea>
                     </div>
 
                     <div class="text-end">
                         <button type="submit" class="btn btn-success" id="btnEmitir">
-                            <i class="fa-solid fa-paper-plane me-1"></i> Emitir DTE
+                            <i class="fa-solid fa-code me-1"></i> Generar JSON
                         </button>
                     </div>
 
@@ -242,14 +296,14 @@
 <template id="rowTemplate">
     <tr data-row="__IDX__">
 
-        <td class="num-item text-center text-muted" style="font-size:11px;"></td>
-
-        <td>
-            <select class="form-control form-control-sm tipo-item" name="items[__IDX__][tipo_item]">
-                <option value="1">Bien</option>
-                <option value="2">Servicio</option>
-                <option value="3">Ambos</option>
-            </select>
+        <td class="text-center num-cell">
+            <div class="num-item mb-1"></div>
+            <button type="button" class="remove-row" title="Quitar linea">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <input type="hidden" class="tipo-item" name="items[__IDX__][tipo_item]" value="1">
+            <input type="hidden" class="producto-id">
+            <input type="hidden" class="producto-codigo">
         </td>
 
         <!-- Descripción con textarea -->
@@ -288,15 +342,9 @@
                 step="0.01">
         </td>
 
-        <td class="text-end gravada-cell" style="font-size:12px;">0.00</td>
-        <td class="text-end iva-cell" style="font-size:12px;">0.00</td>
-        <td class="text-end total-cell fw-bold" style="font-size:12px;">0.00</td>
-
-        <td class="text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger remove-row">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </td>
+        <td class="text-end gravada-cell money-cell">0.00</td>
+        <td class="text-end iva-cell money-cell">0.00</td>
+        <td class="text-end total-cell money-cell fw-bold">0.00</td>
 
     </tr>
 </template>
@@ -307,33 +355,21 @@
         // ──────────────────────────────────────────────
         //  FECHA Y HORA
         // ──────────────────────────────────────────────
-        const now = new Date();
-        const fechaIso = now.toISOString().split('T')[0];
-        const horaIso = now.toTimeString().slice(0, 8);
+        const fechaIso = '<?= esc($fecha_sv ?? date('Y-m-d')) ?>';
+        const horaIso = '<?= esc($hora_sv ?? date('H:i:s')) ?>';
+        const now = new Date(`${fechaIso}T${horaIso}`);
 
         $('#fechaDisplay').val(now.toLocaleDateString('es-SV'));
         $('#horaDisplay').val(now.toLocaleTimeString('es-SV'));
         $('#fechaIso').val(fechaIso);
         $('#horaIso').val(horaIso);
 
-        // ──────────────────────────────────────────────
-        //  N° CONTROL PREVIEW
-        // ──────────────────────────────────────────────
-        function cargarNumeroControl() {
-            const tipo = $('#tipoDte').val();
-            $.getJSON('<?= base_url("emision-dte/proximo-numero") ?>/' + tipo, data => {
-                $('#numeroControlPreview').val(data.numero || '—');
-            }).fail(() => $('#numeroControlPreview').val('—'));
-        }
-        cargarNumeroControl();
         $('#tipoDte').on('change', function() {
-            cargarNumeroControl();
             actualizarTituloPrecio();
             aplicarModoDTE(); // 🔥 ESTA ES LA CLAVE
         });
         actualizarTituloPrecio();
         aplicarModoDTE();
-        $('#tipoDte').on('change', cargarNumeroControl);
 
         // ──────────────────────────────────────────────
         //  PLAZO CRÉDITO
@@ -403,6 +439,8 @@ function addRowFromServicio(servicio) {
     $('#productosBody').append($row);
 
     $row.find('.tipo-item').val('2');
+    $row.find('.producto-id').val(servicio.id || '');
+    $row.find('.producto-codigo').val(servicio.codigo || '');
     $row.find('.desc-input').val(servicio.text);
 
     if (servicio.precio) {
@@ -542,8 +580,8 @@ requestAnimationFrame(() => {
             actualizarNumeros();
 
             // Setear producto
-            $row.find('.producto-label').text(producto.text);
             $row.find('.producto-id').val(producto.id);
+            $row.find('.producto-codigo').val(producto.codigo || '');
 
             // Descripción automática
             const desc = producto.text.replace(/\s*\(.*\)$/, '').trim();
@@ -659,6 +697,15 @@ requestAnimationFrame(() => {
         $(document).on('input', '.auto-expand', function() {
             autoExpand(this);
         });
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
         // ──────────────────────────────────────────────
         //  SUBMIT
         // ──────────────────────────────────────────────
@@ -685,7 +732,7 @@ requestAnimationFrame(() => {
             let hayError = false;
 
             $('#productosBody tr').each(function(i) {
-                const desc = $(this).find('.desc-input').val().trim();
+                const desc = $(this).find('.desc-input').val().trim().replace(/\r\n|\r|\n/g, '\r\n');
                 const qty = parseFloat($(this).find('.qty-input').val()) || 0;
                 const price = parseFloat($(this).find('.price-input').val()) || 0;
 
@@ -703,7 +750,8 @@ requestAnimationFrame(() => {
                 }
 
                 items.push({
-                    producto_id: $(this).find('.producto-select').val() || null,
+                    producto_id: $(this).find('.producto-id').val() || null,
+                    codigo: $(this).find('.producto-codigo').val() || null,
                     tipo_item: parseInt($(this).find('.tipo-item').val()),
                     descripcion: desc,
                     cantidad: qty,
@@ -722,24 +770,28 @@ requestAnimationFrame(() => {
                 return;
             }
 
+            if (tipoDte !== '01') {
+                Swal.fire('Solo Factura 01', 'Por ahora la previsualizacion JSON esta habilitada para Factura Consumidor Final.', 'warning');
+                return;
+            }
+
             const totalPagar = parseFloat($('#lblTotalPagar').text().replace('$', '')) || 0;
-            const tipoDteLabel = tipoDte === '01' ? 'Factura Consumidor Final' :
-                tipoDte === '03' ? 'Comprobante de Crédito Fiscal' :
-                'Nota de Remisión';
+            const tipoDteLabel = 'Factura Consumidor Final';
+
+
 
             Swal.fire({
-                title: 'Confirmar emisión',
+                title: 'Generar JSON',
                 html: `
                 <div class="text-start" style="font-size:14px;">
                     <p><b>Documento:</b> ${tipoDteLabel}</p>
-                    <p><b>N° control:</b> ${$('#numeroControlPreview').val()}</p>
                     <p><b>Productos:</b> ${items.length}</p>
                     <hr>
                     <p class="fs-5"><b>Total: $${totalPagar.toFixed(2)}</b></p>
                 </div>`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Emitir DTE',
+                confirmButtonText: 'Ver JSON',
                 cancelButtonText: 'Cancelar',
                 buttonsStyling: false,
                 customClass: {
@@ -749,7 +801,7 @@ requestAnimationFrame(() => {
             }).then(result => {
                 if (!result.isConfirmed) return;
 
-                $('#btnEmitir').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Enviando...');
+                $('#btnEmitir').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Generando...');
 
                 const payload = {
                     tipo_dte: tipoDte,
@@ -762,7 +814,7 @@ requestAnimationFrame(() => {
                     items: items,
                 };
 
-                fetch('<?= base_url("emision-dte/store") ?>', {
+                fetch('<?= base_url("emision-dte/preview-json") ?>', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -772,28 +824,35 @@ requestAnimationFrame(() => {
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            const icoClass = data.estado_mh === 'procesado' ? 'success' : 'warning';
-                            const titulo = data.estado_mh === 'procesado' ? 'DTE Emitido' : 'DTE enviado (pendiente MH)';
+                            const json = JSON.stringify(data.dte, null, 4);
+                            const numeroControl = data.dte?.identificacion?.numeroControl || 'N/D';
                             Swal.fire({
-                                icon: icoClass,
-                                title: titulo,
-                                html: `<p>${data.numero}</p>` +
-                                    (data.sello ? `<p class="text-muted small">Sello: ${data.sello.substring(0, 30)}...</p>` : '') +
-                                    `<p class="fs-5 fw-bold">$${parseFloat(data.total).toFixed(2)}</p>`,
-                                timer: 3000,
-                                showConfirmButton: true,
-                                confirmButtonText: 'Ver detalle',
-                            }).then(() => {
-                                window.location.href = '<?= base_url("emision-dte") ?>/' + data.factura_id;
+                                icon: 'info',
+                                title: 'JSON Factura 01',
+                                width: '80rem',
+                                html: `
+                                    <div class="text-start mb-2">
+                                        <span class="text-muted small d-block">Numero de control generado</span>
+                                        <code class="d-inline-block px-2 py-1 bg-light border rounded">${escapeHtml(numeroControl)}</code>
+                                    </div>
+                                    <pre style="max-height:65vh;overflow:auto;text-align:left;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap;">${escapeHtml(json)}</pre>
+                                `,
+                                confirmButtonText: 'Cerrar',
+                                buttonsStyling: false,
+                                customClass: {
+                                    confirmButton: 'btn btn-secondary',
+                                },
                             });
                         } else {
-                            Swal.fire('Error al emitir', data.message ?? 'Error desconocido.', 'error');
-                            $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-paper-plane me-1"></i> Emitir DTE');
+                            Swal.fire('Error al generar JSON', data.message ?? 'Error desconocido.', 'error');
+                            $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-code me-1"></i> Generar JSON');
                         }
                     })
                     .catch(() => {
                         Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
-                        $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-paper-plane me-1"></i> Emitir DTE');
+                    })
+                    .finally(() => {
+                        $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-code me-1"></i> Generar JSON');
                     });
             });
         });

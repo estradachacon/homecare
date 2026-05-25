@@ -504,6 +504,7 @@ class InventoryController extends BaseController
             $results[] = [
                 'id'            => $p->id,
                 'text'          => $p->descripcion . ' (' . $p->codigo . ')',
+                'codigo'        => $p->codigo,
                 'tipo'          => $p->tipo,
                 'precio_minimo' => (float)($p->precio_minimo ?? 0),
             ];

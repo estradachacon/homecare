@@ -74,8 +74,13 @@ class DteController extends BaseController
 
         $emisor = new EmisorModel();
         $emisor = $emisor->first();
+        $fechaHoraSv = new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador'));
 
-        return view('emisiondte/create', ['emisor' => $emisor]);
+        return view('emisiondte/create', [
+            'emisor' => $emisor,
+            'fecha_sv' => $fechaHoraSv->format('Y-m-d'),
+            'hora_sv' => $fechaHoraSv->format('H:i:s'),
+        ]);
     }
 
     // ─────────────────────────────────────────────
@@ -90,7 +95,10 @@ class DteController extends BaseController
                 ->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }
 
-        $data = $this->request->getJSON(true);
+        $data = (array) $this->request->getJSON(true);
+        $fechaHoraSv = new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador'));
+        $data['fecha_emision'] = $fechaHoraSv->format('Y-m-d');
+        $data['hora_emision']  = $fechaHoraSv->format('H:i:s');
 
         // Validación mínima
         if (empty($data['tipo_dte']) || empty($data['fecha_emision']) || empty($data['items'])) {
@@ -231,6 +239,52 @@ class DteController extends BaseController
     // ─────────────────────────────────────────────
     //  DETALLE / VISTA DTE EMITIDO
     // ─────────────────────────────────────────────
+
+    public function previewJson()
+    {
+        $chk = requerirPermiso('emitir_dte');
+        if ($chk !== true) {
+            return $this->response->setStatusCode(403)
+                ->setJSON(['success' => false, 'message' => 'Sin permiso.']);
+        }
+
+        $data = (array) $this->request->getJSON(true);
+
+        if (($data['tipo_dte'] ?? '') !== '01') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'La previsualizacion JSON esta habilitada solo para Factura tipo 01.',
+            ]);
+        }
+
+        if (empty($data['cliente_id']) || empty($data['items']) || !is_array($data['items'])) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Seleccione cliente y agregue al menos un producto.',
+            ]);
+        }
+
+        try {
+            $fechaHoraSv = new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador'));
+            $data['fecha_emision'] = $fechaHoraSv->format('Y-m-d');
+            $data['hora_emision']  = $fechaHoraSv->format('H:i:s');
+            $data['codigo_generacion'] = null;
+
+            $dte = (new DteBuilderService())->buildFactura($data);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'dte'     => $dte,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[DteController::previewJson] ' . $e->getMessage());
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
 
     public function show(int $id)
     {

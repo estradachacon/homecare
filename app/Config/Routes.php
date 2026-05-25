@@ -260,6 +260,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('emision-dte',                        'DteController::index');
     $routes->get('emision-dte/nuevo',                  'DteController::new');
     $routes->post('emision-dte/store',                 'DteController::store');
+    $routes->post('emision-dte/preview-json',          'DteController::previewJson');
     $routes->get('emision-dte/proximo-numero/(:any)',   'DteController::proximoNumero/$1');
     $routes->get('emision-dte/(:num)',                 'DteController::show/$1');
     $routes->get('emision-dte/(:num)/estado',          'DteController::consultarEstado/$1');
