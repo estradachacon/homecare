@@ -2262,4 +2262,373 @@ class ReportesController extends Controller
         $writer->save('php://output');
         exit;
     }
+
+    // ─── REPORTE NE POR PRODUCTO ────────────────────────────────────────────
+
+    public function notasEnvioProductos()
+    {
+        $chk = requerirPermiso('ver_reporte_ne_productos');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+
+        $fechaDesde  = $this->request->getGet('fecha_desde')  ?: date('Y-m-01');
+        $fechaHasta  = $this->request->getGet('fecha_hasta')  ?: date('Y-m-d');
+        $vendedorId  = $this->request->getGet('vendedor_id')  ?: '';
+        $comision    = max(0, min(100, (float)($this->request->getGet('comision') ?: 7)));
+        $exportar    = $this->request->getGet('exportar'); // 'excel' | 'pdf' | null
+
+        // ── Query principal: una fila por línea de producto de cada NE ──────
+        $sql = "
+            SELECT
+                ch.id           AS ne_id,
+                ch.numero       AS numero_ne,
+                ch.fecha        AS fecha_ne,
+                ch.estado       AS ne_estado,
+                ch.anulada      AS ne_anulada,
+                ch.vendedor_id,
+                s.seller        AS vendedor_nombre,
+                -- NP vinculada a la NE (por consignacion_id o consignacion_ids JSON)
+                ph.id           AS pedido_id,
+                ph.numero       AS numero_pedido,
+                ph.created_at   AS fecha_pedido,
+                -- Producto
+                cd.id           AS detalle_id,
+                p.codigo        AS producto_codigo,
+                p.descripcion   AS producto_descripcion,
+                cd.cantidad     AS cantidad_ne,
+                cd.precio_unitario AS precio_ne,
+                -- Precio y cantidad facturados: 1) detalle factura por código, 2) detalle NP por producto_id, 3) NE
+                COALESCE(
+                    fd.precio_unitario,
+                    fd_np.precio_unitario,
+                    pd.precio_unitario
+                ) AS precio_factura,
+                COALESCE(
+                    fd.cantidad,
+                    fd_np.cantidad,
+                    pd.cantidad
+                ) AS cantidad_facturada,
+                ccd.cantidad_devuelta,
+                ccd.cantidad_stock_vendedor,
+                -- Nueva NE en caso de cambio
+                cc.nueva_consignacion_id,
+                ne2.numero      AS numero_nueva_ne,
+                -- Factura: prioridad cierre por línea, fallback NP directa
+                COALESCE(fh.id,           fh_np.id)           AS factura_id,
+                COALESCE(fh.fecha_emision, fh_np.fecha_emision) AS fecha_factura,
+                COALESCE(fh.tipo_dte,      fh_np.tipo_dte)      AS tipo_dte,
+                COALESCE(fh.numero_control,fh_np.numero_control) AS numero_control,
+                COALESCE(cl.nombre,        cl_np.nombre)         AS cliente_facturado
+            FROM consignaciones_detalles cd
+            INNER JOIN consignaciones_head ch  ON ch.id  = cd.consignacion_id
+            INNER JOIN productos p             ON p.id   = cd.producto_id
+            LEFT  JOIN sellers s               ON s.id   = ch.vendedor_id
+            -- NP: busca el pedido más reciente activo que referencia esta NE
+            LEFT  JOIN pedidos_head ph ON ph.id = (
+                SELECT ph2.id FROM pedidos_head ph2
+                WHERE ph2.anulada = 0
+                  AND (
+                      ph2.consignacion_id = ch.id
+                      OR (ph2.consignacion_ids IS NOT NULL
+                          AND JSON_CONTAINS(ph2.consignacion_ids, CAST(ch.id AS CHAR)))
+                  )
+                ORDER BY ph2.id DESC
+                LIMIT 1
+            )
+            LEFT  JOIN consignaciones_cierres cc
+                       ON cc.consignacion_id = ch.id
+            LEFT  JOIN consignaciones_cierres_detalles ccd
+                       ON ccd.detalle_id = cd.id
+            LEFT  JOIN consignaciones_cierres_facturas ccf
+                       ON ccf.detalle_id = cd.id AND ccf.cierre_id = cc.id
+            LEFT  JOIN facturas_head fh        ON fh.id  = ccf.factura_id  AND fh.anulada = 0
+            LEFT  JOIN clientes cl             ON cl.id  = fh.receptor_id
+            LEFT  JOIN consignaciones_head ne2 ON ne2.id = cc.nueva_consignacion_id
+            -- Factura vinculada directamente a la NP
+            LEFT  JOIN facturas_head fh_np     ON fh_np.id = ph.factura_id AND fh_np.anulada = 0
+            LEFT  JOIN clientes cl_np          ON cl_np.id = fh_np.receptor_id
+            -- Detalle de factura: match por código de producto
+            LEFT  JOIN factura_detalles fd     ON fd.factura_id  = fh.id     AND fd.codigo = p.codigo
+            LEFT  JOIN factura_detalles fd_np  ON fd_np.factura_id = fh_np.id AND fd_np.codigo = p.codigo
+            -- Detalle del NP: match exacto por producto_id (precio validado > 0)
+            LEFT  JOIN pedidos_detalles pd     ON pd.pedido_id = ph.id AND pd.producto_id = cd.producto_id
+            WHERE ch.fecha >= ? AND ch.fecha <= ?
+        ";
+        $binds = [$fechaDesde, $fechaHasta];
+
+        if ($vendedorId) {
+            $sql  .= ' AND ch.vendedor_id = ?';
+            $binds[] = $vendedorId;
+        }
+
+        $sql .= ' ORDER BY ch.numero ASC, cd.id ASC';
+
+        $lineas    = $db->query($sql, $binds)->getResult();
+        $vendedores = $sellerModel->orderBy('seller', 'ASC')->findAll();
+
+        // ── Siglas DTE ──────────────────────────────────────────────────────
+        $siglas = dte_siglas();
+
+        // ── Calcular totales ─────────────────────────────────────────────────
+        $totalPrecio   = 0.0;
+        $totalComision = 0.0;
+        foreach ($lineas as $l) {
+            $esAnulada   = ($l->ne_anulada == 1 || $l->ne_estado === 'anulada');
+            $cantFact    = (float)($l->cantidad_facturada ?? 0);
+            $precioFac   = (float)($l->precio_factura ?? 0);
+            if (!$esAnulada && $cantFact > 0 && $precioFac > 0) {
+                $precio         = $precioFac * $cantFact;
+                $totalPrecio   += $precio;
+                $totalComision += $precio * ($comision / 100);
+            }
+        }
+
+        if ($exportar === 'excel') {
+            return $this->_exportarNEProductosExcel($lineas, $siglas, $comision, $fechaDesde, $fechaHasta, $totalPrecio, $totalComision, $vendedorId);
+        }
+        if ($exportar === 'pdf') {
+            return $this->_exportarNEProductosPDF($lineas, $siglas, $comision, $fechaDesde, $fechaHasta, $vendedorId);
+        }
+
+        return view('reports/notas_envio_productos', [
+            'lineas'        => $lineas,
+            'vendedores'    => $vendedores,
+            'siglas'        => $siglas,
+            'fechaDesde'    => $fechaDesde,
+            'fechaHasta'    => $fechaHasta,
+            'vendedorId'    => $vendedorId,
+            'comision'      => $comision,
+            'totalPrecio'   => $totalPrecio,
+            'totalComision' => $totalComision,
+        ]);
+    }
+
+    private function _exportarNEProductosPDF(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, string $vendedorId = '')
+    {
+        $settingModel = new SettingModel();
+        $setting      = $settingModel->first();
+        $companyName  = $setting->company_name ?? 'Mi Empresa';
+        $logoPath     = ($setting->logo ?? null)
+            ? FCPATH . 'upload/settings/' . $setting->logo
+            : null;
+        $logoBase64   = '';
+        if ($logoPath && file_exists($logoPath)) {
+            $mime        = mime_content_type($logoPath);
+            $logoBase64  = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        // Agrupar por vendedor
+        if ($vendedorId) {
+            $grupos = [($lineas[0]->vendedor_nombre ?? 'Vendedor') => $lineas];
+        } else {
+            $grupos = [];
+            foreach ($lineas as $l) {
+                $grupos[$l->vendedor_nombre ?? 'Sin vendedor'][] = $l;
+            }
+            ksort($grupos);
+        }
+
+        $html = view('reports/ne_productos_pdf', [
+            'grupos'       => $grupos,
+            'siglas'       => $siglas,
+            'comision'     => $comision,
+            'fechaDesde'   => $fechaDesde,
+            'fechaHasta'   => $fechaHasta,
+            'companyName'  => $companyName,
+            'logoBase64'   => $logoBase64,
+            'soloVendedor' => (bool)$vendedorId,
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $opts   = new \Dompdf\Options();
+        $opts->set('isHtml5ParserEnabled', true);
+        $opts->set('isPhpEnabled', false);
+        $dompdf->setOptions($opts);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('letter', 'landscape');
+        $dompdf->render();
+
+        $canvas      = $dompdf->getCanvas();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $fontN       = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontB       = $fontMetrics->getFont('DejaVu Sans', 'bold');
+        $canvas->page_script(function ($pageNum, $pageCount, $canvas, $fm) use ($fontN, $fontB, $companyName) {
+            $w = $canvas->get_width();
+            $h = $canvas->get_height();
+            $canvas->text(20,  $h - 18, $companyName,                 $fontB, 7);
+            $canvas->text($w - 90, $h - 18, "Pág. $pageNum / $pageCount", $fontN, 7);
+        });
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="ne_productos_' . date('Ymd_His') . '.pdf"')
+            ->setBody($dompdf->output());
+    }
+
+    private function _exportarNEProductosExcel(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, float $totalPrecio, float $totalComision, string $vendedorId = '')
+    {
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->removeSheetByIndex(0); // se agregan hojas dinámicamente
+
+        $rango = date('d/m/Y', strtotime($fechaDesde)) . ' al ' . date('d/m/Y', strtotime($fechaHasta));
+
+        if ($vendedorId) {
+            // ── Un solo vendedor: hoja única ──────────────────────────────────
+            $grupos = ['' => $lineas]; // clave vacía → título genérico
+        } else {
+            // ── Todos los vendedores: agrupar por nombre ───────────────────────
+            $grupos = [];
+            foreach ($lineas as $l) {
+                $nombre = $l->vendedor_nombre ?? 'Sin vendedor';
+                $grupos[$nombre][] = $l;
+            }
+            ksort($grupos);
+        }
+
+        foreach ($grupos as $nombreVendedor => $filas) {
+            $sheetTitle = $nombreVendedor
+                ? mb_substr(preg_replace('/[\/\\\?\*\:\[\]]/', '', $nombreVendedor), 0, 31)
+                : 'NE por Producto';
+
+            $sheet = $spreadsheet->createSheet();
+            $sheet->setTitle($sheetTitle);
+
+            $subtitulo = 'Reporte NE por Producto' . ($nombreVendedor ? ' — ' . $nombreVendedor : '') . ' — ' . $rango;
+
+            $this->_escribirHojaNEProductos($sheet, $filas, $siglas, $comision, $subtitulo);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'ne_productos_' . date('Ymd_His') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
+    }
+
+    private function _escribirHojaNEProductos(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $lineas, array $siglas, float $comision, string $titulo): void
+    {
+        $cols = ['A'=>'Fecha NE','B'=>'Nº NE','C'=>'Fecha Pedido','D'=>'Nº Pedido',
+                 'E'=>'Fecha Factura','F'=>'Días NE→Fac','G'=>'Doc Emitido','H'=>'Nº Doc',
+                 'I'=>'Cliente Facturado','J'=>'Cód. Producto','K'=>'Descripción',
+                 'L'=>'Cantidad','M'=>'Precio s/IVA','N'=>'Comisión ' . number_format($comision, 1) . '%',
+                 'O'=>'Estado'];
+
+        // Título
+        $sheet->mergeCells('A1:O1');
+        $sheet->setCellValue('A1', $titulo);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('1F4E79');
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getRowDimension(1)->setRowHeight(18);
+
+        // Cabecera
+        $row = 2;
+        foreach ($cols as $col => $label) {
+            $sheet->setCellValue("{$col}{$row}", $label);
+        }
+        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E79']],
+        ]);
+        $sheet->getStyle("L{$row}:N{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getRowDimension($row)->setRowHeight(14);
+        $sheet->freezePane('A3');
+        $row = 3;
+
+        $totalPrecio = 0.0;
+        $totalComision = 0.0;
+
+        foreach ($lineas as $l) {
+            $esAnulada = ($l->ne_anulada == 1 || $l->ne_estado === 'anulada');
+            $cantFact  = (float)($l->cantidad_facturada ?? 0);
+            $precio    = 0.0;
+            $comVal    = 0.0;
+            $estado    = $this->_estadoLineaNE($l, $esAnulada);
+
+            $precioFac = (float)($l->precio_factura ?? 0);
+            if (!$esAnulada && $cantFact > 0 && $precioFac > 0 && $l->factura_id) {
+                $precio        = $precioFac * $cantFact;
+                $comVal        = $precio * ($comision / 100);
+                $totalPrecio   += $precio;
+                $totalComision += $comVal;
+            }
+
+            $diasNeFac = '';
+            if (!$esAnulada && $l->fecha_factura && $l->fecha_ne) {
+                $diasNeFac = (int)round((strtotime($l->fecha_factura) - strtotime($l->fecha_ne)) / 86400);
+            }
+
+            $sheet->setCellValue("A{$row}", $l->fecha_ne    ? date('d/m/Y', strtotime($l->fecha_ne))    : '');
+            $sheet->setCellValue("B{$row}", $l->numero_ne   ?? '');
+            $sheet->setCellValue("C{$row}", $l->fecha_pedido ? date('d/m/Y', strtotime($l->fecha_pedido)) : '');
+            $sheet->setCellValue("D{$row}", $l->numero_pedido ?? '');
+            $sheet->setCellValue("E{$row}", $l->fecha_factura ? date('d/m/Y', strtotime($l->fecha_factura)) : '');
+            $sheet->setCellValue("F{$row}", $diasNeFac);
+            $sheet->setCellValue("G{$row}", $l->tipo_dte ? ($siglas[$l->tipo_dte] ?? $l->tipo_dte) : '');
+            $sheet->setCellValue("H{$row}", $l->numero_control ? substr($l->numero_control, -6) : '');
+            $sheet->setCellValue("I{$row}", $l->cliente_facturado ?? '');
+            $sheet->setCellValue("J{$row}", $l->producto_codigo   ?? '');
+            $sheet->setCellValue("K{$row}", $l->producto_descripcion ?? '');
+            if ($cantFact > 0) $sheet->setCellValue("L{$row}", $cantFact);
+            if ($precio > 0) {
+                $sheet->setCellValue("M{$row}", $precio);
+                $sheet->getStyle("M{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+            if ($comVal > 0) {
+                $sheet->setCellValue("N{$row}", $comVal);
+                $sheet->getStyle("N{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+            }
+            $sheet->setCellValue("O{$row}", $estado);
+
+            if ($esAnulada) {
+                $sheet->getStyle("A{$row}:O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFDDE2');
+            } elseif (!$l->factura_id && !empty($l->numero_nueva_ne)) {
+                $sheet->getStyle("A{$row}:O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF3CD');
+            }
+
+            $sheet->getStyle("L{$row}:N{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getRowDimension($row)->setRowHeight(13);
+            $row++;
+        }
+
+        // Totales por hoja
+        $sheet->mergeCells("A{$row}:L{$row}");
+        $sheet->setCellValue("A{$row}", 'TOTALES');
+        $sheet->setCellValue("M{$row}", $totalPrecio);
+        $sheet->setCellValue("N{$row}", $totalComision);
+        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+        ]);
+        $sheet->getStyle("M{$row}:N{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("M{$row}:N{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getRowDimension($row)->setRowHeight(14);
+
+        $sheet->getStyle("A2:O{$row}")->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
+        ]);
+
+        $widths = ['A'=>12,'B'=>12,'C'=>12,'D'=>12,'E'=>12,'F'=>8,'G'=>8,'H'=>10,
+                   'I'=>28,'J'=>12,'K'=>36,'L'=>10,'M'=>14,'N'=>14,'O'=>22];
+        foreach ($widths as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+    }
+
+    private function _estadoLineaNE(object $l, bool $esAnulada): string
+    {
+        if ($esAnulada) return 'NE ANULADA';
+        if (!$l->factura_id && !empty($l->numero_nueva_ne)) return 'Cambiado a NE ' . $l->numero_nueva_ne;
+        if ($l->factura_id && (float)($l->cantidad_facturada ?? 0) > 0) return 'Facturado';
+        if ($l->factura_id && !empty($l->pedido_id)) return 'Facturado vía NP';
+        if ((float)($l->cantidad_devuelta ?? 0) > 0) return 'Devuelto';
+        if ((float)($l->cantidad_stock_vendedor ?? 0) > 0) return 'En stock vendedor';
+        if (!$l->factura_id && empty($l->numero_nueva_ne) && $l->ne_estado === 'cerrada') return 'Cerrada s/factura';
+        return 'Pendiente';
+    }
 }

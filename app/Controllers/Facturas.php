@@ -13,9 +13,105 @@ use App\Models\TransactionModel;
 use App\Models\AccountModel;
 use App\Models\ProductoModel;
 use App\Models\ProductoMovimientoModel;
+use App\Models\EmisorModel;
+use App\Models\SettingModel;
 
 class Facturas extends BaseController
 {
+    private function consultaHaciendaUrl(object $factura): string
+    {
+        if (empty($factura->codigo_generacion) || empty($factura->fecha_emision)) {
+            return '';
+        }
+
+        return 'https://admin.factura.gob.sv/consultaPublica?' . http_build_query([
+            'ambiente' => $factura->ambiente ?: '01',
+            'codGen'   => $factura->codigo_generacion,
+            'fechaEmi' => $factura->fecha_emision,
+        ]);
+    }
+
+    private function qrDataUri(string $url, int $scale = 5): ?string
+    {
+        if ($url === '' || !class_exists('\TCPDF2DBarcode')) {
+            return null;
+        }
+
+        try {
+            $qr = new \TCPDF2DBarcode($url, 'QRCODE,H');
+            return 'data:image/png;base64,' . base64_encode($qr->getBarcodePngData($scale, $scale));
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function logoDataUri(): string
+    {
+        $setting = (new SettingModel())->find(1);
+        $logo = $setting->logo ?? null;
+        $path = $logo ? FCPATH . 'upload/settings/' . $logo : FCPATH . 'img/logo.jpg';
+
+        if (!$path || !is_file($path)) {
+            $path = FCPATH . 'img/logo.jpg';
+        }
+
+        if (!is_file($path)) {
+            return '';
+        }
+
+        $mime = mime_content_type($path) ?: 'image/jpeg';
+        return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+    }
+
+    private function facturaConReceptor(int $id): ?object
+    {
+        return (new FacturaHeadModel())
+            ->select('facturas_head.*,
+                clientes.nombre AS cliente,
+                clientes.tipo_documento AS cliente_tipo_documento,
+                clientes.numero_documento AS cliente_documento,
+                clientes.nrc AS cliente_nrc,
+                clientes.telefono AS cliente_telefono,
+                clientes.correo AS cliente_correo,
+                clientes.direccion AS cliente_direccion,
+                sellers.seller AS vendedor,
+                tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
+            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
+            ->where('facturas_head.id', $id)
+            ->first();
+    }
+
+    private function puedeAccederFactura(object $factura): bool
+    {
+        if (puedeVerDocumentosTodosVendedores()) {
+            return true;
+        }
+
+        $sellerScope = vendedorUsuarioActual();
+        return $sellerScope && (int)$factura->vendedor_id === (int)$sellerScope;
+    }
+
+    private function prefijoArchivoDte(?string $tipoDte): string
+    {
+        $prefijosArchivo = [
+            '01' => 'factura',
+            '03' => 'credito_fiscal',
+            '04' => 'nota_remision',
+            '05' => 'nota_credito',
+            '06' => 'nota_debito',
+            '07' => 'comprobante_retencion',
+            '08' => 'comprobante_liquidacion',
+            '09' => 'documento_liquidacion',
+            '11' => 'factura_exportacion',
+            '14' => 'sujeto_excluido',
+            '15' => 'comprobante_donacion',
+        ];
+
+        return $prefijosArchivo[$tipoDte] ?? 'documento';
+    }
+
     public function index()
     {
         $chk = requerirPermiso('ver_facturas');
@@ -882,22 +978,13 @@ CCF YA VIENE SIN IVA
         $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
 
         // Cabecera
-        $factura = $facturaHeadModel
-            ->select('facturas_head.*, clientes.nombre AS cliente, sellers.seller AS vendedor, tipo_venta.nombre_tipo_venta AS tipo_venta_nombre')
-            ->join('clientes', 'clientes.id = facturas_head.receptor_id', 'left')
-            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
-            ->join('tipo_venta', 'tipo_venta.id = facturas_head.tipo_venta', 'left')
-            ->where('facturas_head.id', $id)
-            ->first();
+        $factura = $this->facturaConReceptor((int)$id);
 
         if (!$factura) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
-        if (!puedeVerDocumentosTodosVendedores()) {
-            $sellerScope = vendedorUsuarioActual();
-            if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
-                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-            }
+        if (!$this->puedeAccederFactura($factura)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
         // Detalles
@@ -984,7 +1071,109 @@ CCF YA VIENE SIN IVA
             'notasCredito'      => $notasCredito,
             'pagos'             => $pagos,
             'remesas'           => $remesas,
+            'consultaHaciendaUrl' => $this->consultaHaciendaUrl($factura),
+            'qrHaciendaDataUri'  => $this->qrDataUri($this->consultaHaciendaUrl($factura), 4),
         ]);
+    }
+
+    public function qr($id)
+    {
+        $factura = $this->facturaConReceptor((int)$id);
+
+        if (!$factura || !$this->puedeAccederFactura($factura)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $url = $this->consultaHaciendaUrl($factura);
+
+        if ($url === '' || !class_exists('\TCPDF2DBarcode')) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $qr = new \TCPDF2DBarcode($url, 'QRCODE,H');
+
+        return $this->response
+            ->setContentType('image/png')
+            ->setBody($qr->getBarcodePngData(6, 6));
+    }
+
+    public function pdf($id)
+    {
+        $factura = $this->facturaConReceptor((int)$id);
+
+        if (!$factura || !$this->puedeAccederFactura($factura)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $detalles = (new \App\Models\FacturaDetalleModel())
+            ->where('factura_id', $id)
+            ->orderBy('num_item', 'ASC')
+            ->findAll();
+
+        $consultaUrl = $this->consultaHaciendaUrl($factura);
+        $emisor = (new EmisorModel())->first();
+
+        $html = view('facturas/imprimible_pdf', [
+            'factura' => $factura,
+            'detalles' => $detalles,
+            'emisor' => $emisor,
+            'consultaHaciendaUrl' => $consultaUrl,
+            'qrHaciendaDataUri' => $this->qrDataUri($consultaUrl, 5),
+            'logoDataUri' => $this->logoDataUri(),
+        ]);
+
+        $options = new \Dompdf\Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $canvas = $dompdf->getCanvas();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans', 'normal');
+        $canvas->page_text(500, 815, 'Pagina {PAGE_NUM} de {PAGE_COUNT}', $font, 8, [80, 91, 104]);
+
+        $numero = !empty($factura->numero_control) ? substr($factura->numero_control, -6) : $factura->id;
+        $prefix = $this->prefijoArchivoDte($factura->tipo_dte ?? null);
+        $filename = $prefix . '_' . $numero . '.pdf';
+        $disposition = $this->request->getGet('download') ? 'attachment' : 'inline';
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
+    }
+
+    public function json($id)
+    {
+        $factura = $this->facturaConReceptor((int)$id);
+
+        if (!$factura || !$this->puedeAccederFactura($factura)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        $jsonRow = (new FacturaJsonModel())->getByFactura((int)$id);
+
+        if (!$jsonRow || empty($jsonRow->json_original)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('JSON de factura no encontrado.');
+        }
+
+        $contenido = $jsonRow->json_original;
+        $decoded = json_decode($contenido, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $contenido = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        $numero = !empty($factura->numero_control) ? substr($factura->numero_control, -6) : $factura->id;
+        $filename = $this->prefijoArchivoDte($factura->tipo_dte ?? null) . '_' . $numero . '.json';
+
+        return $this->response
+            ->setContentType('application/json')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody($contenido);
     }
 
     public function validarNumeroControl()
@@ -1112,6 +1301,12 @@ CCF YA VIENE SIN IVA
             ]);
         }
 
+        // Desasociar la factura de cualquier NP que la tenga vinculada
+        $db->table('pedidos_head')
+           ->where('factura_id', $id)
+           ->where('anulada', 0)
+           ->update(['factura_id' => null]);
+
         $db->transComplete();
 
         if ($db->transStatus() === false) {
@@ -1131,9 +1326,9 @@ CCF YA VIENE SIN IVA
                 $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
                 $periodosModel    = new \App\Models\ContPeriodosModel();
 
-                $periodo = $periodosModel->getPeriodoActual();
+                $periodo = $periodosModel->abrirObtenerPeriodo((int)date('Y'), (int)date('n'));
                 if (!$periodo) {
-                    throw new \Exception('No hay período contable abierto para registrar la reversión');
+                    throw new \Exception('El período contable de ' . date('m/Y') . ' está cerrado; ábrelo antes de anular');
                 }
 
                 $ref           = substr($factura->numero_control, -6);

@@ -28,6 +28,29 @@
         vertical-align: middle;
     }
 
+    .invoice-print-toolbar {
+        gap: .5rem;
+    }
+
+    .invoice-print-preview {
+        background: #f6f8fb;
+        border: 1px solid #dce3eb;
+        border-radius: 6px;
+        height: 720px;
+        overflow: hidden;
+    }
+
+    .invoice-print-preview iframe {
+        border: 0;
+        height: 100%;
+        width: 100%;
+    }
+
+    .invoice-qr-img {
+        height: 126px;
+        width: 126px;
+    }
+
     @media (max-width: 767.98px) {
         .invoice-card {
             border: 0;
@@ -49,6 +72,12 @@
         }
         .invoice-card .card-body {
             padding: .85rem;
+        }
+        .invoice-print-preview {
+            height: 560px;
+        }
+        .invoice-print-toolbar .btn {
+            width: 100%;
         }
         .invoice-actions-col,
         .invoice-totals-col {
@@ -165,6 +194,9 @@ $numeroCorto = !empty($factura->numero_control)
     : 'N/D';
 
 $numeroCompleto = $factura->numero_control ?? 'N/D';
+$pdfUrl = base_url('facturas/' . $factura->id . '/pdf');
+$downloadPdfUrl = base_url('facturas/' . $factura->id . '/pdf?download=1');
+$downloadJsonUrl = base_url('facturas/' . $factura->id . '/json');
 
 // Tipo de venta (catalogo)
 $tipoVenta = $factura->tipo_venta_nombre ?? null;
@@ -285,7 +317,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                             </small>
 
                             <?php if (!empty($tipoVenta)): ?>
-                                <div class="mt-2 d-flex align-items-center">
+                                <div class="mt-2 d-flex">
                                     <small class="text-muted">
                                         Tipo de venta:
                                     </small>
@@ -307,7 +339,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                             ?>
 
                             <!-- CONDICIÓN DE PAGO -->
-                            <div class="mt-2 d-flex align-items-center">
+                            <div class="mt-2 d-flex">
                                 <small class="text-muted">
                                     Condición:
                                 </small>
@@ -608,6 +640,58 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                 </div>
                 <!-- HISTORIAL DE PAGOS -->
+                <div class="card mt-4">
+                    <div class="card-header bg-white d-flex flex-wrap justify-content-between">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="fa-solid fa-file-pdf text-danger mr-1"></i>
+                                Imprimible de la factura
+                            </h5>
+                            <small class="text-muted">Vista formal con QR de consulta en Hacienda</small>
+                        </div>
+                        <div class="d-flex flex-wrap invoice-print-toolbar mt-4 mb-4 mt-md-0">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrintInvoicePdf">
+                                <i class="fa-solid fa-print mr-1"></i>
+                                Imprimir
+                            </button>
+                            <a href="<?= esc($downloadPdfUrl) ?>" class="btn btn-danger btn-sm">
+                                <i class="fa-solid fa-download mr-1"></i>
+                                Descargar PDF
+                            </a>
+                            <a href="<?= esc($downloadJsonUrl) ?>" class="btn btn-outline-dark btn-sm">
+                                <i class="fa-solid fa-code mr-1"></i>
+                                Descargar JSON
+                            </a>
+                            <a href="<?= esc($consultaHaciendaUrl ?? '') ?>" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm <?= empty($consultaHaciendaUrl) ? 'disabled' : '' ?>">
+                                <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>
+                                Hacienda
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-3 mb-3 mb-lg-0">
+                                <div class="border rounded p-3 h-100 text-center">
+                                    <?php if (!empty($qrHaciendaDataUri)): ?>
+                                        <img src="<?= esc($qrHaciendaDataUri) ?>" class="invoice-qr-img mb-2" alt="QR Hacienda">
+                                    <?php else: ?>
+                                        <div class="text-muted py-4">QR no disponible</div>
+                                    <?php endif; ?>
+                                    <small class="text-muted d-block">Consulta publica MH</small>
+                                    <div class="small mt-2 text-break">
+                                        <?= esc($consultaHaciendaUrl ?: 'Sin codigo de generacion') ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-9">
+                                <div class="invoice-print-preview">
+                                    <iframe id="invoicePdfFrame" src="<?= esc($pdfUrl) ?>" title="PDF factura <?= esc($numeroCorto) ?>"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <?php if (!empty($pagos)): ?>
 
                     <div class="mt-4">
@@ -867,6 +951,17 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
     </div>
 </div>
 <script>
+    document.getElementById('btnPrintInvoicePdf')?.addEventListener('click', function() {
+        const frame = document.getElementById('invoicePdfFrame');
+
+        try {
+            frame?.contentWindow?.focus();
+            frame?.contentWindow?.print();
+        } catch (error) {
+            window.open("<?= esc($pdfUrl) ?>", '_blank');
+        }
+    });
+
     document.getElementById('btnAnularFactura')?.addEventListener('click', function() {
 
         fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {

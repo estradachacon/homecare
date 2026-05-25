@@ -108,34 +108,60 @@ class PedidosController extends BaseController
         $secuencia = $headModel->siguienteSecuencia();
         $numero    = 'NP-' . $anio . '-' . str_pad($secuencia, 5, '0', STR_PAD_LEFT);
 
+        // Resolve vendor for price lookup
+        $sellerRow  = $db->table('sellers')
+            ->join('users', 'users.seller_id = sellers.id')
+            ->where('users.id', $session->get('id'))
+            ->select('sellers.id')
+            ->get()->getRow();
+        $vendedorId = $sellerRow ? (int)$sellerRow->id : 0;
+
         $productoIds = array_values(array_unique(array_filter(array_map(static function ($p) {
             return (int)($p['producto_id'] ?? 0);
         }, $productos))));
-        $preciosMinimos = [];
+
+        $productosInfo = [];
         if (!empty($productoIds)) {
             $rows = $db->table('productos')
-                ->select('id, precio_minimo')
+                ->select('id, descripcion, precio_minimo')
                 ->whereIn('id', $productoIds)
                 ->get()
                 ->getResult();
             foreach ($rows as $row) {
-                $preciosMinimos[(int)$row->id] = (float)($row->precio_minimo ?? 0);
+                $productosInfo[(int)$row->id] = [
+                    'nombre' => $row->descripcion,
+                    'minimo' => (float)($row->precio_minimo ?? 0),
+                ];
             }
         }
+
+        $precioModel   = new \App\Models\ConsignacionPrecioModel();
+        $erroresPrecio = [];
 
         foreach ($productos as $idx => $p) {
             if (empty($p['producto_id']) || (float)($p['cantidad'] ?? 0) <= 0) continue;
             $productoId = (int)$p['producto_id'];
             $cant       = (float)$p['cantidad'];
             $precio     = (float)($p['precio_unitario'] ?? 0);
-            $minimo     = $preciosMinimos[$productoId] ?? 0;
+            $info       = $productosInfo[$productoId] ?? ['nombre' => "Producto #{$productoId}", 'minimo' => 0];
+            $minimoDb   = $info['minimo'];
+            $rec        = $vendedorId ? $precioModel->getPrecioRecomendado($vendedorId, $productoId, $clienteId) : null;
+            $piso       = max($minimoDb, $rec ?? 0);
 
-            if ($minimo > 0 && $precio < $minimo) {
-                return redirect()->back()->withInput()->with('error', 'No puede ingresar un precio menor al configurado para el producto.');
+            if ($precio <= 0) {
+                $erroresPrecio[] = '• ' . $info['nombre'] . ': No se ha introducido el precio.';
+            } elseif ($piso > 0 && $precio < $piso) {
+                $etiqueta   = ($rec !== null && $rec > 0) ? 'precio configurado' : 'mínimo permitido';
+                $referencia = ($rec !== null && $rec > 0) ? $rec : $minimoDb;
+                $erroresPrecio[] = '• ' . $info['nombre'] . ': Precio ' . number_format($precio, 2) . ' es menor al ' . $etiqueta . ' ' . number_format($referencia, 2) . '.';
             }
 
-            $productos[$idx]['precio_minimo'] = $minimo;
+            $productos[$idx]['precio_minimo'] = $piso;
             $productos[$idx]['subtotal']      = round($cant * $precio, 2);
+        }
+
+        if (!empty($erroresPrecio)) {
+            return redirect()->back()->withInput()->with('error', 'Revisa los precios:<br>' . implode('<br>', $erroresPrecio));
         }
 
         // Calcular totales
@@ -225,10 +251,49 @@ class PedidosController extends BaseController
         $detalles = $detModel->getPorPedido($id);
         $log      = $logModel->where('pedido_id', $id)->orderBy('created_at', 'ASC')->findAll();
 
+        // Collect NE IDs from the pedido
+        $neIds = [];
+        if ($pedido->consignacion_id) {
+            $neIds[] = (int)$pedido->consignacion_id;
+        }
+        if ($pedido->consignacion_ids) {
+            $decoded = json_decode($pedido->consignacion_ids, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $nid) {
+                    $nid = (int)$nid;
+                    if ($nid && !in_array($nid, $neIds)) $neIds[] = $nid;
+                }
+            }
+        }
+
+        $lotesNE = [];
+        if (!empty($neIds)) {
+            $db      = \Config\Database::connect();
+            $inList  = implode(',', $neIds);
+            $lotesNE = $db->query("
+                SELECT
+                    ch.numero              AS ne_numero,
+                    p.codigo               AS producto_codigo,
+                    p.descripcion          AS producto_nombre,
+                    cl.numero_lote,
+                    cl.fecha_vencimiento,
+                    SUM(cdl.cantidad)      AS cantidad
+                FROM consignaciones_detalles cd
+                JOIN consignaciones_head ch ON ch.id = cd.consignacion_id
+                JOIN productos p            ON p.id  = cd.producto_id
+                INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
+                INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
+                WHERE cd.consignacion_id IN ({$inList})
+                GROUP BY cd.id, cdl.lote_id
+                ORDER BY p.descripcion, cl.numero_lote
+            ")->getResultObject();
+        }
+
         return view('pedidos/detalle', [
             'pedido'   => $pedido,
             'detalles' => $detalles,
             'log'      => $log,
+            'lotesNE'  => $lotesNE,
         ]);
     }
 
@@ -295,34 +360,54 @@ class PedidosController extends BaseController
 
         $tipoDoc  = $this->request->getPost('tipo_documento');
 
+        $vendedorId = (int)($pedido->vendedor_id ?? 0);
+
         $productoIds = array_values(array_unique(array_filter(array_map(static function ($p) {
             return (int)($p['producto_id'] ?? 0);
         }, $productos))));
-        $preciosMinimos = [];
+
+        $productosInfo = [];
         if (!empty($productoIds)) {
             $rows = $db->table('productos')
-                ->select('id, precio_minimo')
+                ->select('id, descripcion, precio_minimo')
                 ->whereIn('id', $productoIds)
                 ->get()
                 ->getResult();
             foreach ($rows as $row) {
-                $preciosMinimos[(int)$row->id] = (float)($row->precio_minimo ?? 0);
+                $productosInfo[(int)$row->id] = [
+                    'nombre' => $row->descripcion,
+                    'minimo' => (float)($row->precio_minimo ?? 0),
+                ];
             }
         }
+
+        $precioModel   = new \App\Models\ConsignacionPrecioModel();
+        $erroresPrecio = [];
 
         foreach ($productos as $idx => $p) {
             if (empty($p['producto_id']) || (float)($p['cantidad'] ?? 0) <= 0) continue;
             $productoId = (int)$p['producto_id'];
             $cant       = (float)$p['cantidad'];
             $precio     = (float)($p['precio_unitario'] ?? 0);
-            $minimo     = $preciosMinimos[$productoId] ?? 0;
+            $info       = $productosInfo[$productoId] ?? ['nombre' => "Producto #{$productoId}", 'minimo' => 0];
+            $minimoDb   = $info['minimo'];
+            $rec        = $vendedorId ? $precioModel->getPrecioRecomendado($vendedorId, $productoId, $clienteId) : null;
+            $piso       = max($minimoDb, $rec ?? 0);
 
-            if ($minimo > 0 && $precio < $minimo) {
-                return redirect()->back()->withInput()->with('error', 'No puede ingresar un precio menor al configurado para el producto.');
+            if ($precio <= 0) {
+                $erroresPrecio[] = '• ' . $info['nombre'] . ': No se ha introducido el precio.';
+            } elseif ($piso > 0 && $precio < $piso) {
+                $etiqueta   = ($rec !== null && $rec > 0) ? 'precio configurado' : 'mínimo permitido';
+                $referencia = ($rec !== null && $rec > 0) ? $rec : $minimoDb;
+                $erroresPrecio[] = '• ' . $info['nombre'] . ': Precio ' . number_format($precio, 2) . ' es menor al ' . $etiqueta . ' ' . number_format($referencia, 2) . '.';
             }
 
-            $productos[$idx]['precio_minimo'] = $minimo;
+            $productos[$idx]['precio_minimo'] = $piso;
             $productos[$idx]['subtotal']      = round($cant * $precio, 2);
+        }
+
+        if (!empty($erroresPrecio)) {
+            return redirect()->back()->withInput()->with('error', 'Revisa los precios:<br>' . implode('<br>', $erroresPrecio));
         }
 
         $subtotal = 0;
@@ -532,27 +617,49 @@ class PedidosController extends BaseController
 
     public function facturasCliente(int $clienteId)
     {
-        $db = \Config\Database::connect();
-        $q  = trim($this->request->getGet('q') ?? '');
+        $db       = \Config\Database::connect();
+        $q        = trim($this->request->getGet('q') ?? '');
+        $pedidoId = (int)($this->request->getGet('pedido_id') ?? 0);
+
+        // IDs already claimed by other pedidos
+        $linkedIds = $db->table('pedidos_head')
+            ->select('factura_id')
+            ->where('factura_id IS NOT NULL')
+            ->where('anulada', 0);
+        if ($pedidoId) {
+            $linkedIds->where('id !=', $pedidoId);
+        }
+        $linkedIds = array_column($linkedIds->get()->getResultArray(), 'factura_id');
 
         $builder = $db->table('facturas_head')
-            ->select('id, numero_control, fecha_emision, total_pagar')
-            ->where('receptor_id', $clienteId)
-            ->where('anulada', 0)
-            ->orderBy('fecha_emision', 'DESC')
-            ->limit(50);
+            ->select('facturas_head.id, facturas_head.numero_control, facturas_head.fecha_emision, facturas_head.total_pagar, facturas_head.tipo_dte')
+            ->where('facturas_head.receptor_id', $clienteId)
+            ->where('facturas_head.anulada', 0)
+            ->orderBy('facturas_head.fecha_emision', 'DESC')
+            ->limit(200);
 
+        if (!empty($linkedIds)) {
+            $builder->whereNotIn('facturas_head.id', $linkedIds);
+        }
         if ($q !== '') {
-            $builder->like('numero_control', $q);
+            $builder->like('facturas_head.numero_control', $q);
         }
 
         $facturas = $builder->get()->getResult();
+        $siglas   = function_exists('dte_siglas') ? dte_siglas() : [];
 
         $results = [];
         foreach ($facturas as $f) {
+            $correlativo = substr($f->numero_control, -6);
+            $sigla       = $siglas[$f->tipo_dte] ?? $f->tipo_dte ?? '';
             $results[] = [
-                'id'   => $f->id,
-                'text' => $f->numero_control . ' — $' . number_format($f->total_pagar, 2),
+                'id'          => (int)$f->id,
+                'numero'      => $f->numero_control,
+                'correlativo' => $correlativo,
+                'sigla'       => $sigla,
+                'fecha'       => $f->fecha_emision ? date('d/m/Y', strtotime($f->fecha_emision)) : '—',
+                'total'       => number_format((float)$f->total_pagar, 2),
+                'text'        => $correlativo . ' — $' . number_format((float)$f->total_pagar, 2),
             ];
         }
 

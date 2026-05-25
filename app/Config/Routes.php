@@ -134,12 +134,17 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // -- Reporte de Pagos Recibidos
     $routes->get('reports/pagos-recibidos-pdf',   'ReportesController::pagosRecibidosPDF');
     $routes->get('reports/pagos-recibidos-excel', 'ReportesController::pagosRecibidosExcel');
+    // -- Reporte NE por Producto (Notas de Envío / Consignaciones)
+    $routes->get('reports/ne-productos',          'ReportesController::notasEnvioProductos');
 
     // Rutas para el módulo de facturación
     $routes->get('facturas', 'Facturas::index');
     $routes->get('facturas/carga', 'Facturas::carga');
     $routes->post('facturas/cargar', 'Facturas::procesarCarga');
     $routes->post('facturas/validar-numero-control', 'Facturas::validarNumeroControl');
+    $routes->get('facturas/(:num)/pdf', 'Facturas::pdf/$1');
+    $routes->get('facturas/(:num)/qr', 'Facturas::qr/$1');
+    $routes->get('facturas/(:num)/json', 'Facturas::json/$1');
     $routes->get('facturas/(:num)', 'Facturas::detalle/$1');
     $routes->post('facturas/anular/(:num)', 'Facturas::anular/$1');
     $routes->post('facturas/validar-documento-relacionado', 'Facturas::validarDocumentoRelacionado');

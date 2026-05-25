@@ -262,6 +262,7 @@
         <td data-label="Producto">
             <select name="productos[IDX][producto_id]" class="form-control form-control-sm select-producto"></select>
             <input type="hidden" name="productos[IDX][precio_minimo]" class="input-precio-minimo" value="0">
+            <input type="hidden" class="input-precio-configurado" value="">
             <div class="prod-chip d-none">
                 <span class="prod-chip-nombre"></span>
                 <button type="button" class="prod-chip-clear" title="Cambiar producto"><i class="fa-solid fa-xmark"></i></button>
@@ -399,17 +400,24 @@ function notificarPrecioSuperior(valor) {
 }
 
 function validarPrecioConfigurado(fila, mostrarAvisoSuperior = true) {
-    const min = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
-    const inp = fila.querySelector('.input-precio');
-    const val = parseFloat(inp.value) || 0;
+    const min  = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
+    const conf = parseFloat(fila.querySelector('.input-precio-configurado').value) || 0;
+    const inp  = fila.querySelector('.input-precio');
+    const val  = parseFloat(inp.value) || 0;
+    const nom  = fila.querySelector('.prod-chip-nombre')?.textContent?.trim() || 'el producto';
 
-    if (min <= 0) {
-        calcularSubtotal(fila);
-        return true;
-    }
+    if (min <= 0) { calcularSubtotal(fila); return true; }
 
     if (val < min) {
-        Swal.fire('Precio no permitido', PRECIO_MIN_ALERT + min.toFixed(2) + ').', 'warning');
+        const motivo = conf > 0
+            ? `El precio ingresado (<strong>$${val.toFixed(2)}</strong>) es menor al precio configurado (<strong>$${conf.toFixed(2)}</strong>).`
+            : `El precio ingresado (<strong>$${val.toFixed(2)}</strong>) es menor al mínimo permitido (<strong>$${min.toFixed(2)}</strong>).`;
+        Swal.fire({
+            icon: 'warning',
+            title: 'Precio no permitido',
+            html: `<strong>${nom}</strong><br><br>${motivo}`,
+            confirmButtonText: 'Entendido',
+        });
         inp.value = min.toFixed(2);
         inp.focus();
         calcularSubtotal(fila);
@@ -538,15 +546,23 @@ function initSelectProducto(select) {
                 const inp   = fila.querySelector('.input-precio');
                 const hint  = fila.querySelector('.input-precio-hint');
 
-                fila.querySelector('.input-precio-minimo').value = floor.toFixed(2);
+                fila.querySelector('.input-precio-minimo').value    = floor.toFixed(2);
+                fila.querySelector('.input-precio-configurado').value = rec !== null ? rec.toFixed(2) : '';
+
                 inp.value = floor > 0 ? floor.toFixed(2) : inp.value;
 
-                if (floor > 0) {
+                if (rec !== null && rec > 0) {
+                    inp.min = floor.toFixed(2);
+                    hint.textContent = 'Configurado: $' + rec.toFixed(2);
+                    hint.className   = 'text-info small input-precio-hint';
+                } else if (floor > 0) {
                     inp.min = floor.toFixed(2);
                     hint.textContent = 'Mín: $' + floor.toFixed(2);
+                    hint.className   = 'text-muted small input-precio-hint';
                 } else {
                     inp.min = '0';
-                    hint.textContent = '';
+                    hint.textContent = 'Sin precio configurado';
+                    hint.className   = 'text-warning small input-precio-hint';
                 }
                 calcularSubtotal(fila);
             });
@@ -557,9 +573,13 @@ function initSelectProducto(select) {
         chip.classList.add('d-none');
         $(select).val(null).trigger('change');
         $(select).next('.select2-container').show();
-        fila.querySelector('.input-precio-minimo').value = '0';
-        fila.querySelector('.input-precio').min = '0';
-        fila.querySelector('.input-precio-hint').textContent = '';
+        fila.querySelector('.input-precio-minimo').value     = '0';
+        fila.querySelector('.input-precio-configurado').value = '';
+        fila.querySelector('.input-precio').value = '0.00';
+        fila.querySelector('.input-precio').min   = '0';
+        const hint = fila.querySelector('.input-precio-hint');
+        hint.textContent = '';
+        hint.className   = 'text-muted small input-precio-hint';
         calcularSubtotal(fila);
     });
 }
@@ -920,7 +940,7 @@ $(function () {
             }
         });
 
-        // Buscar precio mínimo en segundo plano para activar la validación
+        // Buscar precio configurado en segundo plano para activar validación
         const clienteId = $('#selectCliente').val() || '';
         fetch(`<?= base_url('pedidos/precio-producto') ?>?producto_id=${p.producto_id}&cliente_id=${clienteId}`)
             .then(r => r.json())
@@ -933,15 +953,26 @@ $(function () {
                 const inp   = filaEl.querySelector('.input-precio');
                 const hint  = filaEl.querySelector('.input-precio-hint');
 
-                filaEl.querySelector('.input-precio-minimo').value = floor.toFixed(2);
-                if (floor > 0) {
+                filaEl.querySelector('.input-precio-minimo').value     = floor.toFixed(2);
+                filaEl.querySelector('.input-precio-configurado').value = rec !== null ? rec.toFixed(2) : '';
+
+                if (rec !== null && rec > 0) {
+                    inp.min = floor.toFixed(2);
+                    hint.textContent = 'Configurado: $' + rec.toFixed(2);
+                    hint.className   = 'text-info small input-precio-hint';
+                } else if (floor > 0) {
                     inp.min = floor.toFixed(2);
                     hint.textContent = 'Mín: $' + floor.toFixed(2);
-                    // Ajustar al mínimo si el precio de la NE está por debajo
-                    if (parseFloat(inp.value) < floor) {
-                        inp.value = floor.toFixed(2);
-                        calcularSubtotal(filaEl);
-                    }
+                    hint.className   = 'text-muted small input-precio-hint';
+                } else {
+                    hint.textContent = 'Sin precio configurado';
+                    hint.className   = 'text-warning small input-precio-hint';
+                }
+
+                // Ajustar al mínimo si el precio de la NE está por debajo
+                if (floor > 0 && parseFloat(inp.value) < floor) {
+                    inp.value = floor.toFixed(2);
+                    calcularSubtotal(filaEl);
                 }
             });
     }
@@ -1002,14 +1033,41 @@ document.getElementById('formCrear').addEventListener('submit', function (e) {
         return;
     }
 
-    // Validar precios configurados antes de enviar
-    let precioError = false;
+    // Validar precios configurados — Swal con lista detallada por ítem
+    const problemasPrecio = [];
     document.querySelectorAll('.fila-producto').forEach(fila => {
-        if (!validarPrecioConfigurado(fila, false)) precioError = true;
+        const prodId = fila.querySelector('.select-producto')?.value;
+        if (!prodId) return;
+        const nom    = fila.querySelector('.prod-chip-nombre')?.textContent?.trim() || 'Producto #' + prodId;
+        const precio = parseFloat(fila.querySelector('.input-precio').value) || 0;
+        const min    = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
+        const conf   = parseFloat(fila.querySelector('.input-precio-configurado').value) || 0;
+
+        if (precio <= 0) {
+            problemasPrecio.push(`<li><strong>${nom}</strong>: No se ha introducido el precio.</li>`);
+        } else if (min > 0 && precio < min) {
+            const etiqueta  = conf > 0 ? 'configurado' : 'mínimo permitido';
+            const referencia = conf > 0 ? conf : min;
+            problemasPrecio.push(
+                `<li><strong>${nom}</strong>: Precio <strong>$${precio.toFixed(2)}</strong> ` +
+                `es menor al ${etiqueta} <strong>$${referencia.toFixed(2)}</strong>.</li>`
+            );
+        }
     });
 
-    if (precioError) {
-        Swal.fire('Precio inválido', 'Uno o más productos tienen un precio menor al mínimo permitido.', 'warning');
+    if (problemasPrecio.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Revisa los precios',
+            html: `<p style="text-align:left;margin-bottom:.4rem">
+                       Los siguientes ítems no cumplen con el precio configurado:
+                   </p>
+                   <ul style="text-align:left;padding-left:1.2rem;margin-bottom:0">
+                       ${problemasPrecio.join('')}
+                   </ul>`,
+            confirmButtonText: 'Entendido',
+            width: 520,
+        });
         return;
     }
 

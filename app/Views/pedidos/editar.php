@@ -227,6 +227,7 @@
             <select name="productos[IDX][producto_id]" class="form-control form-control-sm select-producto"></select>
             <input type="hidden" name="productos[IDX][precio_minimo]" class="input-precio-minimo" value="0">
             <input type="hidden" name="productos[IDX][detalle_id]" class="input-detalle-id" value="0">
+            <input type="hidden" class="input-precio-configurado" value="">
             <div class="prod-chip d-none">
                 <span class="prod-chip-nombre"></span>
                 <button type="button" class="prod-chip-clear" title="Cambiar producto"><i class="fa-solid fa-xmark"></i></button>
@@ -331,27 +332,31 @@ function notificarPrecioSuperior(valor) {
 }
 
 function validarPrecioConfigurado(fila, mostrarAvisoSuperior = true) {
-    const min = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
-    const inp = fila.querySelector('.input-precio');
-    const val = parseFloat(inp.value) || 0;
+    const min  = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
+    const conf = parseFloat(fila.querySelector('.input-precio-configurado')?.value) || 0;
+    const inp  = fila.querySelector('.input-precio');
+    const val  = parseFloat(inp.value) || 0;
+    const nom  = fila.querySelector('.prod-chip-nombre')?.textContent?.trim() || 'el producto';
 
-    if (min <= 0) {
-        calcularSubtotal(fila);
-        return true;
-    }
+    if (min <= 0) { calcularSubtotal(fila); return true; }
 
     if (val < min) {
-        Swal.fire('Precio no permitido', PRECIO_MIN_ALERT + min.toFixed(2) + ').', 'warning');
+        const motivo = conf > 0
+            ? `El precio ingresado (<strong>$${val.toFixed(2)}</strong>) es menor al precio configurado (<strong>$${conf.toFixed(2)}</strong>).`
+            : `El precio ingresado (<strong>$${val.toFixed(2)}</strong>) es menor al mínimo permitido (<strong>$${min.toFixed(2)}</strong>).`;
+        Swal.fire({
+            icon: 'warning',
+            title: 'Precio no permitido',
+            html: `<strong>${nom}</strong><br><br>${motivo}`,
+            confirmButtonText: 'Entendido',
+        });
         inp.value = min.toFixed(2);
         inp.focus();
         calcularSubtotal(fila);
         return false;
     }
 
-    if (mostrarAvisoSuperior && val > min) {
-        notificarPrecioSuperior(val);
-    }
-
+    if (mostrarAvisoSuperior && val > min) { notificarPrecioSuperior(val); }
     calcularSubtotal(fila);
     return true;
 }
@@ -473,15 +478,22 @@ function initSelectProducto(select, preloadId, preloadText) {
                 const inp   = fila.querySelector('.input-precio');
                 const hint  = fila.querySelector('.input-precio-hint');
 
-                fila.querySelector('.input-precio-minimo').value = floor.toFixed(2);
+                fila.querySelector('.input-precio-minimo').value     = floor.toFixed(2);
+                fila.querySelector('.input-precio-configurado').value = rec !== null ? rec.toFixed(2) : '';
                 inp.value = floor > 0 ? floor.toFixed(2) : inp.value;
 
-                if (floor > 0) {
+                if (rec !== null && rec > 0) {
+                    inp.min = floor.toFixed(2);
+                    hint.textContent = 'Configurado: $' + rec.toFixed(2);
+                    hint.className   = 'text-info small input-precio-hint';
+                } else if (floor > 0) {
                     inp.min = floor.toFixed(2);
                     hint.textContent = 'Mín: $' + floor.toFixed(2);
+                    hint.className   = 'text-muted small input-precio-hint';
                 } else {
                     inp.min = '0';
-                    hint.textContent = '';
+                    hint.textContent = 'Sin precio configurado';
+                    hint.className   = 'text-warning small input-precio-hint';
                 }
                 calcularSubtotal(fila);
             });
@@ -492,9 +504,13 @@ function initSelectProducto(select, preloadId, preloadText) {
         chip.classList.add('d-none');
         $(select).val(null).trigger('change');
         $(select).next('.select2-container').show();
-        fila.querySelector('.input-precio-minimo').value = '0';
-        fila.querySelector('.input-precio').min = '0';
-        fila.querySelector('.input-precio-hint').textContent = '';
+        fila.querySelector('.input-precio-minimo').value     = '0';
+        fila.querySelector('.input-precio-configurado').value = '';
+        fila.querySelector('.input-precio').value = '0.00';
+        fila.querySelector('.input-precio').min   = '0';
+        const hint = fila.querySelector('.input-precio-hint');
+        hint.textContent = '';
+        hint.className   = 'text-muted small input-precio-hint';
         calcularSubtotal(fila);
     });
 
@@ -529,31 +545,6 @@ const detallesExistentes = <?= json_encode(array_map(function($d) {
     ];
 }, $detalles)) ?>;
 
-detallesExistentes.forEach((d, i) => {
-    const tpl  = document.getElementById('tplFila').content.cloneNode(true);
-    const fila = tpl.querySelector('tr');
-    fila.innerHTML = fila.innerHTML.replaceAll('IDX', 'ex_' + i);
-    document.getElementById('cuerpoProductos').appendChild(fila);
-
-    const filaEl = document.getElementById('cuerpoProductos').lastElementChild;
-    filaEl.querySelector('.input-detalle-id').value  = d.id;
-    filaEl.querySelector('.input-precio-minimo').value = parseFloat(d.precio_minimo).toFixed(2);
-    filaEl.querySelector('.input-cantidad').value      = d.cantidad;
-    filaEl.querySelector('.input-precio').value        = parseFloat(d.precio_unitario).toFixed(2);
-    filaEl.querySelector('.input-subtotal').value      = parseFloat(d.subtotal).toFixed(2);
-    filaEl.querySelector('.subtotal-texto').textContent = '$' + parseFloat(d.subtotal).toFixed(2);
-
-    if (parseFloat(d.precio_minimo) > 0) {
-        filaEl.querySelector('.input-precio').min = parseFloat(d.precio_minimo).toFixed(2);
-        filaEl.querySelector('.input-precio-hint').textContent = 'Mín: $' + parseFloat(d.precio_minimo).toFixed(2);
-    }
-
-    initSelectProducto(filaEl.querySelector('.select-producto'), d.producto_id, d.producto_texto);
-    adjuntarEventosFila(filaEl);
-});
-
-recalcularTotal();
-
 // ── Agregar nueva fila ─────────────────────────────────────────────────────
 document.getElementById('btnAgregarProducto').addEventListener('click', function () {
     const tpl  = document.getElementById('tplFila').content.cloneNode(true);
@@ -567,12 +558,22 @@ document.getElementById('btnAgregarProducto').addEventListener('click', function
     adjuntarEventosFila(filaEl);
 });
 
+const clienteOriginalId = '<?= (int)$pedido->cliente_id ?>';
+
 // ── Reset de productos ────────────────────────────────────────────────────────
 function actualizarBtnProducto() {
-    const bloqueado = document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual;
+    const clienteActual   = String($('#selectCliente').val() || '');
+    const bloqueadoCCF    = document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual;
+    const bloqueadoCambio = clienteActual !== '' && clienteActual !== clienteOriginalId;
     const btn = document.getElementById('btnAgregarProducto');
-    btn.disabled = bloqueado;
-    btn.title = bloqueado ? 'El cliente debe tener NRC para agregar productos en CCF' : '';
+    btn.disabled = bloqueadoCCF || bloqueadoCambio;
+    if (bloqueadoCambio) {
+        btn.title = 'Cliente cambiado: solo puede reducir los productos existentes';
+    } else if (bloqueadoCCF) {
+        btn.title = 'El cliente debe tener NRC para agregar productos en CCF';
+    } else {
+        btn.title = '';
+    }
 }
 
 let prevClienteId   = '';
@@ -589,9 +590,36 @@ function limpiarProductos() {
     recalcularTotal();
 }
 
-// ── Select2 cliente ────────────────────────────────────────────────────────
+// ── Select2 cliente + carga de filas existentes ───────────────────────────
 $(function () {
-    const clienteId   = <?= (int)$pedido->cliente_id ?>;
+
+    // Cargar filas de productos existentes (Select2 ya disponible aquí)
+    detallesExistentes.forEach((d, i) => {
+        const tpl  = document.getElementById('tplFila').content.cloneNode(true);
+        const fila = tpl.querySelector('tr');
+        fila.innerHTML = fila.innerHTML.replaceAll('IDX', 'ex_' + i);
+        document.getElementById('cuerpoProductos').appendChild(fila);
+
+        const filaEl = document.getElementById('cuerpoProductos').lastElementChild;
+        filaEl.querySelector('.input-detalle-id').value           = d.id;
+        filaEl.querySelector('.input-precio-minimo').value        = parseFloat(d.precio_minimo).toFixed(2);
+        filaEl.querySelector('.input-precio-configurado').value   = '';
+        filaEl.querySelector('.input-cantidad').value             = d.cantidad;
+        filaEl.querySelector('.input-precio').value               = parseFloat(d.precio_unitario).toFixed(2);
+        filaEl.querySelector('.input-subtotal').value             = parseFloat(d.subtotal).toFixed(2);
+        filaEl.querySelector('.subtotal-texto').textContent       = '$' + parseFloat(d.subtotal).toFixed(2);
+
+        if (parseFloat(d.precio_minimo) > 0) {
+            filaEl.querySelector('.input-precio').min             = parseFloat(d.precio_minimo).toFixed(2);
+            filaEl.querySelector('.input-precio-hint').textContent = 'Mín: $' + parseFloat(d.precio_minimo).toFixed(2);
+        }
+
+        initSelectProducto(filaEl.querySelector('.select-producto'), d.producto_id, d.producto_texto);
+        adjuntarEventosFila(filaEl);
+    });
+    recalcularTotal();
+
+    const clienteId     = <?= (int)$pedido->cliente_id ?>;
     const clienteNombre = <?= json_encode($pedido->cliente_nombre) ?>;
 
     $('#selectCliente').select2({
@@ -608,45 +636,32 @@ $(function () {
             cache: true,
         },
     }).on('select2:select', function (e) {
-        const newId   = String(e.params.data.id);
-        const newText = e.params.data.text;
-        const newNrc  = e.params.data.nrc || '';
-        const hayProductos = document.querySelectorAll('.fila-producto').length > 0;
+        const newId  = String(e.params.data.id);
+        const newNrc = e.params.data.nrc || '';
 
-        function aplicarCambioCliente() {
-            clienteNrcActual = newNrc;
-            prevClienteId    = newId;
-            prevClienteText  = newText;
-            actualizarBtnProducto();
-            if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Cliente sin NRC',
-                    text: 'Este cliente no tiene NRC registrado. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice los datos del cliente.',
+        clienteNrcActual = newNrc;
+        prevClienteId    = newId;
+        prevClienteText  = e.params.data.text;
+        actualizarBtnProducto();
+
+        const hayProductos  = document.querySelectorAll('.fila-producto').length > 0;
+        const clienteCambio = newId !== clienteOriginalId;
+
+        if (hayProductos && clienteCambio) {
+            Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 4500, timerProgressBar: true })
+                .fire({
+                    icon: 'info',
+                    title: 'Cliente cambiado',
+                    text: 'Los productos existentes se conservan, pero no puede agregar nuevos.',
                 });
-            }
         }
 
-        if (hayProductos && prevClienteId && prevClienteId !== newId) {
+        if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
             Swal.fire({
                 icon: 'warning',
-                title: '¿Cambiar cliente?',
-                html: 'Al cambiar de cliente <strong>se eliminarán todos los productos</strong> para revalidar los precios.',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, cambiar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#dc3545',
-            }).then(result => {
-                if (result.isConfirmed) {
-                    aplicarCambioCliente();
-                    limpiarProductos();
-                } else {
-                    const opt = new Option(prevClienteText, prevClienteId, true, true);
-                    $('#selectCliente').empty().append(opt).trigger('change');
-                }
+                title: 'Cliente sin NRC',
+                text: 'Este cliente no tiene NRC. El Crédito Fiscal requiere NRC. Seleccione otro cliente o actualice sus datos.',
             });
-        } else {
-            aplicarCambioCliente();
         }
     }).on('select2:clear', function () {
         clienteNrcActual = '';
@@ -704,13 +719,40 @@ document.getElementById('formEditar').addEventListener('submit', function (e) {
         return;
     }
 
-    let precioError = false;
+    const problemasPrecio = [];
     document.querySelectorAll('.fila-producto').forEach(fila => {
-        if (!validarPrecioConfigurado(fila, false)) precioError = true;
+        const prodId = fila.querySelector('.select-producto')?.value;
+        if (!prodId) return;
+        const nom    = fila.querySelector('.prod-chip-nombre')?.textContent?.trim() || 'Producto #' + prodId;
+        const precio = parseFloat(fila.querySelector('.input-precio').value) || 0;
+        const min    = parseFloat(fila.querySelector('.input-precio-minimo').value) || 0;
+        const conf   = parseFloat(fila.querySelector('.input-precio-configurado')?.value) || 0;
+
+        if (precio <= 0) {
+            problemasPrecio.push(`<li><strong>${nom}</strong>: No se ha introducido el precio.</li>`);
+        } else if (min > 0 && precio < min) {
+            const etiqueta   = conf > 0 ? 'configurado' : 'mínimo permitido';
+            const referencia = conf > 0 ? conf : min;
+            problemasPrecio.push(
+                `<li><strong>${nom}</strong>: Precio <strong>$${precio.toFixed(2)}</strong> ` +
+                `es menor al ${etiqueta} <strong>$${referencia.toFixed(2)}</strong>.</li>`
+            );
+        }
     });
 
-    if (precioError) {
-        Swal.fire('Precio inválido', 'Uno o más productos tienen un precio menor al mínimo permitido.', 'warning');
+    if (problemasPrecio.length) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Revisa los precios',
+            html: `<p style="text-align:left;margin-bottom:.4rem">
+                       Los siguientes ítems no cumplen con el precio configurado:
+                   </p>
+                   <ul style="text-align:left;padding-left:1.2rem;margin-bottom:0">
+                       ${problemasPrecio.join('')}
+                   </ul>`,
+            confirmButtonText: 'Entendido',
+            width: 520,
+        });
         return;
     }
 

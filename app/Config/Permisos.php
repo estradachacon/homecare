@@ -52,6 +52,7 @@ class Permisos extends BaseConfig
             'ver_precios_consignaciones',
             'gestionar_precios_consignaciones',
             'crear_consignacion_emergencia',
+            'ver_reporte_ne_productos'
         ],
         
         'Cuentas por cobrar' => [

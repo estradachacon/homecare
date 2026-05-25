@@ -297,6 +297,49 @@ if (!function_exists('_nlUnidades')) {
                     </table>
                 </div>
 
+                <!-- Lotes de NE asociada -->
+                <?php if (!empty($lotesNE)): ?>
+                <h6 class="text-muted mt-4 mb-2">
+                    <i class="fa-solid fa-tags mr-1"></i> Lotes de la Nota de Envío
+                </h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered table-sm" style="font-size:.82rem;">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>NE</th>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Lote</th>
+                                <th>Vencimiento</th>
+                                <th class="text-end">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($lotesNE as $l): ?>
+                            <tr>
+                                <td><span class="badge badge-secondary"><?= esc($l->ne_numero) ?></span></td>
+                                <td><code><?= esc($l->producto_codigo) ?></code></td>
+                                <td><?= esc($l->producto_nombre) ?></td>
+                                <td><strong><?= esc($l->numero_lote) ?></strong></td>
+                                <td>
+                                    <?php
+                                    if ($l->fecha_vencimiento) {
+                                        $diff = (strtotime($l->fecha_vencimiento) - time()) / 86400;
+                                        $cls  = $diff < 30 ? 'text-danger' : ($diff < 90 ? 'text-warning' : '');
+                                        echo '<span class="' . $cls . '">' . date('d/m/Y', strtotime($l->fecha_vencimiento)) . '</span>';
+                                    } else {
+                                        echo '—';
+                                    }
+                                    ?>
+                                </td>
+                                <td class="text-end"><?= number_format((float)$l->cantidad, 2) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+
                 <!-- Log de actividad -->
                 <h6 class="text-muted mt-4 mb-2"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Actividad</h6>
                 <?php if (empty($log)): ?>
@@ -451,38 +494,102 @@ if (!function_exists('_nlUnidades')) {
 </div>
 <!-- ══════════════════════════════════════════════════════════════════════════ -->
 
-<!-- Modal Asociar Factura -->
-<div class="modal fade" id="modalFactura" tabindex="-1">
-    <div class="modal-dialog">
+<!-- Modal Asociar Factura (mejorado) -->
+<div class="modal fade" id="modalFactura" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Asociar Factura</h5>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Seleccione la factura</label>
-                    <select id="selectFactura" class="form-control" style="width:100%"></select>
+
+            <div class="modal-header" style="background:#1a7f5a;color:#fff;">
+                <div>
+                    <h5 class="modal-title mb-0">
+                        <i class="fa-solid fa-link mr-2"></i>
+                        <?= $pedido->estado === 'facturada' ? 'Cambiar Factura' : 'Asociar Factura' ?>
+                    </h5>
+                    <small style="opacity:.85;">
+                        Cliente: <strong><?= esc($pedido->cliente_nombre) ?></strong>
+                    </small>
                 </div>
-                <div id="facturaError" class="alert alert-danger d-none"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btnConfirmarFactura">
-                    <i class="fa-solid fa-link"></i> Asociar
+                <button type="button" class="close text-white" data-dismiss="modal" style="opacity:1;">
+                    <span>&times;</span>
                 </button>
             </div>
+
+            <div class="modal-body pb-2">
+
+                <!-- Buscador -->
+                <div class="input-group input-group-sm mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white">
+                            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                        </span>
+                    </div>
+                    <input type="text" id="buscarFactura" class="form-control"
+                           placeholder="Filtrar por número de control…">
+                    <div class="input-group-append">
+                        <span class="input-group-text bg-white text-muted small" id="contadorFacturas"></span>
+                    </div>
+                </div>
+
+                <!-- Estados del contenedor -->
+                <div id="facturaListContainer" style="max-height:380px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;">
+
+                    <div id="facturaLoading" class="text-center py-5">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x text-muted"></i>
+                        <p class="text-muted mt-2 mb-0 small">Cargando facturas disponibles…</p>
+                    </div>
+
+                    <table class="table table-sm table-hover mb-0 d-none" id="tablaFacturas">
+                        <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                            <tr>
+                                <th style="width:36px;"></th>
+                                <th>Correlativo</th>
+                                <th>Tipo</th>
+                                <th>Número de control</th>
+                                <th>Fecha</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyFacturas"></tbody>
+                    </table>
+
+                    <div id="facturaVacio" class="text-center py-5 d-none">
+                        <i class="fa-solid fa-inbox fa-2x text-muted"></i>
+                        <p class="text-muted mt-2 mb-0 small">No hay facturas disponibles sin asociar para este cliente.</p>
+                    </div>
+
+                </div>
+
+                <!-- Alerta de error AJAX -->
+                <div id="facturaAjaxError" class="alert alert-danger alert-sm mt-2 mb-0 d-none" style="font-size:.84rem;"></div>
+
+                <!-- Factura seleccionada -->
+                <div id="facturaSeleccionada" class="d-none mt-3 p-2 rounded"
+                     style="background:#e8f5e9;border:1px solid #a5d6a7;font-size:.86rem;">
+                    <i class="fa-solid fa-circle-check text-success mr-1"></i>
+                    <strong>Seleccionada:</strong>
+                    <span id="facturaSelText" class="ml-1"></span>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnConfirmarFactura" disabled>
+                    <i class="fa-solid fa-link"></i> Confirmar asociación
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
 
 <script>
 $(function () {
+
     // ── Anular ─────────────────────────────────────────────────────────────
     $('#btnAnular').on('click', function () {
         const id     = $(this).data('id');
         const numero = $(this).data('numero');
-
         Swal.fire({
             title: '¿Anular nota?',
             html: `¿Está seguro de anular <strong>${numero}</strong>?`,
@@ -513,35 +620,115 @@ $(function () {
     });
 
     // ── Asociar factura ────────────────────────────────────────────────────
-    $('#btnAsociarFactura').on('click', function () {
-        $('#facturaError').addClass('d-none').text('');
-        $('#modalFactura').modal('show');
-    });
+    let facturaIdSel  = null;
+    let listaFacturas = [];
 
-    $('#selectFactura').select2({
-        dropdownParent: $('#modalFactura'),
-        language: 'es',
-        placeholder: 'Buscar factura...',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: '<?= base_url('pedidos/facturas-cliente/' . $pedido->cliente_id) ?>',
-            dataType: 'json',
-            delay: 300,
-            data: params => ({ q: params.term || '' }),
-            processResults: data => ({ results: data.results }),
-            cache: true,
-        },
-    });
+    function renderFacturas(lista) {
+        const tbody = $('#tbodyFacturas').empty();
+        $('#contadorFacturas').text(lista.length + ' encontradas');
 
-    $('#btnConfirmarFactura').on('click', function () {
-        const facturaId = $('#selectFactura').val();
-        if (!facturaId) {
-            $('#facturaError').removeClass('d-none').text('Seleccione una factura.');
+        if (lista.length === 0) {
+            $('#tablaFacturas').addClass('d-none');
+            $('#facturaVacio').removeClass('d-none');
             return;
         }
+        $('#facturaVacio').addClass('d-none');
+        lista.forEach(f => {
+            const sigla = f.sigla
+                ? `<span class="badge badge-info mr-1">${f.sigla}</span>`
+                : '';
+            tbody.append(`
+                <tr class="fila-factura" data-id="${f.id}" style="cursor:pointer;">
+                    <td class="text-center text-muted">
+                        <i class="fa-regular fa-circle fila-check"></i>
+                    </td>
+                    <td><span class="badge badge-dark">${f.correlativo}</span></td>
+                    <td>${sigla}</td>
+                    <td class="small text-monospace">${f.numero}</td>
+                    <td class="small">${f.fecha}</td>
+                    <td class="text-right font-weight-bold">$${f.total}</td>
+                </tr>
+            `);
+        });
+        $('#tablaFacturas').removeClass('d-none');
+    }
 
-        $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Asociando...');
+    function resetModal() {
+        facturaIdSel = null;
+        listaFacturas = [];
+        $('#buscarFactura').val('');
+        $('#contadorFacturas').text('');
+        $('#tablaFacturas').addClass('d-none');
+        $('#tbodyFacturas').empty();
+        $('#facturaVacio').addClass('d-none');
+        $('#facturaAjaxError').addClass('d-none').text('');
+        $('#facturaSeleccionada').addClass('d-none');
+        $('#facturaSelText').text('');
+        $('#btnConfirmarFactura').prop('disabled', true);
+        $('#facturaLoading').removeClass('d-none');
+    }
+
+    $('#btnAsociarFactura').on('click', function () {
+        resetModal();
+        $('#modalFactura').modal('show');
+
+        fetch(`<?= base_url('pedidos/facturas-cliente/' . $pedido->cliente_id) ?>?pedido_id=<?= $pedido->id ?>`)
+            .then(r => r.json())
+            .then(data => {
+                listaFacturas = data.results || [];
+                $('#facturaLoading').addClass('d-none');
+                renderFacturas(listaFacturas);
+            })
+            .catch(() => {
+                $('#facturaLoading').addClass('d-none');
+                $('#facturaAjaxError').removeClass('d-none').text('Error al cargar las facturas. Intente de nuevo.');
+            });
+    });
+
+    // Seleccionar fila
+    $(document).on('click', '.fila-factura', function () {
+        const id = parseInt($(this).data('id'));
+        const f  = listaFacturas.find(x => parseInt(x.id) === id);
+        if (!f) return;
+
+        $('.fila-factura').removeClass('table-success')
+            .find('.fila-check').removeClass('fa-check-circle text-success').addClass('fa-circle');
+        $(this).addClass('table-success')
+            .find('.fila-check').removeClass('fa-circle').addClass('fa-check-circle text-success');
+
+        facturaIdSel = id;
+        $('#facturaSelText').text(f.correlativo + '  ·  ' + f.numero + '  ·  $' + f.total);
+        $('#facturaSeleccionada').removeClass('d-none');
+        $('#btnConfirmarFactura').prop('disabled', false);
+    });
+
+    // Filtro de búsqueda en tiempo real
+    $('#buscarFactura').on('input', function () {
+        const q = $(this).val().toLowerCase().trim();
+        const filtradas = q
+            ? listaFacturas.filter(f => f.numero.toLowerCase().includes(q))
+            : listaFacturas;
+
+        // Deselect si el ítem actual ya no está en la lista filtrada
+        if (facturaIdSel && !filtradas.find(f => parseInt(f.id) === facturaIdSel)) {
+            facturaIdSel = null;
+            $('#facturaSeleccionada').addClass('d-none');
+            $('#btnConfirmarFactura').prop('disabled', true);
+        }
+        renderFacturas(filtradas);
+
+        // Re-highlight si sigue seleccionado
+        if (facturaIdSel) {
+            $(`.fila-factura[data-id="${facturaIdSel}"]`)
+                .addClass('table-success')
+                .find('.fila-check').removeClass('fa-circle').addClass('fa-check-circle text-success');
+        }
+    });
+
+    // Confirmar asociación
+    $('#btnConfirmarFactura').on('click', function () {
+        if (!facturaIdSel) return;
+        const btn = $(this).prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Asociando…');
 
         fetch(`<?= base_url('pedidos/' . $pedido->id . '/asociar-factura') ?>`, {
             method: 'POST',
@@ -550,20 +737,27 @@ $(function () {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ factura_id: parseInt(facturaId) }),
+            body: JSON.stringify({ factura_id: facturaIdSel }),
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                Swal.fire('Listo', data.message, 'success').then(() => location.reload());
+                $('#modalFactura').modal('hide');
+                Swal.fire({
+                    icon: 'success', title: 'Listo',
+                    text: data.message, timer: 1800, showConfirmButton: false,
+                }).then(() => location.reload());
             } else {
-                $('#facturaError').removeClass('d-none').text(data.message);
+                $('#facturaAjaxError').removeClass('d-none').text(data.message);
+                btn.prop('disabled', false).html('<i class="fa-solid fa-link"></i> Confirmar asociación');
             }
         })
-        .finally(() => {
-            $('#btnConfirmarFactura').prop('disabled', false).html('<i class="fa-solid fa-link"></i> Asociar');
+        .catch(() => {
+            $('#facturaAjaxError').removeClass('d-none').text('Error de conexión al asociar.');
+            btn.prop('disabled', false).html('<i class="fa-solid fa-link"></i> Confirmar asociación');
         });
     });
+
 });
 </script>
 
