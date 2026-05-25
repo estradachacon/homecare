@@ -3,19 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <style>
-body { font-family: DejaVu Sans; font-size: 10px; color: #333; }
-h3   { margin-bottom: 5px; }
-.header-info { margin-bottom: 12px; font-size: 9px; color: #555; }
+body { font-family: DejaVu Sans; font-size: 9.5px; color: #333; }
+h3   { margin-bottom: 4px; font-size: 12px; }
+.header-info { margin-bottom: 10px; font-size: 8.5px; color: #555; }
 
 /* Tabla principal */
 table.main { width: 100%; border-collapse: collapse; }
 table.main th,
-table.main td { border: 0.5px solid #999; padding: 5px; vertical-align: top; }
-table.main th { background: #1f4e79; color: #fff; font-weight: bold; text-align: center; }
+table.main td { border: 0.5px solid #999; padding: 3px 4px; vertical-align: top; }
+table.main th { background: #1f4e79; color: #fff; font-weight: bold; text-align: center; font-size: 8.5px; }
 
 /* Tabla interior de documentos */
 table.docs { width: 100%; border-collapse: collapse; font-size: 8.5px; }
-table.docs td { padding: 2px 4px; border: none; border-bottom: 0.3px solid #ddd; }
+table.docs td { padding: 1px 3px; border: none; border-bottom: 0.3px solid #ddd; }
 table.docs tr:last-child td { border-bottom: none; }
 table.docs .doc-sigla { font-weight: bold; color: #1f4e79; white-space: nowrap; }
 table.docs .doc-corr  { color: #444; white-space: nowrap; }
@@ -26,9 +26,9 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
 .text-right  { text-align: right; }
 .text-center { text-align: center; }
 .total-row   { background: #e2efda; font-weight: bold; }
-.no-docs     { color: #aaa; font-style: italic; font-size: 8px; padding: 5px; display: block; }
+.no-docs     { color: #aaa; font-style: italic; font-size: 8px; padding: 3px; display: block; }
 
-@page { margin-top: 55px; margin-bottom: 60px; margin-left: 30px; margin-right: 30px; }
+@page { margin-top: 55px; margin-bottom: 60px; margin-left: 15px; margin-right: 15px; }
 </style>
 </head>
 <body>
@@ -42,12 +42,13 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
 <table class="main">
     <thead>
         <tr>
-            <th style="width:8%">N° Recupero</th>
-            <th style="width:16%">Cliente</th>
-            <th style="width:8%">Fecha Pago</th>
-            <th style="width:10%">Forma de Pago</th>
-            <th style="width:26%">Documentos Aplicados</th>
-            <th style="width:6%">Total</th>
+            <th style="width:8%">N° Recup.</th>
+            <th style="width:19%">Cliente</th>
+            <th style="width:7%">Fecha</th>
+            <th style="width:9%">Forma Pago</th>
+            <th style="width:15%">Docs. Aplicados</th>
+            <th style="width:8%">Retención</th>
+            <th style="width:8%">Val. Aplicado</th>
             <th style="width:26%">Observaciones</th>
         </tr>
     </thead>
@@ -76,13 +77,14 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
                 </table>
                 <?php endif; ?>
             </td>
-            <td class="text-right">$<?= number_format($p['total'], 2) ?></td>
+            <td class="text-right">$<?= number_format($p['retencion'], 2) ?></td>
+            <td class="text-right">$<?= number_format($p['valor_aplicado'], 2) ?></td>
             <td><?= esc($p['observaciones']) ?></td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($pagos)): ?>
         <tr>
-            <td colspan="7" class="text-center" style="color:#888; padding:12px;">
+            <td colspan="8" class="text-center" style="color:#888; padding:12px;">
                 No hay pagos para el período seleccionado.
             </td>
         </tr>
@@ -91,7 +93,8 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
     <tfoot>
         <tr class="total-row">
             <td colspan="5" class="text-right">TOTAL GENERAL:</td>
-            <td class="text-right">$<?= number_format($total, 2) ?></td>
+            <td class="text-right">$<?= number_format($total_retencion, 2) ?></td>
+            <td class="text-right">$<?= number_format($total_valor_aplicado, 2) ?></td>
             <td></td>
         </tr>
     </tfoot>

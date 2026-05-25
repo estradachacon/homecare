@@ -2047,7 +2047,9 @@ class ReportesController extends Controller
 
         $sql = "SELECT ph.id AS pago_id, ph.numero_recupero, ph.fecha_pago, ph.forma_pago,
                        ph.total, ph.observaciones, c.nombre AS cliente_nombre,
-                       fh.numero_control, fh.fecha_emision, pd.monto AS monto_aplicado
+                       fh.numero_control, fh.fecha_emision,
+                       pd.monto AS monto_aplicado,
+                       pd.retencion_monto
                 FROM pagos_head ph
                 INNER JOIN clientes c ON c.id = ph.cliente_id
                 LEFT JOIN pagos_details pd ON pd.pago_id = ph.id AND pd.anulado = 0
@@ -2094,15 +2096,20 @@ class ReportesController extends Controller
                     'fecha_pago'      => $r->fecha_pago,
                     'forma_pago'      => $r->forma_pago,
                     'total'           => (float)$r->total,
+                    'retencion'       => 0.0,
+                    'valor_aplicado'  => 0.0,
                     'observaciones'   => $r->observaciones,
                     'cliente_nombre'  => $r->cliente_nombre,
                     'docs'            => [],
                 ];
             }
+
+            $grouped[$pid]['retencion'] += (float)($r->retencion_monto ?? 0);
+
             if (!empty($r->numero_control)) {
-                $partes     = explode('-', $r->numero_control);
-                $tipoCodigo = $partes[1] ?? null;
-                $sigla      = $siglas[$tipoCodigo] ?? 'DOC';
+                $partes      = explode('-', $r->numero_control);
+                $tipoCodigo  = $partes[1] ?? null;
+                $sigla       = $siglas[$tipoCodigo] ?? 'DOC';
                 $correlativo = str_pad(substr($r->numero_control, -6), 6, '0', STR_PAD_LEFT);
 
                 $grouped[$pid]['docs'][] = [
@@ -2113,6 +2120,13 @@ class ReportesController extends Controller
                 ];
             }
         }
+
+        foreach ($grouped as &$g) {
+            $g['retencion']      = round($g['retencion'], 2);
+            $g['valor_aplicado'] = round($g['total'] - $g['retencion'], 2);
+        }
+        unset($g);
+
         return array_values($grouped);
     }
 
@@ -2130,13 +2144,14 @@ class ReportesController extends Controller
         ];
 
         $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
-        $total = array_sum(array_column($pagos, 'total'));
 
         $data = [
-            'pagos'       => $pagos,
-            'filtros'     => $filtros,
-            'total'       => $total,
-            'generado_en' => date('d/m/Y H:i'),
+            'pagos'               => $pagos,
+            'filtros'             => $filtros,
+            'total'               => array_sum(array_column($pagos, 'total')),
+            'total_retencion'     => array_sum(array_column($pagos, 'retencion')),
+            'total_valor_aplicado'=> array_sum(array_column($pagos, 'valor_aplicado')),
+            'generado_en'         => date('d/m/Y H:i'),
         ];
 
         $html = view('reports/pagos_recibidos_pdf', $data);
@@ -2171,18 +2186,20 @@ class ReportesController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Pagos Recibidos');
 
-        $headers = ['N° Recupero', 'Cliente', 'Fecha Pago', 'Forma de Pago', 'Documentos Aplicados', 'Total', 'Observaciones'];
-        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $i => $col) {
+        $headers = ['N° Recupero', 'Cliente', 'Fecha Pago', 'Forma de Pago', 'Documentos Aplicados', 'Total', 'Retención 10%', 'Valor Aplicado', 'Observaciones'];
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'] as $i => $col) {
             $sheet->setCellValue("{$col}1", $headers[$i]);
         }
-        $sheet->getStyle('A1:G1')->applyFromArray([
+        $sheet->getStyle('A1:I1')->applyFromArray([
             'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E79']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
 
         $row = 2;
-        $granTotal = 0;
+        $granTotal         = 0;
+        $granRetencion     = 0;
+        $granValorAplicado = 0;
         foreach ($pagos as $p) {
             $docsLines = array_map(fn($d) =>
                 $d['sigla'] . '-' . $d['correlativo'] . '   ' .
@@ -2197,31 +2214,37 @@ class ReportesController extends Controller
             $sheet->setCellValue("D$row", $p['forma_pago']);
             $sheet->setCellValue("E$row", implode("\n", $docsLines));
             $sheet->setCellValue("F$row", $p['total']);
-            $sheet->setCellValue("G$row", $p['observaciones']);
+            $sheet->setCellValue("G$row", $p['retencion']);
+            $sheet->setCellValue("H$row", $p['valor_aplicado']);
+            $sheet->setCellValue("I$row", $p['observaciones']);
 
             $sheet->getStyle("E$row")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
             $sheet->getStyle("A$row:D$row")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-            $sheet->getStyle("F$row:G$row")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+            $sheet->getStyle("F$row:I$row")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             $sheet->getRowDimension($row)->setRowHeight(-1);
 
-            $granTotal += $p['total'];
+            $granTotal         += $p['total'];
+            $granRetencion     += $p['retencion'];
+            $granValorAplicado += $p['valor_aplicado'];
             $row++;
         }
 
         $sheet->setCellValue("E$row", 'TOTAL GENERAL:');
         $sheet->setCellValue("F$row", $granTotal);
-        $sheet->getStyle("E$row:F$row")->applyFromArray([
+        $sheet->setCellValue("G$row", $granRetencion);
+        $sheet->setCellValue("H$row", $granValorAplicado);
+        $sheet->getStyle("E$row:H$row")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
         ]);
 
-        $sheet->getStyle("F2:F$row")->getNumberFormat()->setFormatCode('#,##0.00');
-        $sheet->getStyle("F2:F$row")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("A1:G$row")->applyFromArray([
+        $sheet->getStyle("F2:H$row")->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle("F2:H$row")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("A1:I$row")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '999999']]],
         ]);
 
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
