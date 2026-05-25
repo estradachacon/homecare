@@ -2123,7 +2123,7 @@ class ReportesController extends Controller
 
         foreach ($grouped as &$g) {
             $g['retencion']      = round($g['retencion'], 2);
-            $g['valor_aplicado'] = round($g['total'] - $g['retencion'], 2);
+            $g['valor_aplicado'] = $g['total']; // ph.total ya es el neto recibido
         }
         unset($g);
 
@@ -2145,10 +2145,17 @@ class ReportesController extends Controller
 
         $pagos = $this->groupPagosRecibidos($this->queryPagosRecibidos($filtros));
 
+        $totalDocs = 0;
+        foreach ($pagos as $p) {
+            foreach ($p['docs'] as $d) {
+                $totalDocs += $d['monto_aplicado'];
+            }
+        }
+
         $data = [
             'pagos'               => $pagos,
             'filtros'             => $filtros,
-            'total'               => array_sum(array_column($pagos, 'total')),
+            'total_docs'          => round($totalDocs, 2),
             'total_retencion'     => array_sum(array_column($pagos, 'retencion')),
             'total_valor_aplicado'=> array_sum(array_column($pagos, 'valor_aplicado')),
             'generado_en'         => date('d/m/Y H:i'),

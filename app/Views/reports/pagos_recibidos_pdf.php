@@ -47,8 +47,8 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
             <th style="width:7%">Fecha</th>
             <th style="width:9%">Forma Pago</th>
             <th style="width:15%">Docs. Aplicados</th>
-            <th style="width:8%">Retención</th>
-            <th style="width:8%">Val. Aplicado</th>
+            <th style="width:8%">Retención 10%</th>
+            <th style="width:8%">Val. Recibido</th>
             <th style="width:26%">Observaciones</th>
         </tr>
     </thead>
@@ -92,7 +92,8 @@ table.docs .doc-monto { text-align: right; white-space: nowrap; }
     </tbody>
     <tfoot>
         <tr class="total-row">
-            <td colspan="5" class="text-right">TOTAL GENERAL:</td>
+            <td colspan="4" class="text-right">TOTAL GENERAL:</td>
+            <td class="text-right">$<?= number_format($total_docs, 2) ?></td>
             <td class="text-right">$<?= number_format($total_retencion, 2) ?></td>
             <td class="text-right">$<?= number_format($total_valor_aplicado, 2) ?></td>
             <td></td>
