@@ -248,12 +248,13 @@ class DteController extends BaseController
                 ->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }
 
-        $data = (array) $this->request->getJSON(true);
+        $data    = (array) $this->request->getJSON(true);
+        $tipoDte = $data['tipo_dte'] ?? '';
 
-        if (($data['tipo_dte'] ?? '') !== '01') {
+        if (!in_array($tipoDte, ['01', '03', '04'], true)) {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'message' => 'La previsualizacion JSON esta habilitada solo para Factura tipo 01.',
+                'message' => 'Tipo de DTE no soportado para previsualización.',
             ]);
         }
 
@@ -270,7 +271,12 @@ class DteController extends BaseController
             $data['hora_emision']  = $fechaHoraSv->format('H:i:s');
             $data['codigo_generacion'] = null;
 
-            $dte = (new DteBuilderService())->buildFactura($data);
+            $builder = new DteBuilderService();
+            $dte = match ($tipoDte) {
+                '03'    => $builder->buildCCF($data),
+                '04'    => $builder->buildNR($data),
+                default => $builder->buildFactura($data),
+            };
 
             return $this->response->setJSON([
                 'success' => true,

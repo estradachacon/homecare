@@ -148,12 +148,19 @@ class DteBuilderService
     public function buildCCF(array $data): array
     {
         $ambiente   = env('hacienda.env', '00');
-        $codigoGen  = $this->generarUUID();
+        $codigoGen  = $data['codigo_generacion'] ?? $this->generarUUID();
         $numControl = $this->siguienteNumeroControl('03');
         $items      = $data['items'] ?? [];
 
         $cuerpo  = $this->buildCuerpo($items);
         $resumen = $this->buildResumenCCF($cuerpo, $data);
+
+        // Strip internal ivaItem and add tributos ["20"] para el JSON final
+        $cuerpoSalida = array_map(function ($item) {
+            unset($item['ivaItem']);
+            $item['tributos'] = ['20'];
+            return $item;
+        }, $cuerpo);
 
         $cliente = (new ClienteModel())->find($data['cliente_id']);
 
@@ -171,16 +178,18 @@ class DteBuilderService
                 'fecEmi'           => $data['fecha_emision'],
                 'horEmi'           => $data['hora_emision'],
                 'tipoMoneda'       => 'USD',
+                'selloRecibido'    => null,
             ],
             'documentoRelacionado' => null,
             'emisor'               => $this->buildEmisor(),
             'receptor'             => $this->buildReceptorCCF($cliente),
             'otrosDocumentos'      => null,
             'ventaTercero'         => null,
-            'cuerpoDocumento'      => $cuerpo,
+            'cuerpoDocumento'      => $cuerpoSalida,
             'resumen'              => $resumen,
             'extension'            => null,
-            'apendice'             => null,
+            'apendice'             => $this->buildApendice($resumen['condicionOperacion']),
+            'firmaElectronica'     => null,
         ];
     }
 
@@ -301,11 +310,11 @@ class DteBuilderService
                 'numItem'         => $i + 1,
                 'tipoItem'        => $tipoItem,
                 'numeroDocumento' => null,
-                'cantidad'        => $cantidad,
                 'codigo'          => $codigo,
                 'codTributo'      => $codTributo,
-                'uniMedida'       => $uniMedida,
                 'descripcion'     => $descripcion,
+                'cantidad'        => $cantidad,
+                'uniMedida'       => $uniMedida,
                 'precioUni'       => $precioUni,
                 'montoDescu'      => $descuento,
                 'ventaNoSuj'      => 0.00,
@@ -397,7 +406,20 @@ class DteBuilderService
         $totalOp      = round($totalGravada + $totalIva, 2);
 
         $condicion = ($data['condicion_operacion'] ?? 'contado') === 'credito' ? 2 : 1;
-        $plazo     = $condicion === 2 ? ($data['plazo_credito'] ?? null) : null;
+
+        $pagos = null;
+        if ($condicion === 2) {
+            $plazo = $data['plazo_credito'] ?? null;
+            $pagos = [
+                [
+                    'codigo'     => '01',
+                    'montoPago'  => $totalOp,
+                    'referencia' => null,
+                    'plazo'      => $plazo ? (string)$plazo : null,
+                    'periodo'    => $plazo ? 'días' : null,
+                ],
+            ];
+        }
 
         return [
             'totalNoSuj'          => 0.00,
@@ -416,25 +438,18 @@ class DteBuilderService
                     'valor'       => $totalIva,
                 ],
             ],
-            'subTotal'             => $subTotal,
-            'ivaPerci1'            => 0.00,
-            'ivaRete1'             => 0.00,
-            'reteRenta'            => 0.00,
-            'montoTotalOperacion'  => $totalOp,
-            'totalLetras'          => $this->numeroALetras($totalOp),
-            'totalIva'             => $totalIva,
-            'saldoFavor'           => 0.00,
-            'condicionOperacion'   => $condicion,
-            'pagos'                => [
-                [
-                    'codigo'     => '01',
-                    'montoPago'  => $totalOp,
-                    'referencia' => null,
-                    'plazo'      => $plazo ? (string)$plazo : null,
-                    'periodo'    => $plazo ? 'días' : null,
-                ],
-            ],
-            'numPagoElectronico' => null,
+            'subTotal'            => $subTotal,
+            'ivaPerci1'           => 0.00,
+            'ivaRete1'            => 0.00,
+            'reteRenta'           => 0.00,
+            'montoTotalOperacion' => $totalOp,
+            'totalNoGravado'      => 0.00,
+            'totalPagar'          => $totalOp,
+            'totalLetras'         => $this->numeroALetras($totalOp),
+            'saldoFavor'          => 0.00,
+            'condicionOperacion'  => $condicion,
+            'pagos'               => $pagos,
+            'numPagoElectronico'  => null,
         ];
     }
 
@@ -510,7 +525,7 @@ class DteBuilderService
 
         $texto = $this->enteroALetras($entero);
 
-        return strtoupper($texto) . ' ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100 DÓLARES';
+        return 'Son ' . strtoupper($texto) . ' CON ' . str_pad($centavos, 2, '0', STR_PAD_LEFT) . '/100 USD';
     }
 
     private function enteroALetras(int $n): string

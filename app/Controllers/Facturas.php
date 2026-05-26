@@ -384,6 +384,8 @@ class Facturas extends BaseController
                             'tipo_documento'   => $tipoDocumento,
                             'numero_documento' => $numeroDocumento,
                             'nrc'              => $nrc,
+                            'cod_actividad'    => $receptor['codActividad'] ?? null,
+                            'desc_actividad'   => $receptor['descActividad'] ?? null,
                             'nombre'           => $receptor['nombre'] ?? null,
                             'telefono'         => $receptor['telefono'] ?? null,
                             'correo'           => $receptor['correo'] ?? null,
@@ -397,8 +399,10 @@ class Facturas extends BaseController
 
                         // actualizar datos si vienen nuevos
                         $clienteModel->update($clienteId, [
-                            'telefono' => $receptor['telefono'] ?? $cliente->telefono,
-                            'correo'   => $receptor['correo'] ?? $cliente->correo,
+                            'telefono'       => $receptor['telefono'] ?? $cliente->telefono,
+                            'correo'         => $receptor['correo'] ?? $cliente->correo,
+                            'cod_actividad'  => $receptor['codActividad'] ?? $cliente->cod_actividad ?? null,
+                            'desc_actividad' => $receptor['descActividad'] ?? $cliente->desc_actividad ?? null,
                         ]);
                     }
 

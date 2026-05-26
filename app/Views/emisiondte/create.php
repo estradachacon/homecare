@@ -770,22 +770,18 @@ requestAnimationFrame(() => {
                 return;
             }
 
-            if (tipoDte !== '01') {
-                Swal.fire('Solo Factura 01', 'Por ahora la previsualizacion JSON esta habilitada para Factura Consumidor Final.', 'warning');
-                return;
-            }
-
             const totalPagar = parseFloat($('#lblTotalPagar').text().replace('$', '')) || 0;
-            const tipoDteLabel = 'Factura Consumidor Final';
+            const tipoDteLabels = { '01': 'Factura Consumidor Final', '03': 'Crédito Fiscal', '04': 'Nota de Remisión' };
+            const tipoDteLabel = tipoDteLabels[tipoDte] || tipoDte;
 
 
 
             Swal.fire({
-                title: 'Generar JSON',
+                title: `Generar JSON — ${tipoDteLabel}`,
                 html: `
                 <div class="text-start" style="font-size:14px;">
                     <p><b>Documento:</b> ${tipoDteLabel}</p>
-                    <p><b>Productos:</b> ${items.length}</p>
+                    <p><b>Líneas:</b> ${items.length}</p>
                     <hr>
                     <p class="fs-5"><b>Total: $${totalPagar.toFixed(2)}</b></p>
                 </div>`,
@@ -828,7 +824,7 @@ requestAnimationFrame(() => {
                             const numeroControl = data.dte?.identificacion?.numeroControl || 'N/D';
                             Swal.fire({
                                 icon: 'info',
-                                title: 'JSON Factura 01',
+                                title: `JSON ${tipoDteLabel}`,
                                 width: '80rem',
                                 html: `
                                     <div class="text-start mb-2">
