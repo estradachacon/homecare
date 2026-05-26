@@ -267,10 +267,16 @@ class ClienteController extends BaseController
             return redirect()->to('/clientes')->with('error', 'Cliente no encontrado');
         }
 
+        $codActividad = $this->request->getPost('cod_actividad') ?: null;
+
         $data = [
             'tipo_documento'     => $this->request->getPost('tipo_documento'),
             'numero_documento'   => $this->request->getPost('numero_documento'),
             'nrc'                => $this->request->getPost('nrc'),
+            'cod_actividad'      => $codActividad,
+            'desc_actividad'     => $codActividad
+                ? (config('ActividadesEconomicas')->actividades[$codActividad] ?? $this->request->getPost('desc_actividad'))
+                : null,
             'nombre'             => $this->request->getPost('nombre'),
             'telefono'           => $this->request->getPost('telefono'),
             'correo'             => $this->request->getPost('correo'),

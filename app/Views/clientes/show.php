@@ -39,6 +39,31 @@
                             <?= esc($cliente->telefono ?? 'N/D') ?>
                         </div>
                     </div>
+
+                    <?php if (!empty($cliente->cod_actividad)): ?>
+                    <div class="col-md-8 cliente-info-item">
+                        <small class="text-muted">Actividad económica</small>
+                        <div class="fw-semibold">
+                            <span class="badge text-white bg-secondary me-1"><?= esc($cliente->cod_actividad) ?></span>
+                            <?= esc($cliente->desc_actividad ?? '') ?>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <div class="col-md-8 cliente-info-item">
+                        <small class="text-muted">Actividad económica</small>
+                        <div>
+                            <span class="text-warning">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i>Sin giro asignado
+                            </span>
+                            <?php if (tienePermiso('editar_clientes')): ?>
+                                <a href="<?= base_url('clientes/edit/' . $cliente->id) ?>" class="btn btn-xs btn-outline-warning ms-2" style="font-size:11px;padding:2px 8px;">
+                                    Asignar
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="col-md-4 cliente-info-item cliente-account-item">
                         <small class="text-muted">Cuenta Contable</small>
                         <div class="d-flex align-items-center gap-2 mt-1">

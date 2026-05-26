@@ -125,6 +125,31 @@
 
                     <div class="soft-box">
                         <div class="section-title">
+                            <i class="fa-solid fa-industry"></i> Actividad económica (giro)
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-10">
+                                <div class="form-group mb-0">
+                                    <label>Código de actividad</label>
+                                    <select name="cod_actividad" id="cod_actividad" class="form-control">
+                                        <option value="">Sin actividad asignada</option>
+                                        <?php foreach (config('ActividadesEconomicas')->actividades as $cod => $desc): ?>
+                                            <option value="<?= esc($cod) ?>"
+                                                <?= ($cliente->cod_actividad ?? '') === $cod ? 'selected' : '' ?>>
+                                                <?= esc($cod) ?> — <?= esc($desc) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="hidden" name="desc_actividad" id="desc_actividad"
+                                           value="<?= esc($cliente->desc_actividad ?? '') ?>">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="soft-box">
+                        <div class="section-title">
                             <i class="fa-solid fa-address-book"></i> Información general
                         </div>
 
@@ -301,6 +326,19 @@
 </div>
 <script>
 $(document).ready(function () {
+
+    const actividadesMap = <?= json_encode(config('ActividadesEconomicas')->actividades) ?>;
+
+    $('#cod_actividad').select2({
+        placeholder: 'Buscar por código o nombre de actividad...',
+        allowClear: true,
+        width: '100%',
+    });
+
+    $('#cod_actividad').on('change', function () {
+        const cod = $(this).val();
+        $('#desc_actividad').val(actividadesMap[cod] || '');
+    });
 
     $('#cuenta_contable_id').select2({
         placeholder: 'Buscar cuenta contable',
