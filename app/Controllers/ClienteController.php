@@ -141,6 +141,8 @@ class ClienteController extends BaseController
                 'tipo_documento'   => $c->tipo_documento,
                 'numero_documento' => $c->numero_documento,
                 'nrc'              => $c->nrc,
+                'cod_actividad'    => $c->cod_actividad,
+                'desc_actividad'   => $c->desc_actividad,
                 'nombre'           => $c->nombre,
                 'telefono'         => $c->telefono,
                 'correo'           => $c->correo,
@@ -182,6 +184,8 @@ class ClienteController extends BaseController
                 'tipo_documento'   => $c->tipo_documento,
                 'numero_documento' => $c->numero_documento,
                 'nrc'              => $c->nrc,
+                'cod_actividad'    => $c->cod_actividad,
+                'desc_actividad'   => $c->desc_actividad,
                 'nombre'           => $c->nombre,
                 'telefono'         => $c->telefono,
                 'correo'           => $c->correo,
@@ -291,6 +295,55 @@ class ClienteController extends BaseController
         return redirect()->to('/clientes')
             ->with('success', 'Cliente actualizado correctamente');
     }
+
+    public function actualizarGiroAjax($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Solicitud no permitida',
+            ]);
+        }
+
+        $model = new ClienteModel();
+        $cliente = $model->find($id);
+
+        if (!$cliente) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'Cliente no encontrado',
+            ]);
+        }
+
+        $codActividad = trim((string) $this->request->getPost('cod_actividad'));
+        $actividades = config('ActividadesEconomicas')->actividades;
+
+        if ($codActividad === '' || !isset($actividades[$codActividad])) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Seleccione un giro valido.',
+            ]);
+        }
+
+        $descActividad = $actividades[$codActividad];
+
+        if (!$model->update($id, [
+            'cod_actividad'  => $codActividad,
+            'desc_actividad' => $descActividad,
+        ])) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'No se pudo actualizar el giro del cliente.',
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'cod_actividad' => $codActividad,
+            'desc_actividad' => $descActividad,
+        ]);
+    }
+
     public function crearCuentaContableAjax()
     {
         if (!$this->request->isAJAX()) {

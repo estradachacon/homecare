@@ -459,11 +459,16 @@ class DteBuilderService
 
     public function siguienteNumeroControl(string $tipoDte): string
     {
+        $ambiente = env('hacienda.env', '00');
+
+        if ($ambiente === '03') {
+            return $this->siguienteNumeroControlLocal($tipoDte);
+        }
+
         $e       = $this->emisor;
         $serie   = "{$e->cod_estable_mh}{$e->cod_punto_venta_mh}";
         $serie   = preg_replace('/[^A-Z0-9]/', '', strtoupper($serie));
         $prefijo = "DTE-{$tipoDte}-{$serie}-";
-        $ambiente = env('hacienda.env', '00');
         $anioDte = (new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador')))->format('y');
 
         $db  = \Config\Database::connect();
@@ -484,6 +489,30 @@ class DteBuilderService
         }
 
         return $prefijo . $anioDte . str_pad($siguiente, 13, '0', STR_PAD_LEFT);
+    }
+
+    private function siguienteNumeroControlLocal(string $tipoDte): string
+    {
+        $fecha = (new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador')))->format('ymd');
+        $prefijo = "LOCAL-{$tipoDte}-{$fecha}-";
+
+        $db = \Config\Database::connect();
+        $row = $db->table('facturas_head')
+            ->where('ambiente', '03')
+            ->where('tipo_dte', $tipoDte)
+            ->like('numero_control', $prefijo, 'after')
+            ->orderBy("CAST(SUBSTRING_INDEX(numero_control, '-', -1) AS UNSIGNED)", 'DESC', false)
+            ->limit(1)
+            ->get()
+            ->getRow();
+
+        $siguiente = 1;
+        if ($row) {
+            $parts = explode('-', $row->numero_control);
+            $siguiente = ((int) end($parts)) + 1;
+        }
+
+        return $prefijo . str_pad($siguiente, 6, '0', STR_PAD_LEFT);
     }
 
     // ─────────────────────────────────────────────

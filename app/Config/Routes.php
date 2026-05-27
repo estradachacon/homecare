@@ -167,6 +167,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
     $routes->get('clientes/cuentas-contables-select2', 'ClienteController::cuentasContablesSelect2');
     $routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
+    $routes->post('clientes/actualizar-giro/(:num)', 'ClienteController::actualizarGiroAjax/$1');
     $routes->post('clientes/cuentas-contables-crear', 'ClienteController::crearCuentaContableAjax');
     $routes->post('clientes/asignar-cuenta/(:num)', 'ClienteController::asignarCuentaAjax/$1');
     $routes->get('clientes/municipios-por-departamento', 'ClienteController::municipiosPorDepartamento');

@@ -17,6 +17,9 @@ class FacturaHeadModel extends Model
         // Identificación
         'ambiente',
         'tipo_dte',
+        'emitido',
+        'estado_mh',
+        'respuesta_mh',
         'numero_control',
         'codigo_generacion',
         'fecha_emision',

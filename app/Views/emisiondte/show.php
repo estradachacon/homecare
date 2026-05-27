@@ -52,7 +52,7 @@
                 <div class="border rounded px-4 py-3 bg-light text-end" style="min-width:220px;">
                     <div class="d-flex justify-content-between mb-1">
                         <small class="text-muted me-3">Ambiente</small>
-                        <span class="badge <?= $dte->ambiente === '01' ? 'bg-success' : 'bg-warning text-dark' ?>">
+                        <span class="badge <?= $dte->ambiente === '01' ? 'bg-success' : ($dte->ambiente === '03' ? 'bg-info text-dark' : 'bg-warning text-dark') ?>">
                             <?= $dte->ambiente === '01' ? 'Producción' : 'Pruebas' ?>
                         </span>
                     </div>
@@ -64,6 +64,7 @@
                                 'procesado'   => ['class' => 'bg-success', 'label' => 'Procesado'],
                                 'recibido'    => ['class' => 'bg-primary', 'label' => 'Recibido'],
                                 'rechazado'   => ['class' => 'bg-danger',  'label' => 'Rechazado'],
+                                'local'       => ['class' => 'bg-info text-dark', 'label' => 'Local'],
                                 default       => ['class' => 'bg-secondary', 'label' => ucfirst($estadoMh ?: 'Pendiente')],
                             };
                         ?>

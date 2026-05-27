@@ -87,6 +87,7 @@
                                             'recibido'    => ['class' => 'bg-primary', 'label' => 'Recibido'],
                                             'rechazado'   => ['class' => 'bg-danger',  'label' => 'Rechazado'],
                                             'contingencia'=> ['class' => 'bg-warning text-dark', 'label' => 'Contingencia'],
+                                            'local'       => ['class' => 'bg-info text-dark', 'label' => 'Local'],
                                             default       => ['class' => 'bg-secondary', 'label' => ucfirst($estadoMh ?: 'Pendiente')],
                                         };
                                     ?>

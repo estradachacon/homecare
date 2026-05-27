@@ -120,6 +120,38 @@
         font-size: 13px;
         padding: 6px 12px;
     }
+
+    .cliente-popup-in {
+        animation: clientePopupIn .22s ease-out both;
+    }
+
+    .cliente-popup-out {
+        animation: clientePopupOut .18s ease-in both;
+    }
+
+    @keyframes clientePopupIn {
+        from {
+            opacity: 0;
+            transform: translateY(-12px) scale(.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes clientePopupOut {
+        from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-8px) scale(.98);
+        }
+    }
 </style>
 
 <div class="row">
@@ -282,7 +314,7 @@
 
                     <div class="text-end">
                         <button type="submit" class="btn btn-success" id="btnEmitir">
-                            <i class="fa-solid fa-code me-1"></i> Generar JSON
+                            <i class="fa-solid fa-paper-plane me-1"></i> Emitir y guardar
                         </button>
                     </div>
 
@@ -364,12 +396,143 @@
         $('#fechaIso').val(fechaIso);
         $('#horaIso').val(horaIso);
 
+        let clienteSeleccionado = null;
+        const actividadesMap = <?= json_encode(config('ActividadesEconomicas')->actividades) ?>;
+
+        function clienteTieneNrc() {
+            return !!String(clienteSeleccionado?.nrc || '').trim();
+        }
+
+        function clienteTieneGiro() {
+            return !!String(clienteSeleccionado?.cod_actividad || '').trim() &&
+                !!String(clienteSeleccionado?.desc_actividad || '').trim();
+        }
+
+        function alertarClienteSinNrc() {
+            Swal.fire(
+                'Cliente no apto para CCF',
+                'Para emitir Credito Fiscal el cliente debe tener NRC registrado. Actualice la ficha del cliente o emita Factura Consumidor Final.',
+                'warning'
+            );
+        }
+
+        function actualizarEstadoBotonEmitir(avisar = false) {
+            const requiereNrc = $('#tipoDte').val() === '03' && $('#clienteId').val();
+            const bloquear = requiereNrc && !clienteTieneNrc();
+
+            $('#btnEmitir')
+                .prop('disabled', bloquear)
+                .attr('title', bloquear ? 'El cliente seleccionado no tiene NRC para emitir CCF.' : '');
+
+            if (bloquear && avisar) {
+                alertarClienteSinNrc();
+            }
+        }
+
+        function buildOpcionesActividades() {
+            return Object.entries(actividadesMap)
+                .map(([codigo, descripcion]) => {
+                    const texto = `${codigo} - ${descripcion}`;
+                    return `<option value="${escapeHtml(codigo)}">${escapeHtml(texto)}</option>`;
+                })
+                .join('');
+        }
+
+        function solicitarGiroCliente() {
+            if (!clienteSeleccionado || !clienteTieneNrc() || clienteTieneGiro()) {
+                return;
+            }
+
+            Swal.fire({
+                title: 'Completar giro',
+                html: `
+                    <div class="text-start" style="font-size:14px;">
+                        <p class="mb-3">El cliente tiene NRC, pero no tiene giro registrado. Puede incluirlo ahora sin detener la emision.</p>
+                        <label class="compact-label">Giro</label>
+                        <select id="clienteGiroSelect" class="form-control" style="width:100%;">
+                            <option value="">Seleccione...</option>
+                            ${buildOpcionesActividades()}
+                        </select>
+                    </div>
+                `,
+                icon: 'info',
+                width: '46rem',
+                showCancelButton: true,
+                confirmButtonText: 'Guardar giro',
+                cancelButtonText: 'Omitir por ahora',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-primary m-2',
+                    cancelButton: 'btn btn-secondary m-2',
+                },
+                showClass: {
+                    popup: 'cliente-popup-in'
+                },
+                hideClass: {
+                    popup: 'cliente-popup-out'
+                },
+                didOpen: () => {
+                    $('#clienteGiroSelect').select2({
+                        placeholder: 'Buscar por codigo o nombre...',
+                        width: '100%',
+                        dropdownParent: $('.swal2-popup'),
+                    });
+                },
+                preConfirm: () => {
+                    const codActividad = $('#clienteGiroSelect').val();
+
+                    if (!codActividad) {
+                        Swal.showValidationMessage('Seleccione un giro para guardar.');
+                        return false;
+                    }
+
+                    return fetch(`<?= base_url('clientes/actualizar-giro') ?>/${clienteSeleccionado.id}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: new URLSearchParams({
+                                cod_actividad: codActividad,
+                            }),
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'No se pudo guardar el giro.');
+                            }
+
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message || 'No se pudo guardar el giro.');
+                            return false;
+                        });
+                },
+            }).then(result => {
+                if (!result.isConfirmed || !result.value?.success) {
+                    return;
+                }
+
+                clienteSeleccionado.cod_actividad = result.value.cod_actividad;
+                clienteSeleccionado.desc_actividad = result.value.desc_actividad;
+
+                Swal.fire('Giro actualizado', 'El giro del cliente fue guardado correctamente.', 'success');
+            });
+        }
+
         $('#tipoDte').on('change', function() {
+            if ($(this).val() === '03' && $('#clienteId').val() && !clienteTieneNrc()) {
+                alertarClienteSinNrc();
+            }
+
             actualizarTituloPrecio();
+            actualizarEstadoBotonEmitir();
             aplicarModoDTE(); // 🔥 ESTA ES LA CLAVE
         });
         actualizarTituloPrecio();
         aplicarModoDTE();
+        actualizarEstadoBotonEmitir();
 
         // ──────────────────────────────────────────────
         //  PLAZO CRÉDITO
@@ -468,6 +631,7 @@ function addRowFromServicio(servicio) {
 }
         $('#clienteId').on('select2:select', function(e) {
             const c = e.params.data;
+            clienteSeleccionado = c;
             $('#c_nombre').text(c.nombre || c.text || '-');
             $('#c_tipo_doc_lbl').text(c.tipo_documento || 'Doc');
             $('#c_num_doc').text(c.numero_documento || '-');
@@ -478,16 +642,86 @@ function addRowFromServicio(servicio) {
             $('#btnToggleCliente').show();
             $('#clienteInfo').hide();
             $('#btnToggleCliente').text('Ver datos');
+
+            actualizarEstadoBotonEmitir(true);
+            solicitarGiroCliente();
         });
 
         $('#btnToggleCliente').on('click', function() {
-            if ($('#clienteInfo').is(':visible')) {
-                $('#clienteInfo').hide();
-                $(this).text('Ver datos');
-            } else {
-                $('#clienteInfo').show();
-                $(this).text('Ocultar datos');
+            if (!clienteSeleccionado) {
+                Swal.fire('Cliente requerido', 'Seleccione un cliente para ver sus datos.', 'warning');
+                return;
             }
+
+            const c = clienteSeleccionado;
+            const nombre = escapeHtml(c.nombre || c.text || '-');
+            const tipoDoc = escapeHtml(c.tipo_documento || 'Documento');
+            const documento = escapeHtml(c.numero_documento || '-');
+            const nrc = escapeHtml(c.nrc || '-');
+            const codActividad = escapeHtml(c.cod_actividad || '-');
+            const descActividad = escapeHtml(c.desc_actividad || '-');
+            const telefono = escapeHtml(c.telefono || '-');
+            const correo = escapeHtml(c.correo || '-');
+            const direccion = escapeHtml(c.direccion || '-');
+
+            Swal.fire({
+                title: 'Datos del cliente',
+                html: `
+                    <div class="text-start" style="font-size:14px;">
+                        <div class="mb-3">
+                            <span class="text-muted small d-block">Nombre</span>
+                            <div class="fw-bold fs-6">${nombre}</div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <span class="text-muted small d-block">${tipoDoc}</span>
+                                <div class="border rounded px-2 py-2 bg-light">${documento}</div>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted small d-block">NRC</span>
+                                <div class="border rounded px-2 py-2 bg-light">${nrc}</div>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <span class="text-muted small d-block">Cod. actividad</span>
+                                <div class="border rounded px-2 py-2 bg-light">${codActividad}</div>
+                            </div>
+                            <div class="col-8">
+                                <span class="text-muted small d-block">Giro</span>
+                                <div class="border rounded px-2 py-2 bg-light">${descActividad}</div>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Telefono</span>
+                                <div class="border rounded px-2 py-2 bg-light">${telefono}</div>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Correo</span>
+                                <div class="border rounded px-2 py-2 bg-light">${correo}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-muted small d-block">Direccion</span>
+                            <div class="border rounded px-2 py-2 bg-light">${direccion}</div>
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
+                width: '42rem',
+                showClass: {
+                    popup: 'cliente-popup-in'
+                },
+                hideClass: {
+                    popup: 'cliente-popup-out'
+                },
+                confirmButtonText: 'Cerrar',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'btn btn-secondary'
+                }
+            });
         });
 
         $('#servicioQuick').select2({
@@ -722,6 +956,11 @@ requestAnimationFrame(() => {
                 return;
             }
 
+            if (tipoDte === '03' && !clienteTieneNrc()) {
+                alertarClienteSinNrc();
+                return;
+            }
+
             if (condicion === 'credito' && !plazo) {
                 Swal.fire('Plazo requerido', 'Seleccione el plazo de crédito.', 'warning');
                 return;
@@ -777,7 +1016,7 @@ requestAnimationFrame(() => {
 
 
             Swal.fire({
-                title: `Generar JSON — ${tipoDteLabel}`,
+                title: `Emitir y guardar - ${tipoDteLabel}`,
                 html: `
                 <div class="text-start" style="font-size:14px;">
                     <p><b>Documento:</b> ${tipoDteLabel}</p>
@@ -787,7 +1026,7 @@ requestAnimationFrame(() => {
                 </div>`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Ver JSON',
+                confirmButtonText: 'Emitir y guardar',
                 cancelButtonText: 'Cancelar',
                 buttonsStyling: false,
                 customClass: {
@@ -797,7 +1036,7 @@ requestAnimationFrame(() => {
             }).then(result => {
                 if (!result.isConfirmed) return;
 
-                $('#btnEmitir').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Generando...');
+                $('#btnEmitir').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Emitiendo...');
 
                 const payload = {
                     tipo_dte: tipoDte,
@@ -810,7 +1049,7 @@ requestAnimationFrame(() => {
                     items: items,
                 };
 
-                fetch('<?= base_url("emision-dte/preview-json") ?>', {
+                fetch('<?= base_url("emision-dte/store") ?>', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -820,35 +1059,46 @@ requestAnimationFrame(() => {
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            const json = JSON.stringify(data.dte, null, 4);
-                            const numeroControl = data.dte?.identificacion?.numeroControl || 'N/D';
+                            const asientoMsg = data.asiento_creado
+                                ? '<p class="mb-1"><b>Asiento contable:</b> generado</p>'
+                                : (data.asiento_omitido ? `<p class="mb-1 text-warning"><b>Asiento omitido:</b> ${escapeHtml(data.asiento_omitido)}</p>` : '');
+
                             Swal.fire({
-                                icon: 'info',
-                                title: `JSON ${tipoDteLabel}`,
-                                width: '80rem',
+                                icon: 'success',
+                                title: 'DTE guardado',
                                 html: `
-                                    <div class="text-start mb-2">
-                                        <span class="text-muted small d-block">Numero de control generado</span>
-                                        <code class="d-inline-block px-2 py-1 bg-light border rounded">${escapeHtml(numeroControl)}</code>
+                                    <div class="text-start" style="font-size:14px;">
+                                        <p class="mb-1"><b>Numero de control:</b> ${escapeHtml(data.numero || 'N/D')}</p>
+                                        <p class="mb-1"><b>Total:</b> $${Number(data.total || 0).toFixed(2)}</p>
+                                        <p class="mb-1"><b>Estado MH:</b> ${escapeHtml(data.estado_mh || 'N/D')}</p>
+                                        ${asientoMsg}
                                     </div>
-                                    <pre style="max-height:65vh;overflow:auto;text-align:left;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap;">${escapeHtml(json)}</pre>
                                 `,
-                                confirmButtonText: 'Cerrar',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ver factura',
+                                cancelButtonText: 'Cerrar',
                                 buttonsStyling: false,
                                 customClass: {
-                                    confirmButton: 'btn btn-secondary',
+                                    confirmButton: 'btn btn-success m-2',
+                                    cancelButton: 'btn btn-secondary m-2',
                                 },
+                            }).then((res) => {
+                                if (res.isConfirmed && data.factura_id) {
+                                    window.location.href = `<?= base_url('facturas') ?>/${data.factura_id}`;
+                                }
                             });
                         } else {
-                            Swal.fire('Error al generar JSON', data.message ?? 'Error desconocido.', 'error');
-                            $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-code me-1"></i> Generar JSON');
+                            Swal.fire('Error al emitir', data.message ?? 'Error desconocido.', 'error');
+                            $('#btnEmitir').html('<i class="fa-solid fa-paper-plane me-1"></i> Emitir y guardar');
+                            actualizarEstadoBotonEmitir();
                         }
                     })
                     .catch(() => {
                         Swal.fire('Error de conexión', 'No se pudo conectar con el servidor.', 'error');
                     })
                     .finally(() => {
-                        $('#btnEmitir').prop('disabled', false).html('<i class="fa-solid fa-code me-1"></i> Generar JSON');
+                        $('#btnEmitir').html('<i class="fa-solid fa-paper-plane me-1"></i> Emitir y guardar');
+                        actualizarEstadoBotonEmitir();
                     });
             });
         });
