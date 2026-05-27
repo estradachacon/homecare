@@ -592,17 +592,20 @@ class ReportesController extends Controller
         $fecha_corte = $this->request->getGet('fecha_corte') ?: date('Y-m-d');
         $cliente_id  = $this->request->getGet('cliente_id');
 
+        // Line value = venta_gravada + iva_item + venta_exenta + venta_no_sujeta (all COALESCE'd to avoid NULL pollution)
+        $lineVal = "COALESCE(fd.venta_gravada,0) + COALESCE(fd.iva_item,0) + COALESCE(fd.venta_exenta,0) + COALESCE(fd.venta_no_sujeta,0)";
+
         $sql = "
             SELECT
                 fh.id              AS factura_id,
                 fh.receptor_id,
                 c.nombre           AS cliente,
                 fh.saldo,
-                COALESCE(SUM(CASE WHEN fd.tipo_item = 1 THEN fd.venta_gravada + fd.iva_item ELSE 0 END), 0) AS productos_bruto,
-                COALESCE(SUM(CASE WHEN fd.tipo_item = 2 THEN fd.venta_gravada + fd.iva_item ELSE 0 END), 0) AS servicios_bruto,
-                COALESCE(SUM(fd.venta_gravada + fd.iva_item), 0)                                             AS total_lineas
+                COALESCE(SUM(CASE WHEN fd.tipo_item = 1 THEN $lineVal ELSE 0 END), 0) AS productos_bruto,
+                COALESCE(SUM(CASE WHEN fd.tipo_item = 2 THEN $lineVal ELSE 0 END), 0) AS servicios_bruto,
+                COALESCE(SUM($lineVal), 0)                                              AS total_lineas
             FROM facturas_head fh
-            LEFT JOIN clientes c        ON c.id        = fh.receptor_id
+            LEFT JOIN clientes c          ON c.id          = fh.receptor_id
             LEFT JOIN factura_detalles fd ON fd.factura_id = fh.id
             WHERE fh.saldo     > 0
               AND fh.anulada   = 0
@@ -621,7 +624,7 @@ class ReportesController extends Controller
 
         $rows = $db->query($sql, $params)->getResultObject();
 
-        // Aggregate by client, distributing saldo proportionally
+        // Aggregate by client, distributing saldo proportionally by line value
         $reporte = [];
         foreach ($rows as $row) {
             $rid = $row->receptor_id;
@@ -639,10 +642,22 @@ class ReportesController extends Controller
             $servBruto   = (float)$row->servicios_bruto;
 
             if ($totalLineas > 0) {
-                $reporte[$rid]['productos'] += round($saldo * ($prodBruto / $totalLineas), 2);
-                $reporte[$rid]['servicios'] += round($saldo * ($servBruto / $totalLineas), 2);
+                $saldoProd = round($saldo * ($prodBruto / $totalLineas), 2);
+                $saldoServ = round($saldo * ($servBruto / $totalLineas), 2);
+                // Absorb any cent-level rounding difference into the larger bucket
+                $diff = round($saldo - $saldoProd - $saldoServ, 2);
+                if ($diff != 0.0) {
+                    if ($prodBruto >= $servBruto) {
+                        $saldoProd += $diff;
+                    } else {
+                        $saldoServ += $diff;
+                    }
+                }
+                $reporte[$rid]['productos'] += $saldoProd;
+                $reporte[$rid]['servicios'] += $saldoServ;
             } else {
-                $reporte[$rid]['productos'] += $saldo;
+                // No detail lines found — put full saldo in services (safest default for this system)
+                $reporte[$rid]['servicios'] += $saldo;
             }
             $reporte[$rid]['total'] += $saldo;
         }
