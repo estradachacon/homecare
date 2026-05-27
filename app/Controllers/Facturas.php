@@ -464,6 +464,7 @@ class Facturas extends BaseController
                 'condicion_operacion'   => $condicionDte,
                 'plazo_credito'         => $plazoCredito,
                 'codigo_generacion_relacionado' => $codigoRelacionado,
+                'observaciones'         => $json['observaciones'] ?? null,
             ];
 
             log_message('error', json_encode($dataHead));

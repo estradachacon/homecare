@@ -152,6 +152,14 @@
             transform: translateY(-8px) scale(.98);
         }
     }
+
+    .select2-container--default .select2-selection--single:focus,
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: #86b7fe !important;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
 </style>
 
 <div class="row">
@@ -305,11 +313,12 @@
 
                     <!-- Observaciones -->
                     <div class="mb-3">
+                        <label class="compact-label">Notas/Observaciones (opcional)</label>
                         <textarea
-                            class="form-control form-control-sm desc-input auto-expand"
-                            name="items[__IDX__][descripcion]"
+                            id="observaciones"
+                            class="form-control form-control-sm"
                             rows="2"
-                            placeholder="Notas:"></textarea>
+                            placeholder="Notas adicionales para la factura:"></textarea>
                     </div>
 
                     <div class="text-end">
@@ -567,6 +576,16 @@
                 }),
             },
         });
+        // Auto-enfocar búsqueda al abrir
+        $('#clienteId').on('select2:opening', function(e) {
+            setTimeout(() => {
+                $(this).data('select2').$dropdown.find('.select2-search__field').focus();
+            }, 0);
+        });
+        $('#clienteId').on('select2:open', function(e) {
+            document.querySelector('.select2-search__field').focus();
+        });
+
         $('#servicioQuick').on('select2:select', function(e) {
             const servicio = e.params.data;
 
@@ -574,6 +593,10 @@
 
             $('#servicioQuick').val(null).trigger('change');
         });
+        $('#servicioQuick').on('select2:open', function(e) {
+            document.querySelector('.select2-search__field').focus();
+        });
+
         $('#productoQuick').select2({
             language: 'es',
             placeholder: 'Buscar producto y agregar...',
@@ -592,43 +615,46 @@
                 }),
             },
         });
-
-function addRowFromServicio(servicio) {
-    rowIdx++;
-
-    const tpl = document.getElementById('rowTemplate').innerHTML.replace(/__IDX__/g, rowIdx);
-    const $row = $(tpl);
-
-    $('#productosBody').append($row);
-
-    $row.find('.tipo-item').val('2');
-    $row.find('.producto-id').val(servicio.id || '');
-    $row.find('.producto-codigo').val(servicio.codigo || '');
-    $row.find('.desc-input').val(servicio.text);
-
-    if (servicio.precio) {
-        $row.find('.price-input').val(servicio.precio);
-    }
-
-    if ($('#tipoDte').val() === '01') {
-        $row.find('.iva-cell').hide();
-    }
-
-    actualizarNumeros();
-
-    // 🔥 IGUAL QUE addRowFromProducto
-    calcularFila($row);
-
-    requestAnimationFrame(() => {
-        $row.find('.auto-expand').each(function() {
-            autoExpand(this);
+        $('#productoQuick').on('select2:open', function(e) {
+            document.querySelector('.select2-search__field').focus();
         });
-    });
 
-    setTimeout(() => {
-        $row.find('.qty-input').focus().select();
-    }, 100);
-}
+        function addRowFromServicio(servicio) {
+            rowIdx++;
+
+            const tpl = document.getElementById('rowTemplate').innerHTML.replace(/__IDX__/g, rowIdx);
+            const $row = $(tpl);
+
+            $('#productosBody').append($row);
+
+            $row.find('.tipo-item').val('2');
+            $row.find('.producto-id').val(servicio.id || '');
+            $row.find('.producto-codigo').val(servicio.codigo || '');
+            $row.find('.desc-input').val(servicio.text);
+
+            if (servicio.precio) {
+                $row.find('.price-input').val(servicio.precio);
+            }
+
+            if ($('#tipoDte').val() === '01') {
+                $row.find('.iva-cell').hide();
+            }
+
+            actualizarNumeros();
+
+            // 🔥 IGUAL QUE addRowFromProducto
+            calcularFila($row);
+
+            requestAnimationFrame(() => {
+                $row.find('.auto-expand').each(function() {
+                    autoExpand(this);
+                });
+            });
+
+            setTimeout(() => {
+                $row.find('.qty-input').focus().select();
+            }, 100);
+        }
         $('#clienteId').on('select2:select', function(e) {
             const c = e.params.data;
             clienteSeleccionado = c;
@@ -742,11 +768,17 @@ function addRowFromServicio(servicio) {
                 }),
             },
         });
-requestAnimationFrame(() => {
-    $row.find('.desc-input').each(function () {
-        autoExpand(this);
-    });
-});
+        // Auto-enfocar búsqueda al abrir
+        $('#servicioQuick').on('select2:opening', function(e) {
+            setTimeout(() => {
+                $(this).data('select2').$dropdown.find('.select2-search__field').focus();
+            }, 0);
+        });
+        requestAnimationFrame(() => {
+            $row.find('.desc-input').each(function() {
+                autoExpand(this);
+            });
+        });
         $('#productoQuick').on('select2:select', function(e) {
             const producto = e.params.data;
 
@@ -1010,7 +1042,11 @@ requestAnimationFrame(() => {
             }
 
             const totalPagar = parseFloat($('#lblTotalPagar').text().replace('$', '')) || 0;
-            const tipoDteLabels = { '01': 'Factura Consumidor Final', '03': 'Crédito Fiscal', '04': 'Nota de Remisión' };
+            const tipoDteLabels = {
+                '01': 'Factura Consumidor Final',
+                '03': 'Crédito Fiscal',
+                '04': 'Nota de Remisión'
+            };
             const tipoDteLabel = tipoDteLabels[tipoDte] || tipoDte;
 
 
@@ -1059,9 +1095,9 @@ requestAnimationFrame(() => {
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            const asientoMsg = data.asiento_creado
-                                ? '<p class="mb-1"><b>Asiento contable:</b> generado</p>'
-                                : (data.asiento_omitido ? `<p class="mb-1 text-warning"><b>Asiento omitido:</b> ${escapeHtml(data.asiento_omitido)}</p>` : '');
+                            const asientoMsg = data.asiento_creado ?
+                                '<p class="mb-1"><b>Asiento contable:</b> generado</p>' :
+                                (data.asiento_omitido ? `<p class="mb-1 text-warning"><b>Asiento omitido:</b> ${escapeHtml(data.asiento_omitido)}</p>` : '');
 
                             Swal.fire({
                                 icon: 'success',

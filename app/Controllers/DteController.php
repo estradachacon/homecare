@@ -486,6 +486,7 @@ class DteController extends BaseController
                 'anulada'            => 0,
                 'tipo_venta'         => $data['tipo_venta'] ?? 1,
                 'iva_rete1'          => $resumen['ivaRete1'] ?? 0,
+                'observaciones'      => $data['observaciones'] ?? null,
             ]);
 
             foreach ($dte['cuerpoDocumento'] as $item) {

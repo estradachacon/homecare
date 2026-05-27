@@ -639,6 +639,24 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                     </div>
 
                 </div>
+
+                <!-- OBSERVACIONES -->
+                <?php if (!empty($factura->observaciones)): ?>
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fa-solid fa-sticky-note text-warning me-2"></i>
+                                Notas/Observaciones
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                <?= nl2br(esc($factura->observaciones)) ?>
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <!-- HISTORIAL DE PAGOS -->
                 <div class="card mt-4">
                     <div class="card-header bg-white d-flex flex-wrap justify-content-between">

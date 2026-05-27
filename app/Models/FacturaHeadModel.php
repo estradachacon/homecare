@@ -51,6 +51,9 @@ class FacturaHeadModel extends Model
         'fecha_anulacion',
         'tipo_venta',
         'codigo_generacion_relacionado',
+        
+        // Notas
+        'observaciones',
     ];
 
     protected $useTimestamps = true;
