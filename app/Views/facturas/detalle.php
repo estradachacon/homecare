@@ -174,18 +174,22 @@ foreach ($detalles as $d) {
     $subtotalProductos += $d->cantidad * $d->precio_unitario;
 }
 
-// Determinar si es Crédito Fiscal (03)
-$esCreditoFiscal = ($factura->tipo_dte == '03');
+// Determinar tipo de documento
+$esCreditoFiscal  = ($factura->tipo_dte == '03');
 $esSujetoExcluido = ($factura->tipo_dte == '14');
+$ivaRete1         = (float)($factura->iva_rete1 ?? 0);
+
+// IVA: usar el campo almacenado para no verse afectado por la retención
 $ivaCalculado = 0;
 $retencionRenta = 0;
 
 if ($esCreditoFiscal) {
-    $ivaCalculado = $factura->total_pagar - $subtotalProductos;
+    $ivaCalculado = (float)($factura->total_iva ?? 0)
+        ?: max(0, $factura->monto_total_operacion - $subtotalProductos);
 }
 
 if ($esSujetoExcluido) {
-    $retencionRenta = max(0, $subtotalProductos - (float) $factura->total_pagar);
+    $retencionRenta = max(0, $subtotalProductos - (float)$factura->total_pagar - $ivaRete1);
 }
 
 $tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento';
@@ -627,6 +631,20 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                             <?php endif; ?>
 
+                            <?php if ($ivaRete1 > 0): ?>
+
+                                <tr>
+                                    <th class="text-end text-danger">
+                                        Retención IVA 1%
+                                        <small class="d-block fw-normal text-muted" style="font-size:.75rem;">Gran Contribuyente</small>
+                                    </th>
+                                    <td class="text-end text-danger fw-semibold">
+                                        -$<?= number_format($ivaRete1, 2) ?>
+                                    </td>
+                                </tr>
+
+                            <?php endif; ?>
+
                             <tr class="border-top">
                                 <th class="text-end fs-5">Total:</th>
                                 <td class="text-end fs-5 fw-bold text-success">
@@ -982,164 +1000,117 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
     document.getElementById('btnAnularFactura')?.addEventListener('click', function() {
 
-        fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
+        // Pre-fill solicitante and documento fields with client data
+        document.getElementById('anulNombreSolicita').value = "<?= esc($factura->cliente ?? '') ?>";
+        document.getElementById('anulNumDocSolicita').value  = "<?= esc($factura->cliente_documento ?? '') ?>";
 
-                // 🔴 SI TIENE PAGOS
-                if (data.tiene_pagos) {
-
-                    let pagosHtml = '<ul class="list-group text-start mb-3">';
-
-                    data.pagos.forEach(p => {
-                        pagosHtml += `
-                    <li class="list-group-item d-flex justify-content-between">
-                        <div>
-                            <strong>Pago #${p.pago_id}</strong><br>
-                            <small>${p.fecha_pago} - ${p.forma_pago}</small>
-                        </div>
-                        <span class="badge bg-success">
-                            $${parseFloat(p.monto).toFixed(2)}
-                        </span>
-                    </li>
-                `;
-                    });
-
-                    pagosHtml += '</ul>';
-
-                    Swal.fire({
-                        title: 'Factura con pagos aplicados',
-                        html: `
-                    <div class="text-start">
-                        ${pagosHtml}
-                        <p class="mt-3">
-                            Total pagado: <strong>$${data.total_pagado}</strong>
-                        </p>
-                        <p class="text-danger fw-bold">
-                            ⚠ Si continúa, se revertirán estos pagos y los movimientos bancarios.
-                        </p>
-                    </div>
-                `,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Revertir y anular',
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonColor: '#dc3545',
-                        width: 600
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            ejecutarAnulacion(true);
-                        }
-                    });
-
-                }
-                // 🟢 SI NO TIENE PAGOS
-                else {
-
-                    Swal.fire({
-                        title: '¿Anular factura?',
-                        text: 'Esta acción marcará la factura como anulada.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Sí, anular',
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonColor: '#dc3545'
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            ejecutarAnulacion(false);
-                        }
-                    });
-
-                }
-
-            })
-            .catch(error => {
-                console.error(error);
-                Swal.fire('Error', 'No se pudo verificar los pagos.', 'error');
-            });
-
-        function ejecutarAnulacion(revertirPagos = false) {
-
-            fetch("<?= base_url('facturas/anular/' . $factura->id) ?>", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        revertir_pagos: revertirPagos
-                    })
-                })
-                .then(async response => {
-
-                    const text = await response.text();
-
-                    let data;
-
-                    try {
-                        data = JSON.parse(text);
-                    } catch (err) {
-
-                        console.error("Respuesta del servidor:", text);
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error del servidor',
-                            html: `
-                    <div style="text-align:left">
-                        <b>No se pudo interpretar la respuesta del servidor.</b>
-                        <hr>
-                        <pre style="
-                            max-height:300px;
-                            overflow:auto;
-                            font-size:12px;
-                            background:#f6f6f6;
-                            padding:10px;
-                            border-radius:5px
-                        ">
-                        ${text.substring(0,800)}
-                        </pre>
-                    </div>
-                `,
-                            width: 700
-                        });
-
-                        throw new Error("Respuesta no es JSON");
-                    }
-
-                    return data;
-
-                })
-                .then(data => {
-
-                    Swal.fire({
-                        icon: data.success ? 'success' : 'error',
-                        title: data.success ? 'Factura anulada' : 'Error',
-                        text: data.message
-                    });
-
-                    if (data.success) {
-                        setTimeout(() => location.reload(), 1500);
-                    }
-
-                })
-                .catch(error => {
-
-                    console.error("Error en anulación:", error);
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error inesperado',
-                        text: error.message
-                    });
-
-                });
-
+        // Select matching document type
+        const tipoDocCliente = "<?= esc($factura->cliente_tipo_documento ?? '') ?>";
+        const selTipo = document.getElementById('anulTipDocSolicita');
+        for (let i = 0; i < selTipo.options.length; i++) {
+            if (selTipo.options[i].value === tipoDocCliente) {
+                selTipo.selectedIndex = i;
+                break;
+            }
         }
+
+        // Check pagos and populate warning section
+        const pagosAlerta = document.getElementById('anularPagosAlerta');
+        pagosAlerta.innerHTML = '';
+        pagosAlerta.classList.add('d-none');
+
+        fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.tiene_pagos) {
+                let html = `<div class="alert alert-warning mb-0">
+                    <strong><i class="fas fa-exclamation-triangle me-1"></i>Esta factura tiene pagos aplicados.</strong>
+                    <ul class="mb-1 mt-1">`;
+                data.pagos.forEach(p => {
+                    html += `<li>Pago #${p.pago_id} &mdash; ${p.fecha_pago} &mdash; ${p.forma_pago} &mdash; <strong>$${parseFloat(p.monto).toFixed(2)}</strong></li>`;
+                });
+                html += `</ul><p class="mb-0">Total pagado: <strong>$${data.total_pagado}</strong>. Al anular se revertirán estos pagos y movimientos bancarios.</p></div>`;
+                pagosAlerta.innerHTML = html;
+                pagosAlerta.classList.remove('d-none');
+            }
+            $('#modalAnularDte').modal('show');
+        })
+        .catch(() => {
+            $('#modalAnularDte').modal('show');
+        });
+
+    });
+
+    document.getElementById('btnConfirmarAnulacion')?.addEventListener('click', function() {
+
+        const tipoAnulacion  = document.getElementById('anulTipoAnulacion').value;
+        const motivo         = document.getElementById('anulMotivo').value.trim();
+        const nombreSolicita = document.getElementById('anulNombreSolicita').value.trim();
+        const tipDoc         = document.getElementById('anulTipDocSolicita').value;
+        const numDoc         = document.getElementById('anulNumDocSolicita').value.trim();
+
+        if (!tipoAnulacion) {
+            Swal.fire('Requerido', 'Seleccione el tipo de anulación.', 'warning');
+            return;
+        }
+        if (!nombreSolicita) {
+            Swal.fire('Requerido', 'Ingrese el nombre del solicitante.', 'warning');
+            return;
+        }
+        if (!numDoc) {
+            Swal.fire('Requerido', 'Ingrese el número de documento del solicitante.', 'warning');
+            return;
+        }
+
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+
+        fetch("<?= base_url('facturas/invalidar/' . $factura->id) ?>", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                tipo_anulacion:   parseInt(tipoAnulacion),
+                motivo:           motivo || null,
+                nombre_solicita:  nombreSolicita,
+                tip_doc_solicita: tipDoc,
+                num_doc_solicita: numDoc
+            })
+        })
+        .then(async response => {
+            const text = await response.text();
+            try { return JSON.parse(text); } catch(e) {
+                Swal.fire({
+                    icon: 'error', title: 'Error del servidor',
+                    html: `<pre style="max-height:300px;overflow:auto;font-size:12px;background:#f6f6f6;padding:10px;border-radius:5px">${text.substring(0,800)}</pre>`,
+                    width: 700
+                });
+                throw new Error('Non-JSON response');
+            }
+        })
+        .then(data => {
+            $('#modalAnularDte').modal('hide');
+            Swal.fire({
+                icon: data.success ? 'success' : 'error',
+                title: data.success ? 'Factura anulada' : 'Error',
+                text: data.message
+            });
+            if (data.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-ban me-1"></i>Anular documento';
+        });
 
     });
     document.getElementById('editarVendedorFactura')?.addEventListener('click', function() {
@@ -1221,4 +1192,85 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
     });
 </script>
+
+<!-- Modal Anulación / Invalidación DTE -->
+<div class="modal fade" id="modalAnularDte" tabindex="-1" aria-labelledby="modalAnularDteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalAnularDteLabel">
+                    <i class="fas fa-ban me-2"></i>Anular / Invalidar Documento Fiscal
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Alerta de pagos (se rellena dinámicamente) -->
+                <div id="anularPagosAlerta" class="d-none mb-3"></div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="anulTipoAnulacion" class="font-weight-bold">Tipo de anulación <span class="text-danger">*</span></label>
+                        <select id="anulTipoAnulacion" class="form-control">
+                            <option value="">-- Seleccione --</option>
+                            <option value="1">1 – Sustitución (reemplaza por otro DTE)</option>
+                            <option value="2">2 – Rescisión (acuerdo entre partes)</option>
+                            <option value="3">3 – Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="anulMotivo" class="font-weight-bold">Motivo de anulación</label>
+                        <input type="text" id="anulMotivo" class="form-control" placeholder="Descripción del motivo (opcional para tipo 1)">
+                    </div>
+                </div>
+
+                <hr>
+                <p class="text-muted small mb-2">Datos del solicitante (normalmente el cliente)</p>
+
+                <div class="form-row">
+                    <div class="form-group col-md-12">
+                        <label for="anulNombreSolicita" class="font-weight-bold">Nombre del solicitante <span class="text-danger">*</span></label>
+                        <input type="text" id="anulNombreSolicita" class="form-control" placeholder="Nombre completo">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="anulTipDocSolicita" class="font-weight-bold">Tipo de documento <span class="text-danger">*</span></label>
+                        <select id="anulTipDocSolicita" class="form-control">
+                            <option value="36">NIT</option>
+                            <option value="13">DUI</option>
+                            <option value="03">Pasaporte</option>
+                            <option value="02">Carnet de Residente</option>
+                            <option value="37">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="anulNumDocSolicita" class="font-weight-bold">Número de documento <span class="text-danger">*</span></label>
+                        <input type="text" id="anulNumDocSolicita" class="form-control" placeholder="Ej: 0614-010101-001-0">
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 mb-0">
+                    <small><i class="fas fa-info-circle me-1"></i>
+                        En ambientes de producción (00 y 01), esta acción reporta la invalidación a Hacienda antes de registrarla localmente.
+                        Los pagos aplicados serán revertidos si existiesen.
+                    </small>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" id="btnConfirmarAnulacion" class="btn btn-danger">
+                    <i class="fas fa-ban me-1"></i>Anular documento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>

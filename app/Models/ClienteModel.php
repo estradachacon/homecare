@@ -17,6 +17,8 @@ class ClienteModel extends Model
         'tipo_documento',
         'numero_documento',
         'nrc',
+        'gran_contribuyente',
+        'exento_iva',
         'cod_actividad',
         'desc_actividad',
         'nombre',

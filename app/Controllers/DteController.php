@@ -376,6 +376,12 @@ class DteController extends BaseController
             ]);
         }
 
+        // Leer flags del cliente desde BD (no confiar en el frontend)
+        $clienteFlag = (new \App\Models\ClienteModel())
+            ->select('gran_contribuyente, exento_iva')
+            ->find((int)($data['cliente_id'] ?? 0));
+        $data['gran_contribuyente'] = !empty($clienteFlag->gran_contribuyente) ? 1 : 0;
+
         try {
             // 1. Construir JSON del DTE
             $builder = new DteBuilderService();

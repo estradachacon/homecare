@@ -121,6 +121,43 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="row mt-1">
+                            <div class="col-md-12">
+                                <label class="section-title mb-2" style="border:0; padding:0; font-size:.78rem;">
+                                    <i class="fa-solid fa-tags"></i> Características tributarias
+                                </label>
+                                <div class="d-flex flex-wrap" style="gap:.5rem 2.5rem;">
+
+                                    <input type="hidden" name="gran_contribuyente" value="0">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox"
+                                               class="custom-control-input"
+                                               id="gran_contribuyente"
+                                               name="gran_contribuyente"
+                                               value="1"
+                                               <?= !empty($cliente->gran_contribuyente) ? 'checked' : '' ?>>
+                                        <label class="custom-control-label" for="gran_contribuyente">
+                                            Gran Contribuyente
+                                        </label>
+                                    </div>
+
+                                    <input type="hidden" name="exento_iva" value="0">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox"
+                                               class="custom-control-input"
+                                               id="exento_iva"
+                                               name="exento_iva"
+                                               value="1"
+                                               <?= !empty($cliente->exento_iva) ? 'checked' : '' ?>>
+                                        <label class="custom-control-label" for="exento_iva">
+                                            Exento de IVA
+                                        </label>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="soft-box">

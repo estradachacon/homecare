@@ -122,12 +122,40 @@ $numeroCorto = !empty($factura->numero_control) ? substr($factura->numero_contro
 $condicion = ((int)($factura->condicion_operacion ?? 1) === 1)
     ? 'Contado'
     : 'Credito ' . (int)($factura->plazo_credito ?? 0) . ' dias';
-$subtotal = 0;
+$subtotalGravada  = 0;
+$subtotalExenta   = 0;
+$subtotalNoSujeta = 0;
 foreach ($detalles as $d) {
-    $subtotal += (float)$d->cantidad * (float)$d->precio_unitario;
+    $subtotalGravada  += (float)($d->venta_gravada   ?? 0);
+    $subtotalExenta   += (float)($d->venta_exenta    ?? 0);
+    $subtotalNoSujeta += (float)($d->venta_no_sujeta ?? 0);
 }
-$totalIva = (float)($factura->total_iva ?? 0);
-$retencion = (float)($factura->iva_rete1 ?? 0);
+$totalIva  = (float)($factura->total_iva  ?? 0);
+$retencion = (float)($factura->iva_rete1  ?? 0);
+$esCCF     = $factura->tipo_dte === '03';
+
+$sumasBruto     = 0;
+$descuentoTotal = 0;
+foreach ($detalles as $d) {
+    // Para Factura (01) venta_gravada se guarda como base sin IVA; sumamos iva_item para obtener el total real con IVA.
+    // Para CCF (03) venta_gravada ya es la base sin IVA y es lo que queremos mostrar en Sumas.
+    $ivaLinea = $esCCF ? 0.0 : (float)($d->iva_item ?? 0);
+    $sumasBruto     += (float)($d->venta_gravada   ?? 0)
+                     + $ivaLinea
+                     + (float)($d->venta_exenta    ?? 0)
+                     + (float)($d->venta_no_sujeta ?? 0)
+                     + (float)($d->monto_descuento ?? 0);
+    $descuentoTotal += (float)($d->monto_descuento ?? 0);
+}
+$sumasBruto     = round($sumasBruto,     2);
+$descuentoTotal = round($descuentoTotal, 2);
+
+if ($esCCF) {
+    $subTotal = round($sumasBruto - $descuentoTotal + $totalIva, 2);
+} else {
+    $subTotal = round($sumasBruto - $descuentoTotal - $retencion, 2);
+}
+
 $anulada = (int)($factura->anulada ?? 0) === 1;
 $montoLetras = facturaPdfMontoLetras((float)$factura->total_pagar);
 $nombreComercial = trim((string)($emisor->nombre_comercial ?? ''));
@@ -512,11 +540,12 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
     <table class="items">
         <thead>
             <tr>
-                <th style="width:7%;" class="center">#</th>
-                <th style="width:43%;">Descripcion</th>
-                <th style="width:12%;" class="right">Cantidad</th>
-                <th style="width:13%;" class="right">Precio</th>
-                <th style="width:12%;" class="right">IVA</th>
+                <th style="width:5%;" class="center">#</th>
+                <th style="width:40%;">Descripcion</th>
+                <th style="width:8%;" class="right">Cantidad</th>
+                <th style="width:10%;" class="right">Precio</th>
+                <th style="width:12%;" class="right">Ventas No Sujetas</th>
+                <th style="width:12%;" class="right">Ventas Exentas</th>
                 <th style="width:13%;" class="right">Total</th>
             </tr>
         </thead>
@@ -526,9 +555,10 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
                 <tr>
                     <td class="center"><?= esc($d->num_item) ?></td>
                     <td><?= nl2br(esc($d->descripcion)) ?></td>
-                    <td class="right"><?= number_format((float)$d->cantidad, 2) ?></td>
+                    <td class="right"><?= number_format((float)$d->cantidad, 0) ?></td>
                     <td class="right">$<?= number_format((float)$d->precio_unitario, 2) ?></td>
-                    <td class="right">$<?= number_format((float)($d->iva_item ?? 0), 2) ?></td>
+                    <td class="right">$<?= number_format((float)($d->venta_no_sujeta ?? 0), 2) ?></td>
+                    <td class="right">$<?= number_format((float)($d->venta_exenta ?? 0), 2) ?></td>
                     <td class="right">$<?= number_format($lineTotal, 2) ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -554,19 +584,48 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
                 <td style="width:34%; vertical-align:top; padding-right:0;">
                     <table class="totals">
                         <tr>
-                            <td>Subtotal</td>
-                            <td class="right">$<?= number_format($subtotal, 2) ?></td>
+                            <td>Sumas</td>
+                            <td class="right">$<?= number_format($sumasBruto, 2) ?></td>
                         </tr>
-                        <?php if ($totalIva > 0): ?>
+                        <?php if ($descuentoTotal > 0): ?>
+                            <tr>
+                                <td>Descuento</td>
+                                <td class="right">-$<?= number_format($descuentoTotal, 2) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if ($esCCF): ?>
                             <tr>
                                 <td>IVA 13%</td>
                                 <td class="right">$<?= number_format($totalIva, 2) ?></td>
                             </tr>
+                        <?php else: ?>
+                            <?php if ($retencion > 0): ?>
+                                <tr>
+                                    <td>IVA Retenido</td>
+                                    <td class="right">-$<?= number_format($retencion, 2) ?></td>
+                                </tr>
+                            <?php endif; ?>
                         <?php endif; ?>
-                        <?php if ($retencion > 0): ?>
+                        <tr>
+                            <td><strong>Sub-Total</strong></td>
+                            <td class="right"><strong>$<?= number_format($subTotal, 2) ?></strong></td>
+                        </tr>
+                        <?php if ($esCCF && $retencion > 0): ?>
                             <tr>
                                 <td>Retención IVA 1%</td>
                                 <td class="right">-$<?= number_format($retencion, 2) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if ($subtotalNoSujeta > 0): ?>
+                            <tr>
+                                <td>Ventas No Sujetas</td>
+                                <td class="right">$<?= number_format($subtotalNoSujeta, 2) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if ($subtotalExenta > 0): ?>
+                            <tr>
+                                <td>Ventas Exentas</td>
+                                <td class="right">$<?= number_format($subtotalExenta, 2) ?></td>
                             </tr>
                         <?php endif; ?>
                         <tr class="grand">

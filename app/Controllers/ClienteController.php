@@ -190,6 +190,10 @@ class ClienteController extends BaseController
                 'telefono'         => $c->telefono,
                 'correo'           => $c->correo,
 
+                // características tributarias
+                'gran_contribuyente' => (int)($c->gran_contribuyente ?? 0),
+                'exento_iva'         => (int)($c->exento_iva ?? 0),
+
                 // dirección formateada
                 'direccion' => trim(
                     ($c->departamento ?? '') . ' ' .
@@ -277,6 +281,8 @@ class ClienteController extends BaseController
             'tipo_documento'     => $this->request->getPost('tipo_documento'),
             'numero_documento'   => $this->request->getPost('numero_documento'),
             'nrc'                => $this->request->getPost('nrc'),
+            'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
+            'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
             'cod_actividad'      => $codActividad,
             'desc_actividad'     => $codActividad
                 ? (config('ActividadesEconomicas')->actividades[$codActividad] ?? $this->request->getPost('desc_actividad'))

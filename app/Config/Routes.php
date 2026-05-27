@@ -113,6 +113,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // -- Reportes Vendedor
     $routes->get('reports/saldos-antiguedad-vendedor-pdf', 'ReportesController::saldosAntiguedadVendedorPDF');
     $routes->get('reports/saldos-antiguedad-vendedor-detalle-pdf', 'ReportesController::saldosAntiguedadVendedorDetallePDF');
+    $routes->get('reports/saldos-tipo-item-pdf', 'ReportesController::saldosTipoItemPDF');
     // -- Reportes de Facturación
     $routes->get('reports/facturacion', 'ReportesController::facturacion');
     $routes->get('reports/facturacion-pdf', 'ReportesController::facturacionPDF');
@@ -147,6 +148,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('facturas/(:num)/json', 'Facturas::json/$1');
     $routes->get('facturas/(:num)', 'Facturas::detalle/$1');
     $routes->post('facturas/anular/(:num)', 'Facturas::anular/$1');
+    $routes->post('facturas/invalidar/(:num)', 'Facturas::invalidar/$1');
     $routes->post('facturas/validar-documento-relacionado', 'Facturas::validarDocumentoRelacionado');
 
     //Modulo de vendedores

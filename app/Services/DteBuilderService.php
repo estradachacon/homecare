@@ -345,6 +345,16 @@ class DteBuilderService
         $subTotal     = $totalGravada;
         $totalOp      = $totalGravada;
 
+        // Retención 1% para Gran Contribuyente: aplica solo si base sin IVA >= $100
+        $ivaRete1 = 0.00;
+        if (!empty($data['gran_contribuyente'])) {
+            $baseGravada = round($totalGravada / 1.13, 2);
+            if ($baseGravada >= 100.00) {
+                $ivaRete1 = round($baseGravada * 0.01, 2);
+            }
+        }
+        $totalPagar = round($totalOp - $ivaRete1, 2);
+
         $condicion = ($data['condicion_operacion'] ?? 'contado') === 'credito' ? 2 : 1;
         $plazo     = $condicion === 2 ? ($data['plazo_credito'] ?? null) : null;
 
@@ -359,18 +369,18 @@ class DteBuilderService
             'porcentajeDescuento' => 0.00,
             'totalDescu'          => 0.00,
             'tributos'            => null,
-            'subTotal'             => $subTotal,
-            'ivaRete1'             => 0.00,
-            'reteRenta'            => 0.00,
-            'montoTotalOperacion'  => $totalOp,
-            'totalNoGravado'       => 0.00,
-            'totalPagar'           => $totalOp,
-            'totalLetras'          => $this->numeroALetras($totalOp),
-            'totalIva'             => $totalIva,
-            'saldoFavor'           => 0.00,
-            'condicionOperacion'   => $condicion,
-            'pagos'                => null,
-            'numPagoElectronico' => null,
+            'subTotal'            => $subTotal,
+            'ivaRete1'            => $ivaRete1,
+            'reteRenta'           => 0.00,
+            'montoTotalOperacion' => $totalOp,
+            'totalNoGravado'      => 0.00,
+            'totalPagar'          => $totalPagar,
+            'totalLetras'         => $this->numeroALetras($totalPagar),
+            'totalIva'            => $totalIva,
+            'saldoFavor'          => 0.00,
+            'condicionOperacion'  => $condicion,
+            'pagos'               => null,
+            'numPagoElectronico'  => null,
         ];
     }
 
@@ -405,6 +415,13 @@ class DteBuilderService
         $subTotal     = $totalGravada;
         $totalOp      = round($totalGravada + $totalIva, 2);
 
+        // Retención 1% para Gran Contribuyente: aplica solo si base sin IVA >= $100
+        $ivaRete1 = 0.00;
+        if (!empty($data['gran_contribuyente']) && $totalGravada >= 100.00) {
+            $ivaRete1 = round($totalGravada * 0.01, 2);
+        }
+        $totalPagar = round($totalOp - $ivaRete1, 2);
+
         $condicion = ($data['condicion_operacion'] ?? 'contado') === 'credito' ? 2 : 1;
 
         $pagos = null;
@@ -413,7 +430,7 @@ class DteBuilderService
             $pagos = [
                 [
                     'codigo'     => '01',
-                    'montoPago'  => $totalOp,
+                    'montoPago'  => $totalPagar,
                     'referencia' => null,
                     'plazo'      => $plazo ? (string)$plazo : null,
                     'periodo'    => $plazo ? 'días' : null,
@@ -440,12 +457,12 @@ class DteBuilderService
             ],
             'subTotal'            => $subTotal,
             'ivaPerci1'           => 0.00,
-            'ivaRete1'            => 0.00,
+            'ivaRete1'            => $ivaRete1,
             'reteRenta'           => 0.00,
             'montoTotalOperacion' => $totalOp,
             'totalNoGravado'      => 0.00,
-            'totalPagar'          => $totalOp,
-            'totalLetras'         => $this->numeroALetras($totalOp),
+            'totalPagar'          => $totalPagar,
+            'totalLetras'         => $this->numeroALetras($totalPagar),
             'saldoFavor'          => 0.00,
             'condicionOperacion'  => $condicion,
             'pagos'               => $pagos,

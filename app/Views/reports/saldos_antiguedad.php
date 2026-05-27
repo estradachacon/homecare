@@ -179,6 +179,60 @@
     <div class="col-md-12 mt-2">
         <div class="card">
             <div class="card-header">
+                <h4>Saldos por Tipo de Venta — Productos vs Servicios</h4>
+                <small class="text-muted">
+                    Muestra cuánto debe cada cliente separado en ventas de productos y ventas de servicios.
+                </small>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+
+                    <form method="get" target="_blank">
+
+                        <div class="row">
+
+                            <!-- Fecha Corte -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Fecha de Corte</label>
+                                    <input type="date"
+                                        name="fecha_corte"
+                                        class="form-control"
+                                        value="<?= date('Y-m-d') ?>">
+                                </div>
+                            </div>
+
+                            <!-- Cliente -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="text-muted">Cliente (opcional)</label>
+                                    <select name="cliente_id" class="form-control cliente-select"></select>
+                                </div>
+                            </div>
+
+                            <!-- Botón -->
+                            <div class="col-md-3 btn-container-adjust">
+                                <button type="submit"
+                                    formaction="<?= base_url('reports/saldos-tipo-item-pdf') ?>"
+                                    class="btn btn-primary btn-block btn-equal">
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    Generar PDF
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="col-md-12 mt-2">
+        <div class="card">
+            <div class="card-header">
                 <h4>Estado de Cuenta de Cliente</h4>
                 <small class="text-muted">
                     Muestra todos los documentos y pagos aplicados a un cliente con su saldo acumulado.

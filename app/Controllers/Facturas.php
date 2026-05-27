@@ -15,6 +15,8 @@ use App\Models\ProductoModel;
 use App\Models\ProductoMovimientoModel;
 use App\Models\EmisorModel;
 use App\Models\SettingModel;
+use App\Services\DteSignerService;
+use App\Services\HaciendaApiService;
 
 class Facturas extends BaseController
 {
@@ -1469,6 +1471,294 @@ CCF YA VIENE SIN IVA
             'success' => true,
             'message' => 'Factura anulada correctamente y saldo reintegrado.' . $mensajeContable,
         ]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  INVALIDACIÓN DTE (reporta a MH + anula local)
+    // ─────────────────────────────────────────────
+
+    public function invalidar(int $id)
+    {
+        if (!tienePermiso('anular_factura')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No tienes permisos para anular facturas.']);
+        }
+
+        $data    = (array) $this->request->getJSON(true);
+        $session = session();
+        $userId  = $session->get('user_id');
+
+        $factura = $this->facturaConReceptor($id);
+
+        if (!$factura) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Factura no encontrada.']);
+        }
+
+        if (!$this->puedeAccederFactura($factura)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No tienes acceso a esta factura.']);
+        }
+
+        if ((int) $factura->anulada === 1) {
+            return $this->response->setJSON(['success' => false, 'message' => 'La factura ya está anulada.']);
+        }
+
+        $tipoAnulacion  = (int) ($data['tipo_anulacion']  ?? 1);
+        $motivo         = trim((string) ($data['motivo']          ?? ''));
+        $nombreSolicita = trim((string) ($data['nombre_solicita'] ?? ''));
+        $tipDocSolicita = $data['tip_doc_solicita'] ?? '13';
+        $numDocSolicita = trim((string) ($data['num_doc_solicita'] ?? ''));
+
+        if ($tipoAnulacion === 3 && $motivo === '') {
+            return $this->response->setJSON(['success' => false, 'message' => 'El motivo es obligatorio para el tipo de anulación "Otro".']);
+        }
+
+        $ambiente  = env('hacienda.env', '00');
+        $modoLocal = ($ambiente === '03');
+
+        // ── 1. REPORTAR A HACIENDA ──────────────────────────────────────────
+        if (!$modoLocal) {
+            try {
+                $emisor = (new EmisorModel())->first();
+                if (!$emisor) {
+                    throw new \RuntimeException('No hay datos de emisor configurados.');
+                }
+
+                $fechaSv = new \DateTimeImmutable('now', new \DateTimeZone('America/El_Salvador'));
+                $codigoGenAnul = strtoupper($this->_generarUuid());
+                $codigoGenR    = ($tipoAnulacion !== 2) ? strtoupper($this->_generarUuid()) : null;
+
+                $invalidacion = [
+                    'identificacion' => [
+                        'version'          => 2,
+                        'ambiente'         => $ambiente,
+                        'codigoGeneracion' => $codigoGenAnul,
+                        'fecAnula'         => $fechaSv->format('Y-m-d'),
+                        'horAnula'         => $fechaSv->format('H:i:s'),
+                    ],
+                    'emisor' => [
+                        'nit'                 => preg_replace('/[^0-9]/', '', $emisor->nit),
+                        'nombre'              => $emisor->nombre,
+                        'tipoEstablecimiento' => '02',
+                        'nomEstablecimiento'  => $emisor->nombre_comercial ?: null,
+                        'codEstableMH'        => $emisor->cod_estable_mh  ?: null,
+                        'codEstable'          => $emisor->cod_estable      ?: null,
+                        'codPuntoVentaMH'     => $emisor->cod_punto_venta_mh ?: null,
+                        'codPuntoVenta'       => $emisor->cod_punto_venta  ?: null,
+                        'telefono'            => preg_replace('/[^0-9]/', '', $emisor->telefono),
+                        'correo'              => $emisor->correo,
+                    ],
+                    'documento' => [
+                        'tipoDte'           => $factura->tipo_dte,
+                        'codigoGeneracion'  => strtoupper($factura->codigo_generacion),
+                        'selloRecibido'     => $factura->sello_recibido,
+                        'numeroControl'     => $factura->numero_control,
+                        'fecEmi'            => $factura->fecha_emision,
+                        'montoIva'          => round((float) ($factura->total_iva ?? 0), 2),
+                        'codigoGeneracionR' => $codigoGenR,
+                        'tipoDocumento'     => $this->_mapTipoDocInvalidacion($factura->cliente_tipo_documento ?? '13'),
+                        'numDocumento'      => $factura->cliente_documento ?? $numDocSolicita,
+                        'nombre'            => $factura->cliente ?? $nombreSolicita,
+                        'telefono'          => ($t = preg_replace('/[^0-9]/', '', $factura->cliente_telefono ?? '')) ? $t : null,
+                        'correo'            => $factura->cliente_correo ?? '',
+                    ],
+                    'motivo' => [
+                        'tipoAnulacion'     => $tipoAnulacion,
+                        'motivoAnulacion'   => $motivo !== '' ? $motivo : null,
+                        'nombreResponsable' => $emisor->nombre,
+                        'tipDocResponsable' => '36',
+                        'numDocResponsable' => preg_replace('/[^0-9]/', '', $emisor->nit),
+                        'nombreSolicita'    => $nombreSolicita ?: ($factura->cliente ?? ''),
+                        'tipDocSolicita'    => $tipDocSolicita,
+                        'numDocSolicita'    => $numDocSolicita,
+                    ],
+                ];
+
+                $signer  = new DteSignerService();
+                $firmado = $signer->firmar($invalidacion);
+
+                $payloadMH = [
+                    'ambiente'         => $ambiente,
+                    'idEnvio'          => 1,
+                    'version'          => 2,
+                    'documento'        => base64_encode(json_encode($firmado, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+                    'codigoGeneracion' => $codigoGenAnul,
+                ];
+
+                $api      = new HaciendaApiService();
+                $response = $api->post('fesv/anulaciondte', $payloadMH);
+
+                if ($response['http_code'] !== 200) {
+                    $err = $response['error'] ?? json_encode($response['body'] ?? []);
+                    return $this->response->setJSON(['success' => false, 'message' => "Error al comunicar con Hacienda: {$err}"]);
+                }
+
+                $estadoMh = strtolower($response['body']['estado'] ?? 'error');
+                if ($estadoMh === 'rechazado') {
+                    $msgMh = $response['body']['descripcionMsg'] ?? 'Hacienda rechazó la invalidación.';
+                    return $this->response->setJSON(['success' => false, 'message' => "Hacienda rechazó la invalidación: {$msgMh}"]);
+                }
+
+            } catch (\Throwable $e) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar invalidación a Hacienda: ' . $e->getMessage()]);
+            }
+        }
+
+        // ── 2. OPERACIONES LOCALES ───────────────────────────────────────────
+        $facturaModel      = new FacturaHeadModel();
+        $pagosDetailsModel = new PagosDetailsModel();
+        $pagosHeadModel    = new PagosHeadModel();
+        $transactionModel  = new TransactionModel();
+        $accountModel      = new AccountModel();
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $facturaModel->update($id, [
+            'anulada'         => 1,
+            'saldo'           => 0,
+            'anulada_por'     => $userId,
+            'fecha_anulacion' => date('Y-m-d H:i:s'),
+        ]);
+
+        foreach ($pagosDetailsModel->where('factura_id', $id)->where('anulado', 0)->findAll() as $detalle) {
+            $pago = $pagosHeadModel->find($detalle->pago_id);
+            if (!$pago) continue;
+
+            $accountId = $pago->numero_cuenta_bancaria ?? 1;
+            $cuenta    = $accountModel->find($accountId) ?? $accountModel->find(1);
+            if (!$cuenta) continue;
+
+            $accountModel->update($accountId, ['balance' => (float) $cuenta->balance - $detalle->monto]);
+            $transactionModel->addSalida($accountId, $detalle->monto,
+                'Reversión por anulación de factura', 'Factura Nº ' . substr($factura->numero_control, -6), $detalle->pago_id);
+            $pagosDetailsModel->update($detalle->id, ['anulado' => 1, 'anulado_at' => date('Y-m-d H:i:s'), 'anulado_by' => $userId]);
+        }
+
+        $db->table('pedidos_head')->where('factura_id', $id)->where('anulada', 0)->update(['factura_id' => null]);
+
+        $db->transComplete();
+
+        if (!$db->transStatus()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al anular la factura en la base de datos.']);
+        }
+
+        // ── 3. REVERSIÓN CONTABLE ────────────────────────────────────────────
+        $mensajeContable = '';
+        if (in_array($factura->tipo_dte, ['01', '03'])) {
+            try {
+                helper('cont_ventas');
+                $contHeadModel    = new \App\Models\ContAsientosHeadModel();
+                $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
+                $periodosModel    = new \App\Models\ContPeriodosModel();
+
+                $periodo = $periodosModel->abrirObtenerPeriodo((int) date('Y'), (int) date('n'));
+                if (!$periodo) {
+                    throw new \Exception('El período contable de ' . date('m/Y') . ' está cerrado.');
+                }
+
+                $ref           = substr($factura->numero_control, -6);
+                $tipoDteHelper = $factura->tipo_dte === '03' ? 'CCF' : 'FAC';
+                $monto         = $factura->tipo_dte === '03' ? (float) $factura->total_gravada : (float) $factura->monto_total_operacion;
+                $retencion     = (float) ($factura->iva_rete1 ?? 0);
+
+                if ($monto <= 0) throw new \Exception("Monto inválido ({$monto}).");
+
+                $cxcOverrideId = null;
+                if (!empty($factura->receptor_id)) {
+                    $cli = (new \App\Models\ClienteModel())->select('id, cuenta_contable_id')->find((int) $factura->receptor_id);
+                    if ($cli && !empty($cli->cuenta_contable_id)) $cxcOverrideId = (int) $cli->cuenta_contable_id;
+                }
+
+                $resultado = cont_asiento_venta_json($tipoDteHelper, $monto, $retencion, $ref, $periodo->id,
+                    date('Y-m-d'), 'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref, null, $cxcOverrideId);
+
+                if (!$resultado['ok']) throw new \Exception('Error al calcular líneas: ' . implode(', ', $resultado['errores']));
+
+                $lineasReversa = array_map(fn ($l) => [
+                    'cuenta_id'   => $l['cuenta_id'],
+                    'descripcion' => 'REVERSA: ' . $l['descripcion'],
+                    'debe'        => $l['haber'],
+                    'haber'       => $l['debe'],
+                ], $resultado['payload']['lineas']);
+
+                $numAsiento = $contHeadModel->getSiguienteNumero();
+                $tipoPartId = !empty($resultado['payload']['tipo_partida_id']) ? (int) $resultado['payload']['tipo_partida_id'] : null;
+
+                $reversaId = $contHeadModel->insert([
+                    'numero_asiento'     => $numAsiento,
+                    'numero_partida'     => $tipoPartId ? $contHeadModel->getSiguienteNumeroPartida($tipoPartId, (int) date('Y')) : null,
+                    'fecha'              => date('Y-m-d'),
+                    'descripcion'        => 'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref,
+                    'tipo'               => 'DIARIO',
+                    'tipo_partida_id'    => $tipoPartId,
+                    'estado'             => 'APROBADO',
+                    'periodo_id'         => $periodo->id,
+                    'total_debe'         => round(array_sum(array_column($lineasReversa, 'debe')), 2),
+                    'total_haber'        => round(array_sum(array_column($lineasReversa, 'haber')), 2),
+                    'referencia'         => 'Anulación ' . $ref,
+                    'documento_tipo'     => 'factura',
+                    'documento_id'       => (int) $id,
+                    'usuario_id'         => $userId,
+                    'usuario_aprueba_id' => $userId,
+                    'fecha_aprobacion'   => date('Y-m-d H:i:s'),
+                ]);
+
+                if (!$reversaId) throw new \Exception('No se pudo insertar el asiento de reversión.');
+
+                foreach ($lineasReversa as $i => $l) {
+                    $contDetalleModel->insert([
+                        'asiento_id'  => $reversaId,
+                        'cuenta_id'   => $l['cuenta_id'],
+                        'descripcion' => $l['descripcion'],
+                        'debe'        => $l['debe'],
+                        'haber'       => $l['haber'],
+                        'orden'       => $i + 1,
+                    ]);
+                }
+
+                $contHeadModel->aprobarConSaldos($reversaId, $lineasReversa, $periodo->id, date('Y-m-d'),
+                    'REVERSA: Anulación ' . $tipoDteHelper . ' ' . $ref, 'DIARIO', $periodo);
+
+                $mensajeContable = ' Asiento AST-' . str_pad($numAsiento, 5, '0', STR_PAD_LEFT) . ' generado.';
+
+            } catch (\Throwable $e) {
+                $mensajeContable = ' (Nota: reversión contable no generada: ' . $e->getMessage() . ')';
+            }
+        }
+
+        registrar_bitacora('Anulación de factura', 'Facturas',
+            'Anuló factura Nº ' . substr($factura->numero_control, -6) .
+            ' por $' . number_format($factura->total_pagar, 2) . ' el ' . date('d/m/Y H:i'), $userId);
+
+        crear_notificacion('Factura anulada', 'Se anuló la factura Nº ' . substr($factura->numero_control, -6),
+            'ver_notificacion_factura_anulada', base_url('facturas/' . $id), 'warning');
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Factura anulada correctamente.' . $mensajeContable,
+        ]);
+    }
+
+    private function _mapTipoDocInvalidacion(?string $tipo): string
+    {
+        return match (strtoupper((string) $tipo)) {
+            '36', 'NIT'              => '36',
+            '13', 'DUI'              => '13',
+            '02', 'CARNÉ RESIDENTE'  => '02',
+            '03', 'PASAP', 'PASAPORTE' => '03',
+            default                  => '13',
+        };
+    }
+
+    private function _generarUuid(): string
+    {
+        return sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            random_int(0, 0xffff), random_int(0, 0xffff),
+            random_int(0, 0xffff),
+            random_int(0, 0x0fff) | 0x4000,
+            random_int(0, 0x3fff) | 0x8000,
+            random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff)
+        );
     }
 
     public function preview($id)

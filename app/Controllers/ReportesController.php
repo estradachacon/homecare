@@ -582,6 +582,92 @@ class ReportesController extends Controller
             ->setBody($dompdf->output());
     }
 
+    public function saldosTipoItemPDF()
+    {
+        $db           = \Config\Database::connect();
+        $settingModel = new SettingModel();
+        $setting      = $settingModel->first();
+        $companyName  = $setting->company_name ?? 'Mi Empresa';
+
+        $fecha_corte = $this->request->getGet('fecha_corte') ?: date('Y-m-d');
+        $cliente_id  = $this->request->getGet('cliente_id');
+
+        $sql = "
+            SELECT
+                fh.id              AS factura_id,
+                fh.receptor_id,
+                c.nombre           AS cliente,
+                fh.saldo,
+                COALESCE(SUM(CASE WHEN fd.tipo_item = 1 THEN fd.venta_gravada + fd.iva_item ELSE 0 END), 0) AS productos_bruto,
+                COALESCE(SUM(CASE WHEN fd.tipo_item = 2 THEN fd.venta_gravada + fd.iva_item ELSE 0 END), 0) AS servicios_bruto,
+                COALESCE(SUM(fd.venta_gravada + fd.iva_item), 0)                                             AS total_lineas
+            FROM facturas_head fh
+            LEFT JOIN clientes c        ON c.id        = fh.receptor_id
+            LEFT JOIN factura_detalles fd ON fd.factura_id = fh.id
+            WHERE fh.saldo     > 0
+              AND fh.anulada   = 0
+              AND fh.fecha_emision <= ?
+        ";
+
+        $params = [$fecha_corte];
+
+        if (!empty($cliente_id)) {
+            $sql     .= " AND fh.receptor_id = ?";
+            $params[] = $cliente_id;
+        }
+
+        $sql .= " GROUP BY fh.id, fh.receptor_id, c.nombre, fh.saldo
+                  ORDER BY c.nombre ASC, fh.fecha_emision ASC";
+
+        $rows = $db->query($sql, $params)->getResultObject();
+
+        // Aggregate by client, distributing saldo proportionally
+        $reporte = [];
+        foreach ($rows as $row) {
+            $rid = $row->receptor_id;
+            if (!isset($reporte[$rid])) {
+                $reporte[$rid] = [
+                    'cliente'   => $row->cliente,
+                    'productos' => 0.0,
+                    'servicios' => 0.0,
+                    'total'     => 0.0,
+                ];
+            }
+            $saldo       = (float)$row->saldo;
+            $totalLineas = (float)$row->total_lineas;
+            $prodBruto   = (float)$row->productos_bruto;
+            $servBruto   = (float)$row->servicios_bruto;
+
+            if ($totalLineas > 0) {
+                $reporte[$rid]['productos'] += round($saldo * ($prodBruto / $totalLineas), 2);
+                $reporte[$rid]['servicios'] += round($saldo * ($servBruto / $totalLineas), 2);
+            } else {
+                $reporte[$rid]['productos'] += $saldo;
+            }
+            $reporte[$rid]['total'] += $saldo;
+        }
+
+        $data = [
+            'reporte'     => $reporte,
+            'fecha'       => $fecha_corte,
+            'companyName' => $companyName,
+            'generado_en' => date('d/m/Y H:i'),
+        ];
+
+        $html = view('reports/maestro/saldos_tipo_item_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
+
     public function estadoCuentaClientePDF()
     {
         $db = \Config\Database::connect();

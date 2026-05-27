@@ -237,6 +237,14 @@
                         <div class="col-md-5">
                             <label class="compact-label">Cliente</label>
                             <select id="clienteId" class="form-control form-control-sm-dte" style="width:100%;"></select>
+                            <div id="clienteBadges" class="mt-1" style="display:none;">
+                                <span id="badgeGranContrib" class="badge bg-warning text-dark me-1" style="display:none; font-size:11px;">
+                                    <i class="fa-solid fa-star me-1"></i>Gran Contribuyente
+                                </span>
+                                <span id="badgeExentoIva" class="badge bg-info text-white" style="display:none; font-size:11px;">
+                                    <i class="fa-solid fa-shield-halved me-1"></i>Exento de IVA
+                                </span>
+                            </div>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" id="btnToggleCliente" class="btn btn-sm btn-outline-secondary w-100" style="display:none; height:34px;">
@@ -307,13 +315,21 @@
                     <!-- ═══ TOTALES ═══ -->
                     <div class="row justify-content-end mb-3">
                         <div class="col-md-4 total-box">
-                            <div class="d-flex justify-content-between mb-1" style="font-size:13px;">
+                            <div id="gravadaRow" class="d-flex justify-content-between mb-1" style="font-size:13px;">
                                 <span class="text-muted">Subtotal gravado:</span>
                                 <span id="lblTotalGravada">$0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-1" style="font-size:13px;">
+                            <div id="ventasExentasRow" class="d-flex justify-content-between mb-1" style="font-size:13px; display:none;">
+                                <span class="text-muted">Ventas Exentas:</span>
+                                <span id="lblVentasExentas">$0.00</span>
+                            </div>
+                            <div id="ivaRow" class="d-flex justify-content-between mb-1" style="font-size:13px;">
                                 <span class="text-muted">IVA (13%):</span>
                                 <span id="lblTotalIva">$0.00</span>
+                            </div>
+                            <div id="retencionRow" class="d-flex justify-content-between mb-1" style="font-size:13px; display:none;">
+                                <span class="text-muted">Retención 1% (Gran Contribuyente):</span>
+                                <span id="lblRetencion" class="text-danger">-$0.00</span>
                             </div>
                             <hr class="my-1">
                             <div class="d-flex justify-content-between">
@@ -377,7 +393,8 @@
                 name="items[__IDX__][cantidad]"
                 value="1"
                 min="1"
-                step="1">
+                step="1"
+                inputmode="numeric">
         </td>
 
         <td>
@@ -684,8 +701,16 @@
             $('#clienteInfo').hide();
             $('#btnToggleCliente').text('Ver datos');
 
+            // Badges
+            const esGran = !!c.gran_contribuyente;
+            const esExento = !!c.exento_iva;
+            $('#badgeGranContrib').toggle(esGran);
+            $('#badgeExentoIva').toggle(esExento);
+            $('#clienteBadges').toggle(esGran || esExento);
+
             actualizarEstadoBotonEmitir(true);
             solicitarGiroCliente();
+            calcularTotales();
         });
 
         $('#btnToggleCliente').on('click', function() {
@@ -901,6 +926,14 @@
             calcularTotales();
         });
 
+        // Forzar entero en cantidad al escribir
+        $(document).on('input', '.qty-input', function() {
+            const v = this.value;
+            if (v !== '' && v.includes('.')) {
+                this.value = Math.floor(parseFloat(v)) || 1;
+            }
+        });
+
         $(document).on('input change', '.qty-input, .price-input, .descu-input', function() {
             calcularFila($(this).closest('tr'));
         });
@@ -908,7 +941,7 @@
         function calcularFila($row) {
             const tipo = $('#tipoDte').val();
 
-            const qty = parseFloat($row.find('.qty-input').val()) || 0;
+            const qty = Math.floor(parseFloat($row.find('.qty-input').val()) || 0);
             const price = parseFloat($row.find('.price-input').val()) || 0;
             const descu = parseFloat($row.find('.descu-input').val()) || 0;
 
@@ -939,6 +972,8 @@
 
         function calcularTotales() {
             const tipo = $('#tipoDte').val();
+            const esExento = !!clienteSeleccionado?.exento_iva;
+            const esGranContrib = !!clienteSeleccionado?.gran_contribuyente;
 
             let totalGravada = 0,
                 totalIva = 0;
@@ -952,13 +987,50 @@
             totalIva = Math.round(totalIva * 100) / 100;
 
             let totalPagar = 0;
+            let retencion = 0;
+            let ventasExentas = 0;
 
-            if (tipo === '01') {
-                // Factura: ya incluye IVA
-                totalPagar = totalGravada;
+            if (esExento) {
+                // Cliente exento: todo cae en ventas exentas, sin IVA ni retención
+                ventasExentas = totalGravada;
                 totalIva = 0;
+                retencion = 0;
+                totalPagar = ventasExentas;
+
+                $('#gravadaRow').hide();
+                $('#ivaRow').hide();
+                $('#ventasExentasRow').show();
+                $('#lblVentasExentas').text('$' + ventasExentas.toFixed(2));
+                $('#retencionRow').hide();
             } else {
-                totalPagar = totalGravada + totalIva;
+                $('#gravadaRow').show();
+                $('#ventasExentasRow').hide();
+                $('#ivaRow').show();
+
+                if (tipo === '01') {
+                    totalPagar = totalGravada;
+                    totalIva = 0;
+                    if (esGranContrib) {
+                        const base = Math.round((totalGravada / 1.13) * 100) / 100;
+                        if (base >= 100) {
+                            retencion = Math.round(base * 0.01 * 100) / 100;
+                        }
+                    }
+                } else {
+                    totalPagar = Math.round((totalGravada + totalIva) * 100) / 100;
+                    if (esGranContrib && totalGravada >= 100) {
+                        retencion = Math.round(totalGravada * 0.01 * 100) / 100;
+                    }
+                }
+
+                totalPagar = Math.round((totalPagar - retencion) * 100) / 100;
+
+                if (retencion > 0) {
+                    $('#retencionRow').show();
+                    $('#lblRetencion').text('-$' + retencion.toFixed(2));
+                } else {
+                    $('#retencionRow').hide();
+                }
             }
 
             $('#lblTotalGravada').text('$' + totalGravada.toFixed(2));
@@ -1033,7 +1105,7 @@
 
             $('#productosBody tr').each(function(i) {
                 const desc = $(this).find('.desc-input').val().trim().replace(/\r\n|\r|\n/g, '\r\n');
-                const qty = parseFloat($(this).find('.qty-input').val()) || 0;
+                const qty = Math.floor(parseFloat($(this).find('.qty-input').val()) || 0);
                 const price = parseFloat($(this).find('.price-input').val()) || 0;
 
                 if (!desc) {
@@ -1111,6 +1183,7 @@
                     fecha_emision: $('#fechaIso').val(),
                     hora_emision: $('#horaIso').val(),
                     observaciones: $('#observaciones').val(),
+                    gran_contribuyente: clienteSeleccionado?.gran_contribuyente ? 1 : 0,
                     items: items,
                 };
 
