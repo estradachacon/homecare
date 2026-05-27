@@ -343,9 +343,8 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
         }
 
         .totals {
-            margin-left: auto;
-            margin-top: 14px;
-            width: 42%;
+            margin-top: 0;
+            width: 100%;
         }
 
         .totals td {
@@ -355,10 +354,11 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
 
         .totals .grand td {
             border-bottom: 0;
-            color: #174a7c;
-            font-size: 15px;
+            border-top: 1.5px solid #174a7c;
+            color: #1f2933;
+            font-size: 12px;
             font-weight: 700;
-            padding-top: 8px;
+            padding-top: 7px;
         }
 
         .amount-words {
@@ -366,17 +366,21 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
             border: 1px solid #d5dde5;
             border-radius: 4px;
             font-size: 11px;
-            margin-top: 12px;
             padding: 8px 10px;
         }
 
         .notes-box {
-            background: #fffdf5;
-            border: 1px solid #e6d7a8;
-            border-radius: 4px;
-            margin-top: 14px;
-            padding: 8px 10px;
+            margin-top: 10px;
             page-break-inside: avoid;
+        }
+
+        .notes-label {
+            color: #425466;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            margin-bottom: 4px;
+            text-transform: uppercase;
         }
 
         .document-closing {
@@ -531,40 +535,48 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
         </tbody>
     </table>
 
-    <?php if ($notasFactura !== ''): ?>
-        <div class="notes-box">
-            <div class="box-title">Notas</div>
-            <?= nl2br(esc($notasFactura)) ?>
-        </div>
-    <?php endif; ?>
-
     <div class="document-closing">
-        <table class="totals">
+        <table class="layout" style="margin-top:14px; width:100%;">
             <tr>
-                <td>Subtotal</td>
-                <td class="right">$<?= number_format($subtotal, 2) ?></td>
-            </tr>
-            <?php if ($totalIva > 0): ?>
-                <tr>
-                    <td>IVA 13%</td>
-                    <td class="right">$<?= number_format($totalIva, 2) ?></td>
-                </tr>
-            <?php endif; ?>
-            <?php if ($retencion > 0): ?>
-                <tr>
-                    <td>Retencion IVA 1%</td>
-                    <td class="right">-$<?= number_format($retencion, 2) ?></td>
-                </tr>
-            <?php endif; ?>
-            <tr class="grand">
-                <td>Total a pagar</td>
-                <td class="right">$<?= number_format((float)$factura->total_pagar, 2) ?></td>
+                <!-- Izquierda: valor en letras + observaciones -->
+                <td style="vertical-align:top; padding-right:16px;">
+                    <div class="amount-words">
+                        <strong>Son:</strong> <?= esc($montoLetras) ?>
+                    </div>
+                    <?php if ($notasFactura !== ''): ?>
+                        <div class="notes-box">
+                            <div class="notes-label">Observaciones</div>
+                            <?= nl2br(esc($notasFactura)) ?>
+                        </div>
+                    <?php endif; ?>
+                </td>
+                <!-- Derecha: totales -->
+                <td style="width:34%; vertical-align:top; padding-right:0;">
+                    <table class="totals">
+                        <tr>
+                            <td>Subtotal</td>
+                            <td class="right">$<?= number_format($subtotal, 2) ?></td>
+                        </tr>
+                        <?php if ($totalIva > 0): ?>
+                            <tr>
+                                <td>IVA 13%</td>
+                                <td class="right">$<?= number_format($totalIva, 2) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if ($retencion > 0): ?>
+                            <tr>
+                                <td>Retención IVA 1%</td>
+                                <td class="right">-$<?= number_format($retencion, 2) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <tr class="grand">
+                            <td>Total</td>
+                            <td class="right">$<?= number_format((float)$factura->total_pagar, 2) ?></td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
         </table>
-
-        <div class="amount-words">
-            <strong>Son:</strong> <?= esc($montoLetras) ?>
-        </div>
     </div>
 </body>
 

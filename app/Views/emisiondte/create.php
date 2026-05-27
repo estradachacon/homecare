@@ -160,6 +160,18 @@
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
+
+    .char-counter {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 2px;
+        line-height: 1;
+    }
+
+    .char-counter.over-limit {
+        color: #dc3545 !important;
+        font-weight: 600;
+    }
 </style>
 
 <div class="row">
@@ -318,7 +330,8 @@
                             id="observaciones"
                             class="form-control form-control-sm"
                             rows="2"
-                            placeholder="Notas adicionales para la factura:"></textarea>
+                            maxlength="2000"></textarea>
+                        <div class="char-counter text-end" id="observacionesCounter">0 / 2000</div>
                     </div>
 
                     <div class="text-end">
@@ -353,7 +366,9 @@
                 class="form-control form-control-sm desc-input auto-expand"
                 name="items[__IDX__][descripcion]"
                 rows="1"
+                maxlength="1000"
                 placeholder="Descripción"></textarea>
+            <div class="char-counter text-end">0 / 1000</div>
         </td>
 
         <td>
@@ -630,7 +645,7 @@
             $row.find('.tipo-item').val('2');
             $row.find('.producto-id').val(servicio.id || '');
             $row.find('.producto-codigo').val(servicio.codigo || '');
-            $row.find('.desc-input').val(servicio.text);
+            $row.find('.desc-input').val(servicio.text).trigger('input');
 
             if (servicio.precio) {
                 $row.find('.price-input').val(servicio.precio);
@@ -851,7 +866,7 @@
 
             // Descripción automática
             const desc = producto.text.replace(/\s*\(.*\)$/, '').trim();
-            $row.find('.desc-input').val(desc);
+            $row.find('.desc-input').val(desc).trigger('input');
 
             // 👇 PRIMERO calcula
             calcularFila($row);
@@ -962,6 +977,20 @@
 
         $(document).on('input', '.auto-expand', function() {
             autoExpand(this);
+        });
+
+        // Contador de caracteres — descripción de productos (máx 1000)
+        $(document).on('input', '.desc-input', function() {
+            const len = this.value.length;
+            const $counter = $(this).siblings('.char-counter');
+            $counter.text(len + ' / 1000');
+            $counter.toggleClass('over-limit', len >= 1000);
+        });
+
+        // Contador de caracteres — observaciones (máx 2000)
+        $('#observaciones').on('input', function() {
+            const len = this.value.length;
+            $('#observacionesCounter').text(len + ' / 2000').toggleClass('over-limit', len >= 2000);
         });
 
         function escapeHtml(value) {
