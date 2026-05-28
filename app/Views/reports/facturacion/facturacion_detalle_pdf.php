@@ -295,16 +295,18 @@ $siglas = dte_siglas();
     <?php endforeach; ?>
 
     <table>
-        <tfoot>
+        <tbody>
             <tr class="totales">
-                <td colspan="3">GRAN TOTAL</td>
-                <td class="text-right">$ <?= number_format($gt_base, 2) ?></td>
-                <td class="text-right">$ <?= number_format($gt_iva, 2) ?></td>
-                <td class="text-right">$ <?= number_format($gt_valor, 2) ?></td>
-                <td class="text-right">$ <?= number_format($gt_ret, 2) ?></td>
-                <td class="text-right">$ <?= number_format($gt_total, 2) ?></td>
+                <td width="6%"  style="border:none; padding:2px 0;"></td>
+                <td width="7%"  style="border:none; padding:2px 0;"></td>
+                <td width="38%" style="border-left:none; border-right:none; border-top:1.5px solid #548235; padding:2px 3px; font-weight:bold;">GRAN TOTAL</td>
+                <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($gt_base, 2) ?></td>
+                <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($gt_iva, 2) ?></td>
+                <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($gt_valor, 2) ?></td>
+                <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($gt_ret, 2) ?></td>
+                <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($gt_total, 2) ?></td>
             </tr>
-        </tfoot>
+        </tbody>
     </table>
 
     <?php if (isset($reporte['14'])): ?>
@@ -388,16 +390,18 @@ $siglas = dte_siglas();
         <?php endforeach; ?>
 
         <table>
-            <tfoot>
+            <tbody>
                 <tr class="totales">
-                    <td colspan="3">GRAN TOTAL FSEE</td>
-                    <td class="text-right">$ <?= number_format($fsee_gt_base, 2) ?></td>
-                    <td class="text-right">$ <?= number_format($fsee_gt_iva, 2) ?></td>
-                    <td class="text-right">$ <?= number_format($fsee_gt_valor, 2) ?></td>
-                    <td class="text-right">$ <?= number_format($fsee_gt_ret, 2) ?></td>
-                    <td class="text-right">$ <?= number_format($fsee_gt_total, 2) ?></td>
+                    <td width="6%"  style="border:none; padding:2px 0;"></td>
+                    <td width="7%"  style="border:none; padding:2px 0;"></td>
+                    <td width="38%" style="border-left:none; border-right:none; border-top:1.5px solid #548235; padding:2px 3px; font-weight:bold;">GRAN TOTAL FSEE</td>
+                    <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($fsee_gt_base, 2) ?></td>
+                    <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($fsee_gt_iva, 2) ?></td>
+                    <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($fsee_gt_valor, 2) ?></td>
+                    <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($fsee_gt_ret, 2) ?></td>
+                    <td width="9.8%" class="text-right" style="border-top:1.5px solid #548235; background:#e2efda; font-weight:bold;">$ <?= number_format($fsee_gt_total, 2) ?></td>
                 </tr>
-            </tfoot>
+            </tbody>
         </table>
 
     <?php endif; ?>
