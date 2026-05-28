@@ -45,6 +45,7 @@ class ConsignacionesController extends BaseController
             'fecha_fin'    => $this->request->getGet('fecha_fin'),
             'lote_estado'  => $this->request->getGet('lote_estado'),
             'origen'       => $this->request->getGet('origen'),
+            'aprobacion'   => $this->request->getGet('aprobacion'),
         ];
 
         // Sin permiso de ver todos: forzar el filtro al vendedor del usuario
@@ -971,12 +972,6 @@ class ConsignacionesController extends BaseController
             $paciente = (new PacienteModel())->find($consignacion->paciente_id);
         }
 
-        // Cargar nombre de tipo de nota para mostrar en el select si aplica
-        if (!empty($consignacion->tipo_nota_id)) {
-            $tipo = $db->table('tipo_notas')->select('nombre')->where('id', $consignacion->tipo_nota_id)->get()->getRow();
-            $consignacion->tipo_nota_nombre = $tipo ? $tipo->nombre : null;
-        }
-
         $detalleLoteModel = new ConsignacionDetalleLoteModel();
         $lotesPorDetalle  = [];
 
@@ -1309,8 +1304,9 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
 
         $detRow = $db->table('consignaciones_detalles cd')
-            ->select('cd.cantidad, ch.estado, ch.lotes_autorizados_por, ch.id AS consignacion_id')
+            ->select('cd.cantidad, ch.estado, ch.lotes_autorizados_por, ch.id AS consignacion_id, p.descripcion AS producto_nombre, p.codigo AS producto_codigo')
             ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
+            ->join('productos p', 'p.id = cd.producto_id', 'left')
             ->where('cd.id', $detalleId)
             ->get()
             ->getRow();
@@ -1361,14 +1357,16 @@ class ConsignacionesController extends BaseController
 
         (new ConsignacionDetalleLoteModel())->reemplazarPorDetalle($detalleId, $lotes);
 
-        // Construir detalle legible con los números de lote y cantidades asignadas
+        // Construir detalle legible con producto y lotes asignados
+        $productoLabel = trim(($detRow->producto_codigo ? '[' . $detRow->producto_codigo . '] ' : '') . ($detRow->producto_nombre ?? 'Producto #' . $detalleId));
         $parts = [];
         foreach ($lotes as $l) {
-            $num = $l['numero_lote'] ?? ($l['lote_id'] ?? 'Lote');
+            $num  = $l['numero_lote'] ?? ($l['lote_id'] ?? 'Lote');
             $cant = number_format((float)($l['cantidad'] ?? 0), 2);
             $parts[] = "$num: $cant";
         }
-        $detalleText = !empty($parts) ? implode('; ', $parts) : ('Detalle #' . $detalleId);
+        $lotesText   = !empty($parts) ? implode('; ', $parts) : 'sin lotes';
+        $detalleText = $productoLabel . ' — ' . $lotesText;
 
         $this->registrarLog((int)$detRow->consignacion_id, 'Lotes actualizados', $detalleText);
 
@@ -1530,7 +1528,7 @@ class ConsignacionesController extends BaseController
 
     public function reportes()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         return view('consignaciones/reportes/index');
@@ -1538,7 +1536,7 @@ class ConsignacionesController extends BaseController
 
     public function reporteNotas()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         $db          = \Config\Database::connect();
@@ -1575,7 +1573,7 @@ class ConsignacionesController extends BaseController
 
     public function reporteProductos()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         $db          = \Config\Database::connect();
@@ -1622,7 +1620,7 @@ class ConsignacionesController extends BaseController
 
     public function reportePacientes()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         $db          = \Config\Database::connect();
@@ -1666,7 +1664,7 @@ class ConsignacionesController extends BaseController
 
     public function reporteDoctores()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         $db          = \Config\Database::connect();
@@ -1869,7 +1867,7 @@ class ConsignacionesController extends BaseController
 
     public function reporteClientes()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_reportes_consignaciones');
         if ($chk !== true) return $chk;
 
         $db          = \Config\Database::connect();

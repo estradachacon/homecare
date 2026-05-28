@@ -305,7 +305,9 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                     tienePermiso('ver_pedidos') || tienePermiso('crear_pedidos') ||
                     tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') ||
                     tienePermiso('ver_precios_consignaciones') ||
-                    tienePermiso('ver_recuperos') || tienePermiso('crear_recupero')
+                    tienePermiso('ver_recuperos') || tienePermiso('crear_recupero') ||
+                    tienePermiso('ver_pacientes') || tienePermiso('ver_doctores') ||
+                    tienePermiso('ver_tipo_notas') || tienePermiso('ver_reportes_consignaciones')
                 ): ?>
                     <a class="nav-link collapsed" href="#"
                        data-toggle="collapse" data-target="#modVendedores"
@@ -338,7 +340,7 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                             <?php endif; ?>
 
                             <!-- Notas de Envío -->
-                            <?php if (tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') || tienePermiso('ver_precios_consignaciones') || tienePermiso('crear_consignacion_emergencia')): ?>
+                            <?php if (tienePermiso('ver_consignaciones') || tienePermiso('crear_consignaciones') || tienePermiso('ver_precios_consignaciones') || tienePermiso('crear_consignacion_emergencia') || tienePermiso('ver_pacientes') || tienePermiso('ver_doctores') || tienePermiso('ver_tipo_notas') || tienePermiso('ver_reportes_consignaciones')): ?>
                                 <a class="nav-link collapsed" href="#"
                                    data-toggle="collapse" data-target="#subConsig"
                                    aria-expanded="false" aria-controls="subConsig">
@@ -361,10 +363,16 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                                         <?php if (tienePermiso('ver_precios_consignaciones')): ?>
                                             <a class="nav-link" href="/consignaciones/precios">Precios por Vendedor</a>
                                         <?php endif; ?>
-                                        <?php if (tienePermiso('ver_consignaciones')): ?>
+                                        <?php if (tienePermiso('ver_pacientes')): ?>
                                             <a class="nav-link" href="/pacientes">Pacientes</a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('ver_doctores')): ?>
                                             <a class="nav-link" href="/doctores">Doctores</a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('ver_tipo_notas')): ?>
                                             <a class="nav-link" href="/tipo-notas">Tipo de Nota</a>
+                                        <?php endif; ?>
+                                        <?php if (tienePermiso('ver_reportes_consignaciones')): ?>
                                             <a class="nav-link" href="/consignaciones/reportes">Reportes</a>
                                         <?php endif; ?>
                                     </nav>

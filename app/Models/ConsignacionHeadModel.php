@@ -68,6 +68,10 @@ class ConsignacionHeadModel extends Model
             $this->where('consignaciones_head.origen', $filtros['origen']);
         }
 
+        if (!empty($filtros['aprobacion'])) {
+            $this->where('consignaciones_head.aprobacion_estado', $filtros['aprobacion']);
+        }
+
         return $this->orderBy('consignaciones_head.id', 'DESC');
     }
 
@@ -79,13 +83,15 @@ class ConsignacionHeadModel extends Model
                 doctores.nombre   AS doctor_nombre,
                 clientes.nombre   AS cliente_nombre,
                 pacientes.nombre  AS paciente_nombre,
-                u_auth.user_name  AS autorizador_nombre
+                u_auth.user_name  AS autorizador_nombre,
+                tn.nombre         AS tipo_nota_nombre
             ')
-            ->join('sellers',   'sellers.id = consignaciones_head.vendedor_id',              'left')
-            ->join('doctores',  'doctores.id = consignaciones_head.doctor_id',               'left')
-            ->join('clientes',  'clientes.id = consignaciones_head.cliente_id',              'left')
-            ->join('pacientes', 'pacientes.id = consignaciones_head.paciente_id',            'left')
-            ->join('users u_auth', 'u_auth.id = consignaciones_head.lotes_autorizados_por', 'left')
+            ->join('sellers',      'sellers.id = consignaciones_head.vendedor_id',              'left')
+            ->join('doctores',     'doctores.id = consignaciones_head.doctor_id',               'left')
+            ->join('clientes',     'clientes.id = consignaciones_head.cliente_id',              'left')
+            ->join('pacientes',    'pacientes.id = consignaciones_head.paciente_id',            'left')
+            ->join('users u_auth', 'u_auth.id = consignaciones_head.lotes_autorizados_por',    'left')
+            ->join('tipo_notas tn','tn.id = consignaciones_head.tipo_nota_id',                 'left')
             ->where('consignaciones_head.id', $id)
             ->first();
     }

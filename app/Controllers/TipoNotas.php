@@ -40,7 +40,7 @@ class TipoNotas extends BaseController
 
     public function index()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_tipo_notas');
         if ($chk !== true) return $chk;
 
         $model = new TipoNotaModel();
@@ -52,7 +52,7 @@ class TipoNotas extends BaseController
 
     public function guardar()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_tipo_notas');
         if ($chk !== true) return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
 
         $model = new TipoNotaModel();
@@ -68,7 +68,7 @@ class TipoNotas extends BaseController
 
     public function eliminar(int $id)
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_tipo_notas');
         if ($chk !== true) return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
 
         (new TipoNotaModel())->update($id, ['activo' => 0]);

@@ -15,14 +15,10 @@ class Doctores extends BaseController
 
         // Buscar por cualquiera de las partes del nombre o por especialidad
         $doctores = $model
-            ->select('id, nombre, especialidad, nombre1, nombre2, apellido1, apellido2')
+            ->select('id, nombre, especialidad')
             ->where('activo', 1)
             ->groupStart()
                 ->like('nombre', $q)
-                ->orLike('nombre1', $q)
-                ->orLike('nombre2', $q)
-                ->orLike('apellido1', $q)
-                ->orLike('apellido2', $q)
                 ->orLike('especialidad', $q)
             ->groupEnd()
             ->orderBy('nombre', 'ASC')
@@ -31,17 +27,9 @@ class Doctores extends BaseController
         $results = [];
 
         foreach ($doctores as $d) {
-            $display = trim(implode(' ', array_filter([
-                $d->nombre1 ?? '',
-                $d->nombre2 ?? '',
-                $d->apellido1 ?? '',
-                $d->apellido2 ?? '',
-            ])));
-            if ($display === '') $display = $d->nombre;
-
             $results[] = [
                 'id'   => $d->id,
-                'text' => $display . (!empty($d->especialidad) ? ' | ' . $d->especialidad : ''),
+                'text' => $d->nombre . (!empty($d->especialidad) ? ' | ' . $d->especialidad : ''),
             ];
         }
 
@@ -88,10 +76,6 @@ class Doctores extends BaseController
 
         $data = [
             'nombre'       => $fullName,
-            'nombre1'      => $n1 ?: null,
-            'nombre2'      => $n2 ?: null,
-            'apellido1'    => $a1 ?: null,
-            'apellido2'    => $a2 ?: null,
             'especialidad' => $this->request->getPost('especialidad') ?: null,
             'telefono'     => $this->request->getPost('telefono') ?: null,
             'correo'       => $this->request->getPost('correo') ?: null,
@@ -115,7 +99,7 @@ class Doctores extends BaseController
 
     public function index()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_doctores');
         if ($chk !== true) return $chk;
 
         $model = new DoctorModel();
@@ -141,7 +125,7 @@ class Doctores extends BaseController
 
     public function guardar()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_doctores');
         if ($chk !== true) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }
@@ -162,10 +146,6 @@ class Doctores extends BaseController
 
         $data = [
             'nombre'       => $fullName,
-            'nombre1'      => $n1 ?: null,
-            'nombre2'      => $n2 ?: null,
-            'apellido1'    => $a1 ?: null,
-            'apellido2'    => $a2 ?: null,
             'especialidad' => $this->request->getPost('especialidad') ?: null,
             'telefono'     => $this->request->getPost('telefono') ?: null,
             'correo'       => $this->request->getPost('correo') ?: null,
@@ -187,7 +167,7 @@ class Doctores extends BaseController
 
     public function eliminar(int $id)
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_doctores');
         if ($chk !== true) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }

@@ -738,7 +738,7 @@
                 </li>
 
                 <!-- Campana de alertas operativas -->
-                <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes')): ?>
+                <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes') || tienePermiso('ver_alertas_ne_con_lotes_sin_aprobar')): ?>
                 <li class="nav-item dropdown mr-3" style="list-style:none;">
                     <a class="nav-link text-white position-relative" href="#"
                        id="alertasDropdown" data-toggle="dropdown"
@@ -1060,7 +1060,7 @@
         // refrescar cada 30 segundos
         setInterval(cargarNotificaciones, 15000);
 
-        <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes')): ?>
+        <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes') || tienePermiso('ver_alertas_ne_con_lotes_sin_aprobar')): ?>
         // ── Alertas operativas ────────────────────────────────────────────────
         let alertasTotales = 0;
 

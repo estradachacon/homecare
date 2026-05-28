@@ -52,7 +52,14 @@ class Permisos extends BaseConfig
             'ver_precios_consignaciones',
             'gestionar_precios_consignaciones',
             'crear_consignacion_emergencia',
-            'ver_reporte_ne_productos'
+            'ver_reporte_ne_productos',
+        ],
+
+        'Reportes y catálogos para consignaciones' => [
+            'ver_pacientes',
+            'ver_doctores',
+            'ver_tipo_notas',
+            'ver_reportes_consignaciones',
         ],
         
         'Cuentas por cobrar' => [
@@ -106,6 +113,7 @@ class Permisos extends BaseConfig
             'ver_alertas_np_pendientes',
             'ver_alertas_ne_sin_autorizar',
             'ver_alertas_ne_sin_lotes',
+            'ver_alertas_ne_con_lotes_sin_aprobar',
         ],   
 
         'Ajustes del sistema' => [

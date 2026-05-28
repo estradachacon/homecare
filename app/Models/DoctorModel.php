@@ -13,10 +13,6 @@ class DoctorModel extends Model
 
     protected $allowedFields = [
         'nombre',
-        'nombre1',
-        'nombre2',
-        'apellido1',
-        'apellido2',
         'telefono',
         'correo',
         'especialidad',

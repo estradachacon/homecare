@@ -1,3 +1,30 @@
+<?php
+if (!function_exists('_neNumLetras')) {
+    function _neNumLetras(int $n): string {
+        if ($n === 0) return 'CERO';
+        $u = ['','UNO','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE',
+              'DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE',
+              'DIECIOCHO','DIECINUEVE','VEINTE'];
+        $d = ['','','VEINTI','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+        $c = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS',
+              'SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+        if ($n <= 20) return $u[$n];
+        if ($n < 30)  return $d[2] . ($n > 20 ? $u[$n - 20] : '');
+        if ($n < 100) return $d[intdiv($n,10)] . ($n % 10 ? ' Y ' . $u[$n % 10] : '');
+        if ($n === 100) return 'CIEN';
+        if ($n < 1000) return $c[intdiv($n,100)] . ($n % 100 ? ' ' . _neNumLetras($n % 100) : '');
+        if ($n < 2000) return 'MIL' . ($n % 1000 ? ' ' . _neNumLetras($n % 1000) : '');
+        if ($n < 1000000) { $m = intdiv($n,1000); $r = $n % 1000; return _neNumLetras($m) . ' MIL' . ($r ? ' ' . _neNumLetras($r) : ''); }
+        $m = intdiv($n,1000000); $r = $n % 1000000;
+        return _neNumLetras($m) . ($m === 1 ? ' MILLÓN' : ' MILLONES') . ($r ? ' ' . _neNumLetras($r) : '');
+    }
+    function neMontoLetras(float $monto): string {
+        $e = (int)floor(abs($monto));
+        $c = (int)round((abs($monto) - $e) * 100);
+        return _neNumLetras($e) . ' CON ' . str_pad($c, 2, '0', STR_PAD_LEFT) . '/100 USD';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -233,7 +260,12 @@
 </div>
 
 <?php
-$nombreEmpresa = setting('company_name') ?? 'HomeCare';
+$nombreEmpresa  = setting('company_name') ?? 'HomeCare';
+$subtotalLetras = neMontoLetras((float)$consignacion->subtotal);
+$logoFile       = setting('logo');
+$logoUrl        = ($logoFile && file_exists(FCPATH . 'upload/settings/' . $logoFile))
+                    ? base_url('upload/settings/' . $logoFile)
+                    : null;
 
 $est      = $consignacion->estado ?? 'abierta';
 $estClass = match($est) { 'cerrada' => 'b-cerrada', 'anulada' => 'b-anulada', default => 'b-abierta' };
@@ -241,7 +273,7 @@ $estLabel = match($est) { 'cerrada' => 'Cerrada',   'anulada' => 'Anulada',   de
 
 $apEst    = $consignacion->aprobacion_estado ?? 'pendiente';
 $apClass  = match($apEst) { 'aprobada' => 'b-aprobada', 'rechazada' => 'b-rechazada', default => 'b-pendiente' };
-$apLabel  = match($apEst) { 'aprobada' => 'Aprobada',   'rechazada' => 'Rechazada',   default => 'Pend. Aprobación' };
+$apLabel  = match($apEst) { 'aprobada' => 'Aprobada',   'rechazada' => 'Rechazada',   default => 'Pend. Aprobación de Despacho' };
 
 $tieneDoctor   = !empty($consignacion->doctor_nombre);
 $tieneCliente  = !empty($consignacion->cliente_nombre);
@@ -266,9 +298,15 @@ $copias = ['Original – Empresa', 'Copia – Recepción'];
 
         <!-- Header: empresa | NE número | fecha y estados -->
         <div class="hdr">
-            <div class="hdr-empresa">
-                <?= esc($nombreEmpresa) ?>
-                <small>Nota de Envío / Consignación</small>
+            <div class="hdr-empresa" style="display:flex;align-items:center;gap:7px;">
+                <?php if ($logoUrl): ?>
+                    <img src="<?= esc($logoUrl) ?>" alt="logo"
+                         style="height:32px;max-width:55px;object-fit:contain;flex-shrink:0;">
+                <?php endif; ?>
+                <div>
+                    <?= esc($nombreEmpresa) ?>
+                    <small>Nota de Envío / Consignación</small>
+                </div>
             </div>
             <div class="hdr-ne">
                 <div class="titulo">Nota de Envío</div>
@@ -355,8 +393,9 @@ $copias = ['Original – Empresa', 'Copia – Recepción'];
                 </tbody>
             </table>
 
-            <div class="totales">
-                SUBTOTAL:&nbsp;&nbsp;$<?= number_format($consignacion->subtotal, 2) ?>
+            <div class="totales" style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-size:8px;font-weight:normal;color:#555;">Son: <?= esc($subtotalLetras) ?></span>
+                <span>SUBTOTAL:&nbsp;&nbsp;$<?= number_format($consignacion->subtotal, 2) ?></span>
             </div>
 
             <?php if ($consignacion->observaciones): ?>

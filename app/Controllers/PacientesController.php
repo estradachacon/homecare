@@ -9,7 +9,7 @@ class PacientesController extends BaseController
 {
     public function index()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_pacientes');
         if ($chk !== true) return $chk;
 
         $model = new PacienteModel();
@@ -54,7 +54,7 @@ class PacientesController extends BaseController
 
     public function guardar()
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_pacientes');
         if ($chk !== true) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }
@@ -90,7 +90,7 @@ class PacientesController extends BaseController
 
     public function eliminar(int $id)
     {
-        $chk = requerirPermiso('ver_consignaciones');
+        $chk = requerirPermiso('ver_pacientes');
         if ($chk !== true) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
         }

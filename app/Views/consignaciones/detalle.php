@@ -565,8 +565,8 @@
                 </table>
 
                 <div class="d-flex gap-2 mt-1">
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAgregarLoteModal">
-                        <i class="fa-solid fa-plus mr-1"></i> Agregar lote existente
+                    <button type="button" class="btn btn-sm btn-outline-primary mr-1" id="btnAgregarLoteModal">
+                        <i class="fa-solid fa-plus"></i> Agregar lote existente
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-success" id="btnToggleCrearLote">
                         <i class="fa-solid fa-layer-group mr-1"></i> Crear nuevo lote
@@ -596,8 +596,8 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-success" id="btnGuardarNuevoLote">
-                            <i class="fa-solid fa-save mr-1"></i> Crear y agregar
+                        <button type="button" class="btn btn-sm btn-success mr-1" id="btnGuardarNuevoLote">
+                            <i class="fa-solid fa-save"></i> Crear y agregar
                         </button>
                         <button type="button" class="btn btn-sm btn-secondary" id="btnCancelarNuevoLote">
                             Cancelar
