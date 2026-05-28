@@ -2788,7 +2788,7 @@ class ReportesController extends Controller
 
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $this->applyPdfHeader($dompdf);
@@ -2882,10 +2882,16 @@ class ReportesController extends Controller
             SELECT
                 cd.codigo,
                 cd.descripcion,
-                SUM(cd.cantidad)       AS cantidad_total,
-                SUM(cd.venta_gravada)  AS total_base
+                cd.cantidad,
+                cd.precio_unitario,
+                cd.venta_gravada,
+                ch.numero_control,
+                ch.fecha_emision,
+                ch.tipo_dte,
+                p.nombre AS proveedor_nombre
             FROM   compras_detalles cd
             INNER JOIN compras_head ch ON ch.id = cd.compra_id
+            LEFT JOIN  proveedores   p  ON p.id  = ch.proveedor_id
             WHERE  ch.fecha_emision >= ?
               AND  ch.fecha_emision <= ?
               AND  ch.anulada       = 0
@@ -2898,19 +2904,45 @@ class ReportesController extends Controller
         }
 
         $sql .= "
-            GROUP BY cd.codigo, cd.descripcion
-            ORDER BY cd.descripcion ASC
+            ORDER BY cd.descripcion ASC, ch.fecha_emision ASC, ch.numero_control ASC
         ";
 
-        $productos = $db->query($sql, $params)->getResultObject();
+        $rows      = $db->query($sql, $params)->getResultObject();
         $proveedor = null;
 
         if (!empty($proveedorId)) {
             $proveedor = $db->query("SELECT * FROM proveedores WHERE id = ?", [$proveedorId])->getRowObject();
         }
 
+        // Group rows by product key (codigo + descripcion)
+        $reporte = [];
+        foreach ($rows as $row) {
+            $key = trim($row->codigo) . '||' . trim($row->descripcion);
+            if (!isset($reporte[$key])) {
+                $reporte[$key] = [
+                    'codigo'      => $row->codigo,
+                    'descripcion' => $row->descripcion,
+                    'cantidad'    => 0.0,
+                    'base'        => 0.0,
+                    'documentos'  => [],
+                ];
+            }
+            $base = (float)$row->venta_gravada;
+            $reporte[$key]['cantidad']   += (float)$row->cantidad;
+            $reporte[$key]['base']       += $base;
+            $reporte[$key]['documentos'][] = [
+                'numero_control'  => $row->numero_control,
+                'fecha_emision'   => $row->fecha_emision,
+                'tipo_dte'        => $row->tipo_dte,
+                'proveedor'       => $row->proveedor_nombre,
+                'cantidad'        => (float)$row->cantidad,
+                'precio_unitario' => (float)$row->precio_unitario,
+                'base'            => $base,
+            ];
+        }
+
         $data = [
-            'productos'   => $productos,
+            'reporte'     => $reporte,
             'desde'       => $desde,
             'hasta'       => $hasta,
             'proveedor'   => $proveedor,
