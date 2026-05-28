@@ -114,6 +114,11 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('reports/saldos-antiguedad-vendedor-pdf', 'ReportesController::saldosAntiguedadVendedorPDF');
     $routes->get('reports/saldos-antiguedad-vendedor-detalle-pdf', 'ReportesController::saldosAntiguedadVendedorDetallePDF');
     $routes->get('reports/saldos-tipo-item-pdf', 'ReportesController::saldosTipoItemPDF');
+    // -- Reportes de Compras
+    $routes->get('reports/compras', 'ReportesController::formCompras');
+    $routes->get('reports/compras-pdf', 'ReportesController::comprasPDF');
+    $routes->get('reports/compras-excel', 'ReportesController::comprasExcel');
+    $routes->get('reports/compras-por-producto-pdf', 'ReportesController::comprasPorProductoPDF');
     // -- Reportes de Facturación
     $routes->get('reports/facturacion', 'ReportesController::facturacion');
     $routes->get('reports/facturacion-pdf', 'ReportesController::facturacionPDF');

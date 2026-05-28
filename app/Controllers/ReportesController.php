@@ -2732,4 +2732,202 @@ class ReportesController extends Controller
         if (!$l->factura_id && empty($l->numero_nueva_ne) && $l->ne_estado === 'cerrada') return 'Cerrada s/factura';
         return 'Pendiente';
     }
+
+    // =========================================================
+    // REPORTES DE COMPRAS
+    // =========================================================
+
+    public function formCompras()
+    {
+        return view('reports/compras');
+    }
+
+    public function comprasPDF()
+    {
+        $db           = \Config\Database::connect();
+        $settingModel = new SettingModel();
+        $setting      = $settingModel->first();
+
+        $desde       = $this->request->getGet('desde') ?: date('Y-m-01');
+        $hasta       = $this->request->getGet('hasta') ?: date('Y-m-d');
+        $proveedorId = $this->request->getGet('proveedor_id');
+
+        $sql = "
+            SELECT ch.*,
+                   p.nombre AS proveedor_nombre
+            FROM   compras_head ch
+            LEFT JOIN proveedores p ON p.id = ch.proveedor_id
+            WHERE  ch.fecha_emision >= ?
+              AND  ch.fecha_emision <= ?
+        ";
+        $params = [$desde, $hasta];
+
+        if (!empty($proveedorId)) {
+            $sql     .= " AND ch.proveedor_id = ?";
+            $params[] = $proveedorId;
+        }
+
+        $sql .= " ORDER BY ch.fecha_emision ASC, ch.numero_control ASC";
+
+        $compras   = $db->query($sql, $params)->getResultObject();
+        $proveedor = null;
+
+        if (!empty($proveedorId)) {
+            $proveedor = $db->query("SELECT * FROM proveedores WHERE id = ?", [$proveedorId])->getRowObject();
+        }
+
+        $data = [
+            'compras'     => $compras,
+            'desde'       => $desde,
+            'hasta'       => $hasta,
+            'proveedor'   => $proveedor,
+            'generado_en' => date('d/m/Y H:i'),
+        ];
+
+        $html = view('reports/compras/compras_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
+
+    public function comprasExcel()
+    {
+        $db          = \Config\Database::connect();
+        $desde       = $this->request->getGet('desde') ?: date('Y-m-01');
+        $hasta       = $this->request->getGet('hasta') ?: date('Y-m-d');
+        $proveedorId = $this->request->getGet('proveedor_id');
+
+        $sql = "
+            SELECT ch.*,
+                   p.nombre AS proveedor_nombre
+            FROM   compras_head ch
+            LEFT JOIN proveedores p ON p.id = ch.proveedor_id
+            WHERE  ch.fecha_emision >= ?
+              AND  ch.fecha_emision <= ?
+        ";
+        $params = [$desde, $hasta];
+
+        if (!empty($proveedorId)) {
+            $sql     .= " AND ch.proveedor_id = ?";
+            $params[] = $proveedorId;
+        }
+
+        $sql .= " ORDER BY ch.fecha_emision ASC, ch.numero_control ASC";
+
+        $compras   = $db->query($sql, $params)->getResultObject();
+        $proveedor = null;
+
+        if (!empty($proveedorId)) {
+            $proveedor = $db->query("SELECT * FROM proveedores WHERE id = ?", [$proveedorId])->getRowObject();
+        }
+
+        $data = [
+            'compras'     => $compras,
+            'desde'       => $desde,
+            'hasta'       => $hasta,
+            'proveedor'   => $proveedor,
+            'generado_en' => date('d/m/Y H:i'),
+        ];
+
+        $html = view('reports/compras/compras_excel', $data);
+
+        $reader      = new HtmlReader();
+        $spreadsheet = $reader->loadFromString($html);
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        // Header row style
+        $highestRow = $sheet->getHighestRow();
+        $sheet->getStyle('A5:J5')->getFont()->setBold(true);
+        $sheet->getStyle('A5:J5')->getFill()
+            ->setFillType(Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('1F4E79');
+        $sheet->getStyle('A5:J5')->getFont()->getColor()->setARGB('FFFFFF');
+
+        // Currency columns E-H
+        $sheet->getStyle("E6:H$highestRow")
+            ->getNumberFormat()->setFormatCode('"$"#,##0.00');
+        $sheet->getStyle("I6:I$highestRow")
+            ->getNumberFormat()->setFormatCode('"$"#,##0.00');
+
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer   = new Xlsx($spreadsheet);
+        $filename = 'compras_' . str_replace('-', '', $desde) . '_' . str_replace('-', '', $hasta) . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function comprasPorProductoPDF()
+    {
+        $db          = \Config\Database::connect();
+        $desde       = $this->request->getGet('desde') ?: date('Y-m-01');
+        $hasta       = $this->request->getGet('hasta') ?: date('Y-m-d');
+        $proveedorId = $this->request->getGet('proveedor_id');
+
+        $sql = "
+            SELECT
+                cd.codigo,
+                cd.descripcion,
+                SUM(cd.cantidad)       AS cantidad_total,
+                SUM(cd.venta_gravada)  AS total_base
+            FROM   compras_detalles cd
+            INNER JOIN compras_head ch ON ch.id = cd.compra_id
+            WHERE  ch.fecha_emision >= ?
+              AND  ch.fecha_emision <= ?
+              AND  ch.anulada       = 0
+        ";
+        $params = [$desde, $hasta];
+
+        if (!empty($proveedorId)) {
+            $sql     .= " AND ch.proveedor_id = ?";
+            $params[] = $proveedorId;
+        }
+
+        $sql .= "
+            GROUP BY cd.codigo, cd.descripcion
+            ORDER BY cd.descripcion ASC
+        ";
+
+        $productos = $db->query($sql, $params)->getResultObject();
+        $proveedor = null;
+
+        if (!empty($proveedorId)) {
+            $proveedor = $db->query("SELECT * FROM proveedores WHERE id = ?", [$proveedorId])->getRowObject();
+        }
+
+        $data = [
+            'productos'   => $productos,
+            'desde'       => $desde,
+            'hasta'       => $hasta,
+            'proveedor'   => $proveedor,
+            'generado_en' => date('d/m/Y H:i'),
+        ];
+
+        $html = view('reports/compras/compras_por_producto_pdf', $data);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $this->applyPdfHeader($dompdf);
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setBody($dompdf->output());
+    }
 }
