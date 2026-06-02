@@ -532,11 +532,8 @@
             btnProcesar.disabled = archivosSeleccionados.length === 0;
         }
 
-        function procesar() {
+        async function procesar() {
 
-            // =============================
-            // 🔥 RESUMEN ANTES DE ENVIAR
-            // =============================
             const totalArchivos = archivosSeleccionados.length;
             const totalProductos = archivosSeleccionados.reduce((acc, f) => acc + f.productos.length, 0);
             const totalMonto = archivosSeleccionados.reduce((acc, f) => acc + parseFloat(f.total || 0), 0);
@@ -577,7 +574,7 @@
         </div>
     `;
 
-            Swal.fire({
+            const confirmResult = await Swal.fire({
                 title: 'Resumen de carga',
                 html: resumenHtml,
                 icon: 'info',
@@ -585,74 +582,103 @@
                 confirmButtonText: '<i class="fas fa-check me-1"></i> Confirmar y procesar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#198754',
-            }).then(result => {
+            });
 
-                if (!result.isConfirmed) return;
+            if (!confirmResult.isConfirmed) return;
 
-                // =============================
-                // 🔥 PROCESAR
-                // =============================
-                Swal.fire({
-                    title: 'Procesando...',
-                    html: `<small class="text-muted">Cargando ${totalArchivos} archivo(s)...</small>`,
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
+            // Dividir en lotes de 10 para evitar el límite de max_file_uploads de PHP
+            const BATCH_SIZE = 10;
+            const lotes = [];
+            for (let i = 0; i < archivosSeleccionados.length; i += BATCH_SIZE) {
+                lotes.push(archivosSeleccionados.slice(i, i + BATCH_SIZE));
+            }
+
+            let totalProcesadas = 0;
+            const todasSaltadas = [];
+            const todosErrores  = [];
+
+            Swal.fire({
+                title: 'Procesando...',
+                html: `<small class="text-muted">Lote 1 de ${lotes.length} (${lotes[0].length} archivos)...</small>`,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            for (let i = 0; i < lotes.length; i++) {
+
+                const lote = lotes[i];
+
+                Swal.update({
+                    html: `<small class="text-muted">Lote ${i + 1} de ${lotes.length} — ${lote.length} archivos...</small>`
                 });
 
                 const formData = new FormData();
-                archivosSeleccionados.forEach(f => {
-                    formData.append('archivos[]', f.file);
-                });
+                lote.forEach(f => formData.append('archivos[]', f.file));
 
-                fetch("<?= base_url('purchases/processload') ?>", {
+                try {
+                    const res  = await fetch("<?= base_url('purchases/processload') ?>", {
                         method: "POST",
                         body: formData
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-
-                        Swal.close();
-
-                        if (data.success) {
-
-                            Swal.fire({
-                                icon: 'success',
-                                title: '¡Procesado correctamente!',
-                                html: `
-                            <div style="text-align:left; font-size:14px;">
-                                <table class="table table-sm table-borderless">
-                                    <tbody>
-                                        <tr>
-                                            <td class="text-muted">Compras registradas:</td>
-                                            <td><b>${data.total}</b></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-muted">Monto total:</td>
-                                            <td><b>$ ${totalMonto.toFixed(2)}</b></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        `,
-                                confirmButtonColor: '#198754',
-                            }).then(() => {
-                                // ✅ LIMPIAR TODO AL CERRAR EL ÉXITO
-                                archivosSeleccionados = [];
-                                inputFiles.value = ''; // resetear input file
-                                renderTable(); // limpiar tabla visual
-                            });
-
-                        } else {
-                            Swal.fire('Error', data.message, 'error');
-                        }
-
-                    })
-                    .catch(err => {
-                        Swal.close();
-                        Swal.fire('Error', 'Error en servidor', 'error');
-                        console.error(err);
                     });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        totalProcesadas += data.total ?? 0;
+                        if (data.saltadas?.length) todasSaltadas.push(...data.saltadas);
+                        if (data.errores?.length)  todosErrores.push(...data.errores);
+                    } else {
+                        todosErrores.push(`Lote ${i + 1}: ${data.message ?? 'error desconocido'}`);
+                    }
+
+                } catch (err) {
+                    todosErrores.push(`Lote ${i + 1}: error de red (${err.message})`);
+                    console.error('Error en lote', i + 1, err);
+                }
+            }
+
+            Swal.close();
+
+            let resultHtml = `
+                <div style="text-align:left; font-size:14px;">
+                    <table class="table table-sm table-borderless">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Compras registradas:</td>
+                                <td><b>${totalProcesadas}</b></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Monto total:</td>
+                                <td><b>$ ${totalMonto.toFixed(2)}</b></td>
+                            </tr>
+                            ${todasSaltadas.length > 0 ? `
+                            <tr>
+                                <td class="text-muted">Duplicadas (saltadas):</td>
+                                <td><b class="text-warning">${todasSaltadas.length}</b></td>
+                            </tr>` : ''}
+                            ${todosErrores.length > 0 ? `
+                            <tr>
+                                <td class="text-muted">Con errores:</td>
+                                <td><b class="text-danger">${todosErrores.length}</b></td>
+                            </tr>` : ''}
+                        </tbody>
+                    </table>
+                    ${todosErrores.length > 0 ? `
+                    <hr class="my-2">
+                    <small class="text-danger"><b>Errores:</b><br>${todosErrores.join('<br>')}</small>
+                    ` : ''}
+                </div>
+            `;
+
+            await Swal.fire({
+                icon: todosErrores.length > 0 ? 'warning' : 'success',
+                title: '¡Carga completada!',
+                html: resultHtml,
+                confirmButtonColor: '#198754',
             });
+
+            archivosSeleccionados = [];
+            inputFiles.value = '';
+            renderTable();
         }
 
         btnProcesar.addEventListener('click', () => {

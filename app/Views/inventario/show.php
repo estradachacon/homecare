@@ -159,10 +159,12 @@ $lotes         = $lotes ?? [];
                                     <?= number_format($stock, 2) ?>
                                 </span>
                             </div>
+                            <?php if (tienePermiso('ver_costos_inventario')): ?>
                             <div class="mt-2 d-flex align-items-center">
                                 <small class="text-muted">Costo promedio</small>
                                 <span class="fw-bold ml-auto">$<?= number_format($producto->costo_promedio ?? 0, 4) ?></span>
                             </div>
+                            <?php endif ?>
                         </div>
                     </div>
                 </div>
@@ -180,6 +182,7 @@ $lotes         = $lotes ?? [];
                             <div class="fw-semibold"><?= esc($producto->descripcion ?? 'N/D') ?></div>
                         </div>
                     </div>
+                    <?php if (tienePermiso('ver_costos_inventario')): ?>
                     <div class="col-md-6">
                         <div class="p-3 border rounded h-100">
                             <small class="text-muted">Costo promedio actual</small>
@@ -192,6 +195,7 @@ $lotes         = $lotes ?? [];
                             </div>
                         </div>
                     </div>
+                    <?php endif ?>
                 </div>
 
                 <!-- ── TABS ───────────────────────────────────────────── -->
@@ -292,7 +296,9 @@ $lotes         = $lotes ?? [];
                                         <th>Tipo</th>
                                         <th>Referencia</th>
                                         <th class="text-end">Cantidad</th>
+                                        <?php if (tienePermiso('ver_costos_inventario')): ?>
                                         <th class="text-end">Costo Prom.</th>
+                                        <?php endif ?>
                                         <th class="text-end">Stock</th>
                                         <th>Fecha</th>
                                     </tr>
@@ -319,7 +325,9 @@ $lotes         = $lotes ?? [];
                                             <td colspan="2" class="fst-italic">
                                                 Saldo anterior al <?= esc($anio) ?>
                                             </td>
+                                            <?php if (tienePermiso('ver_costos_inventario')): ?>
                                             <td class="text-end text-muted">—</td>
+                                            <?php endif ?>
                                             <td class="text-end fw-bold <?= $stockApertura >= 0 ? 'text-success' : 'text-danger' ?>">
                                                 <?= number_format($stockApertura, 2) ?>
                                             </td>
@@ -401,9 +409,11 @@ $lotes         = $lotes ?? [];
                                                     <?= number_format($m->cantidad, 2) ?>
                                                 </td>
 
+                                                <?php if (tienePermiso('ver_costos_inventario')): ?>
                                                 <td class="text-end text-primary">
                                                     $<?= number_format($costo_mov, 4) ?>
                                                 </td>
+                                                <?php endif ?>
 
                                                 <td class="text-end fw-bold <?= $stock_actual_mov >= 0 ? 'text-success' : 'text-danger' ?>">
                                                     <?= number_format($stock_actual_mov, 2) ?>
@@ -433,7 +443,9 @@ $lotes         = $lotes ?? [];
                                             <td colspan="2" class="fst-italic">
                                                 Saldo al cierre del <?= esc($anio) ?>
                                             </td>
+                                            <?php if (tienePermiso('ver_costos_inventario')): ?>
                                             <td class="text-end">—</td>
+                                            <?php endif ?>
                                             <td class="text-end fw-bold <?= $stockCierre >= 0 ? 'text-success' : 'text-danger' ?>">
                                                 <?= number_format($stockCierre, 2) ?>
                                             </td>

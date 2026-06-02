@@ -124,185 +124,144 @@ class ComprasController extends BaseController
             ]);
         }
 
-        $proveedorModel = new ProveedorModel();
-        $compraHeadModel = new CompraHeadModel();
+        $proveedorModel     = new ProveedorModel();
+        $compraHeadModel    = new CompraHeadModel();
         $compraDetalleModel = new CompraDetalleModel();
-        $productoModel = new ProductoModel();
-        $movModel = new ProductoMovimientoModel();
+        $productoModel      = new ProductoModel();
+        $movModel           = new ProductoMovimientoModel();
 
         $db = \Config\Database::connect();
-        $db->transStart();
 
         $procesadas = 0;
+        $saltadas   = [];
+        $errores    = [];
 
         foreach ($files['archivos'] as $file) {
 
             if (!$file->isValid()) continue;
 
             $contenido = file_get_contents($file->getTempName());
-            $json = json_decode($contenido, true);
+            $json      = json_decode($contenido, true);
 
-            if (!$json || json_last_error() !== JSON_ERROR_NONE) continue;
+            if (!$json || json_last_error() !== JSON_ERROR_NONE) {
+                $errores[] = $file->getClientFilename() . ': JSON inválido';
+                continue;
+            }
 
-            // VALIDAR DUPLICADO
             $numeroControl = $json['identificacion']['numeroControl'] ?? null;
 
-            if (!$numeroControl) continue;
+            if (!$numeroControl) {
+                $errores[] = $file->getClientFilename() . ': sin número de control';
+                continue;
+            }
 
-            $existe = $compraHeadModel
-                ->where('numero_control', $numeroControl)
-                ->first();
+            $existe = $compraHeadModel->where('numero_control', $numeroControl)->first();
 
-            if ($existe) continue;
+            if ($existe) {
+                $saltadas[] = $numeroControl;
+                continue;
+            }
 
-            // PROVEEDOR
-            $proveedorId = null;
+            // Cada archivo en su propia transacción independiente
+            $db->transStart();
 
-            if (!empty($json['emisor'])) {
+            try {
 
-                $emisor = $json['emisor'];
+                // PROVEEDOR
+                $proveedorId = null;
 
-                $nombre = trim($emisor['nombre'] ?? '');
-                $telefono = $emisor['telefono'] ?? null;
-                $correo = $emisor['correo'] ?? null;
+                if (!empty($json['emisor'])) {
 
-                $direccion = null;
+                    $emisor   = $json['emisor'];
+                    $nombre   = trim($emisor['nombre'] ?? '');
+                    $telefono = $emisor['telefono'] ?? null;
+                    $correo   = $emisor['correo'] ?? null;
 
-                if (!empty($emisor['direccion'])) {
-                    $direccion = implode(', ', array_filter([
-                        $emisor['direccion']['departamento'] ?? null,
-                        $emisor['direccion']['municipio'] ?? null,
-                        $emisor['direccion']['complemento'] ?? null,
-                    ]));
-                }
-
-                if ($nombre) {
-
-                    $proveedor = $proveedorModel
-                        ->where('nombre', $nombre)
-                        ->first();
-
-                    if (!$proveedor) {
-
-                        $proveedorId = $proveedorModel->insert([
-                            'nombre'    => $nombre,
-                            'telefono'  => $telefono,
-                            'email'     => $correo,
-                            'direccion' => $direccion,
-                        ]);
-                    } else {
-
-                        $proveedorId = $proveedor->id;
-
-                        $proveedorModel->update($proveedorId, [
-                            'telefono'  => $telefono ?? $proveedor->telefono,
-                            'email'     => $correo ?? $proveedor->email,
-                            'direccion' => $direccion ?? $proveedor->direccion,
-                        ]);
+                    $direccion = null;
+                    if (!empty($emisor['direccion'])) {
+                        $direccion = implode(', ', array_filter([
+                            $emisor['direccion']['departamento'] ?? null,
+                            $emisor['direccion']['municipio']    ?? null,
+                            $emisor['direccion']['complemento']  ?? null,
+                        ]));
                     }
-                }
-            }
 
-            // TOTALES
-            $total =
-                $json['resumen']['totalPagar']
-                ?? $json['resumen']['montoTotalOperacion']
-                ?? 0;
+                    if ($nombre) {
+                        $proveedor = $proveedorModel->where('nombre', $nombre)->first();
 
-            $totalGravada = $json['resumen']['totalGravada'] ?? 0;
-
-            $iva = 0;
-
-            if (!empty($json['resumen']['tributos'])) {
-                foreach ($json['resumen']['tributos'] as $t) {
-                    if (($t['codigo'] ?? null) == '20') {
-                        $iva = (float)$t['valor'];
-                    }
-                }
-            }
-
-            // CONDICIÓN
-            $condicion = (int)($json['resumen']['condicionOperacion'] ?? 1);
-            $plazo = $condicion === 2 ? 30 : null;
-
-            // SALDO
-            $tipoDte = $json['identificacion']['tipoDte'] ?? null;
-
-            $saldo = ($tipoDte === '05') ? 0 : $total;
-
-            // INSERT HEAD
-            $dataHead = [
-                'numero_control'    => $numeroControl,
-                'codigo_generacion' => $json['identificacion']['codigoGeneracion'] ?? null,
-                'fecha_emision'     => $json['identificacion']['fecEmi'] ?? null,
-                'sello_recibido'    => $json['identificacion']['selloRecibido'] ?? null,
-                'tipo_dte'          => $json['identificacion']['tipoDte'] ?? null,
-
-                'proveedor_id' => $proveedorId,
-
-                'total_gravada' => $totalGravada,
-                'sub_total' => $json['resumen']['subTotal'] ?? 0,
-                'total_iva' => $iva,
-                'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
-                'total_pagar' => $total,
-
-                'condicion_operacion' => $condicion,
-                'plazo_credito' => $plazo,
-
-                'iva_rete1' => $json['resumen']['ivaRete1'] ?? 0,
-
-                'saldo' => $saldo,
-
-                'codigo_generacion_relacionado' =>
-                $json['documentoRelacionado'][0]['numeroDocumento'] ?? null,
-            ];
-
-            if (!$compraHeadModel->insert($dataHead)) {
-
-                $db->transRollback();
-
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Error insertando compra',
-                    'errors' => $compraHeadModel->errors()
-                ]);
-            }
-
-            $compraId = $compraHeadModel->getInsertID();
-
-            // DETALLES
-            if (!empty($json['cuerpoDocumento'])) {
-
-                // 🔥 IVA total del resumen (para distribuir proporcionalmente si ivaItem no viene por línea)
-                $ivaTotal = 0;
-                if (!empty($json['resumen']['tributos'])) {
-                    foreach ($json['resumen']['tributos'] as $t) {
-                        if (($t['codigo'] ?? null) == '20') {
-                            $ivaTotal = (float)$t['valor'];
+                        if (!$proveedor) {
+                            $proveedorId = $proveedorModel->insert([
+                                'nombre'    => $nombre,
+                                'telefono'  => $telefono,
+                                'email'     => $correo,
+                                'direccion' => $direccion,
+                            ]);
+                        } else {
+                            $proveedorId = $proveedor->id;
+                            $proveedorModel->update($proveedorId, [
+                                'telefono'  => $telefono ?? $proveedor->telefono,
+                                'email'     => $correo   ?? $proveedor->email,
+                                'direccion' => $direccion ?? $proveedor->direccion,
+                            ]);
                         }
                     }
                 }
 
-                $totalGravadaDoc = (float)($json['resumen']['totalGravada'] ?? 0);
+                // TOTALES
+                $total = $json['resumen']['totalPagar'] ?? $json['resumen']['montoTotalOperacion'] ?? 0;
+                $totalGravada = $json['resumen']['totalGravada'] ?? 0;
 
-                foreach ($json['cuerpoDocumento'] as $item) {
+                $iva = 0;
+                foreach (($json['resumen']['tributos'] ?? []) as $t) {
+                    if (($t['codigo'] ?? null) == '20') {
+                        $iva = (float)$t['valor'];
+                    }
+                }
 
-                    $codigo = trim($item['codigo'] ?? '');
-                    $codigo = preg_replace('/\s+/', '', $codigo);
-                    $codigo = strtoupper($codigo);
+                $condicion = (int)($json['resumen']['condicionOperacion'] ?? 1);
+                $plazo     = $condicion === 2 ? 30 : null;
+                $tipoDte   = $json['identificacion']['tipoDte'] ?? null;
+                $saldo     = ($tipoDte === '05') ? 0 : $total;
 
+                // INSERT HEAD
+                $dataHead = [
+                    'numero_control'    => $numeroControl,
+                    'codigo_generacion' => $json['identificacion']['codigoGeneracion'] ?? null,
+                    'fecha_emision'     => $json['identificacion']['fecEmi'] ?? null,
+                    'sello_recibido'    => $json['identificacion']['selloRecibido'] ?? null,
+                    'tipo_dte'          => $tipoDte,
+                    'proveedor_id'      => $proveedorId,
+                    'total_gravada'     => $totalGravada,
+                    'sub_total'         => $json['resumen']['subTotal'] ?? 0,
+                    'total_iva'         => $iva,
+                    'monto_total_operacion' => $json['resumen']['montoTotalOperacion'] ?? 0,
+                    'total_pagar'       => $total,
+                    'condicion_operacion' => $condicion,
+                    'plazo_credito'     => $plazo,
+                    'iva_rete1'         => $json['resumen']['ivaRete1'] ?? 0,
+                    'saldo'             => $saldo,
+                    'codigo_generacion_relacionado' => $json['documentoRelacionado'][0]['numeroDocumento'] ?? null,
+                ];
+
+                if (!$compraHeadModel->insert($dataHead)) {
+                    throw new \RuntimeException('Error insertando encabezado: ' . implode(', ', $compraHeadModel->errors()));
+                }
+
+                $compraId = $compraHeadModel->getInsertID();
+
+                // DETALLES
+                $ivaTotal       = $iva;
+                $totalGravadaDoc = (float)$totalGravada;
+
+                foreach (($json['cuerpoDocumento'] ?? []) as $item) {
+
+                    $codigo      = strtoupper(preg_replace('/\s+/', '', trim($item['codigo'] ?? '')));
                     $descripcion = strtok(trim($item['descripcion'] ?? ''), "\n");
 
-                    // 🔍 BUSCAR PRODUCTO
-                    $producto = null;
+                    $producto = $codigo
+                        ? $productoModel->where('UPPER(codigo)', $codigo)->first()
+                        : null;
 
-                    if ($codigo) {
-                        $producto = $productoModel
-                            ->where('UPPER(codigo)', $codigo)
-                            ->first();
-                    }
-
-                    // CREAR SI NO EXISTE
                     if (!$producto) {
                         $productoId = $productoModel->insert([
                             'codigo'      => $codigo ?: null,
@@ -313,29 +272,18 @@ class ComprasController extends BaseController
                         $producto = $productoModel->find($productoId);
                     }
 
-                    // VALIDAR PRODUCTO ANTES DE CONTINUAR
                     if (empty($producto) || empty($producto->id)) {
-                        $db->transRollback();
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Producto inválido',
-                            'data'    => ['codigo' => $codigo, 'descripcion' => $descripcion]
-                        ]);
+                        throw new \RuntimeException('Producto inválido: ' . $codigo);
                     }
 
-                    // ✅ PRECIO FIEL AL JSON (para compras_detalles)
-                    $precioUniJson    = (float)($item['precioUni']    ?? 0);  // como viene en el doc
-                    $ventaGravada     = (float)($item['ventaGravada'] ?? 0);
-                    $montoDescu       = (float)($item['montoDescu']   ?? 0);
-                    $cantidadNueva    = (float)($item['cantidad']     ?? 1);
+                    $ventaGravada  = (float)($item['ventaGravada'] ?? 0);
+                    $cantidadNueva = (float)($item['cantidad']     ?? 1);
 
-                    // ✅ IVA proporcional (para movimiento e inventario)
                     $ivaItem = (float)($item['ivaItem'] ?? 0);
                     if ($ivaItem == 0 && $tipoDte === '03' && $totalGravadaDoc > 0) {
                         $ivaItem = round($ivaTotal * ($ventaGravada / $totalGravadaDoc), 2);
                     }
 
-                    // ✅ COSTO REAL (para productos_movimientos y costo_promedio)
                     if ($tipoDte === '03') {
                         $costoConIva      = $ventaGravada + $ivaItem;
                         $costoUnitarioMov = $cantidadNueva > 0 ? $costoConIva / $cantidadNueva : 0;
@@ -344,7 +292,6 @@ class ComprasController extends BaseController
                         $costoUnitarioMov = $cantidadNueva > 0 ? $costoConIva / $cantidadNueva : 0;
                     }
 
-                    // INSERT DETALLE → fiel al documento físico
                     $detalle = [
                         'compra_id'       => $compraId,
                         'num_item'        => $item['numItem']      ?? null,
@@ -353,24 +300,17 @@ class ComprasController extends BaseController
                         'descripcion'     => $descripcion,
                         'cantidad'        => (float)($item['cantidad']     ?? 0),
                         'unidad_medida'   => $item['uniMedida']    ?? null,
-                        'precio_unitario' => (float)($item['precioUni']    ?? 0),  // 👈 tal cual el JSON
-                        'venta_gravada'   => (float)($item['ventaGravada'] ?? 0),  // 👈 tal cual el JSON
-                        'monto_descuento' => (float)($item['montoDescu']   ?? 0),  // 👈 tal cual el JSON
-                        'iva_item'        => (float)($item['ivaItem']      ?? 0),  // 👈 tal cual el JSON
+                        'precio_unitario' => (float)($item['precioUni']    ?? 0),
+                        'venta_gravada'   => (float)($item['ventaGravada'] ?? 0),
+                        'monto_descuento' => (float)($item['montoDescu']   ?? 0),
+                        'iva_item'        => (float)($item['ivaItem']      ?? 0),
                         'producto_id'     => $producto->id
                     ];
 
                     if (!$compraDetalleModel->insert($detalle)) {
-                        $db->transRollback();
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Error insertando detalle',
-                            'errors'  => $compraDetalleModel->errors(),
-                            'data'    => $detalle
-                        ]);
+                        throw new \RuntimeException('Error insertando detalle: ' . implode(', ', $compraDetalleModel->errors()));
                     }
 
-                    // COSTO PROMEDIO PONDERADO
                     $stock = $movModel
                         ->select('
                             SUM(CASE WHEN tipo_movimiento = "ENTRADA" THEN cantidad ELSE 0 END) -
@@ -383,65 +323,50 @@ class ComprasController extends BaseController
                     $stockActual = (float)($stock->stock ?? 0);
                     $costoActual = (float)($producto->costo_promedio ?? 0);
 
-                    // INSERT MOVIMIENTO → costo real con IVA
+                    $nuevoCosto = $stockActual > 0
+                        ? (($stockActual * $costoActual) + ($cantidadNueva * $costoUnitarioMov)) / ($stockActual + $cantidadNueva)
+                        : $costoUnitarioMov;
+
                     $movData = [
                         'producto_id'     => $producto->id,
                         'tipo_movimiento' => 'ENTRADA',
                         'cantidad'        => $cantidadNueva,
-                        'costo_unitario'  => $costoUnitarioMov,   // 👈 precio real pagado
+                        'costo_unitario'  => $costoUnitarioMov,
                         'referencia_tipo' => 'compra',
                         'referencia_id'   => $compraId,
                     ];
 
-                    // Costo promedio también usa costoUnitarioMov
-                    if ($stockActual > 0) {
-                        $nuevoCosto = (
-                            ($stockActual * $costoActual) +
-                            ($cantidadNueva * $costoUnitarioMov)
-                        ) / ($stockActual + $cantidadNueva);
-                    } else {
-                        $nuevoCosto = $costoUnitarioMov;
-                    }
                     if (!$movModel->insert($movData)) {
-                        $db->transRollback();
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Error insertando movimiento',
-                            'errors'  => $movModel->errors(),
-                            'data'    => $movData
-                        ]);
+                        throw new \RuntimeException('Error insertando movimiento');
                     }
 
-                    // ACTUALIZAR COSTO PROMEDIO DEL PRODUCTO
-                    $productoModel->update($producto->id, [
-                        'costo_promedio' => $nuevoCosto
-                    ]);
+                    $productoModel->update($producto->id, ['costo_promedio' => $nuevoCosto]);
                 }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    $error = $db->error();
+                    $errores[] = $numeroControl . ': error BD (' . ($error['message'] ?? 'desconocido') . ')';
+                    log_message('error', 'Error BD procesando compra ' . $numeroControl . ': ' . ($error['message'] ?? ''));
+                } else {
+                    $procesadas++;
+                }
+
+            } catch (\Throwable $e) {
+
+                $db->transRollback();
+                $errores[] = $numeroControl . ': ' . $e->getMessage();
+                log_message('error', 'Excepción procesando compra ' . $numeroControl . ': ' . $e->getMessage());
             }
-
-            $procesadas++;
-        }
-
-        $db->transComplete();
-
-        if ($db->transStatus() === false) {
-
-            $error = $db->error();
-
-            log_message('error', '❌ ERROR BD EN PROCESAR COMPRA');
-            log_message('error', 'Código: ' . ($error['code'] ?? 'N/A'));
-            log_message('error', 'Mensaje: ' . ($error['message'] ?? 'N/A'));
-
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Error en la base de datos'
-            ]);
         }
 
         return $this->response->setJSON([
-            'success' => true,
-            'message' => "Compras procesadas correctamente",
-            'total' => $procesadas
+            'success'  => true,
+            'total'    => $procesadas,
+            'saltadas' => $saltadas,
+            'errores'  => $errores,
+            'message'  => "Compras procesadas correctamente",
         ]);
     }
     public function validarProductos()

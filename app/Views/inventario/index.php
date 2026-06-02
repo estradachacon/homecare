@@ -2,137 +2,202 @@
 <?= $this->section('content') ?>
 <style>
     .stock-badge {
-        font-size: 14px;
-        padding: 5px 16px;
-        min-width: 40px;
+        font-size: 13px;
+        padding: 4px 14px;
+        min-width: 46px;
         display: inline-block;
         text-align: center;
+        border-radius: 20px;
+    }
+
+    .filter-bar {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 14px 16px 10px;
+        margin-bottom: 16px;
+    }
+
+    .filter-bar label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        color: #6c757d;
+        margin-bottom: 3px;
+        display: block;
+    }
+
+    #filesTable thead th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        color: #6c757d;
+    }
+
+    .table-danger td {
+        background-color: rgba(220, 53, 69, 0.06) !important;
+    }
+
+    .table th {
+        white-space: nowrap;
+    }
+
+    .btn-group-sm .btn {
+        padding: 3px 9px;
     }
 </style>
+
 <div class="row">
     <div class="col-md-12">
 
         <div class="card">
 
-            <div class="card-header d-flex align-items-center">
-                <h4 class="header-title mb-0">Listado de productos</h4>
+            <div class="card-header d-flex justify-content-between py-2">
 
-                <div class="ml-auto">
+                <h4 class="header-title mb-0 d-flex">
+                    <i class="fa fa-boxes mr-2 text-primary"></i>
+                    Inventario de Productos
+                </h4>
+
+                <div class="d-flex">
+
                     <button class="btn btn-primary btn-sm mr-1" id="btnNuevoProducto">
-                        <i class="fa-solid fa-plus"></i> Nuevo
+                        <i class="fa-solid fa-plus mr-1"></i> Nuevo
                     </button>
-                    <button class="btn btn-outline-secondary btn-sm mr-1" id="btnPlantilla" title="Descargar plantilla Excel">
-                        <i class="fa fa-file-excel"></i> Plantilla
-                    </button>
-                    <button class="btn btn-outline-info btn-sm mr-1" id="btnImportar" title="Importar productos desde Excel">
-                        <i class="fa-solid fa-file-import"></i> Importar
-                    </button>
-                    <button class="btn btn-success btn-sm" id="btnExcel">
-                        <i class="fa fa-file-excel"></i> Excel
-                    </button>
+
+                    <div class="btn-group btn-group-sm mr-1">
+                        <button class="btn btn-outline-secondary" id="btnPlantilla" title="Descargar plantilla Excel">
+                            <i class="fa fa-file-excel mr-1"></i> Plantilla
+                        </button>
+                        <button class="btn btn-outline-info" id="btnImportar" title="Importar productos desde Excel">
+                            <i class="fa-solid fa-file-import mr-1"></i> Importar
+                        </button>
+                        <button class="btn btn-outline-success" id="btnExcel" title="Exportar Excel">
+                            <i class="fa fa-file-excel mr-1"></i> Excel
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
+            <div class="card-body pt-3">
 
-            <div class="card-body">
+                <!-- FILTROS -->
+                <div class="filter-bar">
+                    <form onsubmit="return false">
+                        <div class="row g-2 align-items-end">
 
-                <form onsubmit="return false" class="mb-3">
+                            <div class="col-md-3">
+                                <label><i class="fa fa-search fa-xs mr-1"></i>Buscar</label>
+                                <input type="text" name="buscar" class="form-control form-control-sm"
+                                    placeholder="Descripción o código…">
+                            </div>
 
-                    <div class="row g-2">
-
-                        <div class="col-md-2">
-                            <small class="text-muted">Buscar producto</small>
-                            <input type="text" name="buscar" class="form-control">
-                        </div>
-
-                        <div class="col-md-2">
-                            <small class="text-muted">Estado</small>
-                            <select name="estado" class="form-control">
-                                <option value="">Todos</option>
-                                <option value="1">Activos</option>
-                                <option value="0">Inactivos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Tipo</small>
-                            <select name="tipo" class="form-control">
-                                <option value="1" selected>Bien</option>
-                                <option value="2">Servicio</option>
-                                <option value="3">Otro</option>
-                                <option value="">Todos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Stock</small>
-                            <select name="stock" class="form-control">
-                                <option value="">Todos</option>
-                                <option value="con">Con stock</option>
-                                <option value="sin">Sin stock</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <small class="text-muted">Orden</small>
-                            <select name="orden" class="form-control">
-                                <option value="">Normal</option>
-                                <option value="stock_desc">Mayor stock</option>
-                                <option value="stock_asc">Menor stock</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <span class="text-muted small">
-                                <i class="fa fa-list mr-1"></i> Mostrar
-                            </span>
-                            <div class="d-flex">
-                                <select class="form-control form-control-m mr-2" name="perPage" style="width:100px;">
-                                    <option value="10">10</option>
-                                    <option value="20">20</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                    <option value="200">200</option>
-                                    <option value="all">Todos</option>
+                            <div class="col-md-2">
+                                <label>Estado</label>
+                                <select name="estado" class="form-control form-control-sm">
+                                    <option value="">Todos</option>
+                                    <option value="1">Activos</option>
+                                    <option value="0">Inactivos</option>
                                 </select>
+                            </div>
 
-                                <span class="text-muted small mt-4">
-                                    registros
-                                </span>
+                            <div class="col-md-2">
+                                <label>Tipo</label>
+                                <select name="tipo" class="form-control form-control-sm">
+                                    <option value="1" selected>Bien</option>
+                                    <option value="2">Servicio</option>
+                                    <option value="3">Otro</option>
+                                    <option value="">Todos</option>
+                                </select>
+                            </div>
 
+                            <div class="col-md-2">
+                                <label>Stock</label>
+                                <select name="stock" class="form-control form-control-sm">
+                                    <option value="">Todos</option>
+                                    <option value="con">Con stock</option>
+                                    <option value="sin">Sin stock</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label>Orden</label>
+                                <select name="orden" class="form-control form-control-sm">
+                                    <option value="">Normal</option>
+                                    <option value="stock_desc">Mayor stock</option>
+                                    <option value="stock_asc">Menor stock</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-1 d-flex align-items-end justify-content-end">
+                                <button type="button" id="btnLimpiarFiltros"
+                                    class="btn btn-outline-secondary btn-sm w-100"
+                                    title="Limpiar filtros">
+                                    <i class="fa fa-times"></i>
+                                </button>
                             </div>
 
                         </div>
+                    </form>
+                </div>
+
+                <!-- TABLA -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle" id="filesTable">
+
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Producto</th>
+                                <th style="width:120px">Código</th>
+                                <th style="width:90px" class="text-center">Estado</th>
+                                <th style="width:90px" class="text-center">Stock</th>
+                                <?php if (tienePermiso('ver_costos_inventario')): ?>
+                                <th style="width:110px" class="text-right">Costo Prom.</th>
+                                <?php endif ?>
+                                <th style="width:100px" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <?= view('inventario/_rows', ['productos' => $productos]) ?>
+                        </tbody>
+
+                    </table>
+                </div>
+
+                <!-- PAGINACIÓN -->
+                <div class="row mt-2">
+
+                    <div class="col-md-5 d-flex">
+                        <small class="text-muted mr-3" id="infoResultados"><?= $info ?></small>
+                        <div class="d-flex">
+                            <small class="text-muted mr-1">Mostrar</small>
+                            <select class="form-control form-control-sm mr-1" name="perPage" style="width:72px">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                                <option value="all">Todos</option>
+                            </select>
+                            <small class="text-muted">/ pág.</small>
+                        </div>
                     </div>
-                </form>
 
-
-                <table class="table table-striped table-bordered table-hover">
-
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Código</th>
-                            <th width="200">Estado</th>
-                            <th width="200" class="text-end">Stock</th>
-                            <th width="170">Menú</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <?= view('inventario/_rows', ['productos' => $productos]) ?>
-                    </tbody>
-
-                </table>
-
-                <div class="row align-items-center mt-3">
-
-                    <div class="col-md-4 text-muted small" id="infoResultados">
-                        <?= $info ?>
-                    </div>
-
-                    <div class="col-md-8 d-flex justify-content-end" id="pagerContainer">
+                    <div class="col-md-7 d-flex justify-content-end" id="pagerContainer">
                         <?= $pager->links('default', 'bootstrap_full') ?>
                     </div>
 
+                </div>
+
+                <!-- LEYENDA STOCK -->
+                <div class="mt-2 d-flex" style="gap:12px">
+                    <small class="text-muted font-weight-bold">Stock:</small>
+                    <small><span class="badge badge-danger" style="border-radius:20px;padding:3px 10px">0</span> Sin stock</small>
+                    <small><span class="badge badge-warning text-dark" style="border-radius:20px;padding:3px 10px">≤5</span> Stock bajo</small>
+                    <small><span class="badge badge-success" style="border-radius:20px;padding:3px 10px">&gt;5</span> Normal</small>
                 </div>
 
             </div>
@@ -171,6 +236,17 @@ $(function () {
     $(document).on('click', '#pagerContainer a', function (e) {
         e.preventDefault();
         cargarProductos(new URL($(this).attr('href')).searchParams.get('page'));
+    });
+
+    // ── Limpiar filtros ────────────────────────────────────────
+    $('#btnLimpiarFiltros').on('click', function () {
+        $('[name="buscar"]').val('');
+        $('[name="estado"]').val('');
+        $('[name="tipo"]').val('1');
+        $('[name="stock"]').val('');
+        $('[name="orden"]').val('');
+        $('[name="perPage"]').val('10');
+        cargarProductos(1);
     });
 
     // ── Excel export ───────────────────────────────────────────
@@ -314,7 +390,6 @@ $(function () {
         cargarClasificacionesSelect($('#pClasificacion').val());
     });
 
-    // Editar inline
     $(document).on('click', '.btn-edit-clas', function () {
         const $li = $(this).closest('li');
         $li.find('.clas-view, .btn-edit-clas, .btn-del-clas').addClass('d-none');
@@ -340,7 +415,6 @@ $(function () {
         });
     });
 
-    // Guardar con Enter en el input inline
     $(document).on('keypress', '.inp-clas', function (e) {
         if (e.key === 'Enter') { e.preventDefault(); $(this).closest('li').find('.btn-save-clas').trigger('click'); }
     });
@@ -367,7 +441,6 @@ $(function () {
         });
     });
 
-    // Agregar nueva clasificación
     $('#btnAgregarClasificacion').on('click', function () {
         const nombre = $('#nuevaClasificacion').val().trim();
         if (!nombre) return;

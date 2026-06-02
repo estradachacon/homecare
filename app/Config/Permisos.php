@@ -85,6 +85,7 @@ class Permisos extends BaseConfig
 
         'Inventario' => [
             'ver_inventario',
+            'ver_costos_inventario',
             'ver_proveedores',
             'crear_proveedor',
             'editar_proveedor',
