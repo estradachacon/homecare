@@ -1738,23 +1738,38 @@ CCF YA VIENE SIN IVA
                         ->first();
 
                     if (!$cli && $nitDui) {
-                        $cli = $clienteModel->buscarPorDocumento('36', $nitDui)
-                            ?? $clienteModel->buscarPorDocumento('13', $nitDui);
+                        // buscarPorDocumento usa los valores reales: 'NIT' / 'DUI'
+                        $cli = $clienteModel->buscarPorDocumento('NIT', $nitDui)
+                            ?? $clienteModel->buscarPorDocumento('DUI', $nitDui);
                     }
 
                     if (!$cli) {
-                        // Buscar datos completos si fue marcado NUEVO en el Excel
                         $datosNuevo = $clientesNuevosIdx[strtolower($nombreCli)] ?? null;
                         $nitFinal   = $datosNuevo['nit_dui']  ?? $nitDui;
                         $telFinal   = $datosNuevo['telefono'] ?? null;
 
+                        // Determinar tipo a partir de la longitud numérica del documento
+                        $tipoDocFinal = null;
+                        if ($nitFinal) {
+                            $soloDigitos  = preg_replace('/\D/', '', $nitFinal);
+                            $tipoDocFinal = strlen($soloDigitos) <= 9 ? 'DUI' : 'NIT';
+                        }
+
                         $insertData = [
                             'nombre'           => $nombreCli,
-                            'tipo_documento'   => $nitFinal ? (strlen(preg_replace('/\D/', '', $nitFinal)) <= 9 ? '13' : '36') : null,
+                            'tipo_documento'   => $tipoDocFinal,
                             'numero_documento' => $nitFinal ?: null,
                             'telefono'         => $telFinal ?: null,
                         ];
+
                         $clienteId = $clienteModel->insert($insertData);
+
+                        if (!$clienteId) {
+                            throw new \RuntimeException(
+                                'No se pudo crear el cliente "' . $nombreCli . '": ' .
+                                implode(', ', $clienteModel->errors())
+                            );
+                        }
                     } else {
                         $clienteId = $cli->id;
                     }
