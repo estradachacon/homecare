@@ -117,8 +117,14 @@ if (!function_exists('_facturaPdfNumeroLetras')) {
     }
 }
 
-$tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento Tributario Electronico';
-$numeroCorto = !empty($factura->numero_control) ? substr($factura->numero_control, -6) : 'N/D';
+$esTradicional = ($factura->clase ?? '') === 'TRADICIONAL';
+$tipoDoc       = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento Tributario Electronico';
+if ($esTradicional) {
+    $tipoDoc = trim(preg_replace('/\s+electr[oó]nico/iu', '', $tipoDoc));
+}
+$numeroCorto   = !empty($factura->numero_control)
+    ? substr($factura->numero_control, -6)
+    : ($esTradicional ? substr($factura->correlativo ?? 'N/D', -6) : 'N/D');
 $condicion = ((int)($factura->condicion_operacion ?? 1) === 1)
     ? 'Contado'
     : 'Credito ' . (int)($factura->plazo_credito ?? 0) . ' dias';
@@ -490,10 +496,20 @@ $notasFactura = trim((string)($factura->notas ?? $factura->nota ?? $factura->obs
             </td>
             <td style="width:38%;">
                 <div class="doc-title"><?= esc($tipoDoc) ?></div>
+                <?php if ($esTradicional): ?>
+                    <div style="display:inline-block;background:#6f42c1;color:#fff;font-size:9px;font-weight:bold;
+                                padding:2px 8px;border-radius:3px;letter-spacing:.5px;margin-bottom:4px;">
+                        FACTURA TRADICIONAL
+                    </div>
+                <?php endif ?>
                 <div class="doc-number">
-                    <div class="doc-number-row"><strong>No. Control</strong><br><?= esc($factura->numero_control ?? 'N/D') ?></div>
-                    <div class="doc-number-row"><strong>Cod. Generacion</strong><br><?= esc($factura->codigo_generacion ?? 'N/D') ?></div>
-                    <div class="doc-number-row"><strong>Sello recepcion</strong><br><?= esc($factura->sello_recibido ?? 'N/D') ?></div>
+                    <?php if ($esTradicional): ?>
+                        <div class="doc-number-row"><strong>Correlativo</strong><br><?= esc($factura->correlativo ?? 'N/D') ?></div>
+                    <?php else: ?>
+                        <div class="doc-number-row"><strong>No. Control</strong><br><?= esc($factura->numero_control ?? 'N/D') ?></div>
+                        <div class="doc-number-row"><strong>Cod. Generacion</strong><br><?= esc($factura->codigo_generacion ?? 'N/D') ?></div>
+                        <div class="doc-number-row"><strong>Sello recepcion</strong><br><?= esc($factura->sello_recibido ?? 'N/D') ?></div>
+                    <?php endif ?>
                 </div>
                 <br>
             </td>

@@ -192,12 +192,13 @@ if ($esSujetoExcluido) {
     $retencionRenta = max(0, $subtotalProductos - (float)$factura->total_pagar - $ivaRete1);
 }
 
-$tipoDoc = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento';
-$numeroCorto = !empty($factura->numero_control)
+$tipoDoc         = dte_descripciones()[dte_siglas()[$factura->tipo_dte] ?? ''] ?? 'Documento';
+$esTradicional   = ($factura->clase ?? '') === 'TRADICIONAL';
+$numeroCorto     = !empty($factura->numero_control)
     ? substr($factura->numero_control, -6)
-    : 'N/D';
+    : ($esTradicional ? substr($factura->correlativo ?? 'N/D', -6) : 'N/D');
 
-$numeroCompleto = $factura->numero_control ?? 'N/D';
+$numeroCompleto  = $factura->numero_control ?? $factura->correlativo ?? 'N/D';
 $pdfUrl = base_url('facturas/' . $factura->id . '/pdf');
 $downloadPdfUrl = base_url('facturas/' . $factura->id . '/pdf?download=1');
 $downloadJsonUrl = base_url('facturas/' . $factura->id . '/json');
@@ -219,6 +220,11 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                         <span class="badge bg-info text-white ms-2">
                             <?= esc($numeroCorto) ?>
                         </span>
+                        <?php if ($esTradicional): ?>
+                            <span class="badge ms-1 text-white" style="background:#6f42c1;font-size:11px;letter-spacing:.5px;">
+                                <i class="fas fa-file-alt me-1" style="font-size:10px;"></i>TRADICIONAL
+                            </span>
+                        <?php endif ?>
                     </h4>
 
                     <div class="fw-bold text-uppercase mt-1" style="letter-spacing: 1px;">

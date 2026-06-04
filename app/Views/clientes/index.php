@@ -3,12 +3,12 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="mb-0">
                     <i class="fa-solid fa-users me-2"></i> Clientes
                 </h4>
 
-                <?php if (tienePermiso('crear_cliente')): ?>
+                <?php if (tienePermiso('crear_clientes')): ?>
                     <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCrearCliente">
                         <i class="fa-solid fa-plus"></i> Nuevo
                     </button>
@@ -113,7 +113,7 @@
     </div>
 </div>
 
-<?php if (tienePermiso('crear_cliente')): ?>
+<?php if (tienePermiso('crear_clientes')): ?>
 <div class="modal fade" id="modalCrearCliente" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
         <form id="formCrearCliente">
