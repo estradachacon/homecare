@@ -857,7 +857,8 @@ class ReportesController extends Controller
             ->join('tipo_venta tv', 'tv.id = facturas_head.tipo_venta', 'left')
             ->where('facturas_head.fecha_emision >=', $desde)
             ->where('facturas_head.fecha_emision <=', $hasta)
-            ->where('facturas_head.tipo_dte !=', '14');
+            ->where('facturas_head.tipo_dte !=', '14')
+            ->where('facturas_head.anulada', 0);
 
         if (!empty($tiposVenta)) {
             $query->whereIn('facturas_head.tipo_venta', $tiposVenta);
@@ -971,7 +972,8 @@ class ReportesController extends Controller
             ->join('tipo_venta tv', 'tv.id = facturas_head.tipo_venta', 'left')
             ->where('facturas_head.fecha_emision >=', $desde)
             ->where('facturas_head.fecha_emision <=', $hasta)
-            ->where('facturas_head.tipo_dte !=', '14');
+            ->where('facturas_head.tipo_dte !=', '14')
+            ->where('facturas_head.anulada', 0);
 
         if (!empty($tiposVenta)) {
             $query->whereIn('facturas_head.tipo_venta', $tiposVenta);
