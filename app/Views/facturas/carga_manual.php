@@ -334,8 +334,8 @@ function renderStats() {
         <div class="col-auto"><div class="stat-box text-center"><div class="fw-bold fs-5">${total}</div><small class="text-muted">Facturas</small></div></div>
         <div class="col-auto"><div class="stat-box text-center"><div class="fw-bold fs-5">$${monto.toFixed(2)}</div><small class="text-muted">Monto total</small></div></div>
         ${nuevosCli  > 0 ? `<div class="col-auto"><div class="stat-box text-center border-warning"><div class="fw-bold fs-5 text-warning">${nuevosCli}</div><small class="text-muted">Clientes nuevos</small></div></div>` : ''}
-        ${noCuadra   > 0 ? `<div class="col-auto"><div class="stat-box text-center border-warning"><div class="fw-bold fs-5 text-warning">${noCuadra}</div><small class="text-muted">No cuadran</small></div></div>` : ''}
-        ${duplicados > 0 ? `<div class="col-auto"><div class="stat-box text-center border-danger"><div class="fw-bold fs-5 text-danger">${duplicados}</div><small class="text-muted">Duplicados</small></div></div>` : ''}`;
+        ${noCuadra   > 0 ? `<div class="col-auto"><div class="stat-box text-center border-danger" title="Bloquea el procesamiento"><div class="fw-bold fs-5 text-danger"><i class="fas fa-lock me-1" style="font-size:13px;"></i>${noCuadra}</div><small class="text-danger fw-semibold">No cuadran</small></div></div>` : ''}
+        ${duplicados > 0 ? `<div class="col-auto"><div class="stat-box text-center border-danger" title="Bloquea el procesamiento"><div class="fw-bold fs-5 text-danger"><i class="fas fa-lock me-1" style="font-size:13px;"></i>${duplicados}</div><small class="text-danger fw-semibold">Duplicados</small></div></div>` : ''}`;
 }
 
 // ── Procesar ──────────────────────────────────────────────
