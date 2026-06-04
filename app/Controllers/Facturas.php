@@ -979,6 +979,1089 @@ CCF YA VIENE SIN IVA
         ]);
     }
 
+    // =========================================================
+    // CARGA MANUAL (Facturas tradicionales pre-electrónicas)
+    // =========================================================
+
+    public function cargaManual()
+    {
+        $chk = requerirPermiso('cargar_facturas_manual');
+        if ($chk !== true) return $chk;
+
+        return view('facturas/carga_manual');
+    }
+
+    // ── Inyecta datos en la hoja Datos del XLSM usando ZipArchive ──────────
+    // No usa PhpSpreadsheet para escribir — manipula el ZIP directamente
+    // para preservar el vbaProject.bin intacto.
+    private function _servirXlsmConDatos(string $path, array $clientes, array $productos): void
+    {
+        // Copiar a temporal para no modificar el original
+        $temp = tempnam(sys_get_temp_dir(), 'xlsm_') . '.xlsm';
+        copy($path, $temp);
+
+        $zip = new \ZipArchive();
+        if ($zip->open($temp) !== true) {
+            // Si no se puede abrir, servir el original directamente
+            $this->_servirArchivoDirecto($path);
+            @unlink($temp);
+            return;
+        }
+
+        // Encontrar la hoja "Datos" en el workbook
+        $datosSheetFile = $this->_encontrarHojaEnZip($zip, 'Datos');
+
+        if ($datosSheetFile) {
+            $xml = $this->_construirXmlDatos($clientes, $productos);
+            $zip->addFromString($datosSheetFile, $xml);
+        }
+
+        $zip->close();
+
+        $filename = 'plantilla_facturas_' . date('Y-m-d') . '.xlsm';
+
+        if (ob_get_level()) ob_end_clean();
+        header('Content-Type: application/vnd.ms-excel.sheet.macroEnabled.12');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        header('Content-Length: ' . filesize($temp));
+        readfile($temp);
+        @unlink($temp);
+        exit;
+    }
+
+    // ── Localiza el archivo XML de una hoja por su nombre ────────────────────
+    private function _encontrarHojaEnZip(\ZipArchive $zip, string $sheetName): ?string
+    {
+        $wbXmlRaw = $zip->getFromName('xl/workbook.xml');
+        if (!$wbXmlRaw) return null;
+
+        $wbXml = simplexml_load_string($wbXmlRaw);
+        if (!$wbXml) return null;
+
+        $ns  = $wbXml->getNamespaces(true);
+        $rNs = $ns['r'] ?? 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+        $rId = null;
+        foreach ($wbXml->sheets->sheet ?? [] as $sheet) {
+            $attrs = $sheet->attributes();
+            if (strcasecmp((string)($attrs['name'] ?? ''), $sheetName) === 0) {
+                $rAttrs = $sheet->attributes($rNs);
+                $rId    = (string)($rAttrs['id'] ?? '');
+                break;
+            }
+        }
+        if (!$rId) return null;
+
+        $relsRaw = $zip->getFromName('xl/_rels/workbook.xml.rels');
+        if (!$relsRaw) return null;
+
+        $rels = simplexml_load_string($relsRaw);
+        if (!$rels) return null;
+
+        foreach ($rels->Relationship ?? [] as $rel) {
+            if ((string)($rel['Id'] ?? '') === $rId) {
+                $target = (string)($rel['Target'] ?? '');
+                return strpos($target, '/') === 0 ? ltrim($target, '/') : 'xl/' . $target;
+            }
+        }
+        return null;
+    }
+
+    // ── Construye el XML de la hoja Datos con datos frescos ──────────────────
+    private function _construirXmlDatos(array $clientes, array $productos): string
+    {
+        $x = fn(string $s): string => htmlspecialchars(
+            mb_convert_encoding($s, 'UTF-8', 'UTF-8'),
+            ENT_XML1 | ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $cell = function(string $ref, string $val, bool $numeric = false) use ($x): string {
+            if ($val === '' || $val === null) return '';
+            if ($numeric) return '<c r="'.$ref.'"><v>'.((float)$val).'</v></c>';
+            return '<c r="'.$ref.'" t="inlineStr"><is><t>'.$x($val).'</t></is></c>';
+        };
+
+        $rows = '';
+
+        // Fila 1: aviso
+        $rows .= '<row r="1">'
+            . $cell('A1', 'NO EDITAR — Generado automaticamente desde la base de datos')
+            . '</row>';
+
+        // Fila 2: sección headers
+        $rows .= '<row r="2">'
+            . $cell('A2', 'CLIENTES')
+            . $cell('D2', 'PRODUCTOS')
+            . '</row>';
+
+        // Fila 3: columnas headers
+        // Clientes: A=Nombre, B=NIT/DUI, C=Telefono, D=Flag(NUEVO/vacio)
+        // Productos: F=Codigo, G=Descripcion, H=Precio  (E es separador)
+        $rows .= '<row r="3">'
+            . $cell('A3', 'Nombre')
+            . $cell('B3', 'NIT/DUI')
+            . $cell('C3', 'Telefono')
+            . $cell('D3', 'Estado')
+            . $cell('F3', 'Codigo')
+            . $cell('G3', 'Descripcion')
+            . $cell('H3', 'Precio Unit.')
+            . '</row>';
+
+        $maxRows = max(count($clientes), count($productos));
+        for ($i = 0; $i < $maxRows; $i++) {
+            $r   = $i + 4;
+            $row = '<row r="' . $r . '">';
+
+            if (isset($clientes[$i])) {
+                $cli  = $clientes[$i];
+                $row .= $cell('A'.$r, $cli->nombre ?? '');
+                $row .= $cell('B'.$r, $cli->nrc ?? $cli->numero_documento ?? '');
+                $row .= $cell('C'.$r, $cli->telefono ?? '');
+                // D = vacío para clientes existentes; VBA pone "NUEVO" para los nuevos
+            }
+
+            if (isset($productos[$i])) {
+                $prod = $productos[$i];
+                $row .= $cell('F'.$r, $prod->codigo ?? '');
+                $row .= $cell('G'.$r, $prod->descripcion ?? '');
+                $row .= $cell('H'.$r, (string)((float)($prod->precio_minimo ?? 0)), true);
+            }
+
+            $rows .= $row . '</row>';
+        }
+
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+            . ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            . '<sheetData>' . $rows . '</sheetData>'
+            . '</worksheet>';
+    }
+
+    // ── Fallback: sirve el archivo base directamente sin modificar ────────────
+    private function _servirArchivoDirecto(string $path): void
+    {
+        $filename = 'plantilla_facturas_' . date('Y-m-d') . '.xlsm';
+        if (ob_get_level()) ob_end_clean();
+        header('Content-Type: application/vnd.ms-excel.sheet.macroEnabled.12');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
+    }
+
+    // ── Ejecuta el script PS que genera la plantilla macro ───────────────────
+    public function crearPlantillaMacro()
+    {
+        $chk = requerirPermiso('cargar_facturas_manual');
+        if ($chk !== true) return $chk;
+
+        $ps  = WRITEPATH . 'templates/crear_plantilla_macro.ps1';
+        $out = WRITEPATH . 'templates/plantilla_base.xlsm';
+
+        if (!file_exists($ps)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Script no encontrado: ' . $ps]);
+        }
+
+        $cmd    = 'powershell.exe -NonInteractive -ExecutionPolicy Bypass -File "' . $ps . '" 2>&1';
+        $result = shell_exec($cmd) ?? '';
+
+        // PowerShell en Windows devuelve CP850/Windows-1252 — convertir a UTF-8
+        if (!mb_check_encoding($result, 'UTF-8')) {
+            $result = mb_convert_encoding($result, 'UTF-8', 'Windows-1252');
+        }
+        // Quitar cualquier carácter residual no imprimible
+        $result = preg_replace('/[^\x09\x0A\x0D\x20-\x{FFFD}]/u', '', $result);
+
+        if (file_exists($out)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Plantilla macro creada correctamente.',
+                'output'  => trim($result),
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'El script finalizó pero no se generó el archivo. Verifica que Excel esté instalado en el servidor.',
+            'output'  => trim($result),
+        ]);
+    }
+
+    public function descargarPlantilla()
+    {
+        $chk = requerirPermiso('cargar_facturas_manual');
+        if ($chk !== true) return $chk;
+
+        $clienteModel  = new ClienteModel();
+        $productoModel = new ProductoModel();
+
+        $clientes  = $clienteModel->orderBy('nombre')->findAll();
+        $productos = $productoModel->where('activo', 1)->orderBy('descripcion')->findAll();
+
+        // ── Si existe la plantilla macro (.xlsm), úsala como base ─────────────
+        $baseXlsm = WRITEPATH . 'templates/plantilla_base.xlsm';
+        if (file_exists($baseXlsm)) {
+            return $this->_servirXlsmConDatos($baseXlsm, $clientes, $productos);
+        }
+
+        // ── Fallback: genera .xlsx sin macro ──────────────────────────────────
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->getProperties()->setTitle('Plantilla Facturas Tradicionales');
+
+        // ── Sheet 1: Facturas ──────────────────────────────────
+        $sh = $spreadsheet->getActiveSheet();
+        $sh->setTitle('Facturas');
+
+        /*
+         * LAYOUT A–S (19 columnas)
+         * CAB: A B C D E F  G  H        I       J      K        L       M
+         *      # T F C E NIT T SUBTOTAL IVA(CCF) TOTAL  CONDIC  ∑LÍNEAS ESTADO
+         * DET: A B         N      O      P           Q          R           S
+         *      # T         CANT   CÓDIGO DESCRIP▸auto PRECIO▸auto VTA.GRAV▸auto DESC
+         */
+        $colWidths = [
+            'A'=>6,  'B'=>8,  'C'=>13, 'D'=>16, 'E'=>36,
+            'F'=>16, 'G'=>10, 'H'=>14, 'I'=>12, 'J'=>13,
+            'K'=>12, 'L'=>12, 'M'=>14,
+            'N'=>10, 'O'=>14, 'P'=>38, 'Q'=>13, 'R'=>15, 'S'=>11,
+        ];
+        foreach ($colWidths as $col => $w) {
+            $sh->getColumnDimension($col)->setWidth($w);
+        }
+
+        $headers = [
+            'A1'=>'#',       'B1'=>'TIPO',    'C1'=>'FECHA',
+            'D1'=>'CORRELATIVO','E1'=>'CLIENTE','F1'=>'NIT/DUI ▸auto',
+            'G1'=>'TIPO DOC','H1'=>'SUBTOTAL', 'I1'=>'IVA (CCF)',
+            'J1'=>'TOTAL ▸auto','K1'=>'CONDICIÓN','L1'=>'∑ LÍNEAS','M1'=>'ESTADO',
+            'N1'=>'CANTIDAD','O1'=>'CÓDIGO',   'P1'=>'DESCRIPCIÓN ▸auto',
+            'Q1'=>'PRECIO UNIT ▸auto','R1'=>'VENTA GRAVADA ▸auto','S1'=>'DESCUENTO',
+        ];
+        foreach ($headers as $coord => $val) {
+            $sh->setCellValue($coord, $val);
+        }
+        $sh->getStyle('A1:S1')->applyFromArray([
+            'font'      => ['bold'=>true, 'color'=>['rgb'=>'FFFFFF'], 'size'=>10],
+            'fill'      => ['fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor'=>['rgb'=>'1F3864']],
+            'alignment' => ['horizontal'=>\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                            'vertical'  =>\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+        ]);
+        $sh->getRowDimension(1)->setRowHeight(22);
+        $sh->freezePane('A2');
+
+        // ── Formato fecha DD/MM/AAAA en columna C ──
+        $sh->getStyle('C2:C1001')->getNumberFormat()->setFormatCode('DD/MM/YYYY');
+
+        $vFecha = $sh->getCell('C2')->getDataValidation();
+        $vFecha->setSqref('C2:C1001');
+        $vFecha->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_DATE);
+        $vFecha->setOperator(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::OPERATOR_GREATERTHANOREQUAL);
+        $vFecha->setFormula1(\PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(mktime(0,0,0,1,1,1990)));
+        $vFecha->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
+        $vFecha->setAllowBlank(true);
+        $vFecha->setShowErrorMessage(true);
+        $vFecha->setErrorTitle('Fecha inválida');
+        $vFecha->setError('Ingrese una fecha válida. Use DD/MM/AAAA.');
+        $vFecha->setShowInputMessage(true);
+        $vFecha->setPromptTitle('Fecha');
+        $vFecha->setPrompt('Formato: DD/MM/AAAA');
+
+        // ── Comentarios de ayuda ──
+        $sh->getComment('H1')->getText()->createTextRun("CCF: base antes de IVA. FAC: total con IVA incluido.");
+        $sh->getComment('I1')->getText()->createTextRun("Solo CCF: IVA = 13% del Subtotal. Para FAC deje en 0.");
+        $sh->getComment('J1')->getText()->createTextRun("Calculado: Subtotal + IVA (CCF) o solo Subtotal (FAC).");
+        $sh->getComment('O1')->getText()->createTextRun("Código del producto. Al llenarlo, la descripción y precio se completan solos.");
+        $sh->getComment('P1')->getText()->createTextRun("Se completa al ingresar el Código. También puede escribirla manualmente.");
+        $sh->getComment('Q1')->getText()->createTextRun("Se completa al ingresar el Código o la Descripción. Editable.");
+        $sh->getComment('R1')->getText()->createTextRun("Calculado: Cantidad × Precio. Editable si necesita ajuste.");
+        $sh->getComment('F1')->getText()->createTextRun("Se completa automáticamente si el cliente existe en el sistema.");
+
+        // ── Datos de ejemplo ──
+        $today         = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(time());
+        $firstCliente  = !empty($clientes)  ? $clientes[0]->nombre        : 'CLIENTE EJEMPLO';
+        $secondCliente = count($clientes)>1 ? $clientes[1]->nombre        : $firstCliente;
+        $firstCod      = !empty($productos) ? ($productos[0]->codigo??'') : 'COD-001';
+        $firstProd     = !empty($productos) ? $productos[0]->descripcion   : 'PRODUCTO A';
+        $firstPrecio   = !empty($productos) ? (float)($productos[0]->precio_minimo??100) : 100;
+        $secondCod     = count($productos)>1? ($productos[1]->codigo??'') : 'COD-002';
+        $secondProd    = count($productos)>1? $productos[1]->descripcion   : 'PRODUCTO B';
+        $secondPrecio  = count($productos)>1? (float)($productos[1]->precio_minimo??50)  : 50;
+
+        // Ejemplo 1 — CCF
+        $sh->setCellValue('A2',1);  $sh->setCellValue('B2','CAB');
+        $sh->setCellValue('C2',$today);
+        $sh->setCellValue('D2','CCF-00001'); $sh->setCellValue('E2',$firstCliente);
+        $sh->setCellValue('G2','CCF'); $sh->setCellValue('H2',1000.00);
+        $sh->setCellValue('I2',130.00); $sh->setCellValue('K2','Contado');
+
+        $sh->setCellValue('A3',1); $sh->setCellValue('B3','DET');
+        $sh->setCellValue('N3',10); $sh->setCellValue('O3',$firstCod);
+
+        $sh->setCellValue('A4',1); $sh->setCellValue('B4','DET');
+        $sh->setCellValue('N4',3);  $sh->setCellValue('O4',$secondCod);
+
+        // Ejemplo 2 — FAC (fila 6, fila 5 vacía como separador)
+        $sh->setCellValue('A6',2);  $sh->setCellValue('B6','CAB');
+        $sh->setCellValue('C6',$today);
+        $sh->setCellValue('D6','FAC-00001'); $sh->setCellValue('E6',$secondCliente);
+        $sh->setCellValue('G6','Factura'); $sh->setCellValue('H6',1130.00);
+        $sh->setCellValue('I6',0.00); $sh->setCellValue('K6','Crédito');
+
+        $sh->setCellValue('A7',2); $sh->setCellValue('B7','DET');
+        $sh->setCellValue('N7',10); $sh->setCellValue('O7',$firstCod);
+
+        // ── Contadores ──
+        $cliCount  = min(count($clientes), 999);
+        $prodCount = min(count($productos), 499);
+
+        // ── Fórmulas automáticas filas 2-1001 ──
+        $jData=[]; $lData=[]; $mData=[]; $pData=[]; $qData=[]; $rData=[];
+        // Datos terminarán en fila 4 + count - 1, con margen
+        $cliEnd  = max(4, $cliCount  + 3) + 50;
+        $prodEnd = max(4, $prodCount + 3) + 50;
+
+        for ($r = 2; $r <= 1001; $r++) {
+            // J: TOTAL = Subtotal + IVA
+            $jData[] = ['=IF($B'.$r.'="CAB",$H'.$r.'+$I'.$r.',"")'];
+            // L: ∑ LÍNEAS — suma col R (Venta Gravada) para DET con mismo # fac
+            $lData[] = ['=IF($B'.$r.'="CAB",SUMPRODUCT(($A$2:$A$1001=A'.$r.')*($B$2:$B$1001="DET")*($R$2:$R$1001)),"")'];
+            // M: ESTADO — compara ∑ líneas (L) con Subtotal (H)
+            $mData[] = ['=IF($H'.$r.'="","",IF(ABS($L'.$r.'-$H'.$r.')<=0.02,"✓ OK","⚠ NO CUADRA"))'];
+            // P: DESCRIPCIÓN — VLOOKUP desde código (O); Datos col D=código, E=desc
+            $pData[] = ['=IF($B'.$r.'="DET",IFERROR(VLOOKUP(O'.$r.',Datos!$D$4:$E$'.$prodEnd.',2,FALSE),""),"")'];
+            // Q: PRECIO — desde código (O→col3) o desde descripción (P→col2)
+            $qData[] = ['=IF($B'.$r.'="DET",IF(O'.$r.'<>"",IFERROR(VLOOKUP(O'.$r.',Datos!$D$4:$F$'.$prodEnd.',3,FALSE),""),IFERROR(VLOOKUP(P'.$r.',Datos!$E$4:$F$'.$prodEnd.',2,FALSE),"")),"")'];
+            // R: VENTA GRAVADA — Cantidad × Precio (editable manualmente si se necesita)
+            $rData[] = ['=IF($B'.$r.'="DET",IFERROR(N'.$r.'*Q'.$r.',0),"")'];
+        }
+        $sh->fromArray($jData, null, 'J2');
+        $sh->fromArray($lData, null, 'L2');
+        $sh->fromArray($mData, null, 'M2');
+        $sh->fromArray($pData, null, 'P2');
+        $sh->fromArray($qData, null, 'Q2');
+        $sh->fromArray($rData, null, 'R2');
+
+        // F: NIT/DUI desde nombre cliente
+        $fData = [];
+        for ($r = 2; $r <= 1001; $r++) {
+            $fData[] = ['=IF($B'.$r.'="CAB",IFERROR(VLOOKUP(E'.$r.',Datos!$A$4:$B$'.$cliEnd.',2,FALSE),""),"")'];
+        }
+        $sh->fromArray($fData, null, 'F2');
+
+        // ── Estilos auto-fill (gris/cursiva) para columnas calculadas ──
+        $autoFillStyle = [
+            'fill' => ['fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor'=>['rgb'=>'F2F2F2']],
+            'font' => ['color'=>['rgb'=>'555555'], 'italic'=>true],
+        ];
+        foreach (['F2:F1001','J2:J1001','M2:M1001','P2:P1001','Q2:Q1001','R2:R1001'] as $rng) {
+            $sh->getStyle($rng)->applyFromArray($autoFillStyle);
+        }
+
+        // ── Data Validation ──
+        // E: Cliente
+        $vCli = $sh->getCell('E2')->getDataValidation();
+        $vCli->setSqref('E2:E1001'); $vCli->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vCli->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+        $vCli->setAllowBlank(true); $vCli->setShowDropDown(false);
+        $vCli->setShowErrorMessage(true); $vCli->setErrorTitle('Cliente nuevo');
+        $vCli->setError('Si es nuevo, escríbalo y complete NIT/DUI manualmente.');
+        $vCli->setFormula1('ListaClientes');
+
+        // G: Tipo Doc
+        $vTipo = $sh->getCell('G2')->getDataValidation();
+        $vTipo->setSqref('G2:G1001'); $vTipo->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vTipo->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
+        $vTipo->setAllowBlank(false); $vTipo->setShowDropDown(false);
+        $vTipo->setFormula1('"CCF,Factura"');
+
+        // K: Condición (era J)
+        $vCond = $sh->getCell('K2')->getDataValidation();
+        $vCond->setSqref('K2:K1001'); $vCond->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vCond->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
+        $vCond->setAllowBlank(false); $vCond->setShowDropDown(false);
+        $vCond->setFormula1('"Contado,Crédito"');
+
+        // P: Descripción producto (dropdown, puede escribirse libremente)
+        $vProd = $sh->getCell('P2')->getDataValidation();
+        $vProd->setSqref('P2:P1001'); $vProd->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vProd->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+        $vProd->setAllowBlank(true); $vProd->setShowDropDown(false);
+        $vProd->setShowErrorMessage(true); $vProd->setErrorTitle('Producto nuevo');
+        $vProd->setError('Se creará automáticamente si no existe en el sistema.');
+        $vProd->setFormula1('ListaProductos');
+
+        // ── Formato condicional ──
+        // ∑ LÍNEAS ahora está en L; compara L vs H
+        $cRed = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cRed->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cRed->addCondition('=AND($B2="CAB",$H2<>"",ABS($L2-$H2)>0.02)');
+        $cRed->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFFFC7CE');
+        $cRed->getStyle()->getFont()->getColor()->setARGB('FF9C0006');
+
+        $cGreen = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cGreen->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cGreen->addCondition('=AND($B2="CAB",$H2<>"",ABS($L2-$H2)<=0.02)');
+        $cGreen->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFC6EFCE');
+        $cGreen->getStyle()->getFont()->getColor()->setARGB('FF276221');
+
+        $cBlue = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cBlue->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cBlue->addCondition('=$B2="DET"');
+        $cBlue->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFE8F0FE');
+
+        $sh->getStyle('A2:S1001')->setConditionalStyles([$cRed, $cGreen, $cBlue]);
+
+        // ── Sheet 2: Datos (visible — matrices de clientes y productos) ──
+        $shD = $spreadsheet->createSheet();
+        $shD->setTitle('Datos');
+
+        foreach (['A'=>38,'B'=>18,'C'=>16,'D'=>16,'E'=>38,'F'=>14] as $col => $w) {
+            $shD->getColumnDimension($col)->setWidth($w);
+        }
+
+        $shD->setCellValue('A1', '⚠ NO EDITAR — Generado automáticamente desde la base de datos');
+        $shD->mergeCells('A1:F1');
+        $shD->getStyle('A1')->applyFromArray([
+            'font'      => ['bold'=>true, 'color'=>['rgb'=>'7B3F00']],
+            'fill'      => ['fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor'=>['rgb'=>'FCE4D6']],
+            'alignment' => ['horizontal'=>\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        $shD->setCellValue('A2','CLIENTES');  $shD->mergeCells('A2:C2');
+        $shD->setCellValue('D2','PRODUCTOS'); $shD->mergeCells('D2:F2');
+        $shD->getStyle('A2:F2')->applyFromArray([
+            'font'      => ['bold'=>true, 'color'=>['rgb'=>'FFFFFF']],
+            'fill'      => ['fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor'=>['rgb'=>'1F3864']],
+            'alignment' => ['horizontal'=>\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Cabeceras Datos
+        // Productos: D=CÓDIGO (llave búsqueda), E=DESCRIPCIÓN, F=PRECIO
+        $shD->setCellValue('A3','Nombre');  $shD->setCellValue('B3','NIT/DUI');
+        $shD->setCellValue('C3','Teléfono');
+        $shD->setCellValue('D3','Código');  $shD->setCellValue('E3','Descripción');
+        $shD->setCellValue('F3','Precio Unit.');
+        $shD->getStyle('A3:F3')->applyFromArray([
+            'font' => ['bold'=>true],
+            'fill' => ['fillType'=>\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor'=>['rgb'=>'D9E1F2']],
+        ]);
+
+        // Clientes (A-C desde fila 4)
+        foreach ($clientes as $i => $cli) {
+            $row = $i + 4;
+            $shD->setCellValue('A'.$row, $cli->nombre);
+            $shD->setCellValue('B'.$row, $cli->nrc ?? $cli->numero_documento ?? '');
+            $shD->setCellValue('C'.$row, $cli->telefono ?? '');
+        }
+
+        // Productos (D-F desde fila 4): D=código, E=descripción, F=precio
+        $pMax = min(count($productos), 499);
+        for ($i = 0; $i < $pMax; $i++) {
+            $row = $i + 4;
+            $shD->setCellValue('D'.$row, $productos[$i]->codigo ?? '');
+            $shD->setCellValue('E'.$row, $productos[$i]->descripcion);
+            $shD->setCellValue('F'.$row, (float)($productos[$i]->precio_minimo ?? 0));
+        }
+
+        // ── Rangos con nombre (data validation cross-sheet) ──
+        $cliLastRow  = max(4, $cliCount  + 3);
+        $prodLastRow = max(4, $prodCount + 3);
+
+        $spreadsheet->addNamedRange(new \PhpOffice\PhpSpreadsheet\NamedRange(
+            'ListaClientes', $shD, '$A$4:$A$'.$cliLastRow
+        ));
+        // ListaProductos referencia columna E (descripciones) para el dropdown de P
+        $spreadsheet->addNamedRange(new \PhpOffice\PhpSpreadsheet\NamedRange(
+            'ListaProductos', $shD, '$E$4:$E$'.$prodLastRow
+        ));
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'plantilla_facturas_' . date('Y-m-d') . '.xlsx';
+
+        if (ob_get_level()) ob_end_clean();
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function previewManual()
+    {
+        $chk = requerirPermiso('cargar_facturas_manual');
+        if ($chk !== true) return $chk;
+
+        $file = $this->request->getFile('excel');
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Archivo no válido']);
+        }
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo leer el Excel: ' . $e->getMessage()]);
+        }
+
+        $sh = $spreadsheet->getSheetByName('Facturas');
+        if (!$sh) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El archivo no contiene la hoja "Facturas"']);
+        }
+
+        $facturas   = [];
+        $emptyCount = 0;
+
+        for ($row = 2; $row <= 1001; $row++) {
+
+            $tipo   = strtoupper(trim((string)$sh->getCell('B' . $row)->getValue()));
+            $numFac = $sh->getCell('A' . $row)->getValue();
+
+            if (!$tipo || $numFac === null || $numFac === '') {
+                if (++$emptyCount >= 8) break;
+                continue;
+            }
+            $emptyCount = 0;
+
+            if ($tipo === 'CAB') {
+
+                $rawDate = $sh->getCell('C' . $row)->getValue();
+                if (is_numeric($rawDate) && $rawDate > 0) {
+                    $fechaStr = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$rawDate)
+                        ->format('Y-m-d');
+                } else {
+                    $ts = strtotime((string)$rawDate);
+                    $fechaStr = $ts ? date('Y-m-d', $ts) : null;
+                }
+
+                $tipoDocRaw = strtoupper(trim((string)$sh->getCell('G' . $row)->getValue()));
+                $tipoDte    = (str_contains($tipoDocRaw, 'CCF') || $tipoDocRaw === '03') ? '03' : '01';
+
+                $condRaw   = strtolower(trim((string)$sh->getCell('K' . $row)->getValue()));
+                $condicion = str_contains($condRaw, 'r') ? 2 : 1;
+
+                // F puede ser fórmula VLOOKUP — leer valor calculado
+                $nitCell = $sh->getCell('F' . $row);
+                $nitVal  = $nitCell->getCalculatedValue();
+                if ($nitVal === null || $nitVal === '' || str_contains((string)$nitVal, '#')) {
+                    $nitVal = '';
+                }
+
+                $facturas[$numFac] = [
+                    'num_fac'        => $numFac,
+                    'correlativo'    => trim((string)$sh->getCell('D' . $row)->getValue()),
+                    'fecha'          => $fechaStr,
+                    'cliente_nombre' => trim((string)$sh->getCell('E' . $row)->getValue()),
+                    'nit_dui'        => trim((string)$nitVal),
+                    'tipo_dte'       => $tipoDte,
+                    'subtotal'       => (float)$sh->getCell('H' . $row)->getValue(),
+                    'iva_declarado'  => (float)$sh->getCell('I' . $row)->getValue(),
+                    'condicion'      => $condicion,
+                    'lineas'         => [],
+                ];
+
+            } elseif ($tipo === 'DET' && isset($facturas[$numFac])) {
+
+                // P, Q, R son fórmulas — leer valor calculado
+                $descVal = $sh->getCell('P' . $row)->getCalculatedValue();
+                if (str_contains((string)$descVal, '#')) $descVal = '';
+
+                $precioVal = $sh->getCell('Q' . $row)->getCalculatedValue();
+                if (!is_numeric($precioVal)) $precioVal = 0;
+
+                $ventaVal = $sh->getCell('R' . $row)->getCalculatedValue();
+                if (!is_numeric($ventaVal)) $ventaVal = 0;
+
+                $facturas[$numFac]['lineas'][] = [
+                    'cantidad'        => (float)$sh->getCell('N' . $row)->getValue(),
+                    'codigo'          => trim((string)$sh->getCell('O' . $row)->getValue()),
+                    'descripcion'     => trim((string)$descVal),
+                    'precio_unitario' => (float)$precioVal,
+                    'venta_gravada'   => (float)$ventaVal,
+                    'descuento'       => (float)$sh->getCell('S' . $row)->getValue(),
+                ];
+            }
+        }
+
+        if (empty($facturas)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se encontraron facturas en el archivo']);
+        }
+
+        $clienteModel         = new ClienteModel();
+        $productoModel        = new ProductoModel();
+        $facturaHeadModel     = new FacturaHeadModel();
+
+        $result = [];
+
+        foreach ($facturas as $fac) {
+
+            $cli = $fac['cliente_nombre']
+                ? $clienteModel->where('LOWER(TRIM(nombre))', strtolower(trim($fac['cliente_nombre'])))->first()
+                : null;
+
+            $fac['cliente_nuevo'] = !$cli;
+            $fac['cliente_id']    = $cli ? $cli->id : null;
+
+            // Duplicado = misma combinación tipo_dte + correlativo + fecha
+            $existe = $fac['correlativo']
+                ? $facturaHeadModel
+                    ->where('numero_control', $fac['correlativo'])
+                    ->where('tipo_dte',       $fac['tipo_dte'])
+                    ->where('fecha_emision',  $fac['fecha'])
+                    ->first()
+                : null;
+            $fac['duplicado'] = (bool)$existe;
+
+            $sumaLineas         = array_sum(array_column($fac['lineas'], 'venta_gravada'));
+            $fac['suma_lineas'] = $sumaLineas;
+            $fac['cuadra']      = abs($sumaLineas - $fac['subtotal']) <= 0.02;
+
+            $tieneNuevos = false;
+            foreach ($fac['lineas'] as &$linea) {
+                // Buscar primero por código (case-insensitive), luego por descripción
+                $prod     = null;
+                $codBusq  = strtoupper(trim($linea['codigo'] ?? ''));
+                if ($codBusq) {
+                    $prod = $productoModel
+                        ->where('UPPER(TRIM(codigo))', $codBusq)
+                        ->first();
+                }
+                if (!$prod && !empty($linea['descripcion'])) {
+                    $prod = $productoModel
+                        ->where('LOWER(TRIM(descripcion))', strtolower(trim($linea['descripcion'])))
+                        ->first();
+                }
+                $linea['producto_nuevo'] = !$prod;
+                $linea['producto_id']    = $prod ? $prod->id : null;
+                if (!$prod) $tieneNuevos = true;
+            }
+            unset($linea);
+
+            $fac['tiene_productos_nuevos'] = $tieneNuevos;
+            $result[] = $fac;
+        }
+
+        // ── Leer hoja Datos: clientes marcados como NUEVO (col D = "NUEVO") ──
+        $clientesNuevos = [];
+        $shDatos = $spreadsheet->getSheetByName('Datos');
+        if ($shDatos) {
+            for ($row = 4; $row <= 1003; $row++) {
+                $nombre = trim((string)$shDatos->getCell('A'.$row)->getValue());
+                if (!$nombre) break;
+                $flag = strtoupper(trim((string)$shDatos->getCell('D'.$row)->getValue()));
+                if ($flag === 'NUEVO') {
+                    $clientesNuevos[] = [
+                        'nombre'   => $nombre,
+                        'nit_dui'  => trim((string)$shDatos->getCell('B'.$row)->getValue()),
+                        'telefono' => trim((string)$shDatos->getCell('C'.$row)->getValue()),
+                    ];
+                }
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'         => true,
+            'facturas'        => $result,
+            'clientes_nuevos' => $clientesNuevos,
+        ]);
+    }
+
+    public function procesarCargaManual()
+    {
+        $chk = requerirPermiso('cargar_facturas_manual');
+        if ($chk !== true) return $chk;
+
+        $user_id = session()->get('user_id');
+
+        $data     = $this->request->getJSON(true);
+        $facturas = $data['facturas'] ?? [];
+
+        // Índice de clientes nuevos por nombre (para lookup rápido con datos completos)
+        $clientesNuevosIdx = [];
+        foreach ($data['clientes_nuevos'] ?? [] as $cn) {
+            $key = strtolower(trim($cn['nombre'] ?? ''));
+            if ($key) $clientesNuevosIdx[$key] = $cn;
+        }
+
+        if (empty($facturas)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin datos']);
+        }
+
+        $clienteModel        = new ClienteModel();
+        $facturaHeadModel    = new FacturaHeadModel();
+        $facturaDetalleModel = new \App\Models\FacturaDetalleModel();
+        $productoModel       = new ProductoModel();
+        $movimientoModel     = new ProductoMovimientoModel();
+
+        $db = \Config\Database::connect();
+
+        $procesadas     = 0;
+        $saltadas       = [];
+        $errores        = [];
+        $asientosQueue  = [];
+
+        foreach ($facturas as $fac) {
+
+            $correlativo = trim($fac['correlativo'] ?? '');
+
+            if (!$correlativo) {
+                $errores[] = 'Fila sin correlativo, omitida';
+                continue;
+            }
+
+            if ($facturaHeadModel->where('numero_control', $correlativo)->first()) {
+                $saltadas[] = $correlativo;
+                continue;
+            }
+
+            $db->transStart();
+
+            try {
+
+                // CLIENTE
+                $nombreCli = trim($fac['cliente_nombre'] ?? '');
+                $nitDui    = trim($fac['nit_dui'] ?? '');
+                $clienteId = null;
+
+                if ($nombreCli) {
+                    $cli = $clienteModel
+                        ->where('LOWER(TRIM(nombre))', strtolower($nombreCli))
+                        ->first();
+
+                    if (!$cli && $nitDui) {
+                        $cli = $clienteModel->buscarPorDocumento('36', $nitDui)
+                            ?? $clienteModel->buscarPorDocumento('13', $nitDui);
+                    }
+
+                    if (!$cli) {
+                        // Buscar datos completos si fue marcado NUEVO en el Excel
+                        $datosNuevo = $clientesNuevosIdx[strtolower($nombreCli)] ?? null;
+                        $nitFinal   = $datosNuevo['nit_dui']  ?? $nitDui;
+                        $telFinal   = $datosNuevo['telefono'] ?? null;
+
+                        $insertData = [
+                            'nombre'           => $nombreCli,
+                            'tipo_documento'   => $nitFinal ? (strlen(preg_replace('/\D/', '', $nitFinal)) <= 9 ? '13' : '36') : null,
+                            'numero_documento' => $nitFinal ?: null,
+                            'telefono'         => $telFinal ?: null,
+                        ];
+                        $clienteId = $clienteModel->insert($insertData);
+                    } else {
+                        $clienteId = $cli->id;
+                    }
+                }
+
+                // MONTOS — lógica según tipo de documento
+                $tipoDte     = $fac['tipo_dte'] ?? '01';
+                $subtotal    = (float)($fac['subtotal']      ?? 0);
+                $ivaDec      = (float)($fac['iva_declarado'] ?? 0);
+                $sumaGravada = (float)($fac['suma_lineas']   ?? array_sum(array_column($fac['lineas'], 'venta_gravada')));
+
+                if ($tipoDte === '01') {
+                    // FAC: subtotal = total CON IVA (precios incluyen IVA)
+                    $totalGravada = round($subtotal / 1.13, 2);
+                    $totalIva     = round($subtotal - $totalGravada, 2);
+                    $totalPagar   = $subtotal;
+                } else {
+                    // CCF: subtotal = base pre-IVA; IVA declarado por separado
+                    $totalGravada = $subtotal;
+                    $totalIva     = $ivaDec;
+                    $totalPagar   = $subtotal + $ivaDec;
+                }
+
+                $condicion    = (int)($fac['condicion'] ?? 1);
+                $plazoCredito = $condicion === 2 ? 30 : null;
+
+                $dataHead = [
+                    'clase'                         => 'TRADICIONAL',
+                    'ambiente'                      => 'T',
+                    'tipo_dte'                      => $tipoDte,
+                    'numero_control'                => $correlativo,
+                    'codigo_generacion'             => null,
+                    'sello_recibido'                => null,
+                    'fecha_emision'                 => $fac['fecha'] ?? null,
+                    'hora_emision'                  => null,
+                    'tipo_moneda'                   => 'USD',
+                    'receptor_id'                   => $clienteId,
+                    'vendedor_id'                   => null,
+                    'total_gravada'                 => $totalGravada,
+                    'sub_total'                     => $sumaGravada,
+                    'total_iva'                     => $totalIva,
+                    'monto_total_operacion'         => $totalPagar,
+                    'total_pagar'                   => $totalPagar,
+                    'condicion_operacion'           => $condicion,
+                    'plazo_credito'                 => $plazoCredito,
+                    'iva_rete1'                     => 0,
+                    'saldo'                         => $totalPagar,
+                    'tipo_venta'                    => 1,
+                    'codigo_generacion_relacionado' => null,
+                    'observaciones'                 => 'Factura tradicional pre-electrónica',
+                ];
+
+                if (!$facturaHeadModel->insert($dataHead)) {
+                    throw new \RuntimeException('Error insertando cabecera: ' . implode(', ', $facturaHeadModel->errors()));
+                }
+
+                $facturaId = $facturaHeadModel->getInsertID();
+
+                // DETALLES
+                foreach ($fac['lineas'] as $idx => $linea) {
+
+                    $descripcion  = trim($linea['descripcion'] ?? '');
+                    $codigoLinea  = strtoupper(trim($linea['codigo'] ?? ''));
+                    if (!$descripcion && !$codigoLinea) continue;
+
+                    $ventaGravada  = (float)($linea['venta_gravada']  ?? 0);
+                    $cantidadLinea = (float)($linea['cantidad']        ?? 1);
+                    $precioUni     = (float)($linea['precio_unitario'] ?? 0);
+                    $descuento     = (float)($linea['descuento']       ?? 0);
+
+                    // Para FAC, separar IVA de venta_gravada si el usuario ingresó con IVA
+                    $ivaItem = 0;
+                    if ($tipoDte === '01') {
+                        $base         = round($ventaGravada / 1.13, 4);
+                        $ivaItem      = round($ventaGravada - $base, 4);
+                        $ventaGravada = $base;
+                    } else {
+                        // CCF: IVA proporcional
+                        if ($sumaGravada > 0) {
+                            $ivaItem = round($totalIva * ($ventaGravada / $sumaGravada), 4);
+                        }
+                    }
+
+                    // Buscar producto: primero por código, luego por descripción
+                    $producto = null;
+                    if ($codigoLinea) {
+                        $producto = $productoModel
+                            ->where('UPPER(TRIM(codigo))', $codigoLinea)
+                            ->first();
+                    }
+                    if (!$producto && $descripcion) {
+                        $producto = $productoModel
+                            ->where('LOWER(TRIM(descripcion))', strtolower($descripcion))
+                            ->first();
+                    }
+                    if (!$producto) {
+                        $newId    = $productoModel->insert([
+                            'descripcion' => $descripcion ?: ($codigoLinea ?: 'SIN DESCRIPCIÓN'),
+                            'codigo'      => $codigoLinea ?: null,
+                            'activo'      => 1,
+                            'tipo'        => 1,
+                        ]);
+                        $producto = $productoModel->find($newId);
+                    }
+
+                    if (empty($producto->id)) {
+                        throw new \RuntimeException('Producto inválido: ' . ($codigoLinea ?: $descripcion));
+                    }
+
+                    $detalleData = [
+                        'factura_id'      => $facturaId,
+                        'producto_id'     => $producto->id,
+                        'num_item'        => $idx + 1,
+                        'tipo_item'       => 1,
+                        'codigo'          => $codigoLinea ?: ($producto->codigo ?? null),
+                        'descripcion'     => $descripcion ?: ($producto->descripcion ?? ''),
+                        'cantidad'        => $cantidadLinea,
+                        'unidad_medida'   => null,
+                        'precio_unitario' => $precioUni,
+                        'monto_descuento' => $descuento,
+                        'venta_no_sujeta' => 0,
+                        'venta_exenta'    => 0,
+                        'venta_gravada'   => $ventaGravada,
+                        'iva_item'        => $ivaItem,
+                    ];
+
+                    if (!$facturaDetalleModel->insert($detalleData)) {
+                        throw new \RuntimeException('Error en detalle: ' . implode(', ', $facturaDetalleModel->errors()));
+                    }
+
+                    // Movimiento inventario (SALIDA por venta)
+                    if ($cantidadLinea > 0) {
+                        $movimientoModel->insert([
+                            'producto_id'     => $producto->id,
+                            'tipo_movimiento' => 'venta',
+                            'cantidad'        => -abs($cantidadLinea),
+                            'referencia_tipo' => 'factura',
+                            'referencia_id'   => $facturaId,
+                        ]);
+                    }
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    $err = $db->error();
+                    $errores[] = $correlativo . ': error BD (' . ($err['message'] ?? 'desconocido') . ')';
+                } else {
+                    $procesadas++;
+
+                    // Encolar asiento contable (CCF y FAC)
+                    if (in_array($tipoDte, ['01', '03'])) {
+                        $asientosQueue[] = [
+                            'tipoDte'       => $tipoDte,
+                            'totalGravada'  => $totalGravada,
+                            'montoTotalOp'  => $totalPagar,
+                            'retencion'     => 0,
+                            'fechaEmision'  => $fac['fecha'] ?? date('Y-m-d'),
+                            'numeroControl' => $correlativo,
+                            'facturaId'     => $facturaId,
+                            'clienteId'     => $clienteId,
+                        ];
+                    }
+                }
+
+            } catch (\Throwable $e) {
+                $db->transRollback();
+                $errores[] = $correlativo . ': ' . $e->getMessage();
+                log_message('error', 'cargaManualFactura ' . $correlativo . ': ' . $e->getMessage());
+            }
+        }
+
+        // Asientos contables (post-commit, igual que carga JSON)
+        $asientosCreados  = 0;
+        $asientosOmitidos = [];
+
+        if (!empty($asientosQueue)) {
+            try {
+                helper('cont_ventas');
+                $periodosModel    = new \App\Models\ContPeriodosModel();
+                $contHeadModel    = new \App\Models\ContAsientosHeadModel();
+                $contDetalleModel = new \App\Models\ContAsientosDetalleModel();
+
+                foreach ($asientosQueue as $item) {
+
+                    $ref       = substr($item['numeroControl'], -6);
+                    $anioItem  = (int)substr($item['fechaEmision'], 0, 4);
+                    $mesItem   = (int)substr($item['fechaEmision'], 5, 2);
+                    $periodo   = $periodosModel->abrirObtenerPeriodo($anioItem, $mesItem);
+
+                    if (!$periodo) {
+                        $asientosOmitidos[] = "{$ref}: período {$mesItem}/{$anioItem} cerrado";
+                        continue;
+                    }
+
+                    $tipoDteH = $item['tipoDte'] === '03' ? 'CCF' : 'FAC';
+                    $monto    = $item['tipoDte'] === '03'
+                        ? (float)$item['totalGravada']
+                        : (float)$item['montoTotalOp'];
+
+                    if ($monto <= 0) { $asientosOmitidos[] = "{$ref}: monto inválido"; continue; }
+
+                    // Subcuenta cliente
+                    $cxcOverrideId = null;
+                    if (!empty($item['clienteId'])) {
+                        $cli = (new ClienteModel())->select('id, nombre, cuenta_contable_id')->find((int)$item['clienteId']);
+                        if ($cli && !empty($cli->cuenta_contable_id)) {
+                            $cxcOverrideId = (int)$cli->cuenta_contable_id;
+                        } elseif ($cli) {
+                            $planModel = new \App\Models\ContPlanCuentasModel();
+                            $padre     = $planModel->where('codigo', '110201')->first();
+                            if ($padre) {
+                                $sub = $planModel->like('codigo', '110201', 'after')->where('nombre', mb_strtoupper($cli->nombre))->first();
+                                if ($sub) {
+                                    (new ClienteModel())->update($cli->id, ['cuenta_contable_id' => $sub->id]);
+                                    $cxcOverrideId = (int)$sub->id;
+                                } else {
+                                    $dbRaw = \Config\Database::connect();
+                                    $sig   = (int)($dbRaw->query("SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, 7) AS UNSIGNED)), 0) + 1 AS sig FROM cont_plan_cuentas WHERE codigo LIKE '110201%' AND LENGTH(codigo) > 6")->getRow()->sig ?? 1);
+                                    $newId = $planModel->insert([
+                                        'codigo' => '110201' . str_pad($sig, 4, '0', STR_PAD_LEFT),
+                                        'nombre' => mb_strtoupper($cli->nombre),
+                                        'tipo' => $padre->tipo, 'naturaleza' => $padre->naturaleza,
+                                        'nivel' => $padre->nivel + 1, 'cuenta_padre_id' => $padre->id,
+                                        'acepta_movimientos' => 1, 'activo' => 1,
+                                    ]);
+                                    if ($newId) { (new ClienteModel())->update($cli->id, ['cuenta_contable_id' => $newId]); $cxcOverrideId = (int)$newId; }
+                                }
+                            }
+                        }
+                    }
+
+                    try {
+                        $resultado = cont_asiento_venta_json(
+                            $tipoDteH, $monto, 0, $ref,
+                            $periodo->id, $item['fechaEmision'],
+                            "Venta {$tipoDteH} {$ref}", null, $cxcOverrideId
+                        );
+                    } catch (\Throwable $e) {
+                        $asientosOmitidos[] = "{$ref}: " . $e->getMessage();
+                        continue;
+                    }
+
+                    if (!$resultado['ok']) {
+                        $asientosOmitidos[] = "{$ref}: " . implode(', ', $resultado['errores'] ?? []);
+                        continue;
+                    }
+
+                    $payload      = $resultado['payload'];
+                    $fechaAsiento = $payload['fecha'];
+                    $tPartidaId   = $payload['tipo_partida_id'] ?? null;
+                    $totalDebe    = round(array_sum(array_column($payload['lineas'], 'debe')),  2);
+                    $totalHaber   = round(array_sum(array_column($payload['lineas'], 'haber')), 2);
+
+                    $existing = $tPartidaId ? $contHeadModel->buscarPartidaDia($tPartidaId, $fechaAsiento) : null;
+
+                    if ($existing) {
+                        $dbRaw    = \Config\Database::connect();
+                        $maxOrden = (int)($dbRaw->query('SELECT COALESCE(MAX(orden), 0) AS m FROM cont_asientos_detalle WHERE asiento_id = ?', [$existing->id])->getRow()->m ?? 0);
+                        foreach ($payload['lineas'] as $i => $l) {
+                            $contDetalleModel->insert(['asiento_id' => $existing->id, 'cuenta_id' => $l['cuenta_id'], 'descripcion' => $l['descripcion'], 'debe' => $l['debe'], 'haber' => $l['haber'], 'orden' => $maxOrden + $i + 1]);
+                        }
+                        $contHeadModel->update($existing->id, ['total_debe' => round($existing->total_debe + $totalDebe, 2), 'total_haber' => round($existing->total_haber + $totalHaber, 2)]);
+                        $asientoId = $existing->id;
+                    } else {
+                        $anioFecha  = (int)substr($fechaAsiento, 0, 4);
+                        $numPartida = $tPartidaId ? $contHeadModel->getSiguienteNumeroPartida($tPartidaId, $anioFecha) : null;
+                        $asientoId  = $contHeadModel->insert([
+                            'numero_asiento' => $contHeadModel->getSiguienteNumero(),
+                            'numero_partida' => $numPartida, 'fecha' => $fechaAsiento,
+                            'descripcion' => $payload['descripcion'], 'tipo' => $payload['tipo'],
+                            'tipo_partida_id' => $tPartidaId, 'estado' => 'APROBADO',
+                            'periodo_id' => $payload['periodo_id'], 'total_debe' => $totalDebe,
+                            'total_haber' => $totalHaber, 'referencia' => $payload['referencia'],
+                            'documento_tipo' => 'factura', 'documento_id' => $item['facturaId'],
+                            'usuario_id' => $user_id, 'usuario_aprueba_id' => $user_id,
+                            'fecha_aprobacion' => date('Y-m-d H:i:s'),
+                        ]);
+                        if (!$asientoId) { $asientosOmitidos[] = "{$ref}: error insertando asiento"; continue; }
+                        foreach ($payload['lineas'] as $i => $l) {
+                            $contDetalleModel->insert(['asiento_id' => $asientoId, 'cuenta_id' => $l['cuenta_id'], 'descripcion' => $l['descripcion'], 'debe' => $l['debe'], 'haber' => $l['haber'], 'orden' => $i + 1]);
+                        }
+                        $asientosCreados++;
+                    }
+
+                    $contHeadModel->aprobarConSaldos($asientoId, $payload['lineas'], (int)$payload['periodo_id'], $fechaAsiento, $payload['descripcion'], $payload['tipo'], $periodo);
+                }
+            } catch (\Throwable $e) {
+                log_message('error', 'cargaManualFactura asientos: ' . $e->getMessage());
+                $asientosOmitidos[] = 'Error general en asientos: ' . $e->getMessage();
+            }
+        }
+
+        $msg = "Facturas procesadas: {$procesadas}.";
+        if ($asientosCreados) $msg .= " Asientos generados: {$asientosCreados}.";
+
+        return $this->response->setJSON([
+            'success'           => true,
+            'total'             => $procesadas,
+            'saltadas'          => $saltadas,
+            'errores'           => $errores,
+            'asientos_creados'  => $asientosCreados,
+            'asientos_omitidos' => $asientosOmitidos,
+            'message'           => $msg,
+        ]);
+    }
+
     public function detalle($id)
     {
         $facturaHeadModel    = new FacturaHeadModel();

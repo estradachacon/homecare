@@ -556,6 +556,552 @@ class ComprasController extends BaseController
             'message' => 'Compra eliminada y costos recalculados correctamente'
         ]);
     }
+    // =========================================================
+    // CARGA MANUAL (Facturas tradicionales via Excel)
+    // =========================================================
+
+    public function cargaManual()
+    {
+        $chk = requerirPermiso('cargar_compras_manual');
+        if ($chk !== true) return $chk;
+
+        return view('compras/carga_manual');
+    }
+
+    public function descargarPlantilla()
+    {
+        $chk = requerirPermiso('cargar_compras_manual');
+        if ($chk !== true) return $chk;
+
+        $proveedorModel = new ProveedorModel();
+        $productoModel  = new ProductoModel();
+
+        $proveedores = $proveedorModel->orderBy('nombre')->findAll();
+        $productos   = $productoModel->where('activo', 1)->orderBy('descripcion')->findAll();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->getProperties()->setTitle('Plantilla Compras Tradicionales');
+
+        // ── Sheet 1: Facturas ──────────────────────────────────
+        $sh = $spreadsheet->getActiveSheet();
+        $sh->setTitle('Facturas');
+
+        $colWidths = [
+            'A' => 6,  'B' => 8,  'C' => 13, 'D' => 16, 'E' => 36,
+            'F' => 16, 'G' => 10, 'H' => 14, 'I' => 12, 'J' => 12,
+            'K' => 12, 'L' => 14, 'M' => 10, 'N' => 40,
+            'O' => 13, 'P' => 15, 'Q' => 11,
+        ];
+        foreach ($colWidths as $col => $w) {
+            $sh->getColumnDimension($col)->setWidth($w);
+        }
+
+        // Headers row 1
+        $headers = [
+            'A1' => '#', 'B1' => 'TIPO', 'C1' => 'FECHA',
+            'D1' => 'CORRELATIVO', 'E1' => 'PROVEEDOR', 'F1' => 'NIT/NRC',
+            'G1' => 'TIPO DOC', 'H1' => 'TOTAL $', 'I1' => 'IVA $',
+            'J1' => 'CONDICIÓN', 'K1' => '∑ LÍNEAS', 'L1' => 'ESTADO',
+            'M1' => 'CANTIDAD', 'N1' => 'DESCRIPCIÓN',
+            'O1' => 'PRECIO UNIT', 'P1' => 'VENTA GRAVADA', 'Q1' => 'DESCUENTO',
+        ];
+        foreach ($headers as $coord => $val) {
+            $sh->setCellValue($coord, $val);
+        }
+        $sh->getStyle('A1:Q1')->applyFromArray([
+            'font' => [
+                'bold'  => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size'  => 10,
+            ],
+            'fill' => [
+                'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F3864'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sh->getRowDimension(1)->setRowHeight(22);
+        $sh->freezePane('A2');
+
+        // Sub-header grouping labels (merged row, informational)
+        $sh->getStyle('C1:J1')->applyFromArray([
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
+        ]);
+        $sh->getStyle('M1:Q1')->applyFromArray([
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F3864']],
+        ]);
+
+        // ── Sample data ──
+        $firstProv  = !empty($proveedores) ? $proveedores[0]->nombre   : 'PROVEEDOR EJEMPLO';
+        $firstProd  = !empty($productos)   ? $productos[0]->descripcion : 'PRODUCTO EJEMPLO';
+        $secondProd = (count($productos) > 1) ? $productos[1]->descripcion : 'OTRO PRODUCTO';
+
+        $sh->setCellValue('A2', 1); $sh->setCellValue('B2', 'CAB');
+        $sh->setCellValue('C2', date('Y-m-d'));
+        $sh->setCellValue('D2', 'F-00001');
+        $sh->setCellValue('E2', $firstProv);
+        $sh->setCellValue('G2', 'CCF');
+        $sh->setCellValue('H2', 1130.00);
+        $sh->setCellValue('I2', 130.00);
+        $sh->setCellValue('J2', 'Contado');
+
+        $sh->setCellValue('A3', 1); $sh->setCellValue('B3', 'DET');
+        $sh->setCellValue('M3', 10); $sh->setCellValue('N3', $firstProd);
+        $sh->setCellValue('O3', 100.00); $sh->setCellValue('P3', 1000.00); $sh->setCellValue('Q3', 0.00);
+
+        $sh->setCellValue('A4', 1); $sh->setCellValue('B4', 'DET');
+        $sh->setCellValue('M4', 1); $sh->setCellValue('N4', $secondProd);
+        $sh->setCellValue('O4', 130.00); $sh->setCellValue('P4', 130.00); $sh->setCellValue('Q4', 0.00);
+
+        // ── Formulas K (∑ lines) and L (estado) for rows 2-1001 ──
+        $kData = [];
+        $lData = [];
+        for ($r = 2; $r <= 1001; $r++) {
+            $kData[] = ['=IF($B'.$r.'="CAB",SUMPRODUCT(($A$2:$A$1001=A'.$r.')*($B$2:$B$1001="DET")*($P$2:$P$1001)),"")'];
+            $lData[] = ['=IF($H'.$r.'="","",IF(ABS(($H'.$r.'-$I'.$r.')-K'.$r.')<=0.02,"✓ OK","⚠ NO CUADRA"))'];
+        }
+        $sh->fromArray($kData, null, 'K2');
+        $sh->fromArray($lData, null, 'L2');
+
+        // ── Data validation: Proveedor (col E) ──
+        $provCount = min(count($proveedores), 999);
+        if ($provCount > 0) {
+            $vProv = $sh->getCell('E2')->getDataValidation();
+            $vProv->setSqref('E2:E1001');
+            $vProv->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+            $vProv->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+            $vProv->setAllowBlank(true);
+            $vProv->setShowDropDown(false);
+            $vProv->setShowErrorMessage(true);
+            $vProv->setErrorTitle('Proveedor nuevo');
+            $vProv->setError('Si es nuevo, escríbalo manualmente y complete la columna NIT/NRC.');
+            $vProv->setFormula1('Datos!$A$2:$A$' . ($provCount + 1));
+        }
+
+        // ── Data validation: Tipo Doc (col G) ──
+        $vTipo = $sh->getCell('G2')->getDataValidation();
+        $vTipo->setSqref('G2:G1001');
+        $vTipo->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vTipo->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
+        $vTipo->setAllowBlank(false);
+        $vTipo->setShowDropDown(false);
+        $vTipo->setFormula1('"CCF,Factura"');
+
+        // ── Data validation: Condición (col J) ──
+        $vCond = $sh->getCell('J2')->getDataValidation();
+        $vCond->setSqref('J2:J1001');
+        $vCond->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+        $vCond->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_STOP);
+        $vCond->setAllowBlank(false);
+        $vCond->setShowDropDown(false);
+        $vCond->setFormula1('"Contado,Crédito"');
+
+        // ── Data validation: Descripción producto (col N) ──
+        $prodCount = min(count($productos), 499);
+        if ($prodCount > 0) {
+            $vProd = $sh->getCell('N2')->getDataValidation();
+            $vProd->setSqref('N2:N1001');
+            $vProd->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+            $vProd->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+            $vProd->setAllowBlank(true);
+            $vProd->setShowDropDown(false);
+            $vProd->setShowErrorMessage(true);
+            $vProd->setErrorTitle('Producto nuevo');
+            $vProd->setError('Se creará automáticamente como producto nuevo.');
+            $vProd->setFormula1('Datos!$B$2:$B$' . ($prodCount + 1));
+        }
+
+        // ── Conditional formatting (applied to entire row A:Q) ──
+        $cRed = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cRed->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cRed->addCondition('=AND($B2="CAB",$H2<>"",ABS(($H2-$I2)-$K2)>0.02)');
+        $cRed->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFFFC7CE');
+        $cRed->getStyle()->getFont()->getColor()->setARGB('FF9C0006');
+
+        $cGreen = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cGreen->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cGreen->addCondition('=AND($B2="CAB",$H2<>"",ABS(($H2-$I2)-$K2)<=0.02)');
+        $cGreen->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFC6EFCE');
+        $cGreen->getStyle()->getFont()->getColor()->setARGB('FF276221');
+
+        $cBlue = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $cBlue->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $cBlue->addCondition('=$B2="DET"');
+        $cBlue->getStyle()->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFE8F0FE');
+
+        $sh->getStyle('A2:Q1001')->setConditionalStyles([$cRed, $cGreen, $cBlue]);
+
+        // ── Sheet 2: Datos (hidden) ──
+        $shD = $spreadsheet->createSheet();
+        $shD->setTitle('Datos');
+        $shD->getColumnDimension('A')->setWidth(40);
+        $shD->getColumnDimension('B')->setWidth(40);
+        $shD->setCellValue('A1', 'Proveedores');
+        $shD->setCellValue('B1', 'Productos');
+
+        foreach ($proveedores as $i => $prov) {
+            $shD->setCellValue('A' . ($i + 2), $prov->nombre);
+        }
+        $prodMax = min(count($productos), 499);
+        for ($i = 0; $i < $prodMax; $i++) {
+            $shD->setCellValue('B' . ($i + 2), $productos[$i]->descripcion);
+        }
+        $shD->setSheetState(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet::SHEETSTATE_HIDDEN);
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        // ── Output ──
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'plantilla_compras_' . date('Y-m-d') . '.xlsx';
+
+        if (ob_get_level()) ob_end_clean();
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function previewManual()
+    {
+        $chk = requerirPermiso('cargar_compras_manual');
+        if ($chk !== true) return $chk;
+
+        $file = $this->request->getFile('excel');
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Archivo no válido']);
+        }
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo leer el Excel: ' . $e->getMessage()]);
+        }
+
+        $sh = $spreadsheet->getSheetByName('Facturas');
+        if (!$sh) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El archivo no contiene la hoja "Facturas"']);
+        }
+
+        $facturas   = [];
+        $emptyCount = 0;
+
+        for ($row = 2; $row <= 1001; $row++) {
+
+            $tipo   = strtoupper(trim((string)$sh->getCell('B' . $row)->getValue()));
+            $numFac = $sh->getCell('A' . $row)->getValue();
+
+            if (!$tipo || $numFac === null || $numFac === '') {
+                if (++$emptyCount >= 8) break;
+                continue;
+            }
+            $emptyCount = 0;
+
+            if ($tipo === 'CAB') {
+
+                // Date parsing (serial number or string)
+                $rawDate = $sh->getCell('C' . $row)->getValue();
+                if (is_numeric($rawDate) && $rawDate > 0) {
+                    $fechaStr = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$rawDate)
+                        ->format('Y-m-d');
+                } else {
+                    $ts = strtotime((string)$rawDate);
+                    $fechaStr = $ts ? date('Y-m-d', $ts) : null;
+                }
+
+                $tipoDocRaw = strtoupper(trim((string)$sh->getCell('G' . $row)->getValue()));
+                $tipoDte    = (str_contains($tipoDocRaw, 'CCF') || $tipoDocRaw === '03') ? '03' : '01';
+
+                $condRaw  = strtolower(trim((string)$sh->getCell('J' . $row)->getValue()));
+                $condicion = str_contains($condRaw, 'r') ? 2 : 1; // crédito vs contado
+
+                $facturas[$numFac] = [
+                    'num_fac'          => $numFac,
+                    'correlativo'      => trim((string)$sh->getCell('D' . $row)->getValue()),
+                    'fecha'            => $fechaStr,
+                    'proveedor_nombre' => trim((string)$sh->getCell('E' . $row)->getValue()),
+                    'nit_ruc'          => trim((string)$sh->getCell('F' . $row)->getValue()),
+                    'tipo_dte'         => $tipoDte,
+                    'total_declarado'  => (float)$sh->getCell('H' . $row)->getValue(),
+                    'iva_declarado'    => (float)$sh->getCell('I' . $row)->getValue(),
+                    'condicion'        => $condicion,
+                    'lineas'           => [],
+                ];
+
+            } elseif ($tipo === 'DET' && isset($facturas[$numFac])) {
+
+                $facturas[$numFac]['lineas'][] = [
+                    'cantidad'        => (float)$sh->getCell('M' . $row)->getValue(),
+                    'descripcion'     => trim((string)$sh->getCell('N' . $row)->getValue()),
+                    'precio_unitario' => (float)$sh->getCell('O' . $row)->getValue(),
+                    'venta_gravada'   => (float)$sh->getCell('P' . $row)->getValue(),
+                    'descuento'       => (float)$sh->getCell('Q' . $row)->getValue(),
+                ];
+            }
+        }
+
+        if (empty($facturas)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se encontraron facturas en el archivo']);
+        }
+
+        // Validate against DB
+        $proveedorModel  = new ProveedorModel();
+        $productoModel   = new ProductoModel();
+        $compraHeadModel = new CompraHeadModel();
+
+        $result = [];
+
+        foreach ($facturas as $fac) {
+
+            // Proveedor exists?
+            $prov = $fac['proveedor_nombre']
+                ? $proveedorModel->where('nombre', $fac['proveedor_nombre'])->first()
+                : null;
+            $fac['proveedor_nuevo'] = !$prov;
+            $fac['proveedor_id']    = $prov ? $prov->id : null;
+
+            // Duplicate correlativo?
+            $existe = $fac['correlativo']
+                ? $compraHeadModel->where('numero_control', $fac['correlativo'])->first()
+                : null;
+            $fac['duplicado'] = (bool)$existe;
+
+            // Sum lines
+            $sumaLineas        = array_sum(array_column($fac['lineas'], 'venta_gravada'));
+            $fac['suma_lineas'] = $sumaLineas;
+            $fac['cuadra']     = abs($fac['total_declarado'] - ($sumaLineas + $fac['iva_declarado'])) <= 0.02;
+
+            // Producto checks
+            $tieneNuevos = false;
+            foreach ($fac['lineas'] as &$linea) {
+                $prod = null;
+                if ($linea['descripcion']) {
+                    $prod = $productoModel
+                        ->where('LOWER(TRIM(descripcion))', strtolower(trim($linea['descripcion'])))
+                        ->first();
+                }
+                $linea['producto_nuevo'] = !$prod;
+                $linea['producto_id']    = $prod ? $prod->id : null;
+                if (!$prod) $tieneNuevos = true;
+            }
+            unset($linea);
+
+            $fac['tiene_productos_nuevos'] = $tieneNuevos;
+            $result[] = $fac;
+        }
+
+        return $this->response->setJSON(['success' => true, 'facturas' => $result]);
+    }
+
+    public function procesarCargaManual()
+    {
+        $chk = requerirPermiso('cargar_compras_manual');
+        if ($chk !== true) return $chk;
+
+        $data    = $this->request->getJSON(true);
+        $facturas = $data['facturas'] ?? [];
+
+        if (empty($facturas)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin datos']);
+        }
+
+        $proveedorModel     = new ProveedorModel();
+        $compraHeadModel    = new CompraHeadModel();
+        $compraDetalleModel = new CompraDetalleModel();
+        $productoModel      = new ProductoModel();
+        $movModel           = new ProductoMovimientoModel();
+
+        $db = \Config\Database::connect();
+
+        $procesadas = 0;
+        $saltadas   = [];
+        $errores    = [];
+
+        foreach ($facturas as $fac) {
+
+            $correlativo = trim($fac['correlativo'] ?? '');
+
+            if (!$correlativo) {
+                $errores[] = 'Fila sin correlativo, omitida';
+                continue;
+            }
+
+            // Skip duplicate
+            if ($compraHeadModel->where('numero_control', $correlativo)->first()) {
+                $saltadas[] = $correlativo;
+                continue;
+            }
+
+            $db->transStart();
+
+            try {
+
+                // PROVEEDOR
+                $nombreProv = trim($fac['proveedor_nombre'] ?? '');
+                $proveedorId = null;
+
+                if ($nombreProv) {
+                    $prov = $proveedorModel->where('nombre', $nombreProv)->first();
+
+                    if (!$prov) {
+                        $proveedorId = $proveedorModel->insert([
+                            'nombre'    => $nombreProv,
+                            'telefono'  => null,
+                            'email'     => null,
+                            'direccion' => trim($fac['nit_ruc'] ?? '') ?: null,
+                        ]);
+                    } else {
+                        $proveedorId = $prov->id;
+                    }
+                }
+
+                $tipoDte      = $fac['tipo_dte'] ?? '01';
+                $total        = (float)($fac['total_declarado'] ?? 0);
+                $iva          = (float)($fac['iva_declarado']   ?? 0);
+                $sumaGravada  = array_sum(array_column($fac['lineas'], 'venta_gravada'));
+                $condicion    = (int)($fac['condicion'] ?? 1);
+                $plazo        = $condicion === 2 ? 30 : null;
+
+                $dataHead = [
+                    'numero_control'             => $correlativo,
+                    'codigo_generacion'          => null,
+                    'fecha_emision'              => $fac['fecha'] ?? null,
+                    'sello_recibido'             => null,
+                    'tipo_dte'                   => $tipoDte,
+                    'proveedor_id'               => $proveedorId,
+                    'total_gravada'              => $sumaGravada,
+                    'sub_total'                  => $sumaGravada,
+                    'total_iva'                  => $iva,
+                    'monto_total_operacion'      => $total,
+                    'total_pagar'                => $total,
+                    'condicion_operacion'        => $condicion,
+                    'plazo_credito'              => $plazo,
+                    'iva_rete1'                  => 0,
+                    'saldo'                      => $total,
+                    'codigo_generacion_relacionado' => null,
+                ];
+
+                if (!$compraHeadModel->insert($dataHead)) {
+                    throw new \RuntimeException('Error insertando cabecera: ' . implode(', ', $compraHeadModel->errors()));
+                }
+
+                $compraId = $compraHeadModel->getInsertID();
+
+                // DETALLES
+                foreach ($fac['lineas'] as $idx => $linea) {
+
+                    $descripcion = trim($linea['descripcion'] ?? '');
+                    if (!$descripcion) continue;
+
+                    $ventaGravada  = (float)($linea['venta_gravada']  ?? 0);
+                    $cantidadNueva = (float)($linea['cantidad']        ?? 1);
+                    $precioUni     = (float)($linea['precio_unitario'] ?? 0);
+                    $descuento     = (float)($linea['descuento']       ?? 0);
+
+                    // Find or create product
+                    $producto = $productoModel
+                        ->where('LOWER(TRIM(descripcion))', strtolower($descripcion))
+                        ->first();
+
+                    if (!$producto) {
+                        $newId    = $productoModel->insert([
+                            'descripcion' => $descripcion,
+                            'activo'      => 1,
+                            'tipo'        => 'AUTO',
+                        ]);
+                        $producto = $productoModel->find($newId);
+                    }
+
+                    if (empty($producto->id)) {
+                        throw new \RuntimeException('Producto inválido: ' . $descripcion);
+                    }
+
+                    // IVA item proportional
+                    $ivaItem = 0;
+                    if ($tipoDte === '03' && $sumaGravada > 0) {
+                        $ivaItem = round($iva * ($ventaGravada / $sumaGravada), 2);
+                    }
+
+                    $costoConIva = ($tipoDte === '03') ? ($ventaGravada + $ivaItem) : $ventaGravada;
+                    $costoUni    = $cantidadNueva > 0 ? $costoConIva / $cantidadNueva : 0;
+
+                    $detalle = [
+                        'compra_id'       => $compraId,
+                        'num_item'        => $idx + 1,
+                        'tipo_item'       => null,
+                        'codigo'          => null,
+                        'descripcion'     => $descripcion,
+                        'cantidad'        => $cantidadNueva,
+                        'unidad_medida'   => null,
+                        'precio_unitario' => $precioUni,
+                        'venta_gravada'   => $ventaGravada,
+                        'monto_descuento' => $descuento,
+                        'iva_item'        => $ivaItem,
+                        'producto_id'     => $producto->id,
+                    ];
+
+                    if (!$compraDetalleModel->insert($detalle)) {
+                        throw new \RuntimeException('Error en detalle: ' . implode(', ', $compraDetalleModel->errors()));
+                    }
+
+                    // Stock & costo promedio
+                    $stockRow  = $movModel
+                        ->select('SUM(CASE WHEN tipo_movimiento="ENTRADA" THEN cantidad ELSE 0 END) - SUM(CASE WHEN tipo_movimiento="SALIDA" THEN cantidad ELSE 0 END) as stock')
+                        ->where('producto_id', $producto->id)
+                        ->first();
+
+                    $stockActual = (float)($stockRow->stock ?? 0);
+                    $costoActual = (float)($producto->costo_promedio ?? 0);
+
+                    $nuevoCosto = $stockActual > 0
+                        ? (($stockActual * $costoActual) + ($cantidadNueva * $costoUni)) / ($stockActual + $cantidadNueva)
+                        : $costoUni;
+
+                    $movModel->insert([
+                        'producto_id'     => $producto->id,
+                        'tipo_movimiento' => 'ENTRADA',
+                        'cantidad'        => $cantidadNueva,
+                        'costo_unitario'  => $costoUni,
+                        'referencia_tipo' => 'compra',
+                        'referencia_id'   => $compraId,
+                    ]);
+
+                    $productoModel->update($producto->id, ['costo_promedio' => $nuevoCosto]);
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    $err = $db->error();
+                    $errores[] = $correlativo . ': error BD (' . ($err['message'] ?? 'desconocido') . ')';
+                } else {
+                    $procesadas++;
+                }
+
+            } catch (\Throwable $e) {
+                $db->transRollback();
+                $errores[] = $correlativo . ': ' . $e->getMessage();
+                log_message('error', 'cargaManual ' . $correlativo . ': ' . $e->getMessage());
+            }
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'total'    => $procesadas,
+            'saltadas' => $saltadas,
+            'errores'  => $errores,
+        ]);
+    }
+
     public function validarDocumento()
     {
         $data = $this->request->getJSON(true);

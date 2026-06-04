@@ -13,6 +13,7 @@ class Permisos extends BaseConfig
 
         'Ventas' => [
             'cargar_facturas',
+            'cargar_facturas_manual',
             'ver_facturas',
             'ver_documentos_todos_vendedores',
             'ver_clientes',
@@ -92,6 +93,7 @@ class Permisos extends BaseConfig
             'eliminar_proveedor',
             'ver_compras',
             'cargar_compras_json',
+            'cargar_compras_manual',
             'ingresar_compras',
             'ver_pagos_a_compras',
             'registrar_pagos_a_compras',

@@ -160,10 +160,10 @@ $lotes         = $lotes ?? [];
                                 </span>
                             </div>
                             <?php if (tienePermiso('ver_costos_inventario')): ?>
-                            <div class="mt-2 d-flex align-items-center">
-                                <small class="text-muted">Costo promedio</small>
-                                <span class="fw-bold ml-auto">$<?= number_format($producto->costo_promedio ?? 0, 4) ?></span>
-                            </div>
+                                <div class="mt-2 d-flex align-items-center">
+                                    <small class="text-muted">Costo promedio</small>
+                                    <span class="fw-bold ml-auto">$<?= number_format($producto->costo_promedio ?? 0, 4) ?></span>
+                                </div>
                             <?php endif ?>
                         </div>
                     </div>
@@ -183,18 +183,18 @@ $lotes         = $lotes ?? [];
                         </div>
                     </div>
                     <?php if (tienePermiso('ver_costos_inventario')): ?>
-                    <div class="col-md-6">
-                        <div class="p-3 border rounded h-100">
-                            <small class="text-muted">Costo promedio actual</small>
-                            <div class="fw-bold fs-5 text-primary">
-                                $<?= number_format($producto->costo_promedio ?? 0, 4) ?>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Última actualización</small>
-                            <div class="fw-semibold">
-                                <?= !empty($producto->updated_at) ? date('d/m/Y H:i', strtotime($producto->updated_at)) : 'N/D' ?>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded h-100">
+                                <small class="text-muted">Costo promedio actual</small>
+                                <div class="fw-bold fs-5 text-primary">
+                                    $<?= number_format($producto->costo_promedio ?? 0, 4) ?>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Última actualización</small>
+                                <div class="fw-semibold">
+                                    <?= !empty($producto->updated_at) ? date('d/m/Y H:i', strtotime($producto->updated_at)) : 'N/D' ?>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     <?php endif ?>
                 </div>
 
@@ -227,7 +227,7 @@ $lotes         = $lotes ?? [];
                         ?>
 
                         <form method="GET" class="row mb-3 align-items-end">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <label class="form-label text-muted mb-1">Año</label>
                                 <select name="anio" class="form-control form-control-sm">
                                     <option value="" <?= empty($anio) ? 'selected' : '' ?>>Todos</option>
@@ -286,6 +286,13 @@ $lotes         = $lotes ?? [];
                                     <i class="fa-solid fa-rotate-left"></i>
                                 </a>
                             </div>
+
+                            <div class="d-flex justify-content-end">
+                                <a href="<?= base_url('productos/' . $producto->id . '/kardex-excel') ?>?<?= http_build_query(service('request')->getGet()) ?>"
+                                    class="btn btn-sm btn-outline-success">
+                                    <i class="fa fa-file-excel mr-1"></i> Exportar
+                                </a>
+                            </div>
                         </form>
 
                         <div class="tabla-movimientos">
@@ -297,7 +304,7 @@ $lotes         = $lotes ?? [];
                                         <th>Referencia</th>
                                         <th class="text-end">Cantidad</th>
                                         <?php if (tienePermiso('ver_costos_inventario')): ?>
-                                        <th class="text-end">Costo Prom.</th>
+                                            <th class="text-end">Costo Prom.</th>
                                         <?php endif ?>
                                         <th class="text-end">Stock</th>
                                         <th>Fecha</th>
@@ -326,7 +333,7 @@ $lotes         = $lotes ?? [];
                                                 Saldo anterior al <?= esc($anio) ?>
                                             </td>
                                             <?php if (tienePermiso('ver_costos_inventario')): ?>
-                                            <td class="text-end text-muted">—</td>
+                                                <td class="text-end text-muted">—</td>
                                             <?php endif ?>
                                             <td class="text-end fw-bold <?= $stockApertura >= 0 ? 'text-success' : 'text-danger' ?>">
                                                 <?= number_format($stockApertura, 2) ?>
@@ -410,9 +417,9 @@ $lotes         = $lotes ?? [];
                                                 </td>
 
                                                 <?php if (tienePermiso('ver_costos_inventario')): ?>
-                                                <td class="text-end text-primary">
-                                                    $<?= number_format($costo_mov, 4) ?>
-                                                </td>
+                                                    <td class="text-end text-primary">
+                                                        $<?= number_format($costo_mov, 4) ?>
+                                                    </td>
                                                 <?php endif ?>
 
                                                 <td class="text-end fw-bold <?= $stock_actual_mov >= 0 ? 'text-success' : 'text-danger' ?>">
@@ -444,7 +451,7 @@ $lotes         = $lotes ?? [];
                                                 Saldo al cierre del <?= esc($anio) ?>
                                             </td>
                                             <?php if (tienePermiso('ver_costos_inventario')): ?>
-                                            <td class="text-end">—</td>
+                                                <td class="text-end">—</td>
                                             <?php endif ?>
                                             <td class="text-end fw-bold <?= $stockCierre >= 0 ? 'text-success' : 'text-danger' ?>">
                                                 <?= number_format($stockCierre, 2) ?>

@@ -514,7 +514,7 @@ class InventoryController extends BaseController
             'results' => $results
         ]);
     }
-    public function show($id)
+    private function kardexData($id): ?array
     {
         $productoModel = new ProductoModel();
         $movModel = new ProductoMovimientoModel();
@@ -522,8 +522,7 @@ class InventoryController extends BaseController
         $producto = $productoModel->find($id);
 
         if (!$producto) {
-            return redirect()->to(base_url('productos'))
-                ->with('error', 'Producto no encontrado');
+            return null;
         }
 
         $anio = $this->request->getGet('anio') ?? date('Y');
@@ -710,7 +709,7 @@ class InventoryController extends BaseController
             ->orderBy('id', 'DESC')
             ->findAll();
 
-        return view('inventario/show', [
+        return [
             'producto'      => $producto,
             'movimientos'   => $movimientos,
             'stock'         => $stock,
@@ -719,6 +718,196 @@ class InventoryController extends BaseController
             'stockCierre' => $stockCierre,
             'lotes'         => $lotes,
             'filtros' => $filtros,
+        ];
+    }
+
+    public function show($id)
+    {
+        $data = $this->kardexData($id);
+
+        if (!$data) {
+            return redirect()->to(base_url('productos'))
+                ->with('error', 'Producto no encontrado');
+        }
+
+        return view('inventario/show', $data);
+    }
+
+    public function kardexExcel($id)
+    {
+        $data = $this->kardexData($id);
+
+        if (!$data) {
+            return redirect()->to(base_url('productos'))
+                ->with('error', 'Producto no encontrado');
+        }
+
+        $producto = $data['producto'];
+        $movimientos = $data['movimientos'];
+        $anio = $data['anio'];
+        $stockApertura = (float)$data['stockApertura'];
+        $stockCierre = (float)$data['stockCierre'];
+        $verCostos = tienePermiso('ver_costos_inventario');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Kardex');
+
+        $sheet->setCellValue('A1', 'Kardex de Producto');
+        $sheet->mergeCells($verCostos ? 'A1:G1' : 'A1:F1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+
+        $sheet->setCellValue('A2', 'Producto');
+        $sheet->setCellValue('B2', $producto->descripcion ?? '');
+        $sheet->setCellValue('A3', 'Codigo');
+        $sheet->setCellValue('B3', $producto->codigo ?? '');
+        $sheet->setCellValue('A4', 'Anio');
+        $sheet->setCellValue('B4', $anio ?: 'Todos');
+        $sheet->setCellValue('A5', 'Generado');
+        $sheet->setCellValue('B5', date('d/m/Y H:i'));
+
+        $headers = $verCostos
+            ? ['#', 'Tipo', 'Referencia', 'Cantidad', 'Costo Prom.', 'Stock', 'Fecha']
+            : ['#', 'Tipo', 'Referencia', 'Cantidad', 'Stock', 'Fecha'];
+
+        $headerRow = 7;
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . $headerRow, $header);
+            $col++;
+        }
+
+        $lastCol = $verCostos ? 'G' : 'F';
+        $sheet->getStyle("A{$headerRow}:{$lastCol}{$headerRow}")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4472C4'],
+            ],
         ]);
+
+        $row = $headerRow + 1;
+
+        if (!empty($anio)) {
+            $sheet->setCellValue("A{$row}", '');
+            $sheet->setCellValue("B{$row}", 'APERTURA');
+            $sheet->setCellValue("C{$row}", 'Saldo anterior al ' . $anio);
+            $sheet->setCellValue("D{$row}", 0);
+            if ($verCostos) {
+                $sheet->setCellValue("E{$row}", '');
+                $sheet->setCellValue("F{$row}", $stockApertura);
+                $sheet->setCellValue("G{$row}", '31/12/' . ((int)$anio - 1));
+            } else {
+                $sheet->setCellValue("E{$row}", $stockApertura);
+                $sheet->setCellValue("F{$row}", '31/12/' . ((int)$anio - 1));
+            }
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E8F4FD');
+            $row++;
+        }
+
+        foreach ($movimientos as $m) {
+            $cantidad = (float)$m->cantidad;
+            $tipoLabel = match ($m->tipo_movimiento) {
+                'compra' => 'ENTRADA',
+                'venta'  => 'SALIDA',
+                'ajuste' => $cantidad >= 0 ? 'ENTRADA' : 'SALIDA',
+                default  => strtoupper((string)$m->tipo_movimiento),
+            };
+
+            $referencia = $this->referenciaMovimientoTexto($m);
+            $fecha = !empty($m->fecha_documento)
+                ? date('d/m/Y', strtotime($m->fecha_documento))
+                : date('d/m/Y', strtotime($m->created_at));
+
+            $sheet->setCellValue("A{$row}", $m->id);
+            $sheet->setCellValue("B{$row}", $tipoLabel);
+            $sheet->setCellValue("C{$row}", $referencia);
+            $sheet->setCellValue("D{$row}", $cantidad);
+
+            if ($verCostos) {
+                $sheet->setCellValue("E{$row}", (float)($m->costo_kardex ?? 0));
+                $sheet->setCellValue("F{$row}", (float)($m->saldo_kardex ?? 0));
+                $sheet->setCellValue("G{$row}", $fecha);
+            } else {
+                $sheet->setCellValue("E{$row}", (float)($m->saldo_kardex ?? 0));
+                $sheet->setCellValue("F{$row}", $fecha);
+            }
+
+            $row++;
+        }
+
+        if (!empty($anio)) {
+            $sheet->setCellValue("A{$row}", '');
+            $sheet->setCellValue("B{$row}", 'CIERRE');
+            $sheet->setCellValue("C{$row}", 'Saldo al cierre del ' . $anio);
+            $sheet->setCellValue("D{$row}", '');
+            if ($verCostos) {
+                $sheet->setCellValue("E{$row}", '');
+                $sheet->setCellValue("F{$row}", $stockCierre);
+                $sheet->setCellValue("G{$row}", '31/12/' . $anio);
+            } else {
+                $sheet->setCellValue("E{$row}", $stockCierre);
+                $sheet->setCellValue("F{$row}", '31/12/' . $anio);
+            }
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->getFont()->setBold(true);
+            $row++;
+        }
+
+        $lastDataRow = max($headerRow, $row - 1);
+        $sheet->getStyle("A{$headerRow}:{$lastCol}{$lastDataRow}")->applyFromArray([
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+            ],
+        ]);
+
+        $sheet->getStyle("D" . ($headerRow + 1) . ":D{$lastDataRow}")
+            ->getNumberFormat()->setFormatCode('#,##0.00');
+
+        $stockCol = $verCostos ? 'F' : 'E';
+        $sheet->getStyle("{$stockCol}" . ($headerRow + 1) . ":{$stockCol}{$lastDataRow}")
+            ->getNumberFormat()->setFormatCode('#,##0.00');
+
+        if ($verCostos) {
+            $sheet->getStyle("E" . ($headerRow + 1) . ":E{$lastDataRow}")
+                ->getNumberFormat()->setFormatCode('$#,##0.0000');
+        }
+
+        foreach (range('A', $lastCol) as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $sheet->setAutoFilter("A{$headerRow}:{$lastCol}{$lastDataRow}");
+        $sheet->freezePane('A8');
+
+        $codigo = preg_replace('/[^A-Za-z0-9_-]/', '_', (string)($producto->codigo ?? $id));
+        $filename = "kardex_{$codigo}_" . date('Ymd_His') . ".xlsx";
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment;filename=\"{$filename}\"");
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    private function referenciaMovimientoTexto(object $m): string
+    {
+        if ($m->referencia_tipo === 'factura' && !empty($m->numero_control)) {
+            $siglas = function_exists('dte_siglas') ? dte_siglas() : [];
+            $sigla = $siglas[$m->tipo_dte] ?? $m->tipo_dte;
+            return trim($sigla . ' - ' . substr($m->numero_control, -6) . ' || ' . ($m->cliente_nombre ?? 'Cliente'));
+        }
+
+        if ($m->referencia_tipo === 'compra' && !empty($m->compra_numero_control)) {
+            $siglas = function_exists('dte_siglas') ? dte_siglas() : [];
+            $sigla = $siglas[$m->compra_tipo_dte] ?? 'COMP';
+            return trim($sigla . ' - ' . substr($m->compra_numero_control, -6) . ' || ' . ($m->proveedor_nombre ?? 'Proveedor'));
+        }
+
+        return trim(($m->referencia_tipo ?? 'movimiento') . ' #' . ($m->referencia_id ?? ''));
     }
 }

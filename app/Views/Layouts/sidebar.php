@@ -50,7 +50,7 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                 </a>
 
                 <!-- VENTAS -->
-                <?php if (tienePermiso('cargar_facturas') || tienePermiso('ver_facturas') || tienePermiso('ver_clientes') || tienePermiso('ver_tipo_venta')): ?>
+                <?php if (tienePermiso('cargar_facturas') || tienePermiso('cargar_facturas_manual') || tienePermiso('ver_facturas') || tienePermiso('ver_clientes') || tienePermiso('ver_tipo_venta')): ?>
                     <a class="nav-link collapsed" href="#"
                        data-toggle="collapse" data-target="#ventas"
                        aria-expanded="false" aria-controls="ventas">
@@ -65,6 +65,11 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                             <?php endif; ?>
                             <?php if (tienePermiso('cargar_facturas')): ?>
                                 <a class="nav-link" href="/facturas/carga">Cargar JSON</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('cargar_facturas_manual')): ?>
+                                <a class="nav-link" href="/facturas/manual">
+                                    Cargar Excel
+                                </a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_facturas')): ?>
                                 <a class="nav-link" href="/facturas">Ver Facturas</a>
@@ -104,7 +109,7 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                 <?php endif; ?>
 
                 <!-- INVENTARIO -->
-                <?php if (tienePermiso('ver_inventario')): ?>
+                <?php if (tienePermiso('ver_inventario') || tienePermiso('cargar_compras_json') || tienePermiso('cargar_compras_manual') || tienePermiso('ver_compras') || tienePermiso('ver_pagos_a_compras') || tienePermiso('ver_proveedores')): ?>
                     <a class="nav-link collapsed" href="#"
                        data-toggle="collapse" data-target="#inventario"
                        aria-expanded="false" aria-controls="inventario">
@@ -119,6 +124,14 @@ $primaryColor = setting('primary_color') ?? '#1d2744';
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_compras')): ?>
                                 <a class="nav-link" href="/purchases">Ver Compras</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('cargar_compras_json')): ?>
+                                <a class="nav-link" href="/purchases/load">Cargar JSON</a>
+                            <?php endif; ?>
+                            <?php if (tienePermiso('cargar_compras_manual')): ?>
+                                <a class="nav-link" href="/purchases/manual">
+                                    Cargar Excel
+                                </a>
                             <?php endif; ?>
                             <?php if (tienePermiso('ver_pagos_a_compras')): ?>
                                 <a class="nav-link" href="/compraspagos">Pagos a Compras</a>

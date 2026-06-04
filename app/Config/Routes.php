@@ -147,6 +147,11 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('facturas', 'Facturas::index');
     $routes->get('facturas/carga', 'Facturas::carga');
     $routes->post('facturas/cargar', 'Facturas::procesarCarga');
+    $routes->get('facturas/manual', 'Facturas::cargaManual');
+    $routes->get('facturas/manual/template',    'Facturas::descargarPlantilla');
+    $routes->get('facturas/manual/crear-macro', 'Facturas::crearPlantillaMacro');
+    $routes->post('facturas/manual/preview',    'Facturas::previewManual');
+    $routes->post('facturas/manual/process',    'Facturas::procesarCargaManual');
     $routes->post('facturas/validar-numero-control', 'Facturas::validarNumeroControl');
     $routes->get('facturas/(:num)/pdf', 'Facturas::pdf/$1');
     $routes->get('facturas/(:num)/qr', 'Facturas::qr/$1');
@@ -223,6 +228,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('inventory', 'InventoryController::index');
     $routes->post('productos/delete/(:num)', 'InventoryController::delete/$1');
     $routes->get('productos/searchAjax', 'InventoryController::searchAjax');
+    $routes->get('productos/(:num)/kardex-excel', 'InventoryController::kardexExcel/$1');
     $routes->get('productos/(:num)', 'InventoryController::show/$1');
     $routes->get('inventory/excel', 'InventoryController::excel');
     $routes->post('inventory/update/(:num)', 'InventoryController::update/$1');
@@ -250,6 +256,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('purchases/load', 'ComprasController::carga');
     $routes->post('purchases/processload', 'ComprasController::procesarCarga');
     $routes->post('purchases/validar-productos', 'ComprasController::validarProductos');
+    $routes->get('purchases/manual', 'ComprasController::cargaManual');
+    $routes->get('purchases/manual/template', 'ComprasController::descargarPlantilla');
+    $routes->post('purchases/manual/preview', 'ComprasController::previewManual');
+    $routes->post('purchases/manual/process', 'ComprasController::procesarCargaManual');
     $routes->get('purchases/(:num)', 'ComprasController::show/$1');
     $routes->post('purchases/delete/(:num)', 'ComprasController::delete/$1');
     $routes->post('purchases/validar-documento', 'ComprasController::validarDocumento');

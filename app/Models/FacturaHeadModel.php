@@ -14,6 +14,9 @@ class FacturaHeadModel extends Model
     protected $useSoftDeletes   = false;
 
     protected $allowedFields = [
+        // Clasificación
+        'clase',
+
         // Identificación
         'ambiente',
         'tipo_dte',
