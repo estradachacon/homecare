@@ -32,10 +32,79 @@ class ClienteController extends BaseController
         $data = [
             'clientes' => $builder->paginate(10),
             'pager' => $builder->pager,
-            'q' => $q
+            'q' => $q,
+            'departamentos' => db_connect()
+                ->table('hacienda_departamentos')
+                ->where('activo', 1)
+                ->orderBy('codigo', 'ASC')
+                ->get()
+                ->getResult(),
         ];
 
         return view('clientes/index', $data);
+    }
+
+    public function storeAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Solicitud no permitida',
+            ]);
+        }
+
+        $model = new ClienteModel();
+        $codActividad = $this->request->getPost('cod_actividad') ?: null;
+
+        $nombre = trim((string)$this->request->getPost('nombre'));
+
+        if ($nombre === '') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'El nombre del cliente es obligatorio.',
+                'csrf' => csrf_hash(),
+            ]);
+        }
+
+        $data = [
+            'tipo_documento'     => $this->request->getPost('tipo_documento'),
+            'numero_documento'   => $this->request->getPost('numero_documento'),
+            'nrc'                => $this->request->getPost('nrc'),
+            'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
+            'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
+            'cod_actividad'      => $codActividad,
+            'desc_actividad'     => $codActividad
+                ? (config('ActividadesEconomicas')->actividades[$codActividad] ?? $this->request->getPost('desc_actividad'))
+                : null,
+            'nombre'             => $nombre,
+            'telefono'           => $this->request->getPost('telefono'),
+            'correo'             => $this->request->getPost('correo'),
+            'departamento'       => $this->request->getPost('departamento'),
+            'municipio'          => $this->request->getPost('municipio'),
+            'direccion'          => $this->request->getPost('direccion'),
+            'cuenta_contable_id' => $this->request->getPost('cuenta_contable_id') ?: null,
+        ];
+
+        $clienteId = $model->insert($data);
+
+        if (!$clienteId) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'No se pudo crear el cliente.',
+                'errors' => $model->errors(),
+                'csrf' => csrf_hash(),
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Cliente creado correctamente.',
+            'cliente' => [
+                'id' => $clienteId,
+                'nombre' => $data['nombre'],
+            ],
+            'csrf' => csrf_hash(),
+        ]);
     }
     public function searchAjax()
 {

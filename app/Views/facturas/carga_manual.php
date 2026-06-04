@@ -356,12 +356,7 @@ document.getElementById('btnProcesar').addEventListener('click', async () => {
         return;
     }
 
-    let confirmHtml = buildResumenHtml();
-    if (noCuadra.length) {
-        confirmHtml += `<div class="alert alert-warning mt-2 mb-0" style="font-size:12px;">
-            <i class="fas fa-exclamation-triangle me-1"></i>
-            <b>${noCuadra.length}</b> factura(s) con totales que no cuadran. Se procesarán con los valores ingresados.</div>`;
-    }
+    const confirmHtml = buildResumenHtml();
 
     const ok = await Swal.fire({
         title: 'Confirmar carga', html: confirmHtml, icon: 'info',

@@ -9,9 +9,9 @@
                 </h4>
 
                 <?php if (tienePermiso('crear_cliente')): ?>
-                    <a href="<?= base_url('clientes/new') ?>" class="btn btn-primary btn-sm">
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCrearCliente">
                         <i class="fa-solid fa-plus"></i> Nuevo
-                    </a>
+                    </button>
                 <?php endif; ?>
             </div>
             <div class="card-body">
@@ -112,6 +112,159 @@
         </div>
     </div>
 </div>
+
+<?php if (tienePermiso('crear_cliente')): ?>
+<div class="modal fade" id="modalCrearCliente" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <form id="formCrearCliente">
+            <?= csrf_field() ?>
+            <input type="hidden" name="desc_actividad" id="crear_desc_actividad">
+
+            <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Crear cliente
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Tipo Documento</label>
+                                <select name="tipo_documento" class="form-control">
+                                    <option value="DUI">DUI</option>
+                                    <option value="NIT">NIT</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Número Documento</label>
+                                <input type="text" name="numero_documento" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>NRC</label>
+                                <input type="text" name="nrc" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="d-flex flex-wrap mb-3" style="gap:.5rem 2.5rem;">
+                                <input type="hidden" name="gran_contribuyente" value="0">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="crear_gran_contribuyente" name="gran_contribuyente" value="1">
+                                    <label class="custom-control-label" for="crear_gran_contribuyente">Gran Contribuyente</label>
+                                </div>
+
+                                <input type="hidden" name="exento_iva" value="0">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="crear_exento_iva" name="exento_iva" value="1">
+                                    <label class="custom-control-label" for="crear_exento_iva">Exento de IVA</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Nombre <span class="text-danger">*</span></label>
+                                <input type="text" name="nombre" id="crear_nombre" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="text" name="telefono" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Correo</label>
+                                <input type="email" name="correo" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Código de actividad / Giro</label>
+                                <select name="cod_actividad" id="crear_cod_actividad" class="form-control">
+                                    <option value="">Sin actividad asignada</option>
+                                    <?php foreach (config('ActividadesEconomicas')->actividades as $cod => $desc): ?>
+                                        <option value="<?= esc($cod) ?>"><?= esc($cod) ?> - <?= esc($desc) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Departamento</label>
+                                <select name="departamento" id="crear_departamento" class="form-control">
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach (($departamentos ?? []) as $dep): ?>
+                                        <option value="<?= esc($dep->codigo) ?>"><?= esc($dep->nombre) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Municipio</label>
+                                <select name="municipio" id="crear_municipio" class="form-control">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Cuenta Contable</label>
+                                <select name="cuenta_contable_id" id="crear_cuenta_contable_id" class="form-control"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label>Dirección</label>
+                        <textarea name="direccion" rows="3" class="form-control"></textarea>
+                    </div>
+
+                    <div id="crearClienteError" class="alert alert-danger d-none mt-3 mb-0"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarCliente">
+                        <i class="fa fa-save mr-1"></i> Guardar cliente
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="modal fade" id="transferModal" tabindex="-1" role="dialog" aria-labelledby="transferModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -162,6 +315,139 @@
 </div>
 <script>
     const accountSearchUrl = "<?= base_url('accounts-list') ?>";
+    const clientesActividadesMap = <?= json_encode(config('ActividadesEconomicas')->actividades) ?>;
+
+    $(document).ready(function() {
+        if (!$('#modalCrearCliente').length) return;
+
+        $.fn.modal.Constructor.prototype._enforceFocus = function() {};
+
+        $('#crear_cod_actividad').select2({
+            placeholder: 'Buscar por codigo o nombre de actividad...',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#modalCrearCliente')
+        });
+
+        $('#crear_cod_actividad').on('change', function() {
+            const cod = $(this).val();
+            $('#crear_desc_actividad').val(clientesActividadesMap[cod] || '');
+        });
+
+        $('#crear_cuenta_contable_id').select2({
+            placeholder: 'Buscar cuenta contable',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#modalCrearCliente'),
+            ajax: {
+                url: "<?= base_url('clientes/cuentas-contables-select2') ?>",
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term || '' }),
+                processResults: data => data
+            }
+        });
+
+        $('#crear_departamento').on('change', function() {
+            const departamento = $(this).val();
+            $('#crear_municipio').html('<option value="">Cargando...</option>');
+
+            if (!departamento) {
+                $('#crear_municipio').html('<option value="">Seleccione...</option>');
+                return;
+            }
+
+            $.ajax({
+                url: "<?= base_url('clientes/municipios-por-departamento') ?>",
+                type: "GET",
+                dataType: "json",
+                data: { departamento },
+                success: function(response) {
+                    let options = '<option value="">Seleccione...</option>';
+                    response.forEach(mun => {
+                        options += `<option value="${mun.codigo}">${mun.nombre}</option>`;
+                    });
+                    $('#crear_municipio').html(options);
+                },
+                error: function() {
+                    $('#crear_municipio').html('<option value="">Seleccione...</option>');
+                }
+            });
+        });
+
+        $('#modalCrearCliente').on('shown.bs.modal', function() {
+            $('#crear_nombre').trigger('focus');
+        });
+
+        $('#modalCrearCliente').on('hidden.bs.modal', function() {
+            $('#formCrearCliente')[0].reset();
+            $('#crear_cod_actividad').val(null).trigger('change');
+            $('#crear_cuenta_contable_id').val(null).trigger('change');
+            $('#crear_municipio').html('<option value="">Seleccione...</option>');
+            $('#crearClienteError').addClass('d-none').text('');
+        });
+
+        $('#formCrearCliente').on('submit', function(e) {
+            e.preventDefault();
+
+            const form = $(this);
+            const btn = $('#btnGuardarCliente');
+            const errorBox = $('#crearClienteError');
+
+            errorBox.addClass('d-none').text('');
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Guardando...');
+
+            $.ajax({
+                url: "<?= base_url('clientes/store-ajax') ?>",
+                method: "POST",
+                data: form.serialize(),
+                dataType: "json",
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function(response) {
+                    if (response.csrf) {
+                        form.find('input[name="<?= csrf_token() ?>"]').val(response.csrf);
+                    }
+
+                    if (!response.success) {
+                        errorBox.removeClass('d-none').text(response.message || 'No se pudo crear el cliente.');
+                        return;
+                    }
+
+                    $('#modalCrearCliente').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cliente creado',
+                        text: response.message,
+                        showCancelButton: true,
+                        confirmButtonText: 'Ver cliente',
+                        cancelButtonText: 'Cerrar',
+                        buttonsStyling: false,
+                        customClass: {
+                            confirmButton: 'btn btn-primary m-2',
+                            cancelButton: 'btn btn-secondary m-2'
+                        }
+                    }).then(result => {
+                        if (result.isConfirmed && response.cliente?.id) {
+                            window.location.href = "<?= base_url('clientes') ?>/" + response.cliente.id;
+                        } else {
+                            window.location.reload();
+                        }
+                    });
+                },
+                error: function(xhr) {
+                    const response = xhr.responseJSON || {};
+                    if (response.csrf) {
+                        form.find('input[name="<?= csrf_token() ?>"]').val(response.csrf);
+                    }
+                    errorBox.removeClass('d-none').text(response.message || 'No se pudo crear el cliente.');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Guardar cliente');
+                }
+            });
+        });
+    });
+
     $('#transferForm').on('submit', function(e) {
         e.preventDefault(); // Evita recargar la página
 
