@@ -2609,11 +2609,13 @@ CCF YA VIENE SIN IVA
             return $this->response->setJSON(['success' => false, 'message' => 'El motivo es obligatorio para el tipo de anulación "Otro".']);
         }
 
-        $ambiente  = env('hacienda.env', '00');
-        $modoLocal = ($ambiente === '03');
+        $ambiente      = env('hacienda.env', '00');
+        $modoLocal     = ($ambiente === '03');
+        $esTradicional = (($factura->clase ?? '') === 'TRADICIONAL');
 
         // ── 1. REPORTAR A HACIENDA ──────────────────────────────────────────
-        if (!$modoLocal) {
+        // Las facturas tradicionales (pre-electrónicas) no tienen DTE en Hacienda.
+        if (!$modoLocal && !$esTradicional) {
             try {
                 $emisor = (new EmisorModel())->first();
                 if (!$emisor) {

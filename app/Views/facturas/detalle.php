@@ -992,6 +992,88 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
         </div>
     </div>
 </div>
+
+<!-- Modal Anulación / Invalidación DTE -->
+<div class="modal fade" id="modalAnularDte" tabindex="-1" aria-labelledby="modalAnularDteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalAnularDteLabel">
+                    <i class="fas fa-ban me-2"></i>Anular / Invalidar Documento Fiscal
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Alerta de pagos (se rellena dinámicamente) -->
+                <div id="anularPagosAlerta" class="d-none mb-3"></div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="anulTipoAnulacion" class="font-weight-bold">Tipo de anulación <span class="text-danger">*</span></label>
+                        <select id="anulTipoAnulacion" class="form-control">
+                            <option value="">-- Seleccione --</option>
+                            <option value="1">1 – Sustitución (reemplaza por otro DTE)</option>
+                            <option value="2">2 – Rescisión (acuerdo entre partes)</option>
+                            <option value="3">3 – Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="anulMotivo" class="font-weight-bold">Motivo de anulación</label>
+                        <input type="text" id="anulMotivo" class="form-control" placeholder="Descripción del motivo (opcional para tipo 1)">
+                    </div>
+                </div>
+
+                <hr>
+                <p class="text-muted small mb-2">Datos del solicitante (normalmente el cliente)</p>
+
+                <div class="form-row">
+                    <div class="form-group col-md-12">
+                        <label for="anulNombreSolicita" class="font-weight-bold">Nombre del solicitante <span class="text-danger">*</span></label>
+                        <input type="text" id="anulNombreSolicita" class="form-control" placeholder="Nombre completo">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="anulTipDocSolicita" class="font-weight-bold">Tipo de documento <span class="text-danger">*</span></label>
+                        <select id="anulTipDocSolicita" class="form-control">
+                            <option value="36">NIT</option>
+                            <option value="13">DUI</option>
+                            <option value="03">Pasaporte</option>
+                            <option value="02">Carnet de Residente</option>
+                            <option value="37">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="anulNumDocSolicita" class="font-weight-bold">Número de documento <span class="text-danger">*</span></label>
+                        <input type="text" id="anulNumDocSolicita" class="form-control" placeholder="Ej: 0614-010101-001-0">
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 mb-0">
+                    <small><i class="fas fa-info-circle me-1"></i>
+                        En ambientes de producción (00 y 01), esta acción reporta la invalidación a Hacienda antes de registrarla localmente.
+                        Los pagos aplicados serán revertidos si existiesen.
+                    </small>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="button" id="btnConfirmarAnulacion" class="btn btn-danger">
+                    <i class="fas fa-ban me-1"></i>Anular documento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
     document.getElementById('btnPrintInvoicePdf')?.addEventListener('click', function() {
         const frame = document.getElementById('invoicePdfFrame');
@@ -1006,25 +1088,26 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
     document.getElementById('btnAnularFactura')?.addEventListener('click', function() {
 
-        // Pre-fill solicitante and documento fields with client data
-        document.getElementById('anulNombreSolicita').value = "<?= esc($factura->cliente ?? '') ?>";
-        document.getElementById('anulNumDocSolicita').value  = "<?= esc($factura->cliente_documento ?? '') ?>";
+        // Pre-fill solicitante y documento
+        document.getElementById('anulNombreSolicita').value = <?= json_encode($factura->cliente ?? '') ?>;
+        document.getElementById('anulNumDocSolicita').value = <?= json_encode($factura->cliente_documento ?? '') ?>;
 
-        // Select matching document type
-        const tipoDocCliente = "<?= esc($factura->cliente_tipo_documento ?? '') ?>";
+        // Seleccionar tipo de documento
+        const tipoDocCliente = <?= json_encode($factura->cliente_tipo_documento ?? '') ?>;
         const selTipo = document.getElementById('anulTipDocSolicita');
         for (let i = 0; i < selTipo.options.length; i++) {
-            if (selTipo.options[i].value === tipoDocCliente) {
-                selTipo.selectedIndex = i;
-                break;
-            }
+            if (selTipo.options[i].value === tipoDocCliente) { selTipo.selectedIndex = i; break; }
         }
 
-        // Check pagos and populate warning section
+        // Limpiar alerta de pagos
         const pagosAlerta = document.getElementById('anularPagosAlerta');
-        pagosAlerta.innerHTML = '';
-        pagosAlerta.classList.add('d-none');
+        pagosAlerta.innerHTML = '<div class="text-muted small py-1"><i class="fas fa-spinner fa-spin me-1"></i>Verificando pagos aplicados…</div>';
+        pagosAlerta.classList.remove('d-none');
 
+        // Abrir modal INMEDIATAMENTE
+        $('#modalAnularDte').modal('show');
+
+        // Verificar pagos en segundo plano y actualizar la alerta dentro del modal
         fetch("<?= base_url('facturas/checkPagos/' . $factura->id) ?>", {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -1039,18 +1122,21 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                 });
                 html += `</ul><p class="mb-0">Total pagado: <strong>$${data.total_pagado}</strong>. Al anular se revertirán estos pagos y movimientos bancarios.</p></div>`;
                 pagosAlerta.innerHTML = html;
-                pagosAlerta.classList.remove('d-none');
+            } else {
+                pagosAlerta.classList.add('d-none');
+                pagosAlerta.innerHTML = '';
             }
-            $('#modalAnularDte').modal('show');
         })
         .catch(() => {
-            $('#modalAnularDte').modal('show');
+            pagosAlerta.classList.add('d-none');
+            pagosAlerta.innerHTML = '';
         });
 
     });
 
     document.getElementById('btnConfirmarAnulacion')?.addEventListener('click', function() {
-
+        
+        console.log("BOTÓN PRESIONADO");
         const tipoAnulacion  = document.getElementById('anulTipoAnulacion').value;
         const motivo         = document.getElementById('anulMotivo').value.trim();
         const nombreSolicita = document.getElementById('anulNombreSolicita').value.trim();
@@ -1065,7 +1151,8 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
             Swal.fire('Requerido', 'Ingrese el nombre del solicitante.', 'warning');
             return;
         }
-        if (!numDoc) {
+        const esTradicional = <?= json_encode(($factura->clase ?? '') === 'TRADICIONAL') ?>;
+        if (!numDoc && !esTradicional) {
             Swal.fire('Requerido', 'Ingrese el número de documento del solicitante.', 'warning');
             return;
         }
@@ -1198,85 +1285,4 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
     });
 </script>
-
-<!-- Modal Anulación / Invalidación DTE -->
-<div class="modal fade" id="modalAnularDte" tabindex="-1" aria-labelledby="modalAnularDteLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="modalAnularDteLabel">
-                    <i class="fas fa-ban me-2"></i>Anular / Invalidar Documento Fiscal
-                </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-
-                <!-- Alerta de pagos (se rellena dinámicamente) -->
-                <div id="anularPagosAlerta" class="d-none mb-3"></div>
-
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="anulTipoAnulacion" class="font-weight-bold">Tipo de anulación <span class="text-danger">*</span></label>
-                        <select id="anulTipoAnulacion" class="form-control">
-                            <option value="">-- Seleccione --</option>
-                            <option value="1">1 – Sustitución (reemplaza por otro DTE)</option>
-                            <option value="2">2 – Rescisión (acuerdo entre partes)</option>
-                            <option value="3">3 – Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="anulMotivo" class="font-weight-bold">Motivo de anulación</label>
-                        <input type="text" id="anulMotivo" class="form-control" placeholder="Descripción del motivo (opcional para tipo 1)">
-                    </div>
-                </div>
-
-                <hr>
-                <p class="text-muted small mb-2">Datos del solicitante (normalmente el cliente)</p>
-
-                <div class="form-row">
-                    <div class="form-group col-md-12">
-                        <label for="anulNombreSolicita" class="font-weight-bold">Nombre del solicitante <span class="text-danger">*</span></label>
-                        <input type="text" id="anulNombreSolicita" class="form-control" placeholder="Nombre completo">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        <label for="anulTipDocSolicita" class="font-weight-bold">Tipo de documento <span class="text-danger">*</span></label>
-                        <select id="anulTipDocSolicita" class="form-control">
-                            <option value="36">NIT</option>
-                            <option value="13">DUI</option>
-                            <option value="03">Pasaporte</option>
-                            <option value="02">Carnet de Residente</option>
-                            <option value="37">Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group col-md-8">
-                        <label for="anulNumDocSolicita" class="font-weight-bold">Número de documento <span class="text-danger">*</span></label>
-                        <input type="text" id="anulNumDocSolicita" class="form-control" placeholder="Ej: 0614-010101-001-0">
-                    </div>
-                </div>
-
-                <div class="alert alert-info py-2 mb-0">
-                    <small><i class="fas fa-info-circle me-1"></i>
-                        En ambientes de producción (00 y 01), esta acción reporta la invalidación a Hacienda antes de registrarla localmente.
-                        Los pagos aplicados serán revertidos si existiesen.
-                    </small>
-                </div>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancelar
-                </button>
-                <button type="button" id="btnConfirmarAnulacion" class="btn btn-danger">
-                    <i class="fas fa-ban me-1"></i>Anular documento
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?= $this->endSection() ?>
