@@ -1124,6 +1124,14 @@ class ReportesController extends Controller
                     $ret   = $factura->iva_rete1 ?? 0;
                     $total = $factura->total_pagar ?? 0;
 
+                    if ($factura->tipo_dte == '05') {
+                        $base  *= -1;
+                        $iva   *= -1;
+                        $valor *= -1;
+                        $ret   *= -1;
+                        $total *= -1;
+                    }
+
                     $grp_base += $base;
                     $grp_iva += $iva;
                     $grp_valor += $valor;
