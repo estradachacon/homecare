@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -uroot homecaredb -e \"DELETE FROM users WHERE user_name='_pw_test_tmp';\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -uroot -N -e \"SELECT COUNT\\(*\\) FROM users WHERE user_name='_pw_test_tmp';\" homecaredb)",
+      "Bash(/c/xampp/php/php.exe -r \"echo password_hash\\('TempTest#2026', PASSWORD_DEFAULT\\);\")",
+      "Read(//tmp/**)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -uroot homecaredb -e 'INSERT INTO users \\(user_name, email, user_password, role_id, branch_id\\) VALUES \\('\\\\''_pw_test_tmp'\\\\'', '\\\\''_pw_test_tmp@example.com'\\\\'', '\\\\''__TRACKED_VAR__'\\\\'', 1, 1\\);')",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -uroot -N -e \"SELECT id, LENGTH\\(user_password\\) FROM users WHERE user_name='_pw_test_tmp';\" homecaredb)",
+      "Bash(node test-subir-bajar.js)",
+      "Bash(node test-text-format.js)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

@@ -143,6 +143,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     // -- Reporte NE por Producto (Notas de Envío / Consignaciones)
     $routes->get('reports/ne-productos',          'ReportesController::notasEnvioProductos');
 
+    // Editor de PDF (cliente-side: PDF.js + Fabric.js + pdf-lib)
+    $routes->get('pdf-editor', 'PdfEditorController::index');
+
     // Rutas para el módulo de facturación
     $routes->get('facturas', 'Facturas::index');
     $routes->get('facturas/carga', 'Facturas::carga');
