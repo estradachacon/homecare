@@ -30,220 +30,392 @@ if (!function_exists('_neNumLetras')) {
 <head>
     <meta charset="UTF-8">
     <title>Nota de Envío <?= esc($consignacion->numero) ?></title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        color: #000;
+        background: #fff;
+
+        /* Mejora la reproducción de colores y negros al imprimir */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* ── Simulación de hoja en pantalla ─────────── */
+    @media screen {
+        body {
+            background: #909090;
+            padding: 16px;
+        }
+
+        .page-wrapper {
+            background: #fff;
+            width: 215.9mm;
+            min-height: 279.4mm;
+            margin: 0 auto;
+            padding: 8mm 12mm;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
+        }
+    }
+
+    /* ── Cada copia = exactamente mitad de la hoja ── */
+    .copia {
+        height: 130mm;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* ── Separador de corte ─────────────────────── */
+    .separator {
+        height: 3mm;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #000;
+        font-size: 8px;
+        font-weight: 500;
+    }
+
+    .separator::before,
+    .separator::after {
+        content: '';
+        flex: 1;
+        border-top: 1.5px dashed #000;
+    }
+
+    /* ── Etiqueta de tipo de copia ──────────────── */
+    .tipo-copia {
+        flex-shrink: 0;
+        text-align: center;
+        font-size: 7.5px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #000;
+        letter-spacing: .9px;
+        border: 1px dashed #000;
+        padding: 1.5px 0;
+        margin-bottom: 3px;
+    }
+
+    /* ── Header: empresa | NE | estados ─────────── */
+    .hdr {
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        border-bottom: 1.5px solid #000;
+        padding-bottom: 4px;
+        margin-bottom: 5px;
+    }
+
+    .hdr-empresa {
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1.3;
+    }
+
+    .hdr-empresa small {
+        display: block;
+        font-size: 8.5px;
+        font-weight: 500;
+        color: #000;
+        margin-top: 1px;
+    }
+
+    .hdr-ne {
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .hdr-ne .titulo {
+        font-size: 7.5px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #000;
+        font-weight: 500;
+    }
+
+    .hdr-ne .numero {
+        font-size: 15px;
+        font-weight: bold;
+        border: 1.5px solid #000;
+        padding: 2px 10px;
+        display: inline-block;
+        margin-top: 2px;
+    }
+
+    .hdr-meta {
+        text-align: right;
+        font-size: 8.5px;
+        color: #000;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    .hdr-meta .badges {
+        margin-top: 3px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    /* ── Badges ─────────────────────────────────── */
+    .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 7.5px;
+        font-weight: bold;
+        text-transform: uppercase;
+        border: 1px solid #000;
+    }
+
+    /* En impresión se conserva el contraste */
+    .b-abierta,
+    .b-cerrada,
+    .b-anulada,
+    .b-aprobada,
+    .b-rechazada,
+    .b-pendiente {
+        color: #000;
+        background: #fff;
+    }
+
+    /* ── Info grid ──────────────────────────────── */
+    .info-grid {
+        flex-shrink: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border: 1px solid #000;
+        margin-bottom: 5px;
+    }
+
+    .info-item {
+        padding: 3px 6px;
+        border-right: 1px solid #000;
+    }
+
+    .info-item:nth-child(3n) {
+        border-right: none;
+    }
+
+    .info-item.row2 {
+        border-top: 1px solid #000;
+    }
+
+    .info-item label {
+        display: block;
+        font-size: 9px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #000;
+        margin-bottom: 1px;
+    }
+
+    .info-item span {
+        font-size: 9px;
+        font-weight: 500;
+        color: #000;
+    }
+
+    /* ── Tabla de productos ────────────────────── */
+    .tabla-wrap {
+        flex-shrink: 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4px;
+    }
+
+    thead th {
+        background: #000;
+        color: #fff;
+        padding: 2px 5px;
+        font-size: 11px;
+        font-weight: bold;
+        text-align: left;
+    }
+
+    tbody td {
+        border-bottom: 1px solid #000;
+        padding: 2px 5px;
+        font-size: 11px;
+        font-weight: 500;
+        color: #000;
+    }
+
+    /* Se mantiene el alternado, pero en tonos muy suaves */
+    tbody tr:nth-child(even) {
+        background: #f5f5f5;
+    }
+
+    /* ── Información de lotes ──────────────────── */
+    .fila-lotes td {
+        background: #fff !important;
+        border-bottom: 1px solid #000;
+        padding: 2px 5px 4px 10px !important;
+    }
+
+    .lote-tag {
+        display: inline-block;
+        background: #fff;
+        border: 1px solid #000;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 11px;
+        margin-right: 3px;
+        margin-bottom: 1px;
+        color: #000;
+        font-weight: 500;
+    }
+
+    .lote-tag strong {
+        color: #000;
+        font-weight: bold;
+    }
+
+    .tar {
+        text-align: right;
+    }
+
+    .tac {
+        text-align: center;
+    }
+
+    /* ── Total ──────────────────────────────────── */
+    .totales {
+        flex-shrink: 0;
+        text-align: right;
+        border-top: 1.5px solid #000;
+        padding-top: 3px;
+        margin-bottom: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #000;
+    }
+
+    /* ── Observaciones ─────────────────────────── */
+    .obs-box {
+        flex-shrink: 0;
+        border: 1px solid #000;
+        padding: 2px 6px;
+        margin-bottom: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #000;
+    }
+
+    .obs-box label {
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 10px;
+        color: #000;
+    }
+
+    /* ── Firmas ─────────────────────────────────── */
+    .firmas {
+        margin-top: auto;
+        flex-shrink: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        padding-top: 3px;
+    }
+
+    .firma-box {
+        border-top: 1.5px solid #000;
+        padding-top: 4px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 500;
+        color: #000;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .firma-espacio {
+        height: 18mm;
+    }
+
+    .firma-nombre {
+        padding-top: 2px;
+    }
+
+    /* ── Impresión ──────────────────────────────── */
+    @page {
+        size: letter portrait;
+        margin: 8mm 12mm;
+    }
+
+    @media print {
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 10px;
+            background: #fff;
             color: #000;
-            background: #fff;
         }
 
-        /* ── Simulación de hoja en pantalla ─────── */
-        @media screen {
-            body { background: #909090; padding: 16px; }
-            .page-wrapper {
-                background: #fff;
-                width: 215.9mm;
-                min-height: 279.4mm;
-                margin: 0 auto;
-                padding: 8mm 12mm;
-                box-shadow: 0 4px 16px rgba(0,0,0,.45);
-            }
+        .no-print {
+            display: none !important;
         }
 
-        /* ── Cada copia = exactamente mitad de la hoja ── */
-        /* letter - 2×8mm margen = 263.4mm ÷ 2 copias - 3mm separador ≈ 130mm cada una */
-        .copia {
-            height: 130mm;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        .page-wrapper {
+            padding: 0;
+            box-shadow: none;
         }
 
-        /* ── Separador de corte ──────────────────── */
+        /*
+         * Refuerzo específico para impresión:
+         * evita que el navegador convierta elementos
+         * importantes en tonos grises demasiado claros.
+         */
+
+        .tipo-copia,
+        .hdr-empresa,
+        .hdr-empresa small,
+        .hdr-ne .titulo,
+        .hdr-ne .numero,
+        .hdr-meta,
+        .info-item label,
+        .info-item span,
+        tbody td,
+        .lote-tag,
+        .lote-tag strong,
+        .totales,
+        .obs-box,
+        .obs-box label,
+        .firma-box,
         .separator {
-            height: 3mm;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #777;
-            font-size: 8px;
-        }
-        .separator::before,
-        .separator::after { content: ''; flex: 1; border-top: 1.5px dashed #aaa; }
-
-        /* ── Etiqueta de tipo de copia ───────────── */
-        .tipo-copia {
-            flex-shrink: 0;
-            text-align: center;
-            font-size: 7.5px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #555;
-            letter-spacing: .9px;
-            border: 1px dashed #ccc;
-            padding: 1.5px 0;
-            margin-bottom: 3px;
+            color: #000 !important;
         }
 
-        /* ── Header: empresa | NE | estados ─────── */
-        .hdr {
-            flex-shrink: 0;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 8px;
-            border-bottom: 1.5px solid #000;
-            padding-bottom: 4px;
-            margin-bottom: 5px;
-        }
-        .hdr-empresa { font-size: 12px; font-weight: bold; line-height: 1.3; }
-        .hdr-empresa small {
-            display: block;
-            font-size: 8.5px;
-            font-weight: normal;
-            color: #555;
-            margin-top: 1px;
-        }
-        .hdr-ne { text-align: center; flex-shrink: 0; }
-        .hdr-ne .titulo { font-size: 7.5px; text-transform: uppercase; letter-spacing: .5px; color: #555; }
-        .hdr-ne .numero {
-            font-size: 15px;
-            font-weight: bold;
-            border: 1.5px solid #000;
-            padding: 2px 10px;
-            display: inline-block;
-            margin-top: 2px;
-        }
-        .hdr-meta { text-align: right; font-size: 8.5px; color: #555; flex-shrink: 0; }
-        .hdr-meta .badges {
-            margin-top: 3px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 2px;
-        }
-
-        /* ── Badges ──────────────────────────────── */
         .badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 7.5px;
-            font-weight: bold;
-            text-transform: uppercase;
-            border: 1px solid currentColor;
-        }
-        .b-abierta   { color: #155724; background: #d4edda; }
-        .b-cerrada   { color: #383d41; background: #e2e3e5; }
-        .b-anulada   { color: #721c24; background: #f8d7da; }
-        .b-aprobada  { color: #155724; background: #d4edda; }
-        .b-rechazada { color: #721c24; background: #f8d7da; }
-        .b-pendiente { color: #856404; background: #fff3cd; }
-
-        /* ── Info grid ───────────────────────────── */
-        .info-grid {
-            flex-shrink: 0;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            border: 1px solid #ccc;
-            margin-bottom: 5px;
-        }
-        .info-item { padding: 3px 6px; border-right: 1px solid #ddd; }
-        .info-item:nth-child(3n) { border-right: none; }
-        .info-item.row2 { border-top: 1px solid #ddd; }
-        .info-item label {
-            display: block;
-            font-size: 7px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #666;
-            margin-bottom: 1px;
-        }
-        .info-item span { font-size: 9.5px; }
-
-        /* ── Tabla de productos ──────────────────── */
-        .tabla-wrap { flex-shrink: 0; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        thead th {
-            background: #2c2c2c;
-            color: #fff;
-            padding: 2px 5px;
-            font-size: 11px;
-            text-align: left;
-        }
-        tbody td { border-bottom: 1px solid #e8e8e8; padding: 2px 5px; font-size: 11px; }
-        tbody tr:nth-child(even) { background: #f7f7f7; }
-        .fila-lotes td { background: #f3f6fa !important; border-bottom: 1px solid #dde4ee; padding: 2px 5px 4px 10px !important; }
-        .lote-tag {
-            display: inline-block;
-            background: #fff;
-            border: 1px solid #c5d0e0;
-            border-radius: 3px;
-            padding: 1px 5px;
-            font-size: 9.5px;
-            margin-right: 3px;
-            margin-bottom: 1px;
-            color: #333;
-        }
-        .lote-tag strong { color: #1a4a8a; }
-        .tar { text-align: right; }
-        .tac { text-align: center; }
-
-        /* ── Total ───────────────────────────────── */
-        .totales {
-            flex-shrink: 0;
-            text-align: right;
-            border-top: 1.5px solid #000;
-            padding-top: 3px;
-            margin-bottom: 4px;
-            font-size: 11px;
-            font-weight: bold;
+            color: #000 !important;
+            background: #fff !important;
+            border-color: #000 !important;
         }
 
-        /* ── Observaciones ───────────────────────── */
-        .obs-box {
-            flex-shrink: 0;
-            border: 1px solid #ccc;
-            padding: 2px 6px;
-            margin-bottom: 4px;
-            font-size: 13px;
+        .fila-lotes td {
+            background: #fff !important;
         }
-        .obs-box label { font-weight: bold; text-transform: uppercase; font-size: 7px; color: #555; }
 
-        /* ── Firmas ──────────────────────────────── */
-        /* margin-top: auto empuja las firmas al fondo de los 130mm */
-        .firmas {
-            margin-top: auto;
-            flex-shrink: 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            padding-top: 3px;
+        .separator::before,
+        .separator::after {
+            border-top-color: #000 !important;
         }
-        .firma-box {
-            border-top: 1.5px solid #000;
-            padding-top: 4px;
-            text-align: center;
-            font-size: 9px;
-            display: flex;
-            flex-direction: column;
-        }
-        /* espacio vertical para la firma — más del doble del anterior (~7 mm) */
-        .firma-espacio { height: 18mm; }
-        .firma-nombre { padding-top: 2px; }
-
-        /* ── Botón imprimir (solo pantalla) ──────── */
-        @page { size: letter portrait; margin: 8mm 12mm; }
-
-        @media print {
-            body { background: #fff; }
-            .no-print { display: none !important; }
-            .page-wrapper { padding: 0; box-shadow: none; }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
 
@@ -377,7 +549,7 @@ $copias = ['Original – Empresa', 'Copia – Recepción'];
                     <?php if (!empty($lotes)): ?>
                     <tr class="fila-lotes">
                         <td colspan="5">
-                            <span style="font-size:7px; font-weight:bold; text-transform:uppercase; color:#666; margin-right:4px;">Lotes:</span>
+                            <span style="font-size:11px; font-weight:bold; text-transform:uppercase; color:#666; margin-right:4px;">Lotes:</span>
                             <?php foreach ($lotes as $lote): ?>
                                 <span class="lote-tag">
                                     <strong><?= esc($lote->numero_lote) ?></strong>
@@ -394,7 +566,7 @@ $copias = ['Original – Empresa', 'Copia – Recepción'];
             </table>
 
             <div class="totales" style="display:flex;justify-content:space-between;align-items:baseline;">
-                <span style="font-size:8px;font-weight:normal;color:#555;">Son: <?= esc($subtotalLetras) ?></span>
+                <span style="font-size:11px;font-weight:normal;color:#555;">Son: <?= esc($subtotalLetras) ?></span>
                 <span>SUBTOTAL:&nbsp;&nbsp;$<?= number_format($consignacion->subtotal, 2) ?></span>
             </div>
 
