@@ -109,7 +109,7 @@
                      value="<?= esc($fechaHasta) ?>">
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="small font-weight-bold mb-1">Vendedor</label>
               <select name="vendedor_id" class="form-control form-control-sm">
                 <option value="">— Todos —</option>
@@ -118,6 +118,16 @@
                   <?= esc($v->seller) ?>
                 </option>
                 <?php endforeach; ?>
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label class="small font-weight-bold mb-1">Estado</label>
+              <select name="estado_linea" class="form-control form-control-sm">
+                <option value="" <?= $estadoLinea === '' ? 'selected' : '' ?>>— Todos —</option>
+                <option value="pendiente" <?= $estadoLinea === 'pendiente' ? 'selected' : '' ?>>Solo pendientes</option>
+                <option value="facturado" <?= $estadoLinea === 'facturado' ? 'selected' : '' ?>>Solo facturadas</option>
+                <option value="devuelto" <?= $estadoLinea === 'devuelto' ? 'selected' : '' ?>>Solo devueltas</option>
               </select>
             </div>
 
@@ -186,6 +196,12 @@
           <i class="fa-solid fa-circle-info text-primary mr-1"></i>
           <strong><?= count($lineas) ?></strong> línea(s) de producto en el rango.
           Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong>
+          <?php if ($estadoLinea !== ''): ?>
+            &nbsp;|&nbsp; Filtro:
+            <strong>
+              <?= ['pendiente' => 'Solo pendientes', 'facturado' => 'Solo facturadas', 'devuelto' => 'Solo devueltas'][$estadoLinea] ?? '' ?>
+            </strong>
+          <?php endif; ?>
           &nbsp;|&nbsp;
           <span class="badge badge-success">Verde</span> = facturado
           &nbsp;

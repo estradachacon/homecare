@@ -2389,6 +2389,7 @@ class ReportesController extends Controller
         $vendedorId  = $this->request->getGet('vendedor_id')  ?: '';
         $comision    = max(0, min(100, (float)($this->request->getGet('comision') ?: 7)));
         $exportar    = $this->request->getGet('exportar'); // 'excel' | 'pdf' | null
+        $estadoLinea = $this->request->getGet('estado_linea') ?: ''; // '' | 'pendiente' | 'facturado' | 'devuelto'
 
         // ── Query principal: una fila por línea de producto de cada NE ──────
         $sql = "
@@ -2489,6 +2490,25 @@ class ReportesController extends Controller
         $lineas    = $db->query($sql, $binds)->getResult();
         $vendedores = $sellerModel->orderBy('seller', 'ASC')->findAll();
 
+        // ── Filtro por estado de línea (pendiente / facturado / devuelto) ────
+        // Las notas anuladas quedan fuera de los 3 filtros: son un estado aparte.
+        if ($estadoLinea !== '') {
+            $lineas = array_values(array_filter($lineas, function ($l) use ($estadoLinea) {
+                $esAnulada = ($l->ne_anulada == 1 || $l->ne_estado === 'anulada');
+                if ($esAnulada) return false;
+
+                $esFacturado = $l->factura_id && (float)($l->cantidad_facturada ?? 0) > 0;
+                $esDevuelto  = (float)($l->cantidad_devuelta ?? 0) > 0;
+
+                return match ($estadoLinea) {
+                    'facturado' => $esFacturado,
+                    'devuelto'  => $esDevuelto,
+                    'pendiente' => !$esFacturado && !$esDevuelto,
+                    default     => true,
+                };
+            }));
+        }
+
         // ── Siglas DTE ──────────────────────────────────────────────────────
         $siglas = dte_siglas();
 
@@ -2523,6 +2543,7 @@ class ReportesController extends Controller
             'comision'      => $comision,
             'totalPrecio'   => $totalPrecio,
             'totalComision' => $totalComision,
+            'estadoLinea'   => $estadoLinea,
         ]);
     }
 
