@@ -1304,7 +1304,7 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
 
         $detRow = $db->table('consignaciones_detalles cd')
-            ->select('cd.cantidad, ch.estado, ch.lotes_autorizados_por, ch.id AS consignacion_id, p.descripcion AS producto_nombre, p.codigo AS producto_codigo')
+            ->select('cd.cantidad, ch.estado, ch.aprobacion_estado, ch.lotes_autorizados_por, ch.id AS consignacion_id, p.descripcion AS producto_nombre, p.codigo AS producto_codigo')
             ->join('consignaciones_head ch', 'ch.id = cd.consignacion_id')
             ->join('productos p', 'p.id = cd.producto_id', 'left')
             ->where('cd.id', $detalleId)
@@ -1322,6 +1322,15 @@ class ConsignacionesController extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Los lotes de esta nota aún no han sido autorizados para edición. Solicite autorización.'
+            ]);
+        }
+
+        // Una vez que despacho aprobó la salida de la NE, los lotes quedan
+        // bloqueados salvo que el usuario tenga el permiso especial.
+        if ($detRow->aprobacion_estado === 'aprobada' && !tienePermiso('editar_lotes_consignacion_aprobada')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Esta nota ya fue aprobada por despacho. Se requiere un permiso especial para modificar sus lotes.'
             ]);
         }
 

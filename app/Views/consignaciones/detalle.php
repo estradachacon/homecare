@@ -129,8 +129,9 @@
 
                         <!-- Botones de aprobación / autorización (debajo de los badges) -->
                         <?php
-                            $puedeGestionarLotes = tienePermiso('gestionar_lotes_consignaciones');
-                            $puedeEditarLotes    = $puedeGestionarLotes && !empty($consignacion->lotes_autorizados_por);
+                            $puedeGestionarLotes    = tienePermiso('gestionar_lotes_consignaciones');
+                            $bloqueadoPorAprobacion = ($apEst === 'aprobada') && !tienePermiso('editar_lotes_consignacion_aprobada');
+                            $puedeEditarLotes       = $puedeGestionarLotes && !empty($consignacion->lotes_autorizados_por) && !$bloqueadoPorAprobacion;
                         ?>
                         <div class="d-flex gap-2 mb-1">
                             <?php if ($consignacion->estado === 'abierta' && tienePermiso('aprobar_consignaciones')): ?>
@@ -289,6 +290,11 @@
                                                     data-cantidad="<?= $d->cantidad ?>"
                                                     title="Editar lotes">
                                                     <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                            <?php elseif ($bloqueadoPorAprobacion): ?>
+                                                <button class="btn btn-xs btn-outline-secondary mt-1"
+                                                    disabled title="Nota ya aprobada por despacho. Requiere permiso especial para editar lotes.">
+                                                    <i class="fa-solid fa-lock"></i>
                                                 </button>
                                             <?php else: ?>
                                                 <button class="btn btn-xs btn-outline-secondary mt-1"
