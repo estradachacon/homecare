@@ -792,6 +792,28 @@ class ConsignacionesController extends BaseController
         // Manejar fotos devolucion
         $fotos = $this->request->getFiles();
 
+        // Números de control de todas las facturas seleccionadas en el
+        // formulario, para poder describirlas por nombre en el log del cierre.
+        $facturaIdsUsadas = [];
+        foreach ($lineas as $lin) {
+            foreach (($lin['facturas'] ?? []) as $fid) {
+                if (!empty($fid)) $facturaIdsUsadas[] = (int)$fid;
+            }
+        }
+        $numerosControlPorFactura = [];
+        if (!empty($facturaIdsUsadas)) {
+            $facturasInfo = $db->table('facturas_head')
+                ->select('id, numero_control')
+                ->whereIn('id', array_unique($facturaIdsUsadas))
+                ->get()
+                ->getResult();
+            foreach ($facturasInfo as $f) {
+                $numerosControlPorFactura[$f->id] = substr($f->numero_control, -6);
+            }
+        }
+
+        $resumenLineas = [];
+
         foreach ($detalles as $det) {
             $lin = $lineas[$det->id] ?? [];
 
@@ -839,6 +861,7 @@ class ConsignacionesController extends BaseController
             );
 
             $facturasLinea = $lin['facturas'] ?? [];
+            $facturasTexto = [];
             foreach ($facturasLinea as $facturaId) {
                 if (!empty($facturaId)) {
                     $cierreFactModel->insert([
@@ -847,8 +870,28 @@ class ConsignacionesController extends BaseController
                         'factura_id' => (int)$facturaId,
                         'created_at' => date('Y-m-d H:i:s'),
                     ]);
+                    if (isset($numerosControlPorFactura[(int)$facturaId])) {
+                        $facturasTexto[] = '#' . $numerosControlPorFactura[(int)$facturaId];
+                    }
                 }
             }
+
+            // Resumen legible de cómo quedó distribuida esta línea, para el log.
+            $partes = [];
+            if ($cantFact > 0) {
+                $partes[] = 'Facturado ' . number_format($cantFact, 2)
+                    . (!empty($facturasTexto) ? ' (' . implode(', ', $facturasTexto) . ')' : ' (sin factura seleccionada)');
+            }
+            if ($cantDev > 0) {
+                $partes[] = 'Devuelto ' . number_format($cantDev, 2)
+                    . (!empty($lin['doc_devolucion']) ? ' (doc: ' . $lin['doc_devolucion'] . ')' : '');
+            }
+            if ($cantStock > 0) {
+                $partes[] = 'En stock del vendedor ' . number_format($cantStock, 2);
+            }
+
+            $productoLabel = trim(($det->producto_codigo ? '[' . $det->producto_codigo . '] ' : '') . $det->producto_nombre);
+            $resumenLineas[] = $productoLabel . ': ' . (!empty($partes) ? implode('; ', $partes) : 'sin movimiento');
         }
 
         // Marcar nota original como cerrada
@@ -867,7 +910,11 @@ class ConsignacionesController extends BaseController
             'Se cerró la nota ' . $consignacion->numero . ($nuevoId ? ' y se generó traslado.' : '.'),
             $session->get('id')
         );
-        $this->registrarLog($id, 'Nota cerrada', $nuevoId ? 'Se generó nota de traslado.' : null);
+        $detalleLog = implode(' | ', $resumenLineas);
+        if ($nuevoId) {
+            $detalleLog .= ($detalleLog !== '' ? ' | ' : '') . 'Se generó nota de traslado.';
+        }
+        $this->registrarLog($id, 'Nota cerrada', $detalleLog !== '' ? $detalleLog : null);
 
         $msg = 'Nota cerrada correctamente.';
         if ($nuevoId) {

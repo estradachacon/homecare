@@ -113,6 +113,31 @@
                                         </div>
                                     </div>
 
+                                    <?php $sugerencias = array_values($sugerenciasPorProducto[$d->producto_id] ?? []); ?>
+                                    <?php if (!empty($sugerencias)): ?>
+                                        <div class="alert alert-success py-2 mb-3" style="font-size:.82rem;">
+                                            <i class="fa-solid fa-lightbulb mr-1"></i>
+                                            <strong>Este producto ya tiene <?= count($sugerencias) > 1 ? 'notas de pedido facturadas' : 'una nota de pedido facturada' ?>:</strong>
+                                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                                <?php foreach ($sugerencias as $s): ?>
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-success btn-aplicar-factura"
+                                                            data-detalle="<?= $d->id ?>"
+                                                            data-factura-id="<?= $s['factura_id'] ?>"
+                                                            data-factura-numero="<?= esc($s['factura_texto']) ?>"
+                                                            data-np-cantidad="<?= $s['np_cantidad'] ?>"
+                                                            data-detalle-max="<?= $d->cantidad ?>"
+                                                            title="Usar estos valores de la NP como cantidad facturada">
+                                                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>
+                                                        <?= esc($s['np_numero']) ?> → <strong><?= esc($s['factura_texto']) ?></strong>
+                                                        <span class="text-muted ml-1">(<?= number_format($s['np_cantidad'], 0) ?> u.)</span>
+                                                    </button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">Clic para usar esta factura y cantidad como lo facturado de esta línea.</small>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <div class="row g-3">
                                         <!-- Cantidad facturada -->
                                         <div class="col-md-4">
@@ -217,12 +242,12 @@
                                                 <div class="p-3 border rounded bg-light">
                                                     <p class="mb-2 small fw-bold text-primary">
                                                         <i class="fa-solid fa-boxes-stacked"></i>
-                                                        Lotes que se facturarÃ¡n
+                                                        Lotes que se facturarán
                                                     </p>
 
                                                     <div class="alert alert-info py-2 mb-2 small">
-                                                        Si la facturaciÃ³n es completa, los lotes se asignan automÃ¡ticamente.
-                                                        Si es parcial y hay varios lotes, indique de cuÃ¡les lotes sale la cantidad facturada.
+                                                        Si la facturación es completa, los lotes se asignan automáticamente.
+                                                        Si es parcial y hay varios lotes, indique de cuáles lotes sale la cantidad facturada.
                                                     </div>
 
                                                     <div class="table-responsive">
@@ -298,30 +323,6 @@
                                     <!-- Bloque facturas (visible si facturada > 0) -->
                                     <div class="bloque-facturas mt-3 p-3 border rounded bg-light" id="facturas_<?= $d->id ?>">
                                         <p class="mb-2 small fw-bold text-primary"><i class="fa-solid fa-file-invoice"></i> Facturas asociadas</p>
-
-                                        <?php $sugerencias = array_values($sugerenciasPorProducto[$d->producto_id] ?? []); ?>
-                                        <?php if (!empty($sugerencias)): ?>
-                                            <div class="alert alert-success py-2 mb-2" style="font-size:.82rem;">
-                                                <i class="fa-solid fa-lightbulb mr-1"></i>
-                                                <strong>Sugerencia basada en NP asociada<?= count($sugerencias) > 1 ? 's' : '' ?>:</strong>
-                                                <div class="mt-1 d-flex flex-wrap gap-1">
-                                                    <?php foreach ($sugerencias as $s): ?>
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-outline-success btn-aplicar-factura"
-                                                                data-detalle="<?= $d->id ?>"
-                                                                data-factura-id="<?= $s['factura_id'] ?>"
-                                                                data-factura-numero="<?= esc($s['factura_texto']) ?>"
-                                                                data-np-cantidad="<?= $s['np_cantidad'] ?>"
-                                                                data-detalle-max="<?= $d->cantidad ?>"
-                                                                title="Aplicar esta factura al selector">
-                                                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>
-                                                            <?= esc($s['np_numero']) ?> → <strong><?= esc($s['factura_texto']) ?></strong>
-                                                            <span class="text-muted ml-1">(<?= number_format($s['np_cantidad'], 0) ?> u.)</span>
-                                                        </button>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
 
                                         <label class="small text-muted">Seleccione una o más facturas del vendedor</label>
                                         <select name="lineas[<?= $d->id ?>][facturas][]"
