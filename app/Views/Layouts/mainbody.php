@@ -1088,6 +1088,50 @@
         // Detener cuando el usuario vuelve al tab
         window.addEventListener('focus', detenerAnimTab);
 
+        // ── Sonido fuerte de alerta ──────────────────────────────────────────
+        // Nota: ningún sitio web puede sonar en un teléfono realmente apagado,
+        // ni forzar el volumen por encima del que tenga el dispositivo. Esto
+        // reproduce el sonido más fuerte y persistente que el navegador permite
+        // (además de vibración en dispositivos compatibles) apenas aparece una
+        // alerta nueva.
+        let _audioCtx = null;
+        function _getAudioCtx() {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            if (!_audioCtx) _audioCtx = new Ctx();
+            if (_audioCtx.state === 'suspended') _audioCtx.resume();
+            return _audioCtx;
+        }
+
+        // Los navegadores bloquean el sonido automático hasta que el usuario
+        // interactúa con la página al menos una vez; esto lo "desbloquea" en
+        // cuanto ocurra el primer click/touch/tecla.
+        ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+            document.addEventListener(evt, function () { _getAudioCtx(); }, { once: true, passive: true });
+        });
+
+        function reproducirAlertaSonora() {
+            const ctx = _getAudioCtx();
+            if (ctx) {
+                const tonos = [880, 660, 880, 660, 880];
+                tonos.forEach(function (freq, i) {
+                    const t0 = ctx.currentTime + i * 0.28;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, t0);
+                    gain.gain.setValueAtTime(0, t0);
+                    gain.gain.linearRampToValueAtTime(1, t0 + 0.02);
+                    gain.gain.setValueAtTime(1, t0 + 0.2);
+                    gain.gain.linearRampToValueAtTime(0, t0 + 0.26);
+                    osc.connect(gain).connect(ctx.destination);
+                    osc.start(t0);
+                    osc.stop(t0 + 0.27);
+                });
+            }
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+        }
+
         function cargarAlertas() {
             fetch('<?= base_url('alertas/conteos') ?>')
                 .then(r => r.json())
@@ -1100,9 +1144,10 @@
                         $('#alertasBell')
                             .removeClass('bell-alert alerta-bell-glow')
                             .addClass('bell-alert alerta-bell-glow');
-                        // Animar tab solo si el conteo subió o estaba en 0
+                        // Animar tab y sonar solo si el conteo subió (alerta nueva)
                         if (total > alertasTotales) {
                             animarTab(total);
+                            reproducirAlertaSonora();
                         }
                     } else {
                         $('#alertasCount').hide();

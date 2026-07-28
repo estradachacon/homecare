@@ -76,6 +76,125 @@
             margin-top: .35rem;
         }
     }
+
+    /* ══════════════════════════════════════════════════════════
+       TARJETAS — tablet / móvil (< 992px)
+       Reemplaza la tabla para evitar el scroll horizontal.
+    ══════════════════════════════════════════════════════════ */
+    .consig-card {
+        background: #fff;
+        border: 1px solid #e3e6ea;
+        border-radius: .6rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+        margin-bottom: .9rem;
+        overflow: hidden;
+    }
+
+    .consig-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .5rem;
+        padding: .7rem .9rem;
+        background: #f8f9fc;
+        border-bottom: 1px solid #eef0f4;
+    }
+
+    .consig-card-numero {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1d2744;
+        text-decoration: none;
+    }
+
+    .consig-card-numero:hover {
+        text-decoration: underline;
+    }
+
+    .consig-card-id {
+        font-size: .7rem;
+        color: #98a1ae;
+        font-weight: 600;
+    }
+
+    .consig-card-estados {
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    .consig-card-estados .badge {
+        display: block;
+        margin-bottom: .22rem;
+    }
+
+    .consig-card-estados .badge:last-child {
+        margin-bottom: 0;
+    }
+
+    .consig-card-body {
+        padding: .75rem .9rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .55rem .8rem;
+    }
+
+    .consig-card-field {
+        min-width: 0;
+    }
+
+    .consig-card-field.span-2 {
+        grid-column: 1 / -1;
+    }
+
+    .consig-card-field label {
+        display: block;
+        font-size: .66rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        color: #98a1ae;
+        margin-bottom: .12rem;
+    }
+
+    .consig-card-field span,
+    .consig-card-field div {
+        font-size: .88rem;
+        color: #2b3444;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .consig-card-lotes {
+        padding: 0 .9rem .1rem;
+    }
+
+    .consig-card-footer {
+        display: flex;
+        gap: .5rem;
+        padding: .65rem .9rem;
+        border-top: 1px solid #eef0f4;
+        background: #fbfbfd;
+    }
+
+    .consig-card-footer .btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        font-size: .8rem;
+        font-weight: 600;
+        padding: .5rem .4rem;
+    }
+
+    .consig-empty-mobile {
+        text-align: center;
+        color: #98a1ae;
+        padding: 2.5rem 1rem;
+        background: #fff;
+        border: 1px dashed #dfe3ea;
+        border-radius: .6rem;
+    }
 </style>
 
 <div class="row">
@@ -182,7 +301,7 @@
                     </div>
                 </form>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block">
                     <table class="table table-bordered table-hover table-sm">
                         <thead class="table-dark">
                             <tr>
@@ -284,6 +403,108 @@
                             <?php endif; ?>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- ══════ Tarjetas — tablet / móvil ══════ -->
+                <div class="d-lg-none">
+                    <?php if (empty($consignaciones)): ?>
+                        <div class="consig-empty-mobile">
+                            <i class="fa-solid fa-inbox fa-2x mb-2 d-block"></i>
+                            No hay notas de envío registradas.
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($consignaciones as $c): ?>
+                            <?php
+                                $apEst = $c->aprobacion_estado ?? 'pendiente';
+                                $apBadge = [
+                                    'aprobada'  => ['badge-success', 'Aprobada'],
+                                    'rechazada' => ['badge-danger', 'Rechazada'],
+                                    'pendiente' => ['badge-warning text-dark', 'Pendiente aprobación'],
+                                ][$apEst] ?? ['badge-warning text-dark', ucfirst($apEst)];
+                            ?>
+                            <div class="consig-card">
+                                <div class="consig-card-header">
+                                    <div>
+                                        <span class="consig-card-id">#<?= $c->id ?></span><br>
+                                        <a href="<?= base_url('consignaciones/' . $c->id) ?>" class="consig-card-numero"><?= esc($c->numero) ?></a>
+                                        <?php if (($c->origen ?? 'normal') === 'emergencia'): ?>
+                                            <span class="badge-emergencia ml-1"><i class="fa-solid fa-bolt"></i> Emergencia</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="consig-card-estados">
+                                        <?php if ($c->estado === 'abierta'): ?>
+                                            <span class="badge badge-success estado-consignacion-badge">Activa</span>
+                                        <?php elseif ($c->estado === 'cerrada'): ?>
+                                            <span class="badge badge-secondary estado-consignacion-badge">Cerrada</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-danger estado-consignacion-badge">Anulada</span>
+                                        <?php endif; ?>
+                                        <span class="badge <?= $apBadge[0] ?> estado-aprobacion-badge"
+                                              title="<?= $apEst === 'rechazada' ? esc($c->rechazo_motivo ?? 'Nota rechazada') : '' ?>">
+                                            <?= esc($apBadge[1]) ?>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="consig-card-body">
+                                    <div class="consig-card-field">
+                                        <label>Vendedor</label>
+                                        <span><?= esc($c->vendedor_nombre) ?></span>
+                                    </div>
+                                    <div class="consig-card-field">
+                                        <label>Paciente</label>
+                                        <span><?= esc($c->nombre ?: '—') ?></span>
+                                    </div>
+                                    <div class="consig-card-field">
+                                        <label>Fecha</label>
+                                        <span><?= date('d/m/Y', strtotime($c->fecha)) ?></span>
+                                    </div>
+                                    <div class="consig-card-field">
+                                        <label>Subtotal</label>
+                                        <span>$<?= number_format($c->subtotal, 2) ?></span>
+                                    </div>
+                                    <div class="consig-card-field span-2">
+                                        <label>Lotes</label>
+                                        <div>
+                                            <?php if ($c->estado === 'abierta'): ?>
+                                                <?php if (empty($c->lotes_autorizados_por)): ?>
+                                                    <span class="badge badge-warning" title="Pendiente autorización de lotes">
+                                                        <i class="fa-solid fa-clock"></i> Sin autorizar
+                                                    </span>
+                                                <?php elseif ((int)$c->lotes_asignados_count === 0): ?>
+                                                    <span class="badge badge-info" title="Autorizado — sin lotes asignados aún">
+                                                        <i class="fa-solid fa-boxes-stacked"></i> Pendiente lotes
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-success" title="<?= (int)$c->lotes_asignados_count ?> lote(s) asignado(s)">
+                                                        <i class="fa-solid fa-check"></i> <?= (int)$c->lotes_asignados_count ?> lote(s)
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">—</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="consig-card-footer">
+                                    <a href="<?= base_url('consignaciones/' . $c->id) ?>" class="btn btn-info btn-sm" title="Ver">
+                                        <i class="fa-solid fa-eye"></i> Ver
+                                    </a>
+                                    <?php if ($c->estado === 'abierta' && tienePermiso('cerrar_consignaciones')): ?>
+                                        <a href="<?= base_url('consignaciones/' . $c->id . '/cerrar') ?>" class="btn btn-warning btn-sm" title="Cerrar">
+                                            <i class="fa-solid fa-lock"></i> Cerrar
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($c->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
+                                        <button class="btn btn-danger btn-sm btn-anular" data-id="<?= $c->id ?>" data-numero="<?= esc($c->numero) ?>" title="Anular">
+                                            <i class="fa-solid fa-ban"></i> Anular
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
                 <?= $pager->links('default', 'bootstrap_full') ?>
