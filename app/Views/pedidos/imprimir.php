@@ -259,6 +259,14 @@ if (!function_exists('_pedNumLetras')) {
         padding: 2px 5px 4px 10px !important;
     }
 
+    .lote-tag-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-right: 8px;
+        margin-bottom: 2px;
+    }
+
     .lote-tag {
         display: inline-block;
         background: #fff;
@@ -266,8 +274,6 @@ if (!function_exists('_pedNumLetras')) {
         border-radius: 3px;
         padding: 1px 5px;
         font-size: 11px;
-        margin-right: 3px;
-        margin-bottom: 1px;
         color: #000;
         font-weight: 500;
     }
@@ -275,6 +281,17 @@ if (!function_exists('_pedNumLetras')) {
     .lote-tag strong {
         color: #000;
         font-weight: bold;
+    }
+
+    .ne-ref {
+        display: inline-block;
+        background: #000;
+        color: #fff;
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 10.5px;
+        font-weight: bold;
+        letter-spacing: .2px;
     }
 
     .tar {
@@ -395,6 +412,11 @@ if (!function_exists('_pedNumLetras')) {
             color: #000 !important;
             background: #fff !important;
             border-color: #000 !important;
+        }
+
+        .ne-ref {
+            color: #fff !important;
+            background: #000 !important;
         }
 
         .fila-lotes td {
@@ -536,10 +558,13 @@ $copias = ['Original – Cliente', 'Copia – Archivo'];
                         <td colspan="5">
                             <span style="font-size:11px; font-weight:bold; text-transform:uppercase; color:#666; margin-right:4px;">Lotes:</span>
                             <?php foreach ($lotes as $lote): ?>
-                                <span class="lote-tag">
-                                    <strong><?= esc($lote->numero_lote) ?></strong>
-                                    <?php if (!empty($lote->fecha_vencimiento)): ?>· Vence: <?= esc($lote->fecha_vencimiento) ?><?php endif; ?>
-                                    · Cant: <?= number_format($lote->cantidad, 2) ?>
+                                <span class="lote-tag-wrap">
+                                    <span class="lote-tag">
+                                        <strong><?= esc($lote->numero_lote) ?></strong>
+                                        <?php if (!empty($lote->fecha_vencimiento)): ?>· Vence: <?= esc($lote->fecha_vencimiento) ?><?php endif; ?>
+                                        · Cant: <?= number_format($lote->cantidad, 2) ?>
+                                    </span>
+                                    <?php if (!empty($lote->ne_numero)): ?><span class="ne-ref"><?= esc($lote->ne_numero) ?></span><?php endif; ?>
                                 </span>
                             <?php endforeach; ?>
                         </td>

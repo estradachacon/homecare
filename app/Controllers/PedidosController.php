@@ -338,16 +338,18 @@ class PedidosController extends BaseController
             $filas  = $db->query("
                 SELECT
                     p.codigo               AS producto_codigo,
+                    ch.numero              AS ne_numero,
                     cl.numero_lote,
                     cl.fecha_vencimiento,
                     SUM(cdl.cantidad)      AS cantidad
                 FROM consignaciones_detalles cd
+                INNER JOIN consignaciones_head ch          ON ch.id = cd.consignacion_id
                 INNER JOIN productos p                    ON p.id  = cd.producto_id
                 INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
                 INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
                 WHERE cd.consignacion_id IN ({$inList})
-                GROUP BY p.codigo, cdl.lote_id
-                ORDER BY cl.numero_lote
+                GROUP BY p.codigo, ch.numero, cdl.lote_id
+                ORDER BY ch.numero, cl.numero_lote
             ")->getResultObject();
 
             foreach ($filas as $f) {
