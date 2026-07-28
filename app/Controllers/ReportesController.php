@@ -2437,6 +2437,10 @@ class ReportesController extends Controller
             INNER JOIN productos p             ON p.id   = cd.producto_id
             LEFT  JOIN sellers s               ON s.id   = ch.vendedor_id
             -- NP: busca el pedido más reciente activo que referencia esta NE
+            -- Y que además tenga una línea de detalle para ESTE producto en
+            -- particular (cd.producto_id). Una NE puede tener varios productos
+            -- y la NP solo haberse hecho para uno de ellos; sin este filtro,
+            -- la NP se le atribuía por igual a todos los productos de la NE.
             LEFT  JOIN pedidos_head ph ON ph.id = (
                 SELECT ph2.id FROM pedidos_head ph2
                 WHERE ph2.anulada = 0
@@ -2444,6 +2448,11 @@ class ReportesController extends Controller
                       ph2.consignacion_id = ch.id
                       OR (ph2.consignacion_ids IS NOT NULL
                           AND JSON_CONTAINS(ph2.consignacion_ids, CAST(ch.id AS CHAR)))
+                  )
+                  AND EXISTS (
+                      SELECT 1 FROM pedidos_detalles pdx
+                      WHERE pdx.pedido_id = ph2.id
+                        AND pdx.producto_id = cd.producto_id
                   )
                 ORDER BY ph2.id DESC
                 LIMIT 1

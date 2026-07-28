@@ -296,6 +296,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('pedidos/precio-producto',               'PedidosController::getPrecioProducto');
     $routes->post('pedidos/cliente-store-ajax',           'PedidosController::clienteStoreAjax');
     $routes->get('pedidos/(:num)',                        'PedidosController::show/$1');
+    $routes->get('pedidos/(:num)/imprimir',               'PedidosController::imprimir/$1');
     $routes->get('pedidos/(:num)/editar',                 'PedidosController::editar/$1');
     $routes->post('pedidos/(:num)/actualizar',            'PedidosController::actualizar/$1');
     $routes->post('pedidos/(:num)/anular',                'PedidosController::anular/$1');

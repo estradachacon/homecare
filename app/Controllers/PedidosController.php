@@ -298,6 +298,71 @@ class PedidosController extends BaseController
     }
 
     // ──────────────────────────────────────────────
+    //  VERSIÓN IMPRIMIBLE (doble copia, hoja carta)
+    // ──────────────────────────────────────────────
+
+    public function imprimir(int $id)
+    {
+        $chk = requerirPermiso('ver_pedidos');
+        if ($chk !== true) return $chk;
+
+        $headModel = new PedidoHeadModel();
+        $detModel  = new PedidoDetalleModel();
+
+        $pedido = $headModel->getConRelaciones($id);
+        if (!$pedido) {
+            return redirect()->to('/pedidos')->with('error', 'Nota no encontrada.');
+        }
+
+        $detalles = $detModel->getPorPedido($id);
+
+        // Collect NE IDs from the pedido
+        $neIds = [];
+        if ($pedido->consignacion_id) {
+            $neIds[] = (int)$pedido->consignacion_id;
+        }
+        if ($pedido->consignacion_ids) {
+            $decoded = json_decode($pedido->consignacion_ids, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $nid) {
+                    $nid = (int)$nid;
+                    if ($nid && !in_array($nid, $neIds)) $neIds[] = $nid;
+                }
+            }
+        }
+
+        $lotesPorProducto = [];
+        if (!empty($neIds)) {
+            $db     = \Config\Database::connect();
+            $inList = implode(',', $neIds);
+            $filas  = $db->query("
+                SELECT
+                    p.codigo               AS producto_codigo,
+                    cl.numero_lote,
+                    cl.fecha_vencimiento,
+                    SUM(cdl.cantidad)      AS cantidad
+                FROM consignaciones_detalles cd
+                INNER JOIN productos p                    ON p.id  = cd.producto_id
+                INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
+                INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
+                WHERE cd.consignacion_id IN ({$inList})
+                GROUP BY p.codigo, cdl.lote_id
+                ORDER BY cl.numero_lote
+            ")->getResultObject();
+
+            foreach ($filas as $f) {
+                $lotesPorProducto[$f->producto_codigo][] = $f;
+            }
+        }
+
+        return view('pedidos/imprimir', [
+            'pedido'           => $pedido,
+            'detalles'         => $detalles,
+            'lotesPorProducto' => $lotesPorProducto,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────
     //  FORMULARIO EDITAR
     // ──────────────────────────────────────────────
 
