@@ -1132,6 +1132,40 @@
             if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
         }
 
+        // ── Notificación nativa del sistema ──────────────────────────────────
+        // Al abrir la página se pide permiso (el prompt propio del navegador).
+        // Si se concede, cuando aparece una alerta nueva se muestra una
+        // notificación del SO con su propio sonido — sigue funcionando aunque
+        // la pestaña esté minimizada o en segundo plano. Límite real: si el
+        // navegador queda mucho tiempo en segundo plano o el celular bloquea
+        // la pantalla, el sistema puede pausar este temporizador (sondea cada
+        // 15s) y el aviso solo llegará al volver a abrir la pestaña — para que
+        // llegue de verdad con la pestaña cerrada hace falta Web Push real
+        // desde el servidor (Service Worker + VAPID), que es la otra opción
+        // que se conversó y no se implementó en esta pasada.
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        function mostrarNotificacionNativa(total) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            try {
+                const n = new Notification('⚠ Alertas operativas pendientes', {
+                    body: total + ' alerta(s) requieren tu atención.',
+                    icon: '<?= esc($faviconUrl) ?>',
+                    tag: 'alertas-operativas',
+                    renotify: true,
+                });
+                n.onclick = function () {
+                    window.focus();
+                    n.close();
+                };
+            } catch (e) {
+                // El constructor puede fallar si un Service Worker controla la página;
+                // el sonido y la vibración ya cumplieron su función igualmente.
+            }
+        }
+
         function cargarAlertas() {
             fetch('<?= base_url('alertas/conteos') ?>')
                 .then(r => r.json())
@@ -1144,10 +1178,11 @@
                         $('#alertasBell')
                             .removeClass('bell-alert alerta-bell-glow')
                             .addClass('bell-alert alerta-bell-glow');
-                        // Animar tab y sonar solo si el conteo subió (alerta nueva)
+                        // Animar tab, sonar y notificar solo si el conteo subió (alerta nueva)
                         if (total > alertasTotales) {
                             animarTab(total);
                             reproducirAlertaSonora();
+                            mostrarNotificacionNativa(total);
                         }
                     } else {
                         $('#alertasCount').hide();
