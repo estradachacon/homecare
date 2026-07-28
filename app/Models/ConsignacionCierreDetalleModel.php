@@ -14,7 +14,7 @@ class ConsignacionCierreDetalleModel extends Model
     protected $allowedFields = [
         'cierre_id', 'detalle_id', 'producto_id',
         'cantidad_facturada', 'cantidad_devuelta', 'cantidad_stock_vendedor',
-        'doc_devolucion', 'foto_devolucion', 'comentario_devolucion',
+        'fecha_devolucion', 'doc_devolucion', 'foto_devolucion', 'comentario_devolucion',
     ];
 
     public function getPorCierre(int $cierreId): array

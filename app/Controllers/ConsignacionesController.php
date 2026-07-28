@@ -829,6 +829,11 @@ class ConsignacionesController extends BaseController
                 $fotos[$fileKey]->move(WRITEPATH . 'uploads/consignaciones/', $fotoNombre);
             }
 
+            $fechaDevolucion = null;
+            if ($cantDev > 0 && !empty($lin['fecha_devolucion'])) {
+                $fechaDevolucion = $lin['fecha_devolucion'];
+            }
+
             $cierreDetId = $cierreDetModel->insert([
                 'cierre_id'               => $cierreId,
                 'detalle_id'              => $det->id,
@@ -836,6 +841,7 @@ class ConsignacionesController extends BaseController
                 'cantidad_facturada'      => $cantFact,
                 'cantidad_devuelta'       => $cantDev,
                 'cantidad_stock_vendedor' => $cantStock,
+                'fecha_devolucion'        => $fechaDevolucion,
                 'doc_devolucion'          => $lin['doc_devolucion'] ?? null,
                 'foto_devolucion'         => $fotoNombre,
                 'comentario_devolucion'   => $lin['comentario_devolucion'] ?? null,
@@ -883,8 +889,11 @@ class ConsignacionesController extends BaseController
                     . (!empty($facturasTexto) ? ' (' . implode(', ', $facturasTexto) . ')' : ' (sin factura seleccionada)');
             }
             if ($cantDev > 0) {
+                $detalleDevolucion = [];
+                if ($fechaDevolucion) $detalleDevolucion[] = 'fecha: ' . date('d/m/Y', strtotime($fechaDevolucion));
+                if (!empty($lin['doc_devolucion'])) $detalleDevolucion[] = 'doc: ' . $lin['doc_devolucion'];
                 $partes[] = 'Devuelto ' . number_format($cantDev, 2)
-                    . (!empty($lin['doc_devolucion']) ? ' (doc: ' . $lin['doc_devolucion'] . ')' : '');
+                    . (!empty($detalleDevolucion) ? ' (' . implode(', ', $detalleDevolucion) . ')' : '');
             }
             if ($cantStock > 0) {
                 $partes[] = 'En stock del vendedor ' . number_format($cantStock, 2);

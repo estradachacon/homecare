@@ -299,19 +299,26 @@
                                     <div class="bloque-devolucion mt-3 p-3 border rounded bg-light" id="devolucion_<?= $d->id ?>">
                                         <p class="mb-2 small fw-bold text-danger"><i class="fa-solid fa-undo"></i> Datos de devolución</p>
                                         <div class="row g-2">
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <label class="small text-muted">Documento con el que se recibió</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][doc_devolucion]"
                                                     class="form-control form-control-sm"
                                                     placeholder="Nº documento o referencia">
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
+                                                <label class="small text-muted">Fecha en que el vendedor devolvió</label>
+                                                <input type="date" name="lineas[<?= $d->id ?>][fecha_devolucion]"
+                                                    class="form-control form-control-sm"
+                                                    value="<?= date('Y-m-d') ?>"
+                                                    max="<?= date('Y-m-d') ?>">
+                                            </div>
+                                            <div class="col-md-3">
                                                 <label class="small text-muted">Foto (opcional)</label>
                                                 <input type="file" name="foto_<?= $d->id ?>"
                                                     class="form-control form-control-sm"
                                                     accept="image/*">
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col-md-3">
                                                 <label class="small text-muted">Comentario</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][comentario_devolucion]"
                                                     class="form-control form-control-sm"

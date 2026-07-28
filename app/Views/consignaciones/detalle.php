@@ -360,6 +360,9 @@
                                                 <?php if ($cd->cantidad_stock_vendedor > 0): ?>
                                                     <span class="badge badge-info mr-1">Stock vendedor: <?= number_format($cd->cantidad_stock_vendedor, 2) ?></span>
                                                 <?php endif; ?>
+                                                <?php if (!empty($cd->fecha_devolucion)): ?>
+                                                    <div class="mt-1"><strong>Fecha devolución:</strong> <?= date('d/m/Y', strtotime($cd->fecha_devolucion)) ?></div>
+                                                <?php endif; ?>
                                                 <?php if ($cd->doc_devolucion): ?>
                                                     <div class="mt-1"><strong>Doc devolución:</strong> <?= esc($cd->doc_devolucion) ?></div>
                                                 <?php endif; ?>

@@ -215,6 +215,7 @@
               <th class="text-right">Precio s/IVA</th>
               <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
               <th>Estado</th>
+              <th>Fecha Devolución</th>
             </tr>
           </thead>
           <tbody>
@@ -298,6 +299,7 @@
                 <span class="text-muted small"><?= esc($estado) ?></span>
               <?php endif; ?>
             </td>
+            <td><?= !empty($l->fecha_devolucion) ? date('d/m/Y', strtotime($l->fecha_devolucion)) : '—' ?></td>
           </tr>
           <?php endforeach; ?>
           </tbody>
@@ -306,6 +308,7 @@
               <td colspan="12" class="text-right">TOTALES</td>
               <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
               <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
+              <td></td>
               <td></td>
             </tr>
           </tfoot>

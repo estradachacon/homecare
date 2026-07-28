@@ -2422,6 +2422,7 @@ class ReportesController extends Controller
                     pd.cantidad
                 ) AS cantidad_facturada,
                 ccd.cantidad_devuelta,
+                ccd.fecha_devolucion,
                 ccd.cantidad_stock_vendedor,
                 -- Nueva NE en caso de cambio
                 cc.nueva_consignacion_id,
@@ -2636,10 +2637,10 @@ class ReportesController extends Controller
                  'E'=>'Fecha Factura','F'=>'Días NE→Fac','G'=>'Doc Emitido','H'=>'Nº Doc',
                  'I'=>'Cliente Facturado','J'=>'Cód. Producto','K'=>'Descripción',
                  'L'=>'Cantidad','M'=>'Precio s/IVA','N'=>'Comisión ' . number_format($comision, 1) . '%',
-                 'O'=>'Estado'];
+                 'O'=>'Estado','P'=>'Fecha Devolución'];
 
         // Título
-        $sheet->mergeCells('A1:O1');
+        $sheet->mergeCells('A1:P1');
         $sheet->setCellValue('A1', $titulo);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('1F4E79');
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -2650,7 +2651,7 @@ class ReportesController extends Controller
         foreach ($cols as $col => $label) {
             $sheet->setCellValue("{$col}{$row}", $label);
         }
-        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+        $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E79']],
         ]);
@@ -2703,11 +2704,12 @@ class ReportesController extends Controller
                 $sheet->getStyle("N{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
             }
             $sheet->setCellValue("O{$row}", $estado);
+            $sheet->setCellValue("P{$row}", !empty($l->fecha_devolucion) ? date('d/m/Y', strtotime($l->fecha_devolucion)) : '');
 
             if ($esAnulada) {
-                $sheet->getStyle("A{$row}:O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFDDE2');
+                $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFDDE2');
             } elseif (!$l->factura_id && !empty($l->numero_nueva_ne)) {
-                $sheet->getStyle("A{$row}:O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF3CD');
+                $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF3CD');
             }
 
             $sheet->getStyle("L{$row}:N{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
@@ -2720,7 +2722,7 @@ class ReportesController extends Controller
         $sheet->setCellValue("A{$row}", 'TOTALES');
         $sheet->setCellValue("M{$row}", $totalPrecio);
         $sheet->setCellValue("N{$row}", $totalComision);
-        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+        $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
         ]);
@@ -2729,12 +2731,12 @@ class ReportesController extends Controller
         $sheet->getStyle("M{$row}:N{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
         $sheet->getRowDimension($row)->setRowHeight(14);
 
-        $sheet->getStyle("A2:O{$row}")->applyFromArray([
+        $sheet->getStyle("A2:P{$row}")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
         ]);
 
         $widths = ['A'=>12,'B'=>12,'C'=>12,'D'=>12,'E'=>12,'F'=>8,'G'=>8,'H'=>10,
-                   'I'=>28,'J'=>12,'K'=>36,'L'=>10,'M'=>14,'N'=>14,'O'=>22];
+                   'I'=>28,'J'=>12,'K'=>36,'L'=>10,'M'=>14,'N'=>14,'O'=>22,'P'=>16];
         foreach ($widths as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
         }

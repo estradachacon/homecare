@@ -116,13 +116,14 @@ col.c-ffac   { width: 6.5%; }
 col.c-dias   { width: 3.2%; }
 col.c-doc    { width: 3.2%; }
 col.c-ndoc   { width: 5%; }
-col.c-cli    { width: 12%; }
+col.c-cli    { width: 11%; }
 col.c-cod    { width: 5.5%; }
-col.c-desc   { width: 14%; }
+col.c-desc   { width: 11.5%; }
 col.c-qty    { width: 4.5%; }
 col.c-precio { width: 7%; }
 col.c-com    { width: 7%; }
 col.c-estado { width: 8.4%; }
+col.c-fdev   { width: 4%; }
 </style>
 </head>
 <body>
@@ -197,7 +198,7 @@ foreach ($grupos as $nombreVendedor => $filas):
     <col class="c-fecha"><col class="c-ne"><col class="c-fpedido"><col class="c-npedido">
     <col class="c-ffac"><col class="c-dias"><col class="c-doc"><col class="c-ndoc">
     <col class="c-cli"><col class="c-cod"><col class="c-desc">
-    <col class="c-qty"><col class="c-precio"><col class="c-com"><col class="c-estado">
+    <col class="c-qty"><col class="c-precio"><col class="c-com"><col class="c-estado"><col class="c-fdev">
 </colgroup>
 <thead>
     <tr>
@@ -216,6 +217,7 @@ foreach ($grupos as $nombreVendedor => $filas):
         <th class="num">Precio s/IVA</th>
         <th class="num">Com. <?= number_format($comision, 1) ?>%</th>
         <th>Estado</th>
+        <th>F. Devol.</th>
     </tr>
 </thead>
 <tbody>
@@ -253,6 +255,7 @@ foreach ($grupos as $nombreVendedor => $filas):
     <td class="num"><?= $precio > 0 ? '$ ' . number_format($precio, 2) : '—' ?></td>
     <td class="num"><?= $comVal > 0 ? '$ ' . number_format($comVal, 2) : '—' ?></td>
     <td><span class="badge <?= $badgeCls ?>"><?= esc($etiqueta) ?></span></td>
+    <td><?= !empty($l->fecha_devolucion) ? date('d/m/Y', strtotime($l->fecha_devolucion)) : '—' ?></td>
 </tr>
 <?php endforeach; ?>
 </tbody>
@@ -262,6 +265,7 @@ foreach ($grupos as $nombreVendedor => $filas):
         <td class="num"></td>
         <td class="num">$ <?= number_format($totalP, 2) ?></td>
         <td class="num">$ <?= number_format($totalC, 2) ?></td>
+        <td></td>
         <td></td>
     </tr>
 </tfoot>
