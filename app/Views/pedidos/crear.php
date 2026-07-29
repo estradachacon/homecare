@@ -834,6 +834,15 @@ $(function () {
                     continue;
                 }
 
+                if (!res.productos.length) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin pendiente',
+                        text: `${neText}: todos sus productos ya están incluidos en otra Nota de Pedido activa.`,
+                    });
+                    continue;
+                }
+
                 // Pre-llenar cliente solo desde la primera NE si aún no hay uno
                 if (res.cliente && !$('#selectCliente').val()) {
                     const opt = new Option(res.cliente.text, res.cliente.id, true, true);

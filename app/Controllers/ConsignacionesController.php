@@ -2019,6 +2019,13 @@ class ConsignacionesController extends BaseController
         $rows    = $builder->get()->getResult();
         $results = [];
         foreach ($rows as $row) {
+            // Si ya no queda nada pendiente de pedir en esta NE (todo está
+            // comprometido en otra Nota de Pedido activa, facturada o no),
+            // no se ofrece como opción en el modal.
+            if (!$this->_neTienePendiente((int)$row->id)) {
+                continue;
+            }
+
             $label = $row->numero;
             if (!empty($row->paciente_nombre)) {
                 $label .= ' — ' . $row->paciente_nombre;
@@ -2027,6 +2034,69 @@ class ConsignacionesController extends BaseController
         }
 
         return $this->response->setJSON(['results' => $results]);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Helpers: disponibilidad de una NE para Notas de Pedido
+    // ─────────────────────────────────────────────
+
+    /**
+     * Cantidad ya comprometida por producto_id en Notas de Pedido activas
+     * (no anuladas, pendientes o facturadas) que referencian esta NE.
+     *
+     * @return array<int, float> producto_id => cantidad
+     */
+    private function _comprometidoPorProductoNE(int $consignacionId): array
+    {
+        $db = \Config\Database::connect();
+
+        $rows = $db->query("
+            SELECT pd.producto_id, SUM(pd.cantidad) AS cantidad
+            FROM pedidos_detalles pd
+            INNER JOIN pedidos_head ph ON ph.id = pd.pedido_id
+            WHERE ph.anulada = 0
+              AND (
+                  ph.consignacion_id = ?
+                  OR (ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, ?))
+              )
+            GROUP BY pd.producto_id
+        ", [$consignacionId, (string)$consignacionId])->getResult();
+
+        $comprometido = [];
+        foreach ($rows as $row) {
+            $comprometido[(int)$row->producto_id] = (float)$row->cantidad;
+        }
+
+        return $comprometido;
+    }
+
+    /**
+     * True si al menos un producto de la NE todavía tiene cantidad
+     * disponible para incluir en una Nota de Pedido nueva.
+     */
+    private function _neTienePendiente(int $consignacionId): bool
+    {
+        $db = \Config\Database::connect();
+
+        $detalles = $db->table('consignaciones_detalles')
+            ->select('producto_id, cantidad')
+            ->where('consignacion_id', $consignacionId)
+            ->get()->getResult();
+
+        if (empty($detalles)) {
+            return false;
+        }
+
+        $comprometidoPorProducto = $this->_comprometidoPorProductoNE($consignacionId);
+
+        foreach ($detalles as $d) {
+            $comprometido = $comprometidoPorProducto[(int)$d->producto_id] ?? 0.0;
+            if (round((float)$d->cantidad - $comprometido, 4) > 0.0001) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────
@@ -2085,6 +2155,13 @@ class ConsignacionesController extends BaseController
             ->where('cd.consignacion_id', $id)
             ->get()->getResult();
 
+        // Cantidad ya comprometida en otras Notas de Pedido activas (no
+        // anuladas) que también referencian esta NE, para no volver a
+        // ofrecer lo que ya se pidió antes. Las NP no registran de qué lote
+        // específico salió cada unidad, así que el descuento en los lotes
+        // se hace en el mismo orden en que se listan (FIFO).
+        $comprometidoPorProducto = $this->_comprometidoPorProductoNE($id);
+
         $productos = [];
         foreach ($detalles as $d) {
             $loteRows = $db->table('consignacion_detalle_lotes cdl')
@@ -2093,19 +2170,36 @@ class ConsignacionesController extends BaseController
                 ->where('cdl.detalle_id', $d->detalle_id)
                 ->get()->getResult();
 
+            $comprometido      = $comprometidoPorProducto[(int)$d->producto_id] ?? 0.0;
+            $cantidadPendiente = round((float)$d->cantidad - $comprometido, 4);
+
+            // Ya se pidió todo lo disponible de este producto en esta NE.
+            if ($cantidadPendiente <= 0.0001) {
+                continue;
+            }
+
+            $restanteAConsumir = $comprometido;
             $lotes = [];
             foreach ($loteRows as $l) {
-                $lotes[] = [
-                    'numero_lote'      => $l->numero_lote,
-                    'fecha_vencimiento' => $l->fecha_vencimiento,
-                    'cantidad'         => (float)$l->cantidad,
-                ];
+                $cantidadLote = (float)$l->cantidad;
+                if ($restanteAConsumir > 0.0001) {
+                    $consumo = min($cantidadLote, $restanteAConsumir);
+                    $cantidadLote      -= $consumo;
+                    $restanteAConsumir -= $consumo;
+                }
+                if ($cantidadLote > 0.0001) {
+                    $lotes[] = [
+                        'numero_lote'      => $l->numero_lote,
+                        'fecha_vencimiento' => $l->fecha_vencimiento,
+                        'cantidad'         => round($cantidadLote, 4),
+                    ];
+                }
             }
 
             $productos[] = [
                 'producto_id'     => (int)$d->producto_id,
                 'producto_text'   => trim(($d->codigo ?? '') . ' — ' . $d->descripcion),
-                'cantidad'        => (float)$d->cantidad,
+                'cantidad'        => $cantidadPendiente,
                 'precio_unitario' => (float)$d->precio_unitario,
                 'lotes'           => $lotes,
             ];
