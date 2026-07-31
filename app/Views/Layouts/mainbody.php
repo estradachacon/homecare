@@ -1104,35 +1104,51 @@
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!Ctx) return null;
             if (!_audioCtx) _audioCtx = new Ctx();
-            if (_audioCtx.state === 'suspended') _audioCtx.resume();
+            if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(function () {});
             return _audioCtx;
         }
 
-        // Los navegadores bloquean el sonido automático hasta que el usuario
-        // interactúa con la página al menos una vez; esto lo "desbloquea" en
-        // cuanto ocurra el primer click/touch/tecla.
-        ['click', 'touchstart', 'keydown'].forEach(function (evt) {
-            document.addEventListener(evt, function () { _getAudioCtx(); }, { once: true, passive: true });
+        // Los navegadores bloquean el audio hasta que el usuario interactúa
+        // con la página al menos una vez. Se intenta desbloquear lo antes
+        // posible (de entrada, y también en cada interacción real) para que,
+        // si suena una alerta más tarde sin que haya habido un clic reciente,
+        // el contexto ya esté listo en vez de seguir bloqueado.
+        _getAudioCtx();
+        ['click', 'touchstart', 'pointerdown', 'keydown'].forEach(function (evt) {
+            document.addEventListener(evt, function () { _getAudioCtx(); }, { passive: true });
         });
+
+        function _tocarTonos(ctx) {
+            const tonos = [880, 660, 880, 660, 880];
+            tonos.forEach(function (freq, i) {
+                const t0 = ctx.currentTime + i * 0.28;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, t0);
+                gain.gain.setValueAtTime(0, t0);
+                gain.gain.linearRampToValueAtTime(1, t0 + 0.02);
+                gain.gain.setValueAtTime(1, t0 + 0.2);
+                gain.gain.linearRampToValueAtTime(0, t0 + 0.26);
+                osc.connect(gain).connect(ctx.destination);
+                osc.start(t0);
+                osc.stop(t0 + 0.27);
+            });
+        }
 
         function reproducirAlertaSonora() {
             const ctx = _getAudioCtx();
             if (ctx) {
-                const tonos = [880, 660, 880, 660, 880];
-                tonos.forEach(function (freq, i) {
-                    const t0 = ctx.currentTime + i * 0.28;
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(freq, t0);
-                    gain.gain.setValueAtTime(0, t0);
-                    gain.gain.linearRampToValueAtTime(1, t0 + 0.02);
-                    gain.gain.setValueAtTime(1, t0 + 0.2);
-                    gain.gain.linearRampToValueAtTime(0, t0 + 0.26);
-                    osc.connect(gain).connect(ctx.destination);
-                    osc.start(t0);
-                    osc.stop(t0 + 0.27);
-                });
+                // Si el contexto sigue suspendido (aún sin interacción del
+                // usuario en esta página), se espera a que el resume()
+                // termine antes de programar los tonos — si se programan
+                // contra un contexto todavía suspendido, el navegador los
+                // descarta en silencio y nunca se escucha nada.
+                if (ctx.state === 'running') {
+                    _tocarTonos(ctx);
+                } else {
+                    ctx.resume().then(function () { _tocarTonos(ctx); }).catch(function () {});
+                }
             }
             if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
         }
@@ -1172,6 +1188,7 @@
         }
 
         function cargarAlertas() {
+            _getAudioCtx(); // reintenta desbloquear el audio en cada sondeo
             fetch('<?= base_url('alertas/conteos') ?>')
                 .then(r => r.json())
                 .then(data => {
