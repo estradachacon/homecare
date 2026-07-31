@@ -375,7 +375,7 @@
                                                         <i class="fa-solid fa-boxes-stacked"></i> Pendiente lotes
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="badge badge-success" title="<?= (int)$c->lotes_asignados_count ?> lote(s) asignado(s)">
+                                                    <span class="badge badge-success text-white" title="<?= (int)$c->lotes_asignados_count ?> lote(s) asignado(s)">
                                                         <i class="fa-solid fa-check"></i> <?= (int)$c->lotes_asignados_count ?> lote(s)
                                                     </span>
                                                 <?php endif; ?>
