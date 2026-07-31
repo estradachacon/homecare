@@ -1062,7 +1062,12 @@
 
         <?php if (tienePermiso('ver_alertas_np_pendientes') || tienePermiso('ver_alertas_ne_sin_autorizar') || tienePermiso('ver_alertas_ne_sin_lotes') || tienePermiso('ver_alertas_ne_con_lotes_sin_aprobar')): ?>
         // ── Alertas operativas ────────────────────────────────────────────────
-        let alertasTotales = 0;
+        // Se guarda en localStorage (no solo en memoria) para que sobreviva
+        // a recargas/navegación: si no, cada vez que se abre una página el
+        // contador arranca en 0 y suena la alerta como si fuera nueva, aunque
+        // sea la misma que ya se venía viendo.
+        const LS_KEY_ALERTAS_TOTALES = 'homecare_alertas_totales_conocidas';
+        let alertasTotales = parseInt(localStorage.getItem(LS_KEY_ALERTAS_TOTALES) || '0', 10) || 0;
 
         // ── Animación de tab ─────────────────────────────────────────────────
         const _tabTituloOriginal = document.title;
@@ -1190,6 +1195,7 @@
                         detenerAnimTab();
                     }
                     alertasTotales = total;
+                    localStorage.setItem(LS_KEY_ALERTAS_TOTALES, String(total));
 
                     if (!alertas.length) {
                         $('#alertasList').html('<div class="dropdown-item text-muted text-center small py-3">Sin alertas configuradas</div>');

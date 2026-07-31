@@ -1077,8 +1077,30 @@ class ConsignacionesController extends BaseController
             $existingMap[(int)$d->id] = $d;
         }
 
+        // Nombres de producto (antes y después) para describir los cambios
+        // de forma legible en el log, en vez de solo IDs.
+        $productoIdsInvolucrados = [];
+        foreach ($existingMap as $d) $productoIdsInvolucrados[] = (int)$d->producto_id;
+        foreach ($productos as $p) if (!empty($p['producto_id'])) $productoIdsInvolucrados[] = (int)$p['producto_id'];
+        $productoIdsInvolucrados = array_unique($productoIdsInvolucrados);
+
+        $nombresProducto = [];
+        if (!empty($productoIdsInvolucrados)) {
+            $rows = $db->table('productos')
+                ->select('id, codigo, descripcion')
+                ->whereIn('id', $productoIdsInvolucrados)
+                ->get()->getResult();
+            foreach ($rows as $r) {
+                $nombresProducto[(int)$r->id] = trim(($r->codigo ? '[' . $r->codigo . '] ' : '') . $r->descripcion);
+            }
+        }
+        $nombreProducto = function (int $productoId) use ($nombresProducto): string {
+            return $nombresProducto[$productoId] ?? ('Producto #' . $productoId);
+        };
+
         $subtotal            = 0;
         $submittedDetalleIds = [];
+        $cambiosProductos    = [];
 
         $db->transStart();
 
@@ -1092,9 +1114,24 @@ class ConsignacionesController extends BaseController
             $subtotal += $sub;
 
             if ($detalleId && isset($existingMap[$detalleId])) {
-                $existing    = $existingMap[$detalleId];
-                $qtyChanged  = abs($cant - (float)$existing->cantidad) > 0.001;
-                $prodChanged = (int)$p['producto_id'] !== (int)$existing->producto_id;
+                $existing      = $existingMap[$detalleId];
+                $qtyChanged    = abs($cant - (float)$existing->cantidad) > 0.001;
+                $precioChanged = abs($precio - (float)$existing->precio_unitario) > 0.001;
+                $prodChanged   = (int)$p['producto_id'] !== (int)$existing->producto_id;
+
+                if ($qtyChanged || $precioChanged || $prodChanged) {
+                    $detalleCambio = [];
+                    if ($prodChanged) {
+                        $detalleCambio[] = 'producto: ' . $nombreProducto((int)$existing->producto_id) . ' → ' . $nombreProducto((int)$p['producto_id']);
+                    }
+                    if ($qtyChanged) {
+                        $detalleCambio[] = 'cantidad ' . number_format((float)$existing->cantidad, 2) . ' → ' . number_format($cant, 2);
+                    }
+                    if ($precioChanged) {
+                        $detalleCambio[] = 'precio $' . number_format((float)$existing->precio_unitario, 2) . ' → $' . number_format($precio, 2);
+                    }
+                    $cambiosProductos[] = $nombreProducto((int)$p['producto_id']) . ': ' . implode(', ', $detalleCambio);
+                }
 
                 $detModel->update($detalleId, [
                     'producto_id'     => (int)$p['producto_id'],
@@ -1119,12 +1156,18 @@ class ConsignacionesController extends BaseController
                     'subtotal'        => $sub,
                 ]);
                 $submittedDetalleIds[] = $newId;
+
+                $cambiosProductos[] = $nombreProducto((int)$p['producto_id'])
+                    . ': agregado (cantidad ' . number_format($cant, 2) . ', precio $' . number_format($precio, 2) . ')';
             }
         }
 
         // Eliminar filas borradas por el usuario (y sus lotes)
-        foreach (array_keys($existingMap) as $existingId) {
+        foreach ($existingMap as $existingId => $existing) {
             if (!in_array($existingId, $submittedDetalleIds)) {
+                $cambiosProductos[] = $nombreProducto((int)$existing->producto_id)
+                    . ': eliminado (cantidad ' . number_format((float)$existing->cantidad, 2) . ')';
+
                 $detalleLoteModel->reemplazarPorDetalle($existingId, []);
                 $detModel->delete($existingId);
             }
@@ -1137,18 +1180,27 @@ class ConsignacionesController extends BaseController
             $nombre = $pRow ? $pRow->nombre : null;
         }
 
+        $vendedorNuevo = $this->request->getPost('vendedor_id');
+        $doctorNuevo   = $this->request->getPost('doctor_id') ?: null;
+        $clienteNuevo  = $this->request->getPost('cliente_id') ?: null;
+        $tipoNotaNuevo = $this->request->getPost('tipo_nota_id') ?: null;
+        $conceptoNuevo = $this->request->getPost('concepto');
+        $fechaNuevo    = $this->request->getPost('fecha') ?: date('Y-m-d');
+        $horaNuevo     = $this->request->getPost('hora') ?: date('H:i');
+        $obsNuevo      = $this->request->getPost('observaciones');
+
         $headModel->update($id, [
-            'vendedor_id'   => $this->request->getPost('vendedor_id'),
+            'vendedor_id'   => $vendedorNuevo,
             'nombre'        => $nombre,
             'paciente_id'   => $pacienteId,
-            'doctor_id'     => $this->request->getPost('doctor_id') ?: null,
-            'cliente_id'    => $this->request->getPost('cliente_id') ?: null,
-            'tipo_nota_id'  => $this->request->getPost('tipo_nota_id') ?: null,
-            'concepto'      => $this->request->getPost('concepto'),
-            'fecha'         => $this->request->getPost('fecha') ?: date('Y-m-d'),
-            'hora'          => $this->request->getPost('hora') ?: date('H:i'),
+            'doctor_id'     => $doctorNuevo,
+            'cliente_id'    => $clienteNuevo,
+            'tipo_nota_id'  => $tipoNotaNuevo,
+            'concepto'      => $conceptoNuevo,
+            'fecha'         => $fechaNuevo,
+            'hora'          => $horaNuevo,
             'subtotal'      => $subtotal,
-            'observaciones' => $this->request->getPost('observaciones'),
+            'observaciones' => $obsNuevo,
         ]);
 
         $db->transComplete();
@@ -1165,7 +1217,51 @@ class ConsignacionesController extends BaseController
             $session->get('id')
         );
 
-        $this->registrarLog($id, 'Nota editada');
+        // ── Log de cambios: campos del encabezado, antes vs después ────────
+        $resolverNombre = function (string $tabla, string $columna, $valorId) use ($db) {
+            if (!$valorId) return null;
+            $row = $db->table($tabla)->select($columna)->where('id', $valorId)->get()->getRow();
+            return $row->$columna ?? null;
+        };
+
+        $cambiosEncabezado = [];
+
+        if ((int)$consignacion->vendedor_id !== (int)$vendedorNuevo) {
+            $cambiosEncabezado[] = 'Vendedor: ' . ($resolverNombre('sellers', 'seller', $consignacion->vendedor_id) ?? '—')
+                . ' → ' . ($resolverNombre('sellers', 'seller', $vendedorNuevo) ?? '—');
+        }
+        if ((int)($consignacion->doctor_id ?? 0) !== (int)($doctorNuevo ?? 0)) {
+            $cambiosEncabezado[] = 'Doctor: ' . ($resolverNombre('doctores', 'nombre', $consignacion->doctor_id) ?? '—')
+                . ' → ' . ($resolverNombre('doctores', 'nombre', $doctorNuevo) ?? '—');
+        }
+        if ((int)($consignacion->cliente_id ?? 0) !== (int)($clienteNuevo ?? 0)) {
+            $cambiosEncabezado[] = 'Cliente a facturar: ' . ($resolverNombre('clientes', 'nombre', $consignacion->cliente_id) ?? '—')
+                . ' → ' . ($resolverNombre('clientes', 'nombre', $clienteNuevo) ?? '—');
+        }
+        if ((int)($consignacion->paciente_id ?? 0) !== (int)($pacienteId ?? 0)) {
+            $cambiosEncabezado[] = 'Paciente: ' . ($resolverNombre('pacientes', 'nombre', $consignacion->paciente_id) ?? '—')
+                . ' → ' . ($resolverNombre('pacientes', 'nombre', $pacienteId) ?? '—');
+        }
+        if ((int)($consignacion->tipo_nota_id ?? 0) !== (int)($tipoNotaNuevo ?? 0)) {
+            $cambiosEncabezado[] = 'Tipo de nota: ' . ($resolverNombre('tipo_notas', 'nombre', $consignacion->tipo_nota_id) ?? '—')
+                . ' → ' . ($resolverNombre('tipo_notas', 'nombre', $tipoNotaNuevo) ?? '—');
+        }
+        if (trim((string)$consignacion->concepto) !== trim((string)$conceptoNuevo)) {
+            $cambiosEncabezado[] = 'Concepto: "' . ($consignacion->concepto ?: '—') . '" → "' . ($conceptoNuevo ?: '—') . '"';
+        }
+        if ($consignacion->fecha !== $fechaNuevo) {
+            $cambiosEncabezado[] = 'Fecha: ' . date('d/m/Y', strtotime($consignacion->fecha)) . ' → ' . date('d/m/Y', strtotime($fechaNuevo));
+        }
+        $horaAntesComparable = $consignacion->hora ? substr($consignacion->hora, 0, 5) : '';
+        if ($horaAntesComparable !== $horaNuevo) {
+            $cambiosEncabezado[] = 'Hora: ' . ($horaAntesComparable ?: '—') . ' → ' . $horaNuevo;
+        }
+        if (trim((string)$consignacion->observaciones) !== trim((string)$obsNuevo)) {
+            $cambiosEncabezado[] = 'Observaciones: "' . ($consignacion->observaciones ?: '—') . '" → "' . ($obsNuevo ?: '—') . '"';
+        }
+
+        $detalleLog = implode(' | ', array_merge($cambiosEncabezado, $cambiosProductos));
+        $this->registrarLog($id, 'Nota editada', $detalleLog !== '' ? $detalleLog : 'Sin cambios detectados.');
 
         return redirect()->to('/consignaciones/' . $id)
             ->with('success', 'Nota de envío actualizada correctamente.');

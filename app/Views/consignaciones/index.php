@@ -371,7 +371,7 @@
                                                         <i class="fa-solid fa-clock"></i> Sin autorizar
                                                     </span>
                                                 <?php elseif ((int)$c->lotes_asignados_count === 0): ?>
-                                                    <span class="badge badge-info" title="Autorizado — sin lotes asignados aún">
+                                                    <span class="badge badge-info text-white" title="Autorizado — sin lotes asignados aún">
                                                         <i class="fa-solid fa-boxes-stacked"></i> Pendiente lotes
                                                     </span>
                                                 <?php else: ?>
