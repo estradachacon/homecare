@@ -3,7 +3,7 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between">
                 <h4 class="mb-0">
                     <i class="fa-solid fa-code-merge me-2"></i> Clientes duplicados
                 </h4>
@@ -16,7 +16,9 @@
                     Se agrupan los clientes que comparten el mismo número de documento (DUI/NIT).
                     Elige cuál registro quieres <strong>conservar</strong> y fusiona los demás dentro de él:
                     todas las facturas, notas de pedido, notas de envío, pagos, quedans y recuperos del
-                    duplicado se moverán al cliente conservado y el duplicado se eliminará.
+                    duplicado se moverán al cliente conservado y el duplicado se eliminará. Si el duplicado
+                    tenía su propia cuenta contable, sus asientos, saldos y movimientos también se mueven
+                    a la cuenta real y la cuenta duplicada se desactiva.
                 </p>
 
                 <?php if (empty($grupos)): ?>
@@ -28,7 +30,7 @@
                         <div class="card mb-4 dup-grupo">
                             <div class="card-header bg-light">
                                 <strong>Documento:</strong> <?= esc($grupo['documento']) ?>
-                                <span class="badge bg-secondary ms-2"><?= count($grupo['clientes']) ?> registros</span>
+                                <span class="badge bg-secondary text-white ms-2"><?= count($grupo['clientes']) ?> registros</span>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -42,6 +44,7 @@
                                                 <th>Nombre</th>
                                                 <th>Teléfono</th>
                                                 <th>Correo</th>
+                                                <th>Cuenta contable</th>
                                                 <th>Creado</th>
                                                 <th>Registros asociados</th>
                                                 <th style="width:110px">Acciones</th>
@@ -61,6 +64,14 @@
                                                     <td><?= esc($c->nombre) ?></td>
                                                     <td><?= esc($c->telefono) ?></td>
                                                     <td><?= esc($c->correo) ?></td>
+                                                    <td>
+                                                        <?php if ($c->cuenta_contable): ?>
+                                                            <span class="badge bg-light text-dark"><?= esc($c->cuenta_contable->codigo) ?></span>
+                                                            <?= esc($c->cuenta_contable->nombre) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">Sin cuenta</span>
+                                                        <?php endif; ?>
+                                                    </td>
                                                     <td><?= $c->created_at ? date('d/m/Y H:i', strtotime($c->created_at)) : '—' ?></td>
                                                     <td>
                                                         <?php if ($c->total_referencias > 0): ?>

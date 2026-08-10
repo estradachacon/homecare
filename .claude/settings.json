@@ -32,7 +32,22 @@
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SHOW VARIABLES LIKE 'general_log%';\")",
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW VARIABLES LIKE 'port';\")",
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW VARIABLES LIKE 'datadir';\")",
-      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, nombre, numero_documento FROM clientes WHERE numero_documento='03052808-8';\")"
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, nombre, numero_documento FROM clientes WHERE numero_documento='03052808-8';\")",
+      "Bash(php -l app/Models/ClienteModel.php)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, nombre FROM clientes WHERE numero_documento = TRIM\\('03052808-8'\\);\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE cont_saldos_cuentas;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE cont_saldos_historicos;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE cont_transacciones_hist;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM cont_saldos_cuentas WHERE cuenta_id=495;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM cont_saldos_historicos WHERE cuenta_id=495;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM cont_transacciones_hist WHERE cuenta_id=495;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM cont_saldos_cuentas WHERE cuenta_id=480;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM cont_saldos_historicos WHERE cuenta_id=480 AND anio=2026 AND mes=8;\")",
+      "Bash(php -l app/Commands/TempFusionarCuenta.php)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/fusionar-ajax --data-urlencode principal_id=111 --data-urlencode duplicado_id=112 -o fusion_test.json)",
+      "Bash(php -l app/Controllers/Facturas.php)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, tipo_documento, nombre FROM clientes WHERE tipo_documento='36' LIMIT 1;\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/edit/8 -o edit8.html)"
     ]
   }
 }

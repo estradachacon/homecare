@@ -383,7 +383,7 @@ class Facturas extends BaseController
                     if (!$cliente) {
 
                         $clienteId = $clienteModel->insert([
-                            'tipo_documento'   => $tipoDocumento,
+                            'tipo_documento'   => ClienteModel::normalizarTipoDocumento($tipoDocumento),
                             'numero_documento' => $numeroDocumento,
                             'nrc'              => $nrc,
                             'cod_actividad'    => $receptor['codActividad'] ?? null,

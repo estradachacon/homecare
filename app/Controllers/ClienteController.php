@@ -93,7 +93,7 @@ class ClienteController extends BaseController
         }
 
         $data = [
-            'tipo_documento'     => $this->request->getPost('tipo_documento'),
+            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')),
             'numero_documento'   => $this->request->getPost('numero_documento'),
             'nrc'                => $this->request->getPost('nrc'),
             'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
@@ -326,6 +326,11 @@ class ClienteController extends BaseController
             return redirect()->to('/clientes')->with('error', 'Cliente no encontrado');
         }
 
+        // Algunos clientes quedaron con el código numérico de Hacienda (13, 36, ...)
+        // en vez de la sigla ('DUI'/'NIT') que reconoce el <select> de este formulario.
+        // Se normaliza solo para mostrarlo correctamente seleccionado; no se guarda aquí.
+        $cliente->tipo_documento = ClienteModel::normalizarTipoDocumento($cliente->tipo_documento);
+
         $cuentaSeleccionada = null;
 
         if (!empty($cliente->cuenta_contable_id)) {
@@ -373,7 +378,7 @@ class ClienteController extends BaseController
         $codActividad = $this->request->getPost('cod_actividad') ?: null;
 
         $data = [
-            'tipo_documento'     => $this->request->getPost('tipo_documento'),
+            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')),
             'numero_documento'   => $this->request->getPost('numero_documento'),
             'nrc'                => $this->request->getPost('nrc'),
             'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
@@ -696,6 +701,9 @@ class ClienteController extends BaseController
             foreach ($clientesGrupo as $c) {
                 $c->referencias       = $this->contarReferencias((int)$c->id);
                 $c->total_referencias = array_sum($c->referencias);
+                $c->cuenta_contable   = $c->cuenta_contable_id
+                    ? $db->table('cont_plan_cuentas')->select('codigo, nombre')->where('id', $c->cuenta_contable_id)->get()->getRow()
+                    : null;
             }
 
             $grupos[] = [
@@ -741,6 +749,23 @@ class ClienteController extends BaseController
             }
         }
 
+        // Cuenta contable del cliente duplicado (si tenía una propia)
+        $cuentaInfo        = null;
+        $cuentaDuplicadoId = $duplicado->cuenta_contable_id ? (int)$duplicado->cuenta_contable_id : null;
+        $cuentaPrincipalId = $principal->cuenta_contable_id ? (int)$principal->cuenta_contable_id : null;
+
+        if ($cuentaDuplicadoId && $cuentaDuplicadoId !== $cuentaPrincipalId) {
+            if (!$cuentaPrincipalId) {
+                // El principal no tenía cuenta contable propia: adopta la del duplicado.
+                $db->table('clientes')->where('id', $principalId)->update(['cuenta_contable_id' => $cuentaDuplicadoId]);
+                $cuentaInfo = "cuenta contable #{$cuentaDuplicadoId} adoptada por el cliente conservado";
+            } else {
+                // Ambos tenían cuenta propia: la cuenta del duplicado es huérfana/redundante.
+                // Se mueven sus movimientos (asientos, saldos, histórico) hacia la cuenta real y se desactiva.
+                $cuentaInfo = $this->fusionarCuentaContable($cuentaDuplicadoId, $cuentaPrincipalId);
+            }
+        }
+
         $db->table('clientes')->where('id', $duplicadoId)->delete();
 
         $db->transComplete();
@@ -753,7 +778,8 @@ class ClienteController extends BaseController
             ? implode(', ', array_map(fn($t, $c) => "$t: $c", array_keys($movidos), $movidos))
             : 'sin registros vinculados';
 
-        $detalle = "Cliente #{$duplicadoId} ({$duplicado->nombre}) fusionado dentro de #{$principalId} ({$principal->nombre}). Registros movidos → {$resumen}.";
+        $detalle = "Cliente #{$duplicadoId} ({$duplicado->nombre}) fusionado dentro de #{$principalId} ({$principal->nombre}). Registros movidos → {$resumen}."
+            . ($cuentaInfo ? " Cuenta contable → {$cuentaInfo}." : '');
 
         registrar_bitacora('Fusionar clientes', 'Ventas', $detalle, $principalId);
 
@@ -761,7 +787,116 @@ class ClienteController extends BaseController
             'success' => true,
             'message' => 'Clientes fusionados correctamente.',
             'movidos' => $movidos,
+            'cuenta_contable' => $cuentaInfo,
         ]);
+    }
+
+    /**
+     * Mueve todos los movimientos contables (asientos, saldos por período,
+     * histórico mensual y transacciones con saldo acumulado) de una cuenta
+     * contable huérfana hacia la cuenta real del cliente conservado, y
+     * desactiva la cuenta huérfana para que no se vuelva a usar.
+     *
+     * Replica exactamente la aritmética que usa ContAsientosHeadModel::aprobarConSaldos()
+     * y ContSaldosCuentasModel::upsert() para no dejar saldos/saldo_acumulado
+     * inconsistentes en la cuenta destino.
+     */
+    private function fusionarCuentaContable(int $origenId, int $destinoId): string
+    {
+        $db      = db_connect();
+        $resumen = [];
+
+        // 1) Líneas de asientos ya aprobados: son la fuente de verdad del libro diario.
+        $cntAsientos = $db->table('cont_asientos_detalle')->where('cuenta_id', $origenId)->countAllResults();
+        if ($cntAsientos > 0) {
+            $db->table('cont_asientos_detalle')->where('cuenta_id', $origenId)->update(['cuenta_id' => $destinoId]);
+            $resumen[] = "{$cntAsientos} línea(s) de asiento";
+        }
+
+        // 2) Saldos por período: se suman al saldo existente del destino (o se adoptan si no tenía).
+        $saldosModel = new \App\Models\ContSaldosCuentasModel();
+        $filasSaldo  = $db->table('cont_saldos_cuentas')->where('cuenta_id', $origenId)->get()->getResult();
+        foreach ($filasSaldo as $fila) {
+            $saldosModel->upsert($destinoId, (int)$fila->periodo_id, (float)$fila->total_debe, (float)$fila->total_haber);
+        }
+        if (!empty($filasSaldo)) {
+            $db->table('cont_saldos_cuentas')->where('cuenta_id', $origenId)->delete();
+            $resumen[] = count($filasSaldo) . ' saldo(s) de período';
+        }
+
+        // 3) Histórico mensual (se llena en el cierre anual; puede no tener filas).
+        $filasHist = $db->table('cont_saldos_historicos')->where('cuenta_id', $origenId)->get()->getResult();
+        foreach ($filasHist as $fila) {
+            $existente = $db->table('cont_saldos_historicos')
+                ->where('cuenta_id', $destinoId)
+                ->where('anio', $fila->anio)
+                ->where('mes', $fila->mes)
+                ->get()->getRow();
+
+            if ($existente) {
+                $db->table('cont_saldos_historicos')->where('id', $existente->id)->update([
+                    'total_debe'  => (float)$existente->total_debe + (float)$fila->total_debe,
+                    'total_haber' => (float)$existente->total_haber + (float)$fila->total_haber,
+                    'saldo_final' => (float)$existente->saldo_inicial + (float)$existente->total_debe + (float)$fila->total_debe
+                        - ((float)$existente->total_haber + (float)$fila->total_haber),
+                ]);
+            } else {
+                $db->table('cont_saldos_historicos')->insert([
+                    'cuenta_id'     => $destinoId,
+                    'anio'          => $fila->anio,
+                    'mes'           => $fila->mes,
+                    'saldo_inicial' => $fila->saldo_inicial,
+                    'total_debe'    => $fila->total_debe,
+                    'total_haber'   => $fila->total_haber,
+                    'saldo_final'   => $fila->saldo_final,
+                ]);
+            }
+        }
+        if (!empty($filasHist)) {
+            $db->table('cont_saldos_historicos')->where('cuenta_id', $origenId)->delete();
+            $resumen[] = count($filasHist) . ' histórico(s) mensual(es)';
+        }
+
+        // 4) Transacciones con saldo acumulado: se reinsertan en el destino, en el mismo
+        //    orden relativo, recalculando el acumulado igual que aprobarConSaldos().
+        $filasTrans = $db->table('cont_transacciones_hist')->where('cuenta_id', $origenId)->orderBy('id', 'ASC')->get()->getResult();
+        foreach ($filasTrans as $fila) {
+            $prevAcum = (float)($db->query(
+                'SELECT COALESCE(SUM(debe)-SUM(haber),0) AS s FROM cont_transacciones_hist WHERE cuenta_id=?',
+                [$destinoId]
+            )->getRow()->s ?? 0);
+
+            $db->table('cont_transacciones_hist')->insert([
+                'asiento_id'      => $fila->asiento_id,
+                'cuenta_id'       => $destinoId,
+                'fecha'           => $fila->fecha,
+                'descripcion'     => $fila->descripcion,
+                'debe'            => $fila->debe,
+                'haber'           => $fila->haber,
+                'saldo_acumulado' => $prevAcum + (float)$fila->debe - (float)$fila->haber,
+                'anio'            => $fila->anio,
+                'mes'             => $fila->mes,
+                'tipo_asiento'    => $fila->tipo_asiento,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+        }
+        if (!empty($filasTrans)) {
+            $db->table('cont_transacciones_hist')->where('cuenta_id', $origenId)->delete();
+            $resumen[] = count($filasTrans) . ' movimiento(s) histórico(s)';
+        }
+
+        // 5) Retenciones de pagos que apuntaban a la cuenta huérfana (poco común en cuentas de cliente).
+        $cntRet = $db->table('pagos_details')->where('retencion_cuenta_id', $origenId)->countAllResults();
+        if ($cntRet > 0) {
+            $db->table('pagos_details')->where('retencion_cuenta_id', $origenId)->update(['retencion_cuenta_id' => $destinoId]);
+            $resumen[] = "{$cntRet} retención(es) de pago";
+        }
+
+        // 6) Desactivar la cuenta duplicada para que no se vuelva a seleccionar.
+        $db->table('cont_plan_cuentas')->where('id', $origenId)->update(['activo' => 0]);
+
+        return "cuenta #{$origenId} fusionada dentro de #{$destinoId} y desactivada ("
+            . ($resumen ? implode(', ', $resumen) : 'sin movimientos contables que mover') . ')';
     }
 
     public function eliminarAjax($id)
