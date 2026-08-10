@@ -68,6 +68,11 @@ class PedidosController extends BaseController
             'numero_sugerido' => $model->siguienteNumero(),
             'vendedor_nombre' => $seller->seller ?? $session->get('user_name'),
             'vendedor_id'     => $seller->id     ?? null,
+            'departamentos'   => $db->table('hacienda_departamentos')
+                ->where('activo', 1)
+                ->orderBy('codigo', 'ASC')
+                ->get()
+                ->getResult(),
         ]);
     }
 
@@ -775,25 +780,45 @@ class PedidosController extends BaseController
 
         $model = new ClienteModel();
 
+        $codActividad = $this->request->getPost('cod_actividad') ?: null;
+        $nrc          = trim($this->request->getPost('nrc') ?? '') ?: null;
+
         $id = $model->insert([
-            'tipo_documento'   => $this->request->getPost('tipo_documento') ?: 'DUI',
-            'numero_documento' => trim($this->request->getPost('numero_documento') ?? ''),
-            'nrc'              => trim($this->request->getPost('nrc') ?? '') ?: null,
-            'nombre'           => $nombre,
-            'telefono'         => trim($this->request->getPost('telefono') ?? '') ?: null,
-            'correo'           => trim($this->request->getPost('correo') ?? '') ?: null,
-            'departamento'     => trim($this->request->getPost('departamento') ?? '') ?: null,
-            'municipio'        => trim($this->request->getPost('municipio') ?? '') ?: null,
-            'direccion'        => trim($this->request->getPost('direccion') ?? '') ?: null,
+            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')) ?: 'DUI',
+            'numero_documento'   => trim($this->request->getPost('numero_documento') ?? ''),
+            'nrc'                => $nrc,
+            'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
+            'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
+            'cod_actividad'      => $codActividad,
+            'desc_actividad'     => $codActividad
+                ? (config('ActividadesEconomicas')->actividades[$codActividad] ?? $this->request->getPost('desc_actividad'))
+                : null,
+            'nombre'             => $nombre,
+            'telefono'           => trim($this->request->getPost('telefono') ?? '') ?: null,
+            'correo'             => trim($this->request->getPost('correo') ?? '') ?: null,
+            'departamento'       => trim($this->request->getPost('departamento') ?? '') ?: null,
+            'municipio'          => trim($this->request->getPost('municipio') ?? '') ?: null,
+            'direccion'          => trim($this->request->getPost('direccion') ?? '') ?: null,
+            'cuenta_contable_id' => $this->request->getPost('cuenta_contable_id') ?: null,
         ]);
 
         if (!$id) {
-            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear el cliente.']);
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo crear el cliente.',
+                'errors'  => $model->errors(),
+            ]);
         }
 
         return $this->response->setJSON([
             'success' => true,
-            'cliente' => ['id' => $id, 'text' => $nombre],
+            'cliente' => [
+                'id'               => $id,
+                'text'             => $nombre,
+                'nrc'              => $nrc ?: '',
+                'numero_documento' => trim($this->request->getPost('numero_documento') ?? ''),
+                'tipo_documento'   => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')) ?: 'DUI',
+            ],
             'csrf'    => csrf_hash(),
         ]);
     }

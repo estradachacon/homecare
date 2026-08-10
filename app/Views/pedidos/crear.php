@@ -308,7 +308,6 @@
                                 <option value="DUI">DUI</option>
                                 <option value="NIT">NIT</option>
                                 <option value="PASAPORTE">Pasaporte</option>
-                                <option value="OTRO">Otro</option>
                             </select>
                         </div>
                         <div class="col-md-4 form-group">
@@ -317,9 +316,29 @@
                         </div>
                         <div class="col-md-4 form-group">
                             <label>NRC</label>
-                            <input type="text" name="nrc" class="form-control" placeholder="NRC (si aplica)">
+                            <input type="text" name="nrc" class="form-control" placeholder="NRC (necesario para Crédito Fiscal)">
                         </div>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="d-flex flex-wrap mb-2" style="gap:.5rem 2.5rem;">
+                                <input type="hidden" name="gran_contribuyente" value="0">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="npc_gran_contribuyente" name="gran_contribuyente" value="1">
+                                    <label class="custom-control-label" for="npc_gran_contribuyente">Gran Contribuyente</label>
+                                </div>
+                                <input type="hidden" name="exento_iva" value="0">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="npc_exento_iva" name="exento_iva" value="1">
+                                    <label class="custom-control-label" for="npc_exento_iva">Exento de IVA</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
                     <div class="row">
                         <div class="col-md-8 form-group">
                             <label>Nombre / Razón Social <span class="text-danger">*</span></label>
@@ -336,11 +355,42 @@
                             <input type="email" name="correo" class="form-control">
                         </div>
                         <div class="col-md-6 form-group">
-                            <label>Dirección</label>
-                            <input type="text" name="direccion" class="form-control">
+                            <label>Giro / Actividad económica</label>
+                            <select name="cod_actividad" id="npc_cod_actividad" class="form-control">
+                                <option value="">Sin actividad asignada</option>
+                                <?php foreach (config('ActividadesEconomicas')->actividades as $cod => $desc): ?>
+                                    <option value="<?= esc($cod) ?>"><?= esc($cod) ?> - <?= esc($desc) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="hidden" name="desc_actividad" id="npc_desc_actividad">
                         </div>
                     </div>
-                    <div id="clienteError" class="alert alert-danger d-none"></div>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label>Departamento</label>
+                            <select name="departamento" id="npc_departamento" class="form-control">
+                                <option value="">Seleccione...</option>
+                                <?php foreach (($departamentos ?? []) as $dep): ?>
+                                    <option value="<?= esc($dep->codigo) ?>"><?= esc($dep->nombre) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Municipio</label>
+                            <select name="municipio" id="npc_municipio" class="form-control">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label>Cuenta Contable</label>
+                            <select name="cuenta_contable_id" id="npc_cuenta_contable_id" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label>Dirección</label>
+                        <input type="text" name="direccion" class="form-control">
+                    </div>
+                    <div id="clienteError" class="alert alert-danger d-none mt-3 mb-0"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -383,6 +433,7 @@
 
 <script>
 let filaIdx = 0;
+const clientesActividadesMap = <?= json_encode(config('ActividadesEconomicas')->actividades) ?>;
 const PRECIO_MIN_ALERT = 'No puede ingresar un precio menor al mínimo configurado ($';
 function notificarPrecioSuperior(valor) {
     if (typeof Swal === 'undefined') return;
@@ -986,6 +1037,61 @@ $(function () {
             });
     }
 
+    // Modal crear cliente — giro, cuenta contable y cascada departamento/municipio
+    $('#npc_cod_actividad').select2({
+        placeholder: 'Buscar por código o nombre de actividad...',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('#modalCliente'),
+    });
+    $('#npc_cod_actividad').on('change', function () {
+        const cod = $(this).val();
+        $('#npc_desc_actividad').val(clientesActividadesMap[cod] || '');
+    });
+
+    $('#npc_cuenta_contable_id').select2({
+        placeholder: 'Buscar cuenta contable',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('#modalCliente'),
+        ajax: {
+            url: '<?= base_url('clientes/cuentas-contables-select2') ?>',
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ q: params.term || '' }),
+            processResults: data => data,
+        },
+    });
+
+    $('#npc_departamento').on('change', function () {
+        const departamento = $(this).val();
+        $('#npc_municipio').html('<option value="">Cargando...</option>');
+        if (!departamento) {
+            $('#npc_municipio').html('<option value="">Seleccione...</option>');
+            return;
+        }
+        $.ajax({
+            url: '<?= base_url('clientes/municipios-por-departamento') ?>',
+            type: 'GET',
+            dataType: 'json',
+            data: { departamento },
+            success: function (response) {
+                let options = '<option value="">Seleccione...</option>';
+                response.forEach(mun => { options += `<option value="${mun.codigo}">${mun.nombre}</option>`; });
+                $('#npc_municipio').html(options);
+            },
+            error: function () { $('#npc_municipio').html('<option value="">Seleccione...</option>'); },
+        });
+    });
+
+    $('#modalCliente').on('hidden.bs.modal', function () {
+        $('#formCliente')[0].reset();
+        $('#npc_cod_actividad').val(null).trigger('change');
+        $('#npc_cuenta_contable_id').val(null).trigger('change');
+        $('#npc_municipio').html('<option value="">Seleccione...</option>');
+        $('#clienteError').addClass('d-none').text('');
+    });
+
     // Modal crear cliente
     $('#formCliente').on('submit', function (e) {
         e.preventDefault();
@@ -1004,10 +1110,27 @@ $(function () {
                     err.removeClass('d-none').text(res.message || 'Error al crear cliente.');
                     return;
                 }
+
+                // select2:select solo se dispara al elegir de la lista de búsqueda; al
+                // insertar la opción manualmente hay que replicar aquí lo que hace
+                // aplicarCambioCliente(), o el cliente recién creado queda con NRC
+                // "invisible" para la validación de Crédito Fiscal aunque sí lo tenga.
                 const opt = new Option(res.cliente.text, res.cliente.id, true, true);
-                $('#selectCliente').append(opt).trigger('change');
+                $('#selectCliente').empty().append(opt).trigger('change');
+                clienteNrcActual = res.cliente.nrc || '';
+                prevClienteId    = String(res.cliente.id);
+                prevClienteText  = res.cliente.text;
+                actualizarBtnProducto();
+
                 $('#modalCliente').modal('hide');
-                $('#formCliente')[0].reset();
+
+                if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cliente sin NRC',
+                        text: 'El cliente se creó correctamente, pero no tiene NRC. El Crédito Fiscal requiere NRC.',
+                    });
+                }
             },
             error: function () { err.removeClass('d-none').text('Error de comunicación.'); },
             complete: function () { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente'); },

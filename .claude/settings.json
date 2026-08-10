@@ -47,7 +47,10 @@
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/fusionar-ajax --data-urlencode principal_id=111 --data-urlencode duplicado_id=112 -o fusion_test.json)",
       "Bash(php -l app/Controllers/Facturas.php)",
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, tipo_documento, nombre FROM clientes WHERE tipo_documento='36' LIMIT 1;\")",
-      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/edit/8 -o edit8.html)"
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/edit/8 -o edit8.html)",
+      "Bash(php -l app/Controllers/PedidosController.php)",
+      "Bash(php -l app/Views/pedidos/crear.php)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/pedidos/crear -o crear.html)"
     ]
   }
 }
