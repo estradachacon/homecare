@@ -31,7 +31,7 @@
                     <?php foreach ($grupos as $grupo): ?>
                         <div class="card mb-4 dup-grupo">
                             <div class="card-header bg-light">
-                                <span class="badge bg-primary me-2"><?= esc($grupo['tipo']) ?></span>
+                                <span class="badge text-white bg-primary me-2"><?= esc($grupo['tipo']) ?></span>
                                 <strong><?= esc($grupo['tipo']) ?>:</strong> <?= esc($grupo['documento']) ?>
                                 <span class="badge bg-secondary text-white ms-2"><?= count($grupo['clientes']) ?> registros</span>
                             </div>
