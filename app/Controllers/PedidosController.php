@@ -355,6 +355,30 @@ class PedidosController extends BaseController
             foreach ($filas as $f) {
                 $lotesPorProducto[$f->producto_codigo][] = $f;
             }
+
+            // La NE pudo haber traído más unidades de un producto de las que
+            // finalmente se incluyeron en esta NP (p.ej. se mandaron 2 pero
+            // solo se está pidiendo facturar 1). Se recorta la lista de
+            // lotes mostrada para que nunca sume más que lo que este pedido
+            // realmente solicita de cada producto, restando en el mismo
+            // orden en que se listan los lotes (FIFO).
+            $cantidadPorCodigo = [];
+            foreach ($detalles as $d) {
+                $cantidadPorCodigo[$d->producto_codigo] = ($cantidadPorCodigo[$d->producto_codigo] ?? 0) + (float)$d->cantidad;
+            }
+
+            foreach ($lotesPorProducto as $codigo => $lotes) {
+                $restante       = $cantidadPorCodigo[$codigo] ?? 0;
+                $lotesAjustados = [];
+                foreach ($lotes as $l) {
+                    if ($restante <= 0.0001) break;
+                    $cantidadLote = min((float)$l->cantidad, $restante);
+                    $restante    -= $cantidadLote;
+                    $l->cantidad  = $cantidadLote;
+                    $lotesAjustados[] = $l;
+                }
+                $lotesPorProducto[$codigo] = $lotesAjustados;
+            }
         }
 
         return view('pedidos/imprimir', [
