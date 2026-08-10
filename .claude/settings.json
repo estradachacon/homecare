@@ -55,7 +55,9 @@
       "Bash(grep -rn \"preg_replace.*\\\\\\\\\\\\\\\\D\\\\|preg_replace.*-\\\\|str_replace\\('-'\" app/Controllers app/Models app/Views)",
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nrc=999888-1 --data-urlencode nombre=_PW_TEST_DASH -o resp1.json)",
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=9999-999999-999-9 --data-urlencode nrc=111222-3 --data-urlencode nombre=_PW_TEST_DASH2 -o resp2.json)",
-      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, numero_documento FROM clientes WHERE id=113;\")"
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, numero_documento FROM clientes WHERE id=113;\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/login --data-urlencode username=_pw_test_tmp --data-urlencode 'password=TempTest#2026' -o login.json)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/duplicados -o dup.html)"
     ]
   }
 }

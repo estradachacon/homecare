@@ -13,7 +13,9 @@
             </div>
             <div class="card-body">
                 <p class="text-muted mb-4">
-                    Se agrupan los clientes que comparten el mismo número de documento (DUI/NIT).
+                    Se agrupan los clientes que comparten el mismo número de documento (DUI/NIT) o el mismo NRC,
+                    sin importar si uno tiene guiones/espacios y el otro no (p.ej. "1315-100574-101-4" y
+                    "13151005741014" se detectan como el mismo).
                     Elige cuál registro quieres <strong>conservar</strong> y fusiona los demás dentro de él:
                     todas las facturas, notas de pedido, notas de envío, pagos, quedans y recuperos del
                     duplicado se moverán al cliente conservado y el duplicado se eliminará. Si el duplicado
@@ -23,13 +25,14 @@
 
                 <?php if (empty($grupos)): ?>
                     <div class="alert alert-success mb-0">
-                        <i class="fa-solid fa-circle-check me-1"></i> No se encontraron clientes duplicados por número de documento.
+                        <i class="fa-solid fa-circle-check me-1"></i> No se encontraron clientes duplicados por número de documento ni por NRC.
                     </div>
                 <?php else: ?>
                     <?php foreach ($grupos as $grupo): ?>
                         <div class="card mb-4 dup-grupo">
                             <div class="card-header bg-light">
-                                <strong>Documento:</strong> <?= esc($grupo['documento']) ?>
+                                <span class="badge bg-primary me-2"><?= esc($grupo['tipo']) ?></span>
+                                <strong><?= esc($grupo['tipo']) ?>:</strong> <?= esc($grupo['documento']) ?>
                                 <span class="badge bg-secondary text-white ms-2"><?= count($grupo['clientes']) ?> registros</span>
                             </div>
                             <div class="card-body p-0">

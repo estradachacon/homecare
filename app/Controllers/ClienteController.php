@@ -676,27 +676,43 @@ class ClienteController extends BaseController
             return redirect()->to('/clientes')->with('error', 'Sin permiso para gestionar clientes duplicados.');
         }
 
-        $db    = db_connect();
-        $model = new ClienteModel();
+        $grupos = array_merge(
+            $this->buscarGruposDuplicados('numero_documento', 'Documento'),
+            $this->buscarGruposDuplicados('nrc', 'NRC')
+        );
 
-        $docsDuplicados = $db->table('clientes')
-            ->select('numero_documento')
-            ->where('numero_documento IS NOT NULL')
-            ->where('numero_documento !=', '')
-            ->groupBy('numero_documento')
-            ->having('COUNT(*) >', 1)
-            ->get()
-            ->getResultArray();
+        return view('clientes/duplicados', ['grupos' => $grupos]);
+    }
+
+    /**
+     * Agrupa clientes que comparten el mismo valor en el campo dado (numero_documento
+     * o nrc), ignorando guiones/espacios: el JSON de Hacienda envía estos números sin
+     * formato mientras que un registro cargado a mano puede tenerlo con guiones, y
+     * antes eso impedía detectarlos como el mismo cliente duplicado.
+     *
+     * $campo solo se llama con literales fijos desde este controlador (nunca con
+     * datos de request), por lo que interpolarlo en el SQL es seguro.
+     */
+    private function buscarGruposDuplicados(string $campo, string $etiqueta): array
+    {
+        $db = db_connect();
+
+        $filas = $db->query("
+            SELECT REPLACE(REPLACE($campo, '-', ''), ' ', '') AS valor_normalizado, COUNT(*) AS total
+            FROM clientes
+            WHERE $campo IS NOT NULL AND $campo != ''
+            GROUP BY valor_normalizado
+            HAVING COUNT(*) > 1
+        ")->getResultArray();
 
         $grupos = [];
 
-        foreach ($docsDuplicados as $row) {
-            $doc = $row['numero_documento'];
-
-            $clientesGrupo = $model
-                ->where('numero_documento', $doc)
-                ->orderBy('id', 'ASC')
-                ->findAll();
+        foreach ($filas as $fila) {
+            $clientesGrupo = $db->query("
+                SELECT * FROM clientes
+                WHERE REPLACE(REPLACE($campo, '-', ''), ' ', '') = ?
+                ORDER BY id ASC
+            ", [$fila['valor_normalizado']])->getResult();
 
             foreach ($clientesGrupo as $c) {
                 $c->referencias       = $this->contarReferencias((int)$c->id);
@@ -707,12 +723,13 @@ class ClienteController extends BaseController
             }
 
             $grupos[] = [
-                'documento' => $doc,
+                'tipo'      => $etiqueta,
+                'documento' => $clientesGrupo[0]->{$campo} ?? $fila['valor_normalizado'],
                 'clientes'  => $clientesGrupo,
             ];
         }
 
-        return view('clientes/duplicados', ['grupos' => $grupos]);
+        return $grupos;
     }
 
     public function fusionarAjax()
