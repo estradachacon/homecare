@@ -8,11 +8,18 @@
                     <i class="fa-solid fa-users me-2"></i> Clientes
                 </h4>
 
-                <?php if (tienePermiso('crear_clientes')): ?>
-                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCrearCliente">
-                        <i class="fa-solid fa-plus"></i> Nuevo
-                    </button>
-                <?php endif; ?>
+                <div class="d-flex" style="gap:.5rem;">
+                    <?php if (tienePermiso('fusionar_clientes')): ?>
+                        <a href="<?= base_url('clientes/duplicados') ?>" class="btn btn-outline-warning btn-sm">
+                            <i class="fa-solid fa-code-merge"></i> Duplicados
+                        </a>
+                    <?php endif; ?>
+                    <?php if (tienePermiso('crear_clientes')): ?>
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCrearCliente">
+                            <i class="fa-solid fa-plus"></i> Nuevo
+                        </button>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="card-body">
                 <!-- Modo Escritorio -->

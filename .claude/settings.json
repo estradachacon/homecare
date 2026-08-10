@@ -9,7 +9,30 @@
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -uroot -N -e \"SELECT id, LENGTH\\(user_password\\) FROM users WHERE user_name='_pw_test_tmp';\" homecaredb)",
       "Bash(node test-subir-bajar.js)",
       "Bash(node test-text-format.js)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root homecaredb -e ' *)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE facturas_head;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE clientes;\")",
+      "Bash(php -l app/Controllers/ClienteController.php)",
+      "Bash(php -l app/Config/Permisos.php)",
+      "Bash(php -l app/Config/Routes.php)",
+      "Bash(php -l app/Views/clientes/duplicados.php)",
+      "Bash(php -l app/Views/clientes/index.php)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM permisos_rol WHERE role_id=1 AND nombre_accion='fusionar_clientes';\")",
+      "Bash(php -r \"echo password_hash\\('TempTest#2026', PASSWORD_BCRYPT\\);\")",
+      "Bash(rm -f cookies.txt)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/login --data-urlencode username=_pw_test_tmp --data-urlencode 'password=TempTest#2026' -o login_result.json)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/duplicados -o duplicados.html)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/fusionar-ajax --data-urlencode principal_id=97 --data-urlencode duplicado_id=110 -o fusion_result.json)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/pedidos/facturas-cliente/97?pedido_id=5\" -o facturas_cliente.json)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/duplicados -o duplicados2.html)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT * FROM clientes WHERE id=110;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT COUNT\\(*\\) FROM clientes WHERE id=110;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SHOW TRIGGERS WHERE \\\\`Table\\\\` = 'clientes';\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SHOW VARIABLES LIKE 'general_log%';\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW VARIABLES LIKE 'port';\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SHOW VARIABLES LIKE 'datadir';\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, nombre, numero_documento FROM clientes WHERE numero_documento='03052808-8';\")"
     ]
   }
 }

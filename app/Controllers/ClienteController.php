@@ -11,6 +11,32 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ClienteController extends BaseController
 {
+    /**
+     * Tablas y columnas que apuntan a clientes.id (sin FK a nivel de BD,
+     * así que la integridad depende de recorrerlas manualmente al fusionar/eliminar).
+     */
+    private array $tablasReferencia = [
+        'facturas_head'          => 'receptor_id',
+        'pedidos_head'           => 'cliente_id',
+        'consignaciones_head'    => 'cliente_id',
+        'consignaciones_precios' => 'cliente_id',
+        'pagos_head'             => 'cliente_id',
+        'quedans'                => 'cliente_id',
+        'recuperos'              => 'cliente_id',
+    ];
+
+    private function contarReferencias(int $clienteId): array
+    {
+        $db = db_connect();
+        $conteos = [];
+
+        foreach ($this->tablasReferencia as $tabla => $columna) {
+            $conteos[$tabla] = $db->table($tabla)->where($columna, $clienteId)->countAllResults();
+        }
+
+        return $conteos;
+    }
+
     public function index()
     {
         $clienteModel = new ClienteModel();
@@ -632,5 +658,140 @@ class ClienteController extends BaseController
         $writer = new Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
+    }
+
+    // ──────────────────────────────────────────────
+    //  Detección y fusión de clientes duplicados
+    // ──────────────────────────────────────────────
+
+    public function duplicados()
+    {
+        $chk = requerirPermiso('fusionar_clientes');
+        if ($chk !== true) {
+            return redirect()->to('/clientes')->with('error', 'Sin permiso para gestionar clientes duplicados.');
+        }
+
+        $db    = db_connect();
+        $model = new ClienteModel();
+
+        $docsDuplicados = $db->table('clientes')
+            ->select('numero_documento')
+            ->where('numero_documento IS NOT NULL')
+            ->where('numero_documento !=', '')
+            ->groupBy('numero_documento')
+            ->having('COUNT(*) >', 1)
+            ->get()
+            ->getResultArray();
+
+        $grupos = [];
+
+        foreach ($docsDuplicados as $row) {
+            $doc = $row['numero_documento'];
+
+            $clientesGrupo = $model
+                ->where('numero_documento', $doc)
+                ->orderBy('id', 'ASC')
+                ->findAll();
+
+            foreach ($clientesGrupo as $c) {
+                $c->referencias       = $this->contarReferencias((int)$c->id);
+                $c->total_referencias = array_sum($c->referencias);
+            }
+
+            $grupos[] = [
+                'documento' => $doc,
+                'clientes'  => $clientesGrupo,
+            ];
+        }
+
+        return view('clientes/duplicados', ['grupos' => $grupos]);
+    }
+
+    public function fusionarAjax()
+    {
+        $chk = requerirPermiso('fusionar_clientes');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para fusionar clientes.']);
+        }
+
+        $principalId = (int)$this->request->getPost('principal_id');
+        $duplicadoId = (int)$this->request->getPost('duplicado_id');
+
+        if (!$principalId || !$duplicadoId || $principalId === $duplicadoId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Selecciona dos clientes distintos.']);
+        }
+
+        $model     = new ClienteModel();
+        $principal = $model->find($principalId);
+        $duplicado = $model->find($duplicadoId);
+
+        if (!$principal || !$duplicado) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Cliente no encontrado.']);
+        }
+
+        $db = db_connect();
+        $db->transStart();
+
+        $movidos = [];
+        foreach ($this->tablasReferencia as $tabla => $columna) {
+            $cnt = $db->table($tabla)->where($columna, $duplicadoId)->countAllResults();
+            if ($cnt > 0) {
+                $db->table($tabla)->where($columna, $duplicadoId)->update([$columna => $principalId]);
+                $movidos[$tabla] = $cnt;
+            }
+        }
+
+        $db->table('clientes')->where('id', $duplicadoId)->delete();
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al fusionar los clientes.']);
+        }
+
+        $resumen = $movidos
+            ? implode(', ', array_map(fn($t, $c) => "$t: $c", array_keys($movidos), $movidos))
+            : 'sin registros vinculados';
+
+        $detalle = "Cliente #{$duplicadoId} ({$duplicado->nombre}) fusionado dentro de #{$principalId} ({$principal->nombre}). Registros movidos → {$resumen}.";
+
+        registrar_bitacora('Fusionar clientes', 'Ventas', $detalle, $principalId);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Clientes fusionados correctamente.',
+            'movidos' => $movidos,
+        ]);
+    }
+
+    public function eliminarAjax($id)
+    {
+        $chk = requerirPermiso('eliminar_clientes');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para eliminar clientes.']);
+        }
+
+        $model   = new ClienteModel();
+        $cliente = $model->find((int)$id);
+
+        if (!$cliente) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Cliente no encontrado.']);
+        }
+
+        $referencias = $this->contarReferencias((int)$id);
+        $total       = array_sum($referencias);
+
+        if ($total > 0) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se puede eliminar: el cliente tiene registros asociados (facturas, pedidos, consignaciones, etc.). Usa "Fusionar" en su lugar.',
+            ]);
+        }
+
+        $model->delete((int)$id);
+
+        registrar_bitacora('Eliminar cliente', 'Ventas', "Cliente #{$id} ({$cliente->nombre}) eliminado (sin registros asociados).", null);
+
+        return $this->response->setJSON(['success' => true, 'message' => 'Cliente eliminado correctamente.']);
     }
 }
