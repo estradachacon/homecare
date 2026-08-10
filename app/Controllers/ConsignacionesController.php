@@ -539,7 +539,7 @@ class ConsignacionesController extends BaseController
                AND ph.factura_id IS NOT NULL
                AND (ph.consignacion_id = ?
                     OR (ph.consignacion_ids IS NOT NULL
-                        AND JSON_CONTAINS(ph.consignacion_ids, ?)))",
+                        AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?))))",
             [$id, (string)$id]
         )->getResultObject();
 
@@ -2153,7 +2153,7 @@ class ConsignacionesController extends BaseController
             WHERE ph.anulada = 0
               AND (
                   ph.consignacion_id = ?
-                  OR (ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, ?))
+                  OR (ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?)))
               )
             GROUP BY pd.producto_id
         ", [$consignacionId, (string)$consignacionId])->getResult();

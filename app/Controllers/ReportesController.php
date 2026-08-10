@@ -2392,6 +2392,11 @@ class ReportesController extends Controller
         $estadoLinea = $this->request->getGet('estado_linea') ?: ''; // '' | 'pendiente' | 'facturado' | 'devuelto'
 
         // ── Query principal: una fila por línea de producto de cada NE ──────
+        // Nota: precio/cantidad/factura NO se combinan aquí con COALESCE — se
+        // exponen por separado (sufijo _cierre / _np / _pedido) y se resuelven
+        // en PHP después de _resolverAtribucionMultiNE(), porque esa función
+        // puede anular la atribución a la NP de una línea y en ese caso los
+        // componentes "_np"/"_pedido" ya no deben contar para esa línea.
         $sql = "
             SELECT
                 ch.id           AS ne_id,
@@ -2407,49 +2412,58 @@ class ReportesController extends Controller
                 ph.created_at   AS fecha_pedido,
                 -- Producto
                 cd.id           AS detalle_id,
+                cd.producto_id  AS producto_id,
                 p.codigo        AS producto_codigo,
                 p.descripcion   AS producto_descripcion,
                 cd.cantidad     AS cantidad_ne,
                 cd.precio_unitario AS precio_ne,
-                -- Precio y cantidad facturados: 1) detalle factura por código, 2) detalle NP por producto_id, 3) NE
-                COALESCE(
-                    fd.precio_unitario,
-                    fd_np.precio_unitario,
-                    pd.precio_unitario
-                ) AS precio_factura,
-                COALESCE(
-                    fd.cantidad,
-                    fd_np.cantidad,
-                    pd.cantidad
-                ) AS cantidad_facturada,
+                -- Precio y cantidad: componentes SIN combinar (ver nota arriba)
+                fd.precio_unitario     AS precio_factura_cierre,
+                fd_np.precio_unitario  AS precio_factura_np,
+                pd.precio_unitario     AS precio_factura_pedido,
+                fd.cantidad             AS cantidad_factura_cierre,
+                fd_np.cantidad          AS cantidad_factura_np,
+                pd.cantidad             AS cantidad_factura_pedido,
                 ccd.cantidad_devuelta,
                 ccd.fecha_devolucion,
                 ccd.cantidad_stock_vendedor,
                 -- Nueva NE en caso de cambio
                 cc.nueva_consignacion_id,
                 ne2.numero      AS numero_nueva_ne,
-                -- Factura: prioridad cierre por línea, fallback NP directa
-                COALESCE(fh.id,           fh_np.id)           AS factura_id,
-                COALESCE(fh.fecha_emision, fh_np.fecha_emision) AS fecha_factura,
-                COALESCE(fh.tipo_dte,      fh_np.tipo_dte)      AS tipo_dte,
-                COALESCE(fh.numero_control,fh_np.numero_control) AS numero_control,
-                COALESCE(cl.nombre,        cl_np.nombre)         AS cliente_facturado
+                -- Factura: componentes SIN combinar (ver nota arriba)
+                fh.id                AS factura_id_cierre,
+                fh_np.id             AS factura_id_np,
+                fh.fecha_emision     AS fecha_factura_cierre,
+                fh_np.fecha_emision  AS fecha_factura_np,
+                fh.tipo_dte          AS tipo_dte_cierre,
+                fh_np.tipo_dte       AS tipo_dte_np,
+                fh.numero_control    AS numero_control_cierre,
+                fh_np.numero_control AS numero_control_np,
+                cl.nombre            AS cliente_cierre,
+                cl_np.nombre         AS cliente_np
             FROM consignaciones_detalles cd
             INNER JOIN consignaciones_head ch  ON ch.id  = cd.consignacion_id
             INNER JOIN productos p             ON p.id   = cd.producto_id
             LEFT  JOIN sellers s               ON s.id   = ch.vendedor_id
             -- NP: busca el pedido más reciente activo que referencia esta NE
+            -- (por consignacion_id O por consignacion_ids, comparando con
+            -- JSON_QUOTE porque el array guarda los IDs como strings JSON;
+            -- sin JSON_QUOTE, JSON_CONTAINS nunca matchea y las NE que solo
+            -- están en consignacion_ids -no como principal- quedan sin NP)
             -- Y que además tenga una línea de detalle para ESTE producto en
             -- particular (cd.producto_id). Una NE puede tener varios productos
             -- y la NP solo haberse hecho para uno de ellos; sin este filtro,
             -- la NP se le atribuía por igual a todos los productos de la NE.
+            -- Si el mismo producto también existe en otra NE vinculada a la
+            -- misma NP, aquí puede quedar atribuido a más de una NE a la vez:
+            -- eso se corrige después en PHP con _resolverAtribucionMultiNE().
             LEFT  JOIN pedidos_head ph ON ph.id = (
                 SELECT ph2.id FROM pedidos_head ph2
                 WHERE ph2.anulada = 0
                   AND (
                       ph2.consignacion_id = ch.id
                       OR (ph2.consignacion_ids IS NOT NULL
-                          AND JSON_CONTAINS(ph2.consignacion_ids, CAST(ch.id AS CHAR)))
+                          AND JSON_CONTAINS(ph2.consignacion_ids, JSON_QUOTE(CAST(ch.id AS CHAR))))
                   )
                   AND EXISTS (
                       SELECT 1 FROM pedidos_detalles pdx
@@ -2489,6 +2503,20 @@ class ReportesController extends Controller
 
         $lineas    = $db->query($sql, $binds)->getResult();
         $vendedores = $sellerModel->orderBy('seller', 'ASC')->findAll();
+
+        $this->_resolverAtribucionMultiNE($lineas, $db);
+
+        // ── Combinar los componentes _cierre / _np / _pedido ahora que la
+        // atribución ambigua ya quedó resuelta ────────────────────────────
+        foreach ($lineas as $l) {
+            $l->precio_factura    = $l->precio_factura_cierre    ?? $l->precio_factura_np    ?? $l->precio_factura_pedido;
+            $l->cantidad_facturada = $l->cantidad_factura_cierre ?? $l->cantidad_factura_np   ?? $l->cantidad_factura_pedido;
+            $l->factura_id         = $l->factura_id_cierre        ?? $l->factura_id_np;
+            $l->fecha_factura      = $l->fecha_factura_cierre     ?? $l->fecha_factura_np;
+            $l->tipo_dte           = $l->tipo_dte_cierre          ?? $l->tipo_dte_np;
+            $l->numero_control     = $l->numero_control_cierre    ?? $l->numero_control_np;
+            $l->cliente_facturado  = $l->cliente_cierre           ?? $l->cliente_np;
+        }
 
         // ── Filtro por estado de línea (pendiente / facturado / devuelto) ────
         // Las notas anuladas quedan fuera de los 3 filtros: son un estado aparte.
@@ -2545,6 +2573,89 @@ class ReportesController extends Controller
             'totalComision' => $totalComision,
             'estadoLinea'   => $estadoLinea,
         ]);
+    }
+
+    /**
+     * Cuando una NP viene de varias NE enlazadas (consignacion_ids) y más de
+     * una de esas NE tiene el mismo producto, el JOIN de notasEnvioProductos()
+     * no puede saber cuál NE aportó realmente el lote usado en la NP — le
+     * atribuye la NP a todas las NE candidatas por igual, duplicando el
+     * producto en el reporte (y su monto en los totales/comisión).
+     *
+     * Aquí se resuelve igual que en PedidosController::imprimir(): para cada
+     * (NP, producto) con más de una NE candidata, se reparte la cantidad que
+     * la NP realmente pide entre los lotes de esas NE en el mismo orden FIFO
+     * (por número de NE, luego número de lote) y solo se deja la atribución
+     * a la NP en las NE cuyos lotes quedaron dentro de lo consumido.
+     */
+    private function _resolverAtribucionMultiNE(array $lineas, $db): void
+    {
+        $grupos = [];
+        foreach ($lineas as $idx => $l) {
+            if (!$l->pedido_id) continue;
+            $grupos[$l->pedido_id . '|' . $l->producto_id][] = $idx;
+        }
+
+        foreach ($grupos as $indices) {
+            if (count($indices) < 2) continue;
+
+            $neIds = array_values(array_unique(array_map(fn($i) => (int)$lineas[$i]->ne_id, $indices)));
+            if (count($neIds) < 2) continue; // misma NE repetida (no debería pasar) — nada que resolver
+
+            $pedidoId   = (int)$lineas[$indices[0]]->pedido_id;
+            $productoId = (int)$lineas[$indices[0]]->producto_id;
+
+            $cantidadPedida = (float)($db->table('pedidos_detalles')
+                ->selectSum('cantidad')
+                ->where('pedido_id', $pedidoId)
+                ->where('producto_id', $productoId)
+                ->get()->getRow()->cantidad ?? 0);
+
+            $neConsumidas = [];
+            if ($cantidadPedida > 0.0001) {
+                $inList = implode(',', $neIds);
+                $lotesFilas = $db->query("
+                    SELECT ch.id AS ne_id, cl.id AS lote_id, SUM(cdl.cantidad) AS cantidad
+                    FROM consignaciones_detalles cd
+                    INNER JOIN consignaciones_head ch          ON ch.id = cd.consignacion_id
+                    INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
+                    INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
+                    WHERE cd.consignacion_id IN ({$inList}) AND cd.producto_id = ?
+                    GROUP BY ch.id, cl.id
+                    ORDER BY ch.numero ASC, cl.numero_lote ASC
+                ", [$productoId])->getResult();
+
+                $restante = $cantidadPedida;
+                foreach ($lotesFilas as $lf) {
+                    if ($restante <= 0.0001) break;
+                    $consumo = min((float)$lf->cantidad, $restante);
+                    if ($consumo > 0.0001) {
+                        $neConsumidas[(int)$lf->ne_id] = true;
+                    }
+                    $restante -= $consumo;
+                }
+            }
+
+            foreach ($indices as $idx) {
+                $neId = (int)$lineas[$idx]->ne_id;
+                if (isset($neConsumidas[$neId])) continue;
+
+                // Esta NE no aportó ningún lote realmente consumido por la NP:
+                // se desatribuye (deja de contar como "la NE de esta NP").
+                $lineas[$idx]->pedido_id            = null;
+                $lineas[$idx]->numero_pedido        = null;
+                $lineas[$idx]->fecha_pedido         = null;
+                $lineas[$idx]->precio_factura_np    = null;
+                $lineas[$idx]->cantidad_factura_np  = null;
+                $lineas[$idx]->precio_factura_pedido   = null;
+                $lineas[$idx]->cantidad_factura_pedido = null;
+                $lineas[$idx]->factura_id_np        = null;
+                $lineas[$idx]->fecha_factura_np     = null;
+                $lineas[$idx]->tipo_dte_np          = null;
+                $lineas[$idx]->numero_control_np    = null;
+                $lineas[$idx]->cliente_np           = null;
+            }
+        }
     }
 
     private function _exportarNEProductosPDF(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, string $vendedorId = '')

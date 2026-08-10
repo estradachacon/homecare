@@ -93,7 +93,7 @@ class PedidoHeadModel extends Model
                AND (
                    ph.consignacion_id = ?
                    OR (ph.consignacion_ids IS NOT NULL
-                       AND JSON_CONTAINS(ph.consignacion_ids, ?))
+                       AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?)))
                )
              ORDER BY ph.id DESC",
             [$consignacionId, (string)$consignacionId]
