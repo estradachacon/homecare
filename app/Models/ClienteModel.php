@@ -49,6 +49,13 @@ class ClienteModel extends Model
      * otros la sigla ('DUI', 'NIT'), lo que antes producía clientes (y sus
      * cuentas contables) duplicados cuando ambos formatos se cruzaban para
      * el mismo número de documento.
+     *
+     * La comparación además ignora guiones/espacios: el JSON del DTE que
+     * envía Hacienda trae el número sin formato ("13151005741014"), mientras
+     * que un cliente ya registrado a mano puede tenerlo con guiones
+     * ("1315-100574-101-4"). Sin esto, cada carga de factura para un cliente
+     * ya existente generaba un cliente (y cuenta contable) duplicado nuevo.
+     * El valor guardado NUNCA se reformatea — se respeta tal cual venga.
      */
     public function buscarPorDocumento($tipo, $numero)
     {
@@ -58,12 +65,48 @@ class ClienteModel extends Model
             return null;
         }
 
-        return $this->where('numero_documento', $numero)->first();
+        $soloDigitos = preg_replace('/[^0-9]/', '', $numero);
+
+        if ($soloDigitos === '') {
+            return $this->where('numero_documento', $numero)->first();
+        }
+
+        $db = \Config\Database::connect();
+
+        return $db->query(
+            "SELECT * FROM clientes
+             WHERE REPLACE(REPLACE(numero_documento, '-', ''), ' ', '') = ?
+             LIMIT 1",
+            [$soloDigitos]
+        )->getRow();
     }
 
+    /**
+     * Igual que buscarPorDocumento(): compara el NRC ignorando guiones/espacios,
+     * ya que también puede llegar sin formato desde el JSON de Hacienda.
+     */
     public function buscarPorNRC($nrc)
     {
-        return $this->where('nrc', $nrc)->first();
+        $nrc = trim((string)$nrc);
+
+        if ($nrc === '') {
+            return null;
+        }
+
+        $soloDigitos = preg_replace('/[^0-9]/', '', $nrc);
+
+        if ($soloDigitos === '') {
+            return $this->where('nrc', $nrc)->first();
+        }
+
+        $db = \Config\Database::connect();
+
+        return $db->query(
+            "SELECT * FROM clientes
+             WHERE REPLACE(REPLACE(nrc, '-', ''), ' ', '') = ?
+             LIMIT 1",
+            [$soloDigitos]
+        )->getRow();
     }
 
     /**

@@ -50,7 +50,12 @@
       "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/clientes/edit/8 -o edit8.html)",
       "Bash(php -l app/Controllers/PedidosController.php)",
       "Bash(php -l app/Views/pedidos/crear.php)",
-      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/pedidos/crear -o crear.html)"
+      "Bash(curl -s -c cookies.txt -b cookies.txt http://homecare.local/pedidos/crear -o crear.html)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=06141234567890 --data-urlencode nrc=123456-7 --data-urlencode nombre=_PW_TEST_CLIENTE_NRC --data-urlencode cod_actividad=10001 -o cliente_test.json)",
+      "Bash(grep -rn \"preg_replace.*\\\\\\\\\\\\\\\\D\\\\|preg_replace.*-\\\\|str_replace\\('-'\" app/Controllers app/Models app/Views)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nrc=999888-1 --data-urlencode nombre=_PW_TEST_DASH -o resp1.json)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=9999-999999-999-9 --data-urlencode nrc=111222-3 --data-urlencode nombre=_PW_TEST_DASH2 -o resp2.json)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, numero_documento FROM clientes WHERE id=113;\")"
     ]
   }
 }
