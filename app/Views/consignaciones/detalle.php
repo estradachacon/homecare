@@ -370,9 +370,27 @@
                                                     <div><strong>Comentario:</strong> <?= esc($cd->comentario_devolucion) ?></div>
                                                 <?php endif; ?>
                                                 <?php if ($cd->foto_devolucion): ?>
-                                                    <div class="mt-2">
+                                                    <div class="mt-2 foto-devolucion-preview" id="foto_devolucion_preview_<?= $cd->id ?>">
                                                         <img src="<?= base_url('upload/devoluciones/' . $cd->foto_devolucion) ?>"
-                                                            style="max-height:80px; border-radius:5px;">
+                                                            style="max-height:80px; border-radius:5px;"
+                                                            onerror="this.closest('.foto-devolucion-preview').querySelector('.foto-devolucion-rota').classList.remove('d-none'); this.remove();">
+                                                        <div class="text-danger small d-none foto-devolucion-rota">
+                                                            <i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar la foto.
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if (tienePermiso('resubir_foto_devolucion')): ?>
+                                                    <div class="mt-2 foto-devolucion-resubir-wrap">
+                                                        <input type="file" accept="image/*" capture="environment"
+                                                            id="foto_resubir_input_<?= $cd->id ?>"
+                                                            class="d-none foto-resubir-input"
+                                                            data-cierre-detalle="<?= $cd->id ?>">
+                                                        <button type="button"
+                                                            class="btn btn-outline-secondary btn-sm btn-resubir-foto"
+                                                            data-target="foto_resubir_input_<?= $cd->id ?>">
+                                                            <i class="fa-solid fa-camera-retro"></i>
+                                                            <?= $cd->foto_devolucion ? 'Resubir foto' : 'Subir foto' ?>
+                                                        </button>
                                                     </div>
                                                 <?php endif; ?>
                                                 <?php if (!empty($lotesCierre)): ?>
@@ -1093,6 +1111,59 @@
                 });
             });
         <?php endif; ?>
+
+        // Subir / resubir foto de devolución (funciona aunque la nota ya esté cerrada)
+        $(document).on('click', '.btn-resubir-foto', function() {
+            document.getElementById($(this).data('target'))?.click();
+        });
+
+        $(document).on('change', '.foto-resubir-input', function() {
+            const input           = this;
+            const cierreDetalleId = $(input).data('cierre-detalle');
+            const file             = input.files && input.files[0];
+            if (!file) return;
+
+            const btn           = $(`.btn-resubir-foto[data-target="foto_resubir_input_${cierreDetalleId}"]`);
+            const labelOriginal  = btn.html();
+            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Subiendo...');
+
+            const formData = new FormData();
+            formData.append('foto', file);
+
+            fetch(`<?= base_url('consignaciones/cierre-detalle') ?>/${cierreDetalleId}/foto`, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        Swal.fire('Error', data.message || 'No se pudo subir la foto.', 'error');
+                        btn.html(labelOriginal);
+                        return;
+                    }
+
+                    let preview = document.getElementById(`foto_devolucion_preview_${cierreDetalleId}`);
+                    if (!preview) {
+                        preview = document.createElement('div');
+                        preview.className = 'mt-2 foto-devolucion-preview';
+                        preview.id = `foto_devolucion_preview_${cierreDetalleId}`;
+                        $(input).closest('.foto-devolucion-resubir-wrap').before(preview);
+                    }
+                    preview.innerHTML = `<img src="${data.foto_url}?t=${Date.now()}" style="max-height:80px; border-radius:5px;">`;
+                    btn.html('<i class="fa-solid fa-camera-retro"></i> Resubir foto');
+
+                    Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 })
+                        .fire({ icon: 'success', title: 'Foto actualizada' });
+                })
+                .catch(() => {
+                    Swal.fire('Error', 'Error de conexión al subir la foto.', 'error');
+                    btn.html(labelOriginal);
+                })
+                .finally(() => {
+                    btn.prop('disabled', false);
+                    input.value = '';
+                });
+        });
     });
 </script>
 

@@ -948,6 +948,69 @@ class ConsignacionesController extends BaseController
     }
 
     // ─────────────────────────────────────────────
+    //  RESUBIR FOTO DE DEVOLUCIÓN (nota ya cerrada)
+    // ─────────────────────────────────────────────
+
+    public function resubirFotoDevolucion(int $cierreDetalleId)
+    {
+        $chk = requerirPermiso('resubir_foto_devolucion');
+        if ($chk !== true) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para resubir la foto.']);
+        }
+
+        $cierreDetModel = new ConsignacionCierreDetalleModel();
+        $cierreModel    = new ConsignacionCierreModel();
+
+        $cierreDet = $cierreDetModel->find($cierreDetalleId);
+        if (!$cierreDet) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Registro de cierre no encontrado.']);
+        }
+
+        $cierre = $cierreModel->find($cierreDet->cierre_id);
+        if (!$cierre) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Cierre no encontrado.']);
+        }
+
+        $foto = $this->request->getFile('foto');
+        if (!$foto || !$foto->isValid()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Debe seleccionar una foto válida.']);
+        }
+
+        $rutaDevoluciones = FCPATH . 'upload/devoluciones/';
+        if (!is_dir($rutaDevoluciones)) {
+            mkdir($rutaDevoluciones, 0755, true);
+        }
+
+        $fotoAnterior = $cierreDet->foto_devolucion;
+        $fotoNombre   = $foto->getRandomName();
+        $foto->move($rutaDevoluciones, $fotoNombre);
+
+        $cierreDetModel->update($cierreDetalleId, ['foto_devolucion' => $fotoNombre]);
+
+        // Elimina la foto anterior del disco para no acumular archivos huérfanos
+        // (a veces esa foto anterior es justamente la que quedó rota por el bug
+        // de la carpeta incorrecta, así que puede ni siquiera existir en disco).
+        if ($fotoAnterior && is_file($rutaDevoluciones . $fotoAnterior)) {
+            @unlink($rutaDevoluciones . $fotoAnterior);
+        }
+
+        $producto = (new \App\Models\ProductoModel())->select('descripcion, codigo')->find((int)$cierreDet->producto_id);
+        $productoLabel = $producto ? trim('[' . $producto->codigo . '] ' . $producto->descripcion) : ('Producto #' . $cierreDet->producto_id);
+
+        $this->registrarLog(
+            (int)$cierre->consignacion_id,
+            'Foto de devolución resubida',
+            $productoLabel . ($fotoAnterior ? ' (reemplaza foto anterior)' : ' (sin foto previa)')
+        );
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'message'  => 'Foto actualizada correctamente.',
+            'foto_url' => base_url('upload/devoluciones/' . $fotoNombre),
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
     //  ANULAR
     // ─────────────────────────────────────────────
 

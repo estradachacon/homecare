@@ -316,6 +316,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->get('consignaciones/(:num)/imprimir',               'ConsignacionesController::imprimir/$1');
     $routes->get('consignaciones/(:num)/cerrar',                 'ConsignacionesController::cerrar/$1');
     $routes->post('consignaciones/(:num)/procesar-cierre',       'ConsignacionesController::procesarCierre/$1');
+    $routes->post('consignaciones/cierre-detalle/(:num)/foto',   'ConsignacionesController::resubirFotoDevolucion/$1');
     $routes->post('consignaciones/(:num)/anular',                'ConsignacionesController::anular/$1');
     $routes->get('consignaciones/(:num)/editar',                 'ConsignacionesController::editar/$1');
     $routes->post('consignaciones/(:num)/actualizar',            'ConsignacionesController::actualizar/$1');

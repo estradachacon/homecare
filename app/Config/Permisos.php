@@ -56,6 +56,7 @@ class Permisos extends BaseConfig
             'gestionar_precios_consignaciones',
             'crear_consignacion_emergencia',
             'ver_reporte_ne_productos',
+            'resubir_foto_devolucion',
         ],
 
         'Reportes y catálogos para consignaciones' => [
