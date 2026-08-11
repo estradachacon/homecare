@@ -971,6 +971,10 @@ class ConsignacionesController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Cierre no encontrado.']);
         }
 
+        if ((float)$cierreDet->cantidad_devuelta <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Solo se puede adjuntar foto en líneas con devolución.']);
+        }
+
         $foto = $this->request->getFile('foto');
         if (!$foto || !$foto->isValid()) {
             return $this->response->setJSON(['success' => false, 'message' => 'Debe seleccionar una foto válida.']);

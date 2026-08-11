@@ -379,7 +379,7 @@
                                                         </div>
                                                     </div>
                                                 <?php endif; ?>
-                                                <?php if (tienePermiso('resubir_foto_devolucion')): ?>
+                                                <?php if ($cd->cantidad_devuelta > 0 && tienePermiso('resubir_foto_devolucion')): ?>
                                                     <div class="mt-2 foto-devolucion-resubir-wrap">
                                                         <input type="file" accept="image/*" capture="environment"
                                                             id="foto_resubir_input_<?= $cd->id ?>"
