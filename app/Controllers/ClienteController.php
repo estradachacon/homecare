@@ -92,10 +92,39 @@ class ClienteController extends BaseController
             ]);
         }
 
+        $tipoDocumento   = ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento'));
+        $numeroDocumento = trim((string)$this->request->getPost('numero_documento'));
+        $nrc             = trim((string)$this->request->getPost('nrc'));
+
+        // Mismo criterio tolerante a guiones/espacios que usa buscarPorDocumento()/
+        // buscarPorNRC(): evita crear un cliente duplicado cuando el DUI/NIT o el
+        // NRC ya existe, sin importar si el formato difiere (con o sin guiones).
+        if ($numeroDocumento !== '') {
+            $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
+            if ($existente) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => "Ya existe un cliente con ese número de documento: {$existente->nombre} (#{$existente->id}).",
+                    'csrf' => csrf_hash(),
+                ]);
+            }
+        }
+
+        if ($nrc !== '') {
+            $existenteNrc = $model->buscarPorNRC($nrc);
+            if ($existenteNrc) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'message' => "Ya existe un cliente con ese NRC: {$existenteNrc->nombre} (#{$existenteNrc->id}).",
+                    'csrf' => csrf_hash(),
+                ]);
+            }
+        }
+
         $data = [
-            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')),
-            'numero_documento'   => $this->request->getPost('numero_documento'),
-            'nrc'                => $this->request->getPost('nrc'),
+            'tipo_documento'     => $tipoDocumento,
+            'numero_documento'   => $numeroDocumento ?: null,
+            'nrc'                => $nrc ?: null,
             'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
             'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
             'cod_actividad'      => $codActividad,
@@ -377,10 +406,32 @@ class ClienteController extends BaseController
 
         $codActividad = $this->request->getPost('cod_actividad') ?: null;
 
+        $tipoDocumento   = ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento'));
+        $numeroDocumento = trim((string)$this->request->getPost('numero_documento'));
+        $nrc             = trim((string)$this->request->getPost('nrc'));
+
+        // Mismo criterio tolerante a guiones/espacios que en storeAjax(); se excluye
+        // el propio cliente para no marcarse como "duplicado" de sí mismo.
+        if ($numeroDocumento !== '') {
+            $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
+            if ($existente && (int)$existente->id !== (int)$id) {
+                return redirect()->back()->withInput()
+                    ->with('error', "Ya existe otro cliente con ese número de documento: {$existente->nombre} (#{$existente->id}).");
+            }
+        }
+
+        if ($nrc !== '') {
+            $existenteNrc = $model->buscarPorNRC($nrc);
+            if ($existenteNrc && (int)$existenteNrc->id !== (int)$id) {
+                return redirect()->back()->withInput()
+                    ->with('error', "Ya existe otro cliente con ese NRC: {$existenteNrc->nombre} (#{$existenteNrc->id}).");
+            }
+        }
+
         $data = [
-            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')),
-            'numero_documento'   => $this->request->getPost('numero_documento'),
-            'nrc'                => $this->request->getPost('nrc'),
+            'tipo_documento'     => $tipoDocumento,
+            'numero_documento'   => $numeroDocumento ?: null,
+            'nrc'                => $nrc ?: null,
             'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
             'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
             'cod_actividad'      => $codActividad,

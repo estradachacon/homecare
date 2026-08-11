@@ -61,7 +61,14 @@
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE pedidos_detalles;\")",
       "Bash(awk 'NR==2379,NR==2620' app/Controllers/ReportesController.php)",
       "Bash(php -l app/Controllers/ReportesController.php)",
-      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/reports/ne-productos?fecha_desde=2026-07-01&fecha_hasta=2026-08-10&vendedor_id=&estado_linea=&comision=7\" -o reporte.html)"
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/reports/ne-productos?fecha_desde=2026-07-01&fecha_hasta=2026-08-10&vendedor_id=&estado_linea=&comision=7\" -o reporte.html)",
+      "Bash(tasklist //FI \"IMAGENAME eq mysqld.exe\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SELECT 1;\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/clientes/municipios-por-departamento?departamento=06\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315100574101-4 --data-urlencode nombre=_PW_TEST_DUP_DOC)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=13151005741014 --data-urlencode nombre=_PW_TEST_DUP_DOC)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode nrc=2037611 --data-urlencode nombre=_PW_TEST_DUP_NRC)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nombre=_PW_TEST_DUP_PEDIDOS)"
     ]
   }
 }

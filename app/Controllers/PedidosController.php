@@ -780,12 +780,35 @@ class PedidosController extends BaseController
 
         $model = new ClienteModel();
 
-        $codActividad = $this->request->getPost('cod_actividad') ?: null;
-        $nrc          = trim($this->request->getPost('nrc') ?? '') ?: null;
+        $codActividad    = $this->request->getPost('cod_actividad') ?: null;
+        $nrc             = trim($this->request->getPost('nrc') ?? '') ?: null;
+        $tipoDocumento   = ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')) ?: 'DUI';
+        $numeroDocumento = trim($this->request->getPost('numero_documento') ?? '');
+
+        // Mismo criterio tolerante a guiones/espacios que ClienteController::storeAjax().
+        if ($numeroDocumento !== '') {
+            $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
+            if ($existente) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => "Ya existe un cliente con ese número de documento: {$existente->nombre} (#{$existente->id}).",
+                ]);
+            }
+        }
+
+        if ($nrc !== null) {
+            $existenteNrc = $model->buscarPorNRC($nrc);
+            if ($existenteNrc) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => "Ya existe un cliente con ese NRC: {$existenteNrc->nombre} (#{$existenteNrc->id}).",
+                ]);
+            }
+        }
 
         $id = $model->insert([
-            'tipo_documento'     => ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')) ?: 'DUI',
-            'numero_documento'   => trim($this->request->getPost('numero_documento') ?? ''),
+            'tipo_documento'     => $tipoDocumento,
+            'numero_documento'   => $numeroDocumento,
             'nrc'                => $nrc,
             'gran_contribuyente' => (int)(bool)$this->request->getPost('gran_contribuyente'),
             'exento_iva'         => (int)(bool)$this->request->getPost('exento_iva'),
