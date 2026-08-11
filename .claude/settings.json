@@ -68,7 +68,14 @@
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315100574101-4 --data-urlencode nombre=_PW_TEST_DUP_DOC)",
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=13151005741014 --data-urlencode nombre=_PW_TEST_DUP_DOC)",
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode nrc=2037611 --data-urlencode nombre=_PW_TEST_DUP_NRC)",
-      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nombre=_PW_TEST_DUP_PEDIDOS)"
+      "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/pedidos/cliente-store-ajax --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nombre=_PW_TEST_DUP_PEDIDOS)",
+      "Bash(php -l app/Controllers/ConsignacionesController.php)",
+      "Bash(php -l app/Models/ConsignacionHeadModel.php)",
+      "Bash(php -l app/Views/consignaciones/index.php)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones?numero=NE-00015\" -o busqueda.html)",
+      "Bash(php -l app/Views/consignaciones/cerrar.php)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, numero, estado, aprobacion_estado FROM consignaciones_head WHERE id=30;\")",
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones/26/cerrar\" -o cerrar.html)"
     ]
   }
 }

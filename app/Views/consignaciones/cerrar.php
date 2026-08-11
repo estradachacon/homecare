@@ -314,9 +314,18 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="small text-muted">Foto (opcional)</label>
-                                                <input type="file" name="foto_<?= $d->id ?>"
-                                                    class="form-control form-control-sm"
-                                                    accept="image/*">
+                                                <div class="foto-devolucion-wrap">
+                                                    <input type="file" name="foto_<?= $d->id ?>"
+                                                        id="foto_input_<?= $d->id ?>"
+                                                        class="d-none foto-devolucion-input"
+                                                        accept="image/*" capture="environment">
+                                                    <button type="button"
+                                                        class="btn btn-outline-secondary btn-sm w-100 btn-tomar-foto"
+                                                        data-target="foto_input_<?= $d->id ?>">
+                                                        <i class="fa-solid fa-camera"></i> Tomar foto
+                                                    </button>
+                                                    <small class="d-block text-truncate mt-1 foto-devolucion-nombre text-muted"></small>
+                                                </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="small text-muted">Comentario</label>
@@ -586,6 +595,29 @@
             validarLotesFacturados(id);
         });
 
+        // Botón "Tomar foto" → dispara el input de archivo oculto (con capture="environment"
+        // abre la cámara trasera directo en celular, en vez de la galería/explorador)
+        $(document).on('click', '.btn-tomar-foto', function() {
+            document.getElementById($(this).data('target'))?.click();
+        });
+
+        $(document).on('change', '.foto-devolucion-input', function() {
+            const wrap   = $(this).closest('.foto-devolucion-wrap');
+            const btn    = wrap.find('.btn-tomar-foto');
+            const nombre = wrap.find('.foto-devolucion-nombre');
+            const file   = this.files && this.files[0];
+
+            if (file) {
+                nombre.text(file.name);
+                btn.removeClass('btn-outline-secondary').addClass('btn-success')
+                   .html('<i class="fa-solid fa-check"></i> Foto tomada');
+            } else {
+                nombre.text('');
+                btn.removeClass('btn-success').addClass('btn-outline-secondary')
+                   .html('<i class="fa-solid fa-camera"></i> Tomar foto');
+            }
+        });
+
         // Submit con validación
         $('#formCierre').on('submit', function(e) {
             e.preventDefault();
@@ -636,6 +668,16 @@
                 confirmButtonColor: '#198754',
             }).then(result => {
                 if (result.isConfirmed) {
+                    // El envío recarga la página completa (no es AJAX), así que
+                    // sin este loader la pantalla se queda "trabada" mientras
+                    // el servidor procesa el cierre (mueve lotes, sube fotos, etc.)
+                    Swal.fire({
+                        title: 'Cerrando nota...',
+                        text: 'Por favor espera, esto puede tardar unos segundos.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
                     $('#formCierre')[0].submit();
                 }
             });

@@ -231,6 +231,10 @@
                         <span class="font-weight-bold text-muted small text-uppercase">Filtros</span>
                     </div>
                     <div class="row no-gutters align-items-end">
+                        <div class="col-lg-2 col-md-6 pr-lg-2 mb-2">
+                            <label for="filtro_numero">Número de nota</label>
+                            <input type="text" name="numero" id="filtro_numero" value="<?= esc($filtros['numero'] ?? '') ?>" placeholder="Ej. NE-00015" class="form-control form-control-sm">
+                        </div>
                         <?php if ($puede_ver_todos): ?>
                         <div class="col-lg-3 col-md-6 pr-md-2 mb-2">
                             <label for="filtro_vendedor">Vendedor</label>

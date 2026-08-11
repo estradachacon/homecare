@@ -38,6 +38,9 @@ class ConsignacionHeadModel extends Model
         if (isset($filtros['vendedor_id']) && $filtros['vendedor_id'] !== '' && $filtros['vendedor_id'] !== null) {
             $this->where('consignaciones_head.vendedor_id', (int)$filtros['vendedor_id']);
         }
+        if (!empty($filtros['numero'])) {
+            $this->like('consignaciones_head.numero', trim($filtros['numero']));
+        }
         if (!empty($filtros['estado'])) {
             $this->where('consignaciones_head.estado', $filtros['estado']);
         }

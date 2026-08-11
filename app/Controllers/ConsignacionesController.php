@@ -46,6 +46,7 @@ class ConsignacionesController extends BaseController
             'lote_estado'  => $this->request->getGet('lote_estado'),
             'origen'       => $this->request->getGet('origen'),
             'aprobacion'   => $this->request->getGet('aprobacion'),
+            'numero'       => $this->request->getGet('numero'),
         ];
 
         // Sin permiso de ver todos: forzar el filtro al vendedor del usuario
