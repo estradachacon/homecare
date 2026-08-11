@@ -372,7 +372,9 @@
                                                 <?php if ($cd->foto_devolucion): ?>
                                                     <div class="mt-2 foto-devolucion-preview" id="foto_devolucion_preview_<?= $cd->id ?>">
                                                         <img src="<?= base_url('upload/devoluciones/' . $cd->foto_devolucion) ?>"
-                                                            style="max-height:80px; border-radius:5px;"
+                                                            class="foto-devolucion-thumb"
+                                                            style="max-height:80px; border-radius:5px; cursor:pointer;"
+                                                            title="Ver en grande"
                                                             onerror="this.closest('.foto-devolucion-preview').querySelector('.foto-devolucion-rota').classList.remove('d-none'); this.remove();">
                                                         <div class="text-danger small d-none foto-devolucion-rota">
                                                             <i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar la foto.
@@ -637,6 +639,23 @@
                 <button type="button" class="btn btn-primary" id="btnGuardarLotesModal">
                     <i class="fa-solid fa-save mr-1"></i> Guardar
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: ver foto de devolución en grande -->
+<div class="modal fade" id="modalFotoDevolucion" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white">Foto de devolución</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalFotoDevolucionImg" src="" style="max-width:100%; max-height:75vh; border-radius:6px;">
             </div>
         </div>
     </div>
@@ -1112,6 +1131,13 @@
             });
         <?php endif; ?>
 
+        // Ver foto de devolución en grande (delegado: funciona también con la
+        // miniatura insertada dinámicamente después de subir/resubir)
+        $(document).on('click', '.foto-devolucion-thumb', function() {
+            $('#modalFotoDevolucionImg').attr('src', $(this).attr('src'));
+            $('#modalFotoDevolucion').modal('show');
+        });
+
         // Subir / resubir foto de devolución (funciona aunque la nota ya esté cerrada)
         $(document).on('click', '.btn-resubir-foto', function() {
             document.getElementById($(this).data('target'))?.click();
@@ -1149,7 +1175,7 @@
                         preview.id = `foto_devolucion_preview_${cierreDetalleId}`;
                         $(input).closest('.foto-devolucion-resubir-wrap').before(preview);
                     }
-                    preview.innerHTML = `<img src="${data.foto_url}?t=${Date.now()}" style="max-height:80px; border-radius:5px;">`;
+                    preview.innerHTML = `<img src="${data.foto_url}?t=${Date.now()}" class="foto-devolucion-thumb" style="max-height:80px; border-radius:5px; cursor:pointer;" title="Ver en grande">`;
                     btn.html('<i class="fa-solid fa-camera-retro"></i> Resubir foto');
 
                     Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 })

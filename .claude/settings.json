@@ -89,7 +89,8 @@
       "Bash(printf '\\\\x89PNG\\\\r\\\\n\\\\x1a\\\\n\\\\x00\\\\x00\\\\x00\\\\x0dIHDR\\\\x00\\\\x00\\\\x00\\\\x01\\\\x00\\\\x00\\\\x00\\\\x01\\\\x08\\\\x02\\\\x00\\\\x00\\\\x00\\\\x90wS\\\\xde\\\\x00\\\\x00\\\\x00\\\\x0cIDATx\\\\x9cc\\\\xf8\\\\xcf\\\\xc0\\\\x00\\\\x00\\\\x00\\\\x03\\\\x00\\\\x01\\\\xf3\\\\xff\\\\x9d\\\\xc4\\\\x00\\\\x00\\\\x00\\\\x00IEND\\\\xaeB`\\\\x82')",
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/consignaciones/cierre-detalle/1/foto -F 'foto=@test_foto.png;type=image/png' -o resp_foto.json)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://homecare.local/upload/devoluciones/1786487379_408069d12b25b3613667.png\")",
-      "Bash(grep -n 'protected $table' app/Models/ConsignacionLogModel.php)"
+      "Bash(grep -n 'protected $table' app/Models/ConsignacionLogModel.php)",
+      "Bash(awk 'NR>=561 && NR<=650 && /^<\\\\/div>$/{print NR\": \"$0}' app/Views/consignaciones/detalle.php)"
     ]
   }
 }
