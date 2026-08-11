@@ -75,7 +75,14 @@
       "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones?numero=NE-00015\" -o busqueda.html)",
       "Bash(php -l app/Views/consignaciones/cerrar.php)",
       "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, numero, estado, aprobacion_estado FROM consignaciones_head WHERE id=30;\")",
-      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones/26/cerrar\" -o cerrar.html)"
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones/26/cerrar\" -o cerrar.html)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"DESCRIBE consignaciones_cierres_detalles;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT COUNT\\(*\\) FROM consignaciones_cierres_detalles;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, cierre_id, foto_devolucion FROM consignaciones_cierres_detalles WHERE foto_devolucion != '' LIMIT 20;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT COUNT\\(*\\) FROM consignaciones_cierres;\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SELECT id, consignacion_id, created_at FROM consignaciones_cierres ORDER BY id DESC LIMIT 5;\")",
+      "Bash(php -r ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://homecare.local/upload/devoluciones/_pw_test_devolucion.txt\")"
     ]
   }
 }

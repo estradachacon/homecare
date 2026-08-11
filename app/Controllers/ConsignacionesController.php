@@ -826,8 +826,16 @@ class ConsignacionesController extends BaseController
             $fileKey    = 'foto_' . $det->id;
 
             if (isset($fotos[$fileKey]) && $fotos[$fileKey]->isValid() && !$fotos[$fileKey]->hasMoved()) {
+                // Debe guardarse dentro de public/ (FCPATH), no de writable/ (WRITEPATH):
+                // la vista de detalle la muestra con base_url('upload/devoluciones/...'),
+                // que solo resuelve a archivos públicamente accesibles. Guardarla en
+                // WRITEPATH la dejaba fuera del webroot y la imagen salía rota.
+                $rutaDevoluciones = FCPATH . 'upload/devoluciones/';
+                if (!is_dir($rutaDevoluciones)) {
+                    mkdir($rutaDevoluciones, 0755, true);
+                }
                 $fotoNombre = $fotos[$fileKey]->getRandomName();
-                $fotos[$fileKey]->move(WRITEPATH . 'uploads/consignaciones/', $fotoNombre);
+                $fotos[$fileKey]->move($rutaDevoluciones, $fotoNombre);
             }
 
             $fechaDevolucion = null;
