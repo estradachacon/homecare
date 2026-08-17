@@ -677,27 +677,76 @@ $(function () {
         prevClienteText = clienteNombre;
     }
 
-    $('#formCliente').on('submit', function (e) {
-        e.preventDefault();
+    function enviarFormularioClienteEditarNP(forzarDuplicado) {
         const btn = $('#btnGuardarCliente');
         const err = $('#clienteError');
         err.addClass('d-none').text('');
         btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
+
+        const datos = $('#formCliente').serialize() + (forzarDuplicado ? '&forzar_duplicado=1' : '');
+
         $.ajax({
             url: '<?= base_url('pedidos/cliente-store-ajax') ?>',
             type: 'POST',
-            data: $(this).serialize(),
+            data: datos,
             dataType: 'json',
             success: function (res) {
-                if (!res.success) { err.removeClass('d-none').text(res.message || 'Error.'); return; }
+                if (!res.success) {
+                    if (res.duplicado) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Documento ya registrado',
+                            text: res.message,
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, crear de todos modos',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#ffc107',
+                        }).then(result => {
+                            if (result.isConfirmed) {
+                                enviarFormularioClienteEditarNP(true);
+                            } else {
+                                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+                            }
+                        });
+                        return;
+                    }
+                    err.removeClass('d-none').text(res.message || 'Error.');
+                    btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+                    return;
+                }
+
+                // select2:select solo se dispara al elegir de la lista de búsqueda; al
+                // insertar la opción manualmente hay que sincronizar aquí lo mismo que
+                // hace el handler de select2:select, o el cliente recién creado queda
+                // con NRC "invisible" para la validación de Crédito Fiscal.
                 const opt = new Option(res.cliente.text, res.cliente.id, true, true);
-                $('#selectCliente').append(opt).trigger('change');
+                $('#selectCliente').empty().append(opt).trigger('change');
+                clienteNrcActual = res.cliente.nrc || '';
+                prevClienteId    = String(res.cliente.id);
+                prevClienteText  = res.cliente.text;
+                actualizarBtnProducto();
+
                 $('#modalCliente').modal('hide');
-                $('#formCliente')[0].reset();
+                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+
+                if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cliente sin NRC',
+                        text: 'El cliente se creó correctamente, pero no tiene NRC. El Crédito Fiscal requiere NRC.',
+                    });
+                }
             },
-            error: function () { err.removeClass('d-none').text('Error de comunicación.'); },
-            complete: function () { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente'); },
+            error: function () {
+                err.removeClass('d-none').text('Error de comunicación.');
+                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+            },
         });
+    }
+
+    $('#formCliente').on('submit', function (e) {
+        e.preventDefault();
+        enviarFormularioClienteEditarNP(false);
     });
 });
 
