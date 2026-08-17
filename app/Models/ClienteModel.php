@@ -110,6 +110,58 @@ class ClienteModel extends Model
     }
 
     /**
+     * Igual que buscarPorDocumento() pero devuelve TODOS los que coincidan,
+     * no solo el primero. Se usa para detectar ambigüedad (varias fichas de
+     * cliente con el mismo documento, p.ej. sucursales de una misma empresa)
+     * al cargar facturas por JSON, donde hace falta saber si hay más de un
+     * candidato para pedir que el usuario elija manualmente cuál es.
+     */
+    public function buscarTodosPorDocumento(?string $numero): array
+    {
+        $numero = trim((string)$numero);
+
+        if ($numero === '') {
+            return [];
+        }
+
+        $soloDigitos = preg_replace('/[^0-9]/', '', $numero);
+
+        if ($soloDigitos === '') {
+            return $this->where('numero_documento', $numero)->findAll();
+        }
+
+        $db = \Config\Database::connect();
+
+        return $db->query(
+            "SELECT * FROM clientes WHERE REPLACE(REPLACE(numero_documento, '-', ''), ' ', '') = ?",
+            [$soloDigitos]
+        )->getResult();
+    }
+
+    /** Igual que buscarTodosPorDocumento() pero por NRC. */
+    public function buscarTodosPorNRC(?string $nrc): array
+    {
+        $nrc = trim((string)$nrc);
+
+        if ($nrc === '') {
+            return [];
+        }
+
+        $soloDigitos = preg_replace('/[^0-9]/', '', $nrc);
+
+        if ($soloDigitos === '') {
+            return $this->where('nrc', $nrc)->findAll();
+        }
+
+        $db = \Config\Database::connect();
+
+        return $db->query(
+            "SELECT * FROM clientes WHERE REPLACE(REPLACE(nrc, '-', ''), ' ', '') = ?",
+            [$soloDigitos]
+        )->getResult();
+    }
+
+    /**
      * Normaliza el tipo de documento a la sigla legible ('DUI'/'NIT'/'PASAPORTE')
      * que usa el formulario de edición. Algunos flujos automáticos (carga de DTE
      * de Hacienda) guardan el código numérico del catálogo de Hacienda en su lugar

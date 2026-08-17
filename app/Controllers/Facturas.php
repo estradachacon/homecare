@@ -240,6 +240,7 @@ class Facturas extends BaseController
         $condiciones          = $this->request->getPost('condiciones');
         $tipoLineas           = $this->request->getPost('tipo_lineas')            ?? [];
         $cuentaVentasOverrides = $this->request->getPost('cuenta_ventas_override_ids') ?? [];
+        $clienteIdsManual      = $this->request->getPost('cliente_ids')               ?? [];
 
         if (!isset($files['archivos'])) {
             return $this->response->setJSON([
@@ -345,8 +346,9 @@ class Facturas extends BaseController
             // =============================
             // PROCESAR CLIENTE (RECEPTOR / SUJETO EXCLUIDO)
             // =============================
-            $clienteId = null;
-            $receptor = $json['receptor'] ?? $json['sujetoExcluido'] ?? null;
+            $clienteId       = null;
+            $receptor        = $json['receptor'] ?? $json['sujetoExcluido'] ?? null;
+            $clienteIdManual = !empty($clienteIdsManual[$index]) ? (int)$clienteIdsManual[$index] : null;
 
             if (!empty($receptor)) {
 
@@ -369,7 +371,25 @@ class Facturas extends BaseController
                     $numeroDocumento = null;
                 }
 
-                if ($tipoDocumento && $numeroDocumento) {
+                // El documento/NRC coincidía con más de un cliente ya registrado
+                // (p.ej. sucursales de la misma empresa) y el usuario ya eligió
+                // manualmente cuál usar en la previsualización: se respeta esa
+                // elección tal cual, sin volver a correr la búsqueda ambigua.
+                if ($clienteIdManual) {
+
+                    $cliente = $clienteModel->find($clienteIdManual);
+
+                    if ($cliente) {
+                        $clienteId = $cliente->id;
+
+                        $clienteModel->update($clienteId, [
+                            'telefono'       => $receptor['telefono'] ?? $cliente->telefono,
+                            'correo'         => $receptor['correo'] ?? $cliente->correo,
+                            'cod_actividad'  => $receptor['codActividad'] ?? $cliente->cod_actividad ?? null,
+                            'desc_actividad' => $receptor['descActividad'] ?? $cliente->desc_actividad ?? null,
+                        ]);
+                    }
+                } elseif ($tipoDocumento && $numeroDocumento) {
 
                     // Buscar por tipo + número
                     $cliente = $clienteModel->buscarPorDocumento($tipoDocumento, $numeroDocumento);
@@ -2299,6 +2319,51 @@ CCF YA VIENE SIN IVA
 
         return $this->response->setJSON([
             'existe' => $existe ? true : false
+        ]);
+    }
+
+    /**
+     * AJAX: al previsualizar un JSON en la carga masiva, revisa si el
+     * documento/NRC del receptor coincide con MÁS de un cliente ya registrado
+     * (p.ej. varias sucursales de la misma empresa cargadas como fichas
+     * distintas). Si hay ambigüedad, el front pide elegir manualmente cuál
+     * usar — igual que ya se exige elegir vendedor para cada factura.
+     */
+    public function verificarClienteDuplicado()
+    {
+        $tipoDocumento   = trim((string)$this->request->getPost('tipo_documento'));
+        $numeroDocumento = trim((string)$this->request->getPost('numero_documento'));
+        $nrc             = trim((string)$this->request->getPost('nrc'));
+
+        $model         = new ClienteModel();
+        $candidatosMap = [];
+
+        if ($numeroDocumento !== '') {
+            foreach ($model->buscarTodosPorDocumento($numeroDocumento) as $c) {
+                $candidatosMap[$c->id] = $c;
+            }
+        }
+
+        if ($nrc !== '') {
+            foreach ($model->buscarTodosPorNRC($nrc) as $c) {
+                $candidatosMap[$c->id] = $c;
+            }
+        }
+
+        $candidatos = array_values(array_map(static function ($c) {
+            $partes = [$c->nombre];
+            if (!empty($c->numero_documento)) $partes[] = 'Doc: ' . $c->numero_documento;
+            if (!empty($c->nrc))              $partes[] = 'NRC: ' . $c->nrc;
+
+            return [
+                'id'   => (int)$c->id,
+                'text' => implode(' — ', $partes),
+            ];
+        }, $candidatosMap));
+
+        return $this->response->setJSON([
+            'duplicado'  => count($candidatos) > 1,
+            'candidatos' => $candidatos,
         ]);
     }
     public function anular($id)

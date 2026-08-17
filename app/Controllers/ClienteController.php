@@ -95,28 +95,37 @@ class ClienteController extends BaseController
         $tipoDocumento   = ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento'));
         $numeroDocumento = trim((string)$this->request->getPost('numero_documento'));
         $nrc             = trim((string)$this->request->getPost('nrc'));
+        $forzarDuplicado = (bool)$this->request->getPost('forzar_duplicado');
 
         // Mismo criterio tolerante a guiones/espacios que usa buscarPorDocumento()/
-        // buscarPorNRC(): evita crear un cliente duplicado cuando el DUI/NIT o el
-        // NRC ya existe, sin importar si el formato difiere (con o sin guiones).
-        if ($numeroDocumento !== '') {
-            $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
-            if ($existente) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'success' => false,
-                    'message' => "Ya existe un cliente con ese número de documento: {$existente->nombre} (#{$existente->id}).",
-                    'csrf' => csrf_hash(),
-                ]);
-            }
-        }
+        // buscarPorNRC(). No se bloquea de forma definitiva: una misma empresa
+        // (mismo DUI/NIT/NRC) puede tener varias sucursales registradas como
+        // fichas de cliente distintas, así que solo se avisa dónde ya existe y
+        // se deja continuar si el usuario confirma (forzar_duplicado=1).
+        if (!$forzarDuplicado) {
+            $coincidencias = [];
 
-        if ($nrc !== '') {
-            $existenteNrc = $model->buscarPorNRC($nrc);
-            if ($existenteNrc) {
-                return $this->response->setStatusCode(422)->setJSON([
-                    'success' => false,
-                    'message' => "Ya existe un cliente con ese NRC: {$existenteNrc->nombre} (#{$existenteNrc->id}).",
-                    'csrf' => csrf_hash(),
+            if ($numeroDocumento !== '') {
+                $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
+                if ($existente) {
+                    $coincidencias[] = "documento: {$existente->nombre} (#{$existente->id})";
+                }
+            }
+
+            if ($nrc !== '') {
+                $existenteNrc = $model->buscarPorNRC($nrc);
+                if ($existenteNrc) {
+                    $coincidencias[] = "NRC: {$existenteNrc->nombre} (#{$existenteNrc->id})";
+                }
+            }
+
+            if (!empty($coincidencias)) {
+                return $this->response->setStatusCode(409)->setJSON([
+                    'success'   => false,
+                    'duplicado' => true,
+                    'message'   => 'Ya existe un cliente registrado con el mismo ' . implode(' y ', $coincidencias)
+                        . '. Si es una sucursal distinta de la misma empresa, puedes continuar de todos modos.',
+                    'csrf'      => csrf_hash(),
                 ]);
             }
         }

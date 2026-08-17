@@ -421,6 +421,9 @@
                             tipo_linea: 'producto',
                             cuenta_ventas_override_id: null,
                             cuenta_ventas_override: null,
+                            clienteDuplicado: false,
+                            clienteCandidatos: [],
+                            cliente_id: null,
                         };
                         fetch("<?= base_url('facturas/validar-numero-control') ?>", {
                                 method: "POST",
@@ -448,9 +451,33 @@
                                     });
                                     return;
                                 }
-                                codigosEnLote.add(codigo);
-                                archivosSeleccionados.push(factura);
-                                renderTable();
+
+                                // El documento/NRC del cliente puede coincidir con más de una
+                                // ficha ya registrada (p.ej. sucursales de la misma empresa):
+                                // se detecta aquí para pedir que el usuario elija manualmente
+                                // cuál usar, igual que ya se exige elegir vendedor.
+                                const agregarFila = () => {
+                                    codigosEnLote.add(codigo);
+                                    archivosSeleccionados.push(factura);
+                                    renderTable();
+                                };
+
+                                fetch("<?= base_url('facturas/verificar-cliente-duplicado') ?>", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/x-www-form-urlencoded"
+                                        },
+                                        body: "tipo_documento=" + encodeURIComponent(clienteDte.tipoDocumento ?? '') +
+                                            "&numero_documento=" + encodeURIComponent(clienteDte.numDocumento ?? clienteDte.nit ?? '') +
+                                            "&nrc=" + encodeURIComponent(clienteDte.nrc ?? '')
+                                    })
+                                    .then(r => r.json())
+                                    .then(dupData => {
+                                        factura.clienteDuplicado  = !!dupData.duplicado;
+                                        factura.clienteCandidatos = dupData.candidatos || [];
+                                        agregarFila();
+                                    })
+                                    .catch(() => agregarFila());
                             });
 
                     } catch (error) {
@@ -632,6 +659,7 @@
                 formData.append('plazos_credito[]', factura.plazo_credito);
                 formData.append('tipo_lineas[]', factura.tipo_linea ?? 'producto');
                 formData.append('cuenta_ventas_override_ids[]', factura.cuenta_ventas_override_id ?? '');
+                formData.append('cliente_ids[]', factura.cliente_id ?? '');
             });
             fetch("<?= base_url('facturas/cargar') ?>", {
                     method: "POST",
@@ -711,6 +739,31 @@
             });
         }
 
+        function initClienteDuplicadoSelects() {
+            $('.cliente-duplicado-select').each(function() {
+
+                if ($(this).hasClass("select2-hidden-accessible")) return;
+
+                const $sel  = $(this);
+                const index = $sel.data('index');
+                const f     = archivosSeleccionados[index];
+
+                $sel.select2({
+                    placeholder: 'Elige a cuál cliente pertenece esta factura...',
+                    width: '280px',
+                    data: (f.clienteCandidatos || []).map(c => ({ id: c.id, text: c.text })),
+                });
+
+                if (f.cliente_id) {
+                    $sel.val(f.cliente_id).trigger('change');
+                }
+
+                $sel.on('select2:select', function(e) {
+                    archivosSeleccionados[index].cliente_id = e.params.data.id;
+                });
+            });
+        }
+
         function renderTable() {
             let html = '';
             archivosSeleccionados.forEach((factura, index) => {
@@ -767,6 +820,17 @@
                                     <small class="text-muted">
                                         ${factura.file.name}
                                     </small>
+
+                                    ${factura.clienteDuplicado ? `
+                                        <div class="mt-1">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-exclamation-triangle"></i> Documento duplicado — elige la ficha
+                                            </span>
+                                            <select class="cliente-duplicado-select form-control form-control-sm mt-1"
+                                                data-index="${index}" style="width:280px;">
+                                            </select>
+                                        </div>
+                                    ` : ''}
                                 </div>
                                 <div class="ms-auto select-group">
                             <div class="ms-auto select-group">
@@ -986,6 +1050,15 @@
                     });
                     return;
                 }
+                const sinClienteResuelto = archivosSeleccionados.some(f => f.clienteDuplicado && !f.cliente_id);
+                if (sinClienteResuelto) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cliente duplicado sin resolver',
+                        text: 'Hay facturas cuyo documento coincide con más de un cliente registrado. Elige a cuál ficha pertenece cada una antes de continuar.'
+                    });
+                    return;
+                }
                 if (archivosSeleccionados.length === 0) {
                     Swal.fire({
                         icon: 'info',
@@ -1020,6 +1093,7 @@
             initSellerSelects();
             initTipoVentaSelects();
             initCuentaServicioSelects();
+            initClienteDuplicadoSelects();
         }
     </script>
 

@@ -1093,21 +1093,42 @@ $(function () {
     });
 
     // Modal crear cliente
-    $('#formCliente').on('submit', function (e) {
-        e.preventDefault();
+    function enviarFormularioClienteNP(forzarDuplicado) {
         const btn = $('#btnGuardarCliente');
         const err = $('#clienteError');
         err.addClass('d-none').text('');
         btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Guardando...');
 
+        const datos = $('#formCliente').serialize() + (forzarDuplicado ? '&forzar_duplicado=1' : '');
+
         $.ajax({
             url: '<?= base_url('pedidos/cliente-store-ajax') ?>',
             type: 'POST',
-            data: $(this).serialize(),
+            data: datos,
             dataType: 'json',
             success: function (res) {
                 if (!res.success) {
+                    if (res.duplicado) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Documento ya registrado',
+                            text: res.message,
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, crear de todos modos',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#ffc107',
+                        }).then(result => {
+                            if (result.isConfirmed) {
+                                enviarFormularioClienteNP(true);
+                            } else {
+                                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+                            }
+                        });
+                        return;
+                    }
+
                     err.removeClass('d-none').text(res.message || 'Error al crear cliente.');
+                    btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
                     return;
                 }
 
@@ -1123,6 +1144,7 @@ $(function () {
                 actualizarBtnProducto();
 
                 $('#modalCliente').modal('hide');
+                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
 
                 if (document.getElementById('selectTipoDoc').value === 'credito_fiscal' && !clienteNrcActual) {
                     Swal.fire({
@@ -1132,9 +1154,16 @@ $(function () {
                     });
                 }
             },
-            error: function () { err.removeClass('d-none').text('Error de comunicación.'); },
-            complete: function () { btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente'); },
+            error: function () {
+                err.removeClass('d-none').text('Error de comunicación.');
+                btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Guardar cliente');
+            },
         });
+    }
+
+    $('#formCliente').on('submit', function (e) {
+        e.preventDefault();
+        enviarFormularioClienteNP(false);
     });
 });
 

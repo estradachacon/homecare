@@ -112,7 +112,7 @@
                     </table>
                 </div>
                 <!-- Paginación -->
-                <div class="d-flex justify-content-center mt-3">
+                <div class="d-flex mt-3">
                     <?= $pager->links('default', 'bootstrap_full') ?>
                 </div>
             </div>
@@ -394,64 +394,85 @@
             $('#crearClienteError').addClass('d-none').text('');
         });
 
-        $('#formCrearCliente').on('submit', function(e) {
-            e.preventDefault();
-
-            const form = $(this);
+        function enviarFormularioCliente(forzarDuplicado) {
+            const form = $('#formCrearCliente');
             const btn = $('#btnGuardarCliente');
             const errorBox = $('#crearClienteError');
 
             errorBox.addClass('d-none').text('');
             btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Guardando...');
 
-            $.ajax({
-                url: "<?= base_url('clientes/store-ajax') ?>",
-                method: "POST",
-                data: form.serialize(),
-                dataType: "json",
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                success: function(response) {
-                    if (response.csrf) {
-                        form.find('input[name="<?= csrf_token() ?>"]').val(response.csrf);
-                    }
+            const datos = form.serialize() + (forzarDuplicado ? '&forzar_duplicado=1' : '');
 
-                    if (!response.success) {
-                        errorBox.removeClass('d-none').text(response.message || 'No se pudo crear el cliente.');
+            function manejarRespuesta(response) {
+                if (response.csrf) {
+                    form.find('input[name="<?= csrf_token() ?>"]').val(response.csrf);
+                }
+
+                if (!response.success) {
+                    if (response.duplicado) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Documento ya registrado',
+                            text: response.message,
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, crear de todos modos',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#ffc107',
+                        }).then(result => {
+                            if (result.isConfirmed) {
+                                enviarFormularioCliente(true);
+                            } else {
+                                btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Guardar cliente');
+                            }
+                        });
                         return;
                     }
 
-                    $('#modalCrearCliente').modal('hide');
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Cliente creado',
-                        text: response.message,
-                        showCancelButton: true,
-                        confirmButtonText: 'Ver cliente',
-                        cancelButtonText: 'Cerrar',
-                        buttonsStyling: false,
-                        customClass: {
-                            confirmButton: 'btn btn-primary m-2',
-                            cancelButton: 'btn btn-secondary m-2'
-                        }
-                    }).then(result => {
-                        if (result.isConfirmed && response.cliente?.id) {
-                            window.location.href = "<?= base_url('clientes') ?>/" + response.cliente.id;
-                        } else {
-                            window.location.reload();
-                        }
-                    });
-                },
-                error: function(xhr) {
-                    const response = xhr.responseJSON || {};
-                    if (response.csrf) {
-                        form.find('input[name="<?= csrf_token() ?>"]').val(response.csrf);
-                    }
                     errorBox.removeClass('d-none').text(response.message || 'No se pudo crear el cliente.');
-                },
-                complete: function() {
                     btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Guardar cliente');
+                    return;
                 }
+
+                $('#modalCrearCliente').modal('hide');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Cliente creado',
+                    text: response.message,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ver cliente',
+                    cancelButtonText: 'Cerrar',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'btn btn-primary m-2',
+                        cancelButton: 'btn btn-secondary m-2'
+                    }
+                }).then(result => {
+                    if (result.isConfirmed && response.cliente?.id) {
+                        window.location.href = "<?= base_url('clientes') ?>/" + response.cliente.id;
+                    } else {
+                        window.location.reload();
+                    }
+                });
+                btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Guardar cliente');
+            }
+
+            $.ajax({
+                url: "<?= base_url('clientes/store-ajax') ?>",
+                method: "POST",
+                data: datos,
+                dataType: "json",
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: manejarRespuesta,
+                error: function(xhr) {
+                    manejarRespuesta(xhr.responseJSON || { success: false, message: 'No se pudo crear el cliente.' });
+                },
             });
+        }
+
+        $('#formCrearCliente').on('submit', function(e) {
+            e.preventDefault();
+            enviarFormularioCliente(false);
         });
     });
 

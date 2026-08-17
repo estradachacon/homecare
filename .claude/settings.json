@@ -90,7 +90,12 @@
       "Bash(curl -s -c cookies.txt -b cookies.txt -X POST http://homecare.local/consignaciones/cierre-detalle/1/foto -F 'foto=@test_foto.png;type=image/png' -o resp_foto.json)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://homecare.local/upload/devoluciones/1786487379_408069d12b25b3613667.png\")",
       "Bash(grep -n 'protected $table' app/Models/ConsignacionLogModel.php)",
-      "Bash(awk 'NR>=561 && NR<=650 && /^<\\\\/div>$/{print NR\": \"$0}' app/Views/consignaciones/detalle.php)"
+      "Bash(awk 'NR>=561 && NR<=650 && /^<\\\\/div>$/{print NR\": \"$0}' app/Views/consignaciones/detalle.php)",
+      "Bash(curl -s -c cookies.txt -b cookies.txt \"http://homecare.local/consignaciones/28\" -o detalle.html)",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nombre=_PW_TEST_SUCURSAL)",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}\\\\n' -c cookies.txt -b cookies.txt -X POST http://homecare.local/clientes/store-ajax -H 'X-Requested-With: XMLHttpRequest' --data-urlencode tipo_documento=NIT --data-urlencode numero_documento=1315-100574-101-4 --data-urlencode nombre=_PW_TEST_SUCURSAL --data-urlencode forzar_duplicado=1)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root homecaredb -e \"SHOW INDEX FROM clientes WHERE Key_name != 'PRIMARY';\")",
+      "Bash(php -l app/Database/Migrations/2026-08-17-142537_DropUniqueDocumentoClientes.php)"
     ]
   }
 }

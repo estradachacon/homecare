@@ -156,6 +156,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {    // Grupo del Da
     $routes->post('facturas/manual/preview',    'Facturas::previewManual');
     $routes->post('facturas/manual/process',    'Facturas::procesarCargaManual');
     $routes->post('facturas/validar-numero-control', 'Facturas::validarNumeroControl');
+    $routes->post('facturas/verificar-cliente-duplicado', 'Facturas::verificarClienteDuplicado');
     $routes->get('facturas/(:num)/pdf', 'Facturas::pdf/$1');
     $routes->get('facturas/(:num)/qr', 'Facturas::qr/$1');
     $routes->get('facturas/(:num)/json', 'Facturas::json/$1');

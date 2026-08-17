@@ -784,24 +784,34 @@ class PedidosController extends BaseController
         $nrc             = trim($this->request->getPost('nrc') ?? '') ?: null;
         $tipoDocumento   = ClienteModel::normalizarTipoDocumento($this->request->getPost('tipo_documento')) ?: 'DUI';
         $numeroDocumento = trim($this->request->getPost('numero_documento') ?? '');
+        $forzarDuplicado = (bool)$this->request->getPost('forzar_duplicado');
 
         // Mismo criterio tolerante a guiones/espacios que ClienteController::storeAjax().
-        if ($numeroDocumento !== '') {
-            $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
-            if ($existente) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => "Ya existe un cliente con ese número de documento: {$existente->nombre} (#{$existente->id}).",
-                ]);
-            }
-        }
+        // No bloquea: una misma empresa puede tener varias sucursales como fichas
+        // de cliente distintas, así que solo se avisa y se deja continuar si se confirma.
+        if (!$forzarDuplicado) {
+            $coincidencias = [];
 
-        if ($nrc !== null) {
-            $existenteNrc = $model->buscarPorNRC($nrc);
-            if ($existenteNrc) {
+            if ($numeroDocumento !== '') {
+                $existente = $model->buscarPorDocumento($tipoDocumento, $numeroDocumento);
+                if ($existente) {
+                    $coincidencias[] = "documento: {$existente->nombre} (#{$existente->id})";
+                }
+            }
+
+            if ($nrc !== null) {
+                $existenteNrc = $model->buscarPorNRC($nrc);
+                if ($existenteNrc) {
+                    $coincidencias[] = "NRC: {$existenteNrc->nombre} (#{$existenteNrc->id})";
+                }
+            }
+
+            if (!empty($coincidencias)) {
                 return $this->response->setJSON([
-                    'success' => false,
-                    'message' => "Ya existe un cliente con ese NRC: {$existenteNrc->nombre} (#{$existenteNrc->id}).",
+                    'success'   => false,
+                    'duplicado' => true,
+                    'message'   => 'Ya existe un cliente registrado con el mismo ' . implode(' y ', $coincidencias)
+                        . '. Si es una sucursal distinta de la misma empresa, puedes continuar de todos modos.',
                 ]);
             }
         }
