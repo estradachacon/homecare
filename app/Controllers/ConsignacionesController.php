@@ -527,6 +527,8 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
         $rows = $db->query(
             "SELECT ph.id AS np_id, ph.numero AS np_numero, ph.factura_id,
+                    ph.consignacion_id AS ph_consignacion_id,
+                    ph.consignacion_ids AS ph_consignacion_ids,
                     fh.numero_control AS factura_numero,
                     fh.fecha_emision, fh.total_pagar,
                     SUBSTRING_INDEX(fh.numero_control, '-', -1) AS correlativo,
@@ -548,6 +550,30 @@ class ConsignacionesController extends BaseController
         foreach ($rows as $row) {
             $pid  = $row->producto_id;
             $fid  = $row->factura_id;
+
+            // Si la NP de esta factura está vinculada a más de una NE y ese mismo
+            // producto también existe en otra de esas NE, hay que confirmar que
+            // el lote que la NP realmente consumió salió de ESTA NE antes de
+            // sugerir la factura aquí (mismo criterio FIFO — por número de NE y
+            // de lote — que usa la vista imprimible de la NP). Sin esto, una
+            // factura de una NP que abarca varias NE se sugería en todas por
+            // igual aunque el producto en concreto viniera de otra distinta.
+            $neIds = [];
+            if ($row->ph_consignacion_id) $neIds[] = (int)$row->ph_consignacion_id;
+            if ($row->ph_consignacion_ids) {
+                $decoded = json_decode($row->ph_consignacion_ids, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $nid) {
+                        $nid = (int)$nid;
+                        if ($nid && !in_array($nid, $neIds, true)) $neIds[] = $nid;
+                    }
+                }
+            }
+
+            if (!$this->_neAportoProductoANp((int)$id, (int)$row->np_id, (int)$pid, $neIds)) {
+                continue;
+            }
+
             $corr = substr($row->correlativo, -6);
             $text = "#{$corr}";
             if (!empty($row->cliente_nombre)) $text .= ' · ' . $row->cliente_nombre;
@@ -575,6 +601,57 @@ class ConsignacionesController extends BaseController
             'lotesPorDetalle'        => $lotesPorDetalle,
             'sugerenciasPorProducto' => $sugerenciasPorProducto,
         ]);
+    }
+
+    /**
+     * Determina si $consignacionId realmente aportó el lote consumido por
+     * $pedidoId para $productoId, cuando esa NP está vinculada a más de una
+     * NE ($neIds). Reparte la cantidad que la NP pide de ese producto entre
+     * los lotes de las NE candidatas en el mismo orden FIFO (por número de
+     * NE y luego de lote) que usa PedidosController::imprimir(), y verifica
+     * si $consignacionId quedó dentro de lo consumido.
+     */
+    private function _neAportoProductoANp(int $consignacionId, int $pedidoId, int $productoId, array $neIds): bool
+    {
+        if (count(array_unique($neIds)) < 2) {
+            return true; // sin ambigüedad: la NP solo está vinculada a esta NE
+        }
+
+        $db = \Config\Database::connect();
+
+        $cantidadPedida = (float)($db->table('pedidos_detalles')
+            ->selectSum('cantidad')
+            ->where('pedido_id', $pedidoId)
+            ->where('producto_id', $productoId)
+            ->get()->getRow()->cantidad ?? 0);
+
+        if ($cantidadPedida <= 0.0001) {
+            return false;
+        }
+
+        $inList = implode(',', array_unique($neIds));
+        $lotesFilas = $db->query("
+            SELECT ch.id AS ne_id, cl.id AS lote_id, SUM(cdl.cantidad) AS cantidad
+            FROM consignaciones_detalles cd
+            INNER JOIN consignaciones_head ch          ON ch.id = cd.consignacion_id
+            INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
+            INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
+            WHERE cd.consignacion_id IN ({$inList}) AND cd.producto_id = ?
+            GROUP BY ch.id, cl.id
+            ORDER BY ch.numero ASC, cl.numero_lote ASC
+        ", [$productoId])->getResult();
+
+        $restante = $cantidadPedida;
+        foreach ($lotesFilas as $lf) {
+            if ($restante <= 0.0001) break;
+            $consumo = min((float)$lf->cantidad, $restante);
+            if ($consumo > 0.0001 && (int)$lf->ne_id === $consignacionId) {
+                return true;
+            }
+            $restante -= $consumo;
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────

@@ -405,8 +405,13 @@
             cargarFacturasVendedor(this);
         });
 
-        // Aplicar sugerencia de factura desde NP asociada
+        // Aplicar/quitar sugerencia de factura desde NP asociada. Funciona como
+        // un interruptor: si la factura ya estaba agregada al select múltiple,
+        // el mismo botón la quita (antes solo agregaba, y cada clic —incluso
+        // repetido sobre la misma sugerencia— iba acumulando otra opción más).
         document.querySelectorAll('.btn-aplicar-factura').forEach(btn => {
+            btn.dataset.htmlOriginal = btn.innerHTML;
+
             btn.addEventListener('click', function() {
                 const detalleId     = this.dataset.detalle;
                 const facturaId     = this.dataset.facturaId;
@@ -414,8 +419,20 @@
                 const npCantidad    = parseFloat(this.dataset.npCantidad) || 0;
                 const detalleMax    = parseFloat(this.dataset.detalleMax) || 0;
 
+                const selectEl        = document.querySelector(`select[name="lineas[${detalleId}][facturas][]"]`);
+                const opcionExistente = selectEl.querySelector(`option[value="${facturaId}"]`);
+
+                if (opcionExistente) {
+                    // Ya estaba aplicada: quitarla (deseleccionar)
+                    $(opcionExistente).remove();
+                    $(selectEl).trigger('change');
+
+                    this.classList.replace('btn-success', 'btn-outline-success');
+                    this.innerHTML = this.dataset.htmlOriginal;
+                    return;
+                }
+
                 // Pre-seleccionar factura en el Select2
-                const selectEl = document.querySelector(`select[name="lineas[${detalleId}][facturas][]"]`);
                 const opt = new Option(facturaNro, facturaId, true, true);
                 $(selectEl).append(opt).trigger('change');
 
@@ -428,7 +445,7 @@
 
                 // Feedback visual en el botón
                 this.classList.replace('btn-outline-success', 'btn-success');
-                this.innerHTML = '<i class="fa-solid fa-check mr-1"></i>' + this.innerHTML.replace(/<i[^>]*><\/i>/, '');
+                this.innerHTML = '<i class="fa-solid fa-check mr-1"></i>' + this.dataset.htmlOriginal.replace(/<i[^>]*><\/i>/, '');
             });
         });
 
