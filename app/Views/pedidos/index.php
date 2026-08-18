@@ -90,13 +90,14 @@
                                 <th>Pago</th>
                                 <th class="text-end">Total</th>
                                 <th class="text-center">Estado</th>
+                                <th class="text-center">Fecha</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (empty($pedidos)): ?>
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">No hay notas de pedido registradas.</td>
+                                    <td colspan="10" class="text-center text-muted py-4">No hay notas de pedido registradas.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($pedidos as $p): ?>
@@ -143,6 +144,9 @@
                                             <span class="badge <?= $estadoBadge[$p->estado] ?? 'badge-secondary' ?> px-2 py-1">
                                                 <?= $estadoLabel[$p->estado] ?? esc($p->estado) ?>
                                             </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <?= $p->created_at ? date('d/m/Y', strtotime($p->created_at)) : '—' ?>
                                         </td>
                                         <td class="text-center">
                                             <a href="<?= base_url('pedidos/' . $p->id) ?>" class="btn btn-info btn-xs" title="Ver">
