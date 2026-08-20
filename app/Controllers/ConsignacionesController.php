@@ -2489,26 +2489,32 @@ class ConsignacionesController extends BaseController
         $chk = requerirPermiso('crear_pedidos');
         if ($chk !== true) return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
 
-        $session = session();
-        $db      = \Config\Database::connect();
+        $session       = session();
+        $db            = \Config\Database::connect();
+        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores');
 
-        $seller = $db->table('sellers')
-            ->join('users', 'users.seller_id = sellers.id')
-            ->where('users.id', $session->get('id'))
-            ->select('sellers.id')
-            ->get()->getRow();
-
-        if (!$seller) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Usuario sin vendedor asignado.']);
-        }
-
-        $ne = $db->table('consignaciones_head')
+        $builderNE = $db->table('consignaciones_head')
             ->where('id', $id)
-            ->where('vendedor_id', $seller->id)
             ->where('estado', 'abierta')
             ->where('aprobacion_estado', 'aprobada')
-            ->where('lotes_autorizados_por IS NOT NULL', null, false)
-            ->get()->getRow();
+            ->where('lotes_autorizados_por IS NOT NULL', null, false);
+
+        if (!$puedeVerTodos) {
+            // Comportamiento original: solo NE del propio vendedor.
+            $seller = $db->table('sellers')
+                ->join('users', 'users.seller_id = sellers.id')
+                ->where('users.id', $session->get('id'))
+                ->select('sellers.id')
+                ->get()->getRow();
+
+            if (!$seller) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Usuario sin vendedor asignado.']);
+            }
+
+            $builderNE->where('vendedor_id', $seller->id);
+        }
+
+        $ne = $builderNE->get()->getRow();
 
         if (!$ne) {
             return $this->response->setJSON(['success' => false, 'message' => 'Nota de envío no válida o no disponible.']);

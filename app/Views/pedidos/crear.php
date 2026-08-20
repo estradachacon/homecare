@@ -435,6 +435,7 @@
                 </div>
             </div>
             <div class="modal-footer py-2">
+                <small class="text-muted mr-auto" id="contadorSeleccionNE"></small>
                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="recargarListaNE()">
                     <i class="fa-solid fa-rotate-right mr-1"></i>Re-cargar
                 </button>
@@ -732,8 +733,12 @@ function limpiarProductos() {
 }
 
 // ── Notas de Envío – scope global (llamadas desde onclick) ──────────────────
-let nesCargadas = []; // [{id, text}]
-let listaNEs    = [];
+let nesCargadas    = []; // [{id, text}] — lo que ya quedó aplicado a la NP
+let listaNEs       = []; // resultado de la última búsqueda/filtro (lo que se ve ahora)
+let neSeleccionadas = {}; // {id: {id, text}} — lo marcado con check, persiste aunque
+                          // el filtro/búsqueda cambie la lista visible y esa NE deje
+                          // de mostrarse (antes se perdía porque el checkbox mismo
+                          // se destruía al re-renderizar la lista filtrada).
 
 function mostrarBannerNE() {
     const alertDiv = $('#alertaNE');
@@ -755,6 +760,10 @@ function mostrarBannerNE() {
 }
 
 function abrirModalNE() {
+    // Al abrir, la selección visible arranca desde lo que ya está aplicado.
+    neSeleccionadas = {};
+    nesCargadas.forEach(n => { neSeleccionadas[String(n.id)] = { id: n.id, text: n.text }; });
+
     $('#cuerpoModalNE').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
     $('#modalNotasEnvio').modal('show');
     recargarListaNE();
@@ -782,7 +791,7 @@ function renderListaNE() {
     } else {
         html += '<div class="list-group">';
         listaNEs.forEach(ne => {
-            const cargada  = nesCargadas.some(n => String(n.id) === String(ne.id));
+            const cargada  = Object.prototype.hasOwnProperty.call(neSeleccionadas, String(ne.id));
             const checked  = cargada ? 'checked' : '';
             const active   = cargada ? 'active'  : '';
             const pct      = typeof ne.porcentaje_pendiente === 'number' ? ne.porcentaje_pendiente : 100;
@@ -806,6 +815,30 @@ function renderListaNE() {
         html += '</div>';
     }
     $('#cuerpoModalNE').html(html);
+    actualizarContadorSeleccionNE();
+}
+
+// Delegado (los checkboxes se recrean en cada render): mantiene neSeleccionadas
+// al día sin importar qué filtro esté activo, para que marcar una NE y luego
+// filtrar/buscar no la desmarque ni la "olvide".
+$(document).on('change', 'input[name="neCheck"]', function () {
+    const id = String(this.value);
+    if (this.checked) {
+        const ne = listaNEs.find(n => String(n.id) === id);
+        neSeleccionadas[id] = ne ? { id: ne.id, text: ne.text } : { id, text: 'NE #' + id };
+        $(this).closest('.list-group-item').addClass('active');
+    } else {
+        delete neSeleccionadas[id];
+        $(this).closest('.list-group-item').removeClass('active');
+    }
+    actualizarContadorSeleccionNE();
+});
+
+function actualizarContadorSeleccionNE() {
+    const el = document.getElementById('contadorSeleccionNE');
+    if (!el) return;
+    const total = Object.keys(neSeleccionadas).length;
+    el.textContent = total > 0 ? `${total} nota(s) seleccionada(s)` : '';
 }
 
 // ── Select2 Vendedor (solo con permiso "ver_documentos_todos_vendedores") ────
@@ -926,7 +959,9 @@ $(function () {
     document.getElementById('btnAbrirModalNE').addEventListener('click', abrirModalNE);
 
     document.getElementById('btnCargarNESeleccion').addEventListener('click', async function () {
-        const seleccionadas = [...document.querySelectorAll('input[name="neCheck"]:checked')];
+        // neSeleccionadas (no el DOM) es la fuente de verdad: incluye también
+        // las NE marcadas que el filtro/búsqueda actual dejó fuera de la vista.
+        const seleccionadas = Object.keys(neSeleccionadas);
 
         const btn = document.getElementById('btnCargarNESeleccion');
         btn.disabled = true;
@@ -941,9 +976,8 @@ $(function () {
 
         let importadas = 0;
 
-        for (const chk of seleccionadas) {
-            const neId   = chk.value;
-            const neObj  = listaNEs.find(n => String(n.id) === String(neId));
+        for (const neId of seleccionadas) {
+            const neObj  = neSeleccionadas[neId];
             const neText = neObj ? neObj.text : ('NE #' + neId);
 
             try {
@@ -995,6 +1029,11 @@ $(function () {
         const first = nesCargadas[0];
         document.getElementById('hiddenConsignacionId').value  = first ? first.id : '';
         document.getElementById('hiddenConsignacionIds').value = JSON.stringify(nesCargadas.map(n => n.id));
+
+        // La selección visible del modal queda igual a lo que realmente se aplicó
+        // (si alguna falló o no tenía pendiente, ya no queda marcada la próxima vez).
+        neSeleccionadas = {};
+        nesCargadas.forEach(n => { neSeleccionadas[String(n.id)] = { id: n.id, text: n.text }; });
 
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Aplicar selección';
