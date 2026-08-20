@@ -187,12 +187,25 @@ class PedidosController extends BaseController
             ->select('sellers.id')
             ->get()->getRow();
 
+        // Con el permiso "ver_documentos_todos_vendedores", el vendedor de la
+        // NP puede ser distinto al del usuario que la crea (p.ej. al importar
+        // productos de una NE de otro vendedor). Sin el permiso, o si el valor
+        // enviado no corresponde a un vendedor real, se mantiene el
+        // comportamiento original: siempre el vendedor propio del usuario.
+        $vendedorIdFinal = $seller->id ?? null;
+        if (tienePermiso('ver_documentos_todos_vendedores')) {
+            $vendedorIdPost = (int)($this->request->getPost('vendedor_id') ?: 0);
+            if ($vendedorIdPost && $db->table('sellers')->where('id', $vendedorIdPost)->countAllResults() > 0) {
+                $vendedorIdFinal = $vendedorIdPost;
+            }
+        }
+
         $pedidoId = $headModel->insert([
             'numero'          => $numero,
             'anio'            => $anio,
             'secuencia'       => $secuencia,
             'cliente_id'      => $clienteId,
-            'vendedor_id'     => $seller->id ?? null,
+            'vendedor_id'     => $vendedorIdFinal,
             'consignacion_id'  => (int)$this->request->getPost('consignacion_id') ?: null,
             'consignacion_ids' => $this->request->getPost('consignacion_ids') ?: null,
             'doctor_id'        => (int)$this->request->getPost('doctor_id')       ?: null,

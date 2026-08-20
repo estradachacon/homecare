@@ -2233,30 +2233,44 @@ class ConsignacionesController extends BaseController
         $chk = requerirPermiso('crear_pedidos');
         if ($chk !== true) return $this->response->setJSON(['results' => []]);
 
-        $session = session();
-        $db      = \Config\Database::connect();
+        $session       = session();
+        $db            = \Config\Database::connect();
+        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores');
 
-        $seller = $db->table('sellers')
-            ->join('users', 'users.seller_id = sellers.id')
-            ->where('users.id', $session->get('id'))
-            ->select('sellers.id')
-            ->get()->getRow();
-
-        if (!$seller) {
-            return $this->response->setJSON(['results' => []]);
-        }
-
-        $q = trim($this->request->getGet('q') ?? '');
+        $q              = trim($this->request->getGet('q') ?? '');
+        $vendedorFiltro = (int)($this->request->getGet('vendedor_id') ?? 0);
 
         $builder = $db->table('consignaciones_head')
-            ->select('consignaciones_head.id, consignaciones_head.numero, pacientes.nombre AS paciente_nombre')
+            ->select('consignaciones_head.id, consignaciones_head.numero, consignaciones_head.vendedor_id,
+                      pacientes.nombre AS paciente_nombre, sellers.seller AS vendedor_nombre')
             ->join('pacientes', 'pacientes.id = consignaciones_head.paciente_id', 'left')
-            ->where('consignaciones_head.vendedor_id', $seller->id)
+            ->join('sellers', 'sellers.id = consignaciones_head.vendedor_id', 'left')
             ->where('consignaciones_head.estado', 'abierta')
             ->where('consignaciones_head.aprobacion_estado', 'aprobada')
             ->where('consignaciones_head.lotes_autorizados_por IS NOT NULL', null, false)
             ->orderBy('consignaciones_head.id', 'DESC')
             ->limit(50);
+
+        if ($puedeVerTodos) {
+            // Con el permiso, se pueden ver (y opcionalmente filtrar) las NE
+            // de cualquier vendedor; sin filtro, se muestran todas.
+            if ($vendedorFiltro) {
+                $builder->where('consignaciones_head.vendedor_id', $vendedorFiltro);
+            }
+        } else {
+            // Comportamiento original: solo las NE del propio vendedor.
+            $seller = $db->table('sellers')
+                ->join('users', 'users.seller_id = sellers.id')
+                ->where('users.id', $session->get('id'))
+                ->select('sellers.id')
+                ->get()->getRow();
+
+            if (!$seller) {
+                return $this->response->setJSON(['results' => []]);
+            }
+
+            $builder->where('consignaciones_head.vendedor_id', $seller->id);
+        }
 
         if ($q !== '') {
             $builder->groupStart()
@@ -2279,10 +2293,58 @@ class ConsignacionesController extends BaseController
             if (!empty($row->paciente_nombre)) {
                 $label .= ' — ' . $row->paciente_nombre;
             }
-            $results[] = ['id' => $row->id, 'text' => $label];
+
+            $results[] = [
+                'id'                   => $row->id,
+                'text'                 => $label,
+                'vendedor_id'          => (int)$row->vendedor_id,
+                'vendedor_nombre'      => $row->vendedor_nombre,
+                'porcentaje_pendiente' => $this->_porcentajePendienteNE((int)$row->id),
+            ];
         }
 
-        return $this->response->setJSON(['results' => $results]);
+        return $this->response->setJSON([
+            'results'         => $results,
+            'puede_ver_todos' => $puedeVerTodos,
+        ]);
+    }
+
+    /**
+     * Porcentaje del total de la NE que todavía no se ha pasado a ninguna
+     * Nota de Pedido activa (lo que aún "falta pasar a NP"). Se calcula
+     * sobre la cantidad de cada producto de la NE menos lo comprometido en
+     * NPs activas para ese mismo producto (_comprometidoPorProductoNE, que
+     * ya descuenta créditos por nota de crédito y resuelve a qué NE
+     * pertenece cada línea cuando una NP abarca varias).
+     */
+    private function _porcentajePendienteNE(int $consignacionId): float
+    {
+        $db = \Config\Database::connect();
+
+        $detalles = $db->table('consignaciones_detalles')
+            ->select('producto_id, cantidad')
+            ->where('consignacion_id', $consignacionId)
+            ->get()->getResult();
+
+        if (empty($detalles)) {
+            return 0.0;
+        }
+
+        $comprometidoPorProducto = $this->_comprometidoPorProductoNE($consignacionId);
+
+        $total       = 0.0;
+        $comprometido = 0.0;
+        foreach ($detalles as $d) {
+            $cantidad = (float)$d->cantidad;
+            $total += $cantidad;
+            $comprometido += min($cantidad, $comprometidoPorProducto[(int)$d->producto_id] ?? 0.0);
+        }
+
+        if ($total <= 0.0001) {
+            return 0.0;
+        }
+
+        return round((($total - $comprometido) / $total) * 100, 1);
     }
 
     // ─────────────────────────────────────────────

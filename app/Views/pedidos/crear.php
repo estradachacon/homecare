@@ -117,8 +117,12 @@
                         </div>
                         <div class="col-md-5">
                             <label class="form-label text-muted small">Vendedor</label>
-                            <input type="text" class="form-control" value="<?= esc($vendedor_nombre) ?>" readonly>
-                            <input type="hidden" name="vendedor_id" value="<?= $vendedor_id ?>">
+                            <?php if (tienePermiso('ver_documentos_todos_vendedores')): ?>
+                                <select name="vendedor_id" id="selectVendedorNP" class="form-control" required></select>
+                            <?php else: ?>
+                                <input type="text" class="form-control" value="<?= esc($vendedor_nombre) ?>" readonly>
+                                <input type="hidden" name="vendedor_id" value="<?= $vendedor_id ?>">
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label text-muted small">Cliente <span class="text-danger">*</span></label>
@@ -185,7 +189,11 @@
                                 <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAbrirModalNE">
                                     <i class="fa-solid fa-file-import mr-1"></i> Importar desde nota de envío
                                 </button>
-                                <small class="text-muted ml-2">Solo notas del mismo vendedor, abiertas y con autorización completa.</small>
+                                <?php if (tienePermiso('ver_documentos_todos_vendedores')): ?>
+                                    <small class="text-muted ml-2">Notas abiertas y con autorización completa, de cualquier vendedor.</small>
+                                <?php else: ?>
+                                    <small class="text-muted ml-2">Solo notas del mismo vendedor, abiertas y con autorización completa.</small>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <input type="hidden" name="consignacion_id" id="hiddenConsignacionId">
@@ -405,7 +413,7 @@
 
 <!-- Modal Notas de Envío -->
 <div class="modal fade" id="modalNotasEnvio" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog<?= tienePermiso('ver_documentos_todos_vendedores') ? ' modal-lg' : '' ?>">
         <div class="modal-content">
             <div class="modal-header py-2" style="background:#1e4d2b;">
                 <h6 class="modal-title text-white mb-0">
@@ -413,9 +421,17 @@
                 </h6>
                 <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
-            <div class="modal-body" id="cuerpoModalNE">
-                <div class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary"></div>
+            <div class="modal-body">
+                <?php if (tienePermiso('ver_documentos_todos_vendedores')): ?>
+                    <div class="mb-2">
+                        <label class="small text-muted mb-1">Filtrar por vendedor</label>
+                        <select id="filtroVendedorNE" class="form-control form-control-sm"></select>
+                    </div>
+                <?php endif; ?>
+                <div id="cuerpoModalNE">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer py-2">
@@ -433,6 +449,7 @@
 
 <script>
 let filaIdx = 0;
+const PUEDE_VER_TODOS_VENDEDORES = <?= tienePermiso('ver_documentos_todos_vendedores') ? 'true' : 'false' ?>;
 const clientesActividadesMap = <?= json_encode(config('ActividadesEconomicas')->actividades) ?>;
 const PRECIO_MIN_ALERT = 'No puede ingresar un precio menor al mínimo configurado ($';
 function notificarPrecioSuperior(valor) {
@@ -745,7 +762,9 @@ function abrirModalNE() {
 
 function recargarListaNE() {
     $('#cuerpoModalNE').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
-    fetch('<?= base_url('consignaciones/search-para-pedido') ?>')
+    const vendedorFiltro = (PUEDE_VER_TODOS_VENDEDORES && $('#filtroVendedorNE').val()) ? $('#filtroVendedorNE').val() : '';
+    const url = '<?= base_url('consignaciones/search-para-pedido') ?>' + (vendedorFiltro ? ('?vendedor_id=' + encodeURIComponent(vendedorFiltro)) : '');
+    fetch(url)
         .then(r => r.json())
         .then(data => {
             listaNEs = data.results || [];
@@ -759,18 +778,28 @@ function recargarListaNE() {
 function renderListaNE() {
     let html = '<p class="small text-muted mb-3">Marca las notas de envío que deseas incluir. Al aplicar, los productos se reconstruyen desde la selección actual.</p>';
     if (!listaNEs.length) {
-        html += '<div class="text-center text-muted py-3"><i class="fa-solid fa-circle-info fa-2x mb-2 d-block text-info"></i><small>No hay notas de envío disponibles con autorización completa para este vendedor.</small></div>';
+        html += '<div class="text-center text-muted py-3"><i class="fa-solid fa-circle-info fa-2x mb-2 d-block text-info"></i><small>No hay notas de envío disponibles con autorización completa' + (PUEDE_VER_TODOS_VENDEDORES ? '.' : ' para este vendedor.') + '</small></div>';
     } else {
         html += '<div class="list-group">';
         listaNEs.forEach(ne => {
             const cargada  = nesCargadas.some(n => String(n.id) === String(ne.id));
             const checked  = cargada ? 'checked' : '';
             const active   = cargada ? 'active'  : '';
+            const pct      = typeof ne.porcentaje_pendiente === 'number' ? ne.porcentaje_pendiente : 100;
+            const vendedorBadge = (PUEDE_VER_TODOS_VENDEDORES && ne.vendedor_nombre)
+                ? `<span class="badge badge-light border ml-1">${ne.vendedor_nombre}</span>`
+                : '';
             html += `
                 <label class="list-group-item list-group-item-action py-2 ${active}" for="ne_${ne.id}" style="cursor:pointer;">
                     <div class="d-flex">
                         <input type="checkbox" name="neCheck" id="ne_${ne.id}" value="${ne.id}" class="mr-2" ${checked}>
-                        <strong class="small">${ne.text}</strong>
+                        <strong class="small">${ne.text}</strong>${vendedorBadge}
+                    </div>
+                    <div class="d-flex align-items-center mt-1" style="gap:.5rem;">
+                        <div class="progress flex-grow-1" style="height:6px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width:${pct}%;"></div>
+                        </div>
+                        <small class="text-muted" style="white-space:nowrap;">${pct.toFixed(0)}% falta pasar a NP</small>
                     </div>
                 </label>`;
         });
@@ -778,6 +807,47 @@ function renderListaNE() {
     }
     $('#cuerpoModalNE').html(html);
 }
+
+// ── Select2 Vendedor (solo con permiso "ver_documentos_todos_vendedores") ────
+$(function () {
+    if (document.getElementById('selectVendedorNP')) {
+        $('#selectVendedorNP').select2({
+            language: 'es',
+            placeholder: 'Buscar vendedor...',
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('sellers/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term || '', select2: 1 }),
+                processResults: data => ({ results: data.results }),
+            },
+        });
+
+        <?php if ($vendedor_id): ?>
+        $('#selectVendedorNP').append(new Option(<?= json_encode($vendedor_nombre) ?>, <?= (int)$vendedor_id ?>, true, true)).trigger('change');
+        <?php endif; ?>
+    }
+
+    if (document.getElementById('filtroVendedorNE')) {
+        $('#filtroVendedorNE').select2({
+            language: 'es',
+            placeholder: 'Todos los vendedores',
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#modalNotasEnvio'),
+            ajax: {
+                url: '<?= base_url('sellers/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term || '', select2: 1 }),
+                processResults: data => ({ results: data.results }),
+            },
+        }).on('change', function () {
+            recargarListaNE();
+        });
+    }
+});
 
 // ── Select2 Cliente ───────────────────────────────────────────────────────────
 $(function () {
