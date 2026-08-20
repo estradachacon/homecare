@@ -95,6 +95,71 @@ class Facturas extends BaseController
         return $sellerScope && (int)$factura->vendedor_id === (int)$sellerScope;
     }
 
+    /**
+     * Si $facturaId está vinculada (vía consignaciones_cierres_facturas) al
+     * cierre de alguna consignación ya cerrada, la reabre (estado = 'abierta')
+     * para que se vuelva a cerrar reflejando el cambio. El cierre anterior
+     * NO se borra — queda de historial; al volver a cerrar la nota se genera
+     * un cierre nuevo.
+     *
+     * Se dispara desde dos lugares:
+     * - Al anular una factura: afecta todo lo que esa factura facturó
+     *   ($productoIdsAfectados = null).
+     * - Al registrar una nota de crédito que acredita productos de vuelta:
+     *   solo esos productos ($productoIdsAfectados = [...]).
+     */
+    private function _reabrirConsignacionesPorFactura(int $facturaId, ?array $productoIdsAfectados, string $motivo, ?int $userId): void
+    {
+        if ($productoIdsAfectados !== null && empty($productoIdsAfectados)) {
+            return;
+        }
+
+        $db = \Config\Database::connect();
+
+        $sql = "
+            SELECT DISTINCT cc.consignacion_id, ch.numero
+            FROM consignaciones_cierres_facturas ccf
+            INNER JOIN consignaciones_cierres cc           ON cc.id = ccf.cierre_id
+            INNER JOIN consignaciones_cierres_detalles ccd ON ccd.id = ccf.detalle_id
+            INNER JOIN consignaciones_head ch              ON ch.id = cc.consignacion_id
+            WHERE ccf.factura_id = ?
+              AND ch.estado = 'cerrada'
+        ";
+        $binds = [$facturaId];
+
+        if ($productoIdsAfectados !== null) {
+            $placeholders = implode(',', array_fill(0, count($productoIdsAfectados), '?'));
+            $sql .= " AND ccd.producto_id IN ({$placeholders})";
+            $binds = array_merge($binds, $productoIdsAfectados);
+        }
+
+        $afectadas = $db->query($sql, $binds)->getResult();
+
+        foreach ($afectadas as $fila) {
+            $db->table('consignaciones_head')
+               ->where('id', $fila->consignacion_id)
+               ->update(['estado' => 'abierta']);
+
+            $userNombre = $userId ? (session()->get('user_name') ?? ('Usuario #' . $userId)) : 'Sistema';
+
+            (new \App\Models\ConsignacionLogModel())->insert([
+                'consignacion_id' => (int)$fila->consignacion_id,
+                'user_id'         => $userId,
+                'user_nombre'     => $userNombre,
+                'accion'          => 'Nota reabierta automáticamente',
+                'detalle'         => $motivo,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+
+            registrar_bitacora(
+                'Reabrir consignación',
+                'Consignaciones',
+                "La nota {$fila->numero} se reabrió automáticamente: {$motivo}",
+                $userId
+            );
+        }
+    }
+
     private function prefijoArchivoDte(?string $tipoDte): string
     {
         $prefijosArchivo = [
@@ -230,7 +295,7 @@ class Facturas extends BaseController
 
     public function procesarCarga()
     {
-        $user_id = session()->get('user_id');
+        $user_id = session()->get('id'); // ojo: la clave de sesión es 'id', no 'user_id' (ver AuthController::login)
         session_write_close();
 
         $files = $this->request->getFiles();
@@ -589,6 +654,10 @@ class Facturas extends BaseController
                 $contenido // guardamos el string original completo
             );
 
+            // Productos que esta Nota de Crédito acredita de vuelta (se llena
+            // abajo, dentro del loop de detalles, solo cuando tipoDte === '05')
+            $productoIdsCreditadosNC = [];
+
             // INSERTAR DETALLES
             if (!empty($json['cuerpoDocumento'])) {
                 foreach ($json['cuerpoDocumento'] as $item) {
@@ -651,6 +720,10 @@ class Facturas extends BaseController
                             'codigo' => $codigo,
                             'descripcion' => $descripcion
                         ]);
+                    }
+
+                    if ($tipoDte === '05') {
+                        $productoIdsCreditadosNC[] = $productoId;
                     }
 
                     /*
@@ -733,6 +806,20 @@ CCF YA VIENE SIN IVA
                         ]);
                     }
                 }
+            }
+
+            // Si esta Nota de Crédito acredita productos de una factura que
+            // estaba vinculada al cierre de alguna consignación ya cerrada,
+            // esa nota se reabre para que se vuelva a cerrar reflejando el
+            // crédito (el cierre anterior queda de historial).
+            if ($tipoDte === '05' && !empty($facturaRelacionada) && !empty($productoIdsCreditadosNC)) {
+                $this->_reabrirConsignacionesPorFactura(
+                    (int)$facturaRelacionada->id,
+                    array_values(array_unique($productoIdsCreditadosNC)),
+                    'Se registró la nota de crédito Nº ' . substr($dataHead['numero_control'], -6)
+                        . ' que acredita productos de la factura Nº ' . substr($facturaRelacionada->numero_control, -6) . '.',
+                    $user_id
+                );
             }
 
             // Encolar asiento contable para CCF y FAC (se procesa después de commit)
@@ -2376,7 +2463,7 @@ CCF YA VIENE SIN IVA
         }
 
         $session = session();
-        $user_id = $session->get('user_id');
+        $user_id = $session->get('id'); // ojo: la clave de sesión es 'id', no 'user_id' (ver AuthController::login)
 
         $facturaModel       = new FacturaHeadModel();
         $pagosDetailsModel  = new PagosDetailsModel();
@@ -2407,6 +2494,26 @@ CCF YA VIENE SIN IVA
                 'success' => false,
                 'message' => 'La factura ya está anulada.'
             ]);
+        }
+
+        // Plazo de anulación: Crédito Fiscal (03), Nota de Remisión (04) y Nota
+        // de Crédito (05) solo se pueden anular hasta el día siguiente de su
+        // emisión (se cuenta con todo ese día siguiente completo).
+        $tiposConPlazoAnulacion = ['03', '04', '05'];
+        if (in_array((string) $factura->tipo_dte, $tiposConPlazoAnulacion, true) && !empty($factura->fecha_emision)) {
+            $fechaEmision = date('Y-m-d', strtotime($factura->fecha_emision));
+            $fechaLimite  = date('Y-m-d', strtotime($fechaEmision . ' +1 day'));
+
+            if (date('Y-m-d') > $fechaLimite) {
+                $sigla = dte_siglas()[$factura->tipo_dte] ?? $factura->tipo_dte;
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => "No se puede anular por plazo vencido: este documento ({$sigla}) se emitió el "
+                        . date('d/m/Y', strtotime($fechaEmision))
+                        . ' y el plazo para anularlo venció el '
+                        . date('d/m/Y', strtotime($fechaLimite)) . '.',
+                ]);
+            }
         }
 
         $db = \Config\Database::connect();
@@ -2476,6 +2583,16 @@ CCF YA VIENE SIN IVA
            ->where('factura_id', $id)
            ->where('anulada', 0)
            ->update(['factura_id' => null]);
+
+        // Si esta factura estaba vinculada al cierre de alguna consignación
+        // ya cerrada, esa nota se reabre para que se vuelva a cerrar
+        // reflejando la anulación (el cierre anterior queda de historial).
+        $this->_reabrirConsignacionesPorFactura(
+            (int)$id,
+            null,
+            'Se anuló la factura Nº ' . substr($factura->numero_control, -6) . '.',
+            $user_id
+        );
 
         $db->transComplete();
 
@@ -2648,7 +2765,7 @@ CCF YA VIENE SIN IVA
 
         $data    = (array) $this->request->getJSON(true);
         $session = session();
-        $userId  = $session->get('user_id');
+        $userId  = $session->get('id'); // ojo: la clave de sesión es 'id', no 'user_id' (ver AuthController::login)
 
         $factura = $this->facturaConReceptor($id);
 
@@ -2662,6 +2779,28 @@ CCF YA VIENE SIN IVA
 
         if ((int) $factura->anulada === 1) {
             return $this->response->setJSON(['success' => false, 'message' => 'La factura ya está anulada.']);
+        }
+
+        // Plazo de anulación: Crédito Fiscal (03), Nota de Remisión (04) y Nota
+        // de Crédito (05) solo se pueden anular hasta el día siguiente de su
+        // emisión (se cuenta con todo ese día siguiente completo). Pasado ese
+        // plazo se detiene la operación y se informa que es por plazo.
+        $tiposConPlazoAnulacion = ['03', '04', '05'];
+        if (in_array((string) $factura->tipo_dte, $tiposConPlazoAnulacion, true) && !empty($factura->fecha_emision)) {
+            $fechaEmision = date('Y-m-d', strtotime($factura->fecha_emision));
+            $fechaLimite  = date('Y-m-d', strtotime($fechaEmision . ' +1 day'));
+            $hoy          = date('Y-m-d');
+
+            if ($hoy > $fechaLimite) {
+                $sigla = dte_siglas()[$factura->tipo_dte] ?? $factura->tipo_dte;
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => "No se puede anular por plazo vencido: este documento ({$sigla}) se emitió el "
+                        . date('d/m/Y', strtotime($fechaEmision))
+                        . ' y el plazo para anularlo venció el '
+                        . date('d/m/Y', strtotime($fechaLimite)) . '.',
+                ]);
+            }
         }
 
         $tipoAnulacion  = (int) ($data['tipo_anulacion']  ?? 1);
@@ -2799,6 +2938,16 @@ CCF YA VIENE SIN IVA
         }
 
         $db->table('pedidos_head')->where('factura_id', $id)->where('anulada', 0)->update(['factura_id' => null]);
+
+        // Si esta factura estaba vinculada al cierre de alguna consignación
+        // ya cerrada, esa nota se reabre para que se vuelva a cerrar
+        // reflejando la anulación (el cierre anterior queda de historial).
+        $this->_reabrirConsignacionesPorFactura(
+            (int)$id,
+            null,
+            'Se anuló la factura Nº ' . substr($factura->numero_control, -6) . '.',
+            $userId
+        );
 
         $db->transComplete();
 

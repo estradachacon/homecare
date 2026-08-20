@@ -2293,6 +2293,25 @@ class ConsignacionesController extends BaseController
      * Cantidad ya comprometida por producto_id en Notas de Pedido activas
      * (no anuladas, pendientes o facturadas) que referencian esta NE.
      *
+     * Dos correcciones sobre la lógica original (que solo sumaba
+     * pedidos_detalles.cantidad sin más):
+     *
+     * 1) Si la NP está vinculada a varias NE (consignacion_ids) y el mismo
+     *    producto existe en más de una, una línea solo cuenta como
+     *    comprometida en la NE que realmente aportó el lote consumido —
+     *    mismo criterio FIFO (_neAportoProductoANp) que ya se usa en el
+     *    reporte NE-productos y en las sugerencias de cierre. Sin esto, el
+     *    mismo producto se contaba como comprometido en NE que nunca lo
+     *    surtieron.
+     *
+     * 2) Si a la factura de esa NP le aplicaron después una nota de crédito
+     *    (tipo_dte 05) que acredita de vuelta parte de ese producto, la
+     *    cantidad acreditada se resta y vuelve a quedar disponible para una
+     *    NP nueva. Si la nota de crédito se anula, deja de contar sola
+     *    (mismo filtro fh_nc.anulada = 0 que ya usa el resto del sistema
+     *    para "deshacer" al invalidar un documento) — no hace falta
+     *    revertir nada aparte.
+     *
      * @return array<int, float> producto_id => cantidad
      */
     private function _comprometidoPorProductoNE(int $consignacionId): array
@@ -2300,7 +2319,13 @@ class ConsignacionesController extends BaseController
         $db = \Config\Database::connect();
 
         $rows = $db->query("
-            SELECT pd.producto_id, SUM(pd.cantidad) AS cantidad
+            SELECT
+                pd.producto_id,
+                pd.cantidad,
+                ph.id AS pedido_id,
+                ph.factura_id,
+                ph.consignacion_id  AS ph_consignacion_id,
+                ph.consignacion_ids AS ph_consignacion_ids
             FROM pedidos_detalles pd
             INNER JOIN pedidos_head ph ON ph.id = pd.pedido_id
             WHERE ph.anulada = 0
@@ -2308,13 +2333,58 @@ class ConsignacionesController extends BaseController
                   ph.consignacion_id = ?
                   OR (ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?)))
               )
-            GROUP BY pd.producto_id
         ", [$consignacionId, (string)$consignacionId])->getResult();
+
+        $creditos = $db->query("
+            SELECT
+                fh_orig.id          AS factura_original_id,
+                p2.id                AS producto_id,
+                SUM(fd_nc.cantidad)  AS cantidad_acreditada
+            FROM facturas_head fh_nc
+            INNER JOIN factura_detalles fd_nc ON fd_nc.factura_id = fh_nc.id
+            INNER JOIN productos p2           ON p2.codigo = fd_nc.codigo
+            INNER JOIN facturas_head fh_orig  ON fh_orig.codigo_generacion = fh_nc.codigo_generacion_relacionado
+            WHERE fh_nc.tipo_dte = '05' AND fh_nc.anulada = 0
+            GROUP BY fh_orig.id, p2.id
+        ")->getResult();
+
+        $creditoPorFacturaProducto = [];
+        foreach ($creditos as $c) {
+            $creditoPorFacturaProducto[(int)$c->factura_original_id][(int)$c->producto_id] = (float)$c->cantidad_acreditada;
+        }
 
         $comprometido = [];
         foreach ($rows as $row) {
-            $comprometido[(int)$row->producto_id] = (float)$row->cantidad;
+            $pid = (int)$row->producto_id;
+
+            $neIds = [];
+            if ($row->ph_consignacion_id) $neIds[] = (int)$row->ph_consignacion_id;
+            if ($row->ph_consignacion_ids) {
+                $decoded = json_decode($row->ph_consignacion_ids, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $nid) {
+                        $nid = (int)$nid;
+                        if ($nid && !in_array($nid, $neIds, true)) $neIds[] = $nid;
+                    }
+                }
+            }
+
+            if (!$this->_neAportoProductoANp($consignacionId, (int)$row->pedido_id, $pid, $neIds)) {
+                continue;
+            }
+
+            $cantidad = (float)$row->cantidad;
+            if ($row->factura_id) {
+                $cantidad -= $creditoPorFacturaProducto[(int)$row->factura_id][$pid] ?? 0.0;
+            }
+
+            $comprometido[$pid] = ($comprometido[$pid] ?? 0.0) + $cantidad;
         }
+
+        foreach ($comprometido as &$c) {
+            $c = max(0.0, $c);
+        }
+        unset($c);
 
         return $comprometido;
     }
