@@ -690,13 +690,14 @@ class ConsignacionesController extends BaseController
             $cantFact  = (float)($lin['cantidad_facturada'] ?? 0);
             $cantDev   = (float)($lin['cantidad_devuelta'] ?? 0);
             $cantStock = (float)($lin['cantidad_stock_vendedor'] ?? 0);
+            $cantExt   = (float)($lin['cantidad_facturada_externa'] ?? 0);
 
-            if ($cantFact < 0 || $cantDev < 0 || $cantStock < 0) {
+            if ($cantFact < 0 || $cantDev < 0 || $cantStock < 0 || $cantExt < 0) {
                 return redirect()->back()->withInput()
                     ->with('error', 'No se permiten cantidades negativas en el producto ' . $det->producto_nombre . '.');
             }
 
-            $suma = $cantFact + $cantDev + $cantStock;
+            $suma = $cantFact + $cantDev + $cantStock + $cantExt;
 
             if (abs($suma - (float)$det->cantidad) > 0.01) {
                 return redirect()->back()->withInput()
@@ -898,6 +899,12 @@ class ConsignacionesController extends BaseController
             $cantFact  = (float)($lin['cantidad_facturada']     ?? 0);
             $cantDev   = (float)($lin['cantidad_devuelta']       ?? 0);
             $cantStock = (float)($lin['cantidad_stock_vendedor'] ?? 0);
+            $cantExt   = (float)($lin['cantidad_facturada_externa'] ?? 0);
+
+            $rutaDevoluciones = FCPATH . 'upload/devoluciones/';
+            if (!is_dir($rutaDevoluciones)) {
+                mkdir($rutaDevoluciones, 0755, true);
+            }
 
             $fotoNombre = null;
             $fileKey    = 'foto_' . $det->id;
@@ -907,12 +914,18 @@ class ConsignacionesController extends BaseController
                 // la vista de detalle la muestra con base_url('upload/devoluciones/...'),
                 // que solo resuelve a archivos públicamente accesibles. Guardarla en
                 // WRITEPATH la dejaba fuera del webroot y la imagen salía rota.
-                $rutaDevoluciones = FCPATH . 'upload/devoluciones/';
-                if (!is_dir($rutaDevoluciones)) {
-                    mkdir($rutaDevoluciones, 0755, true);
-                }
                 $fotoNombre = $fotos[$fileKey]->getRandomName();
                 $fotos[$fileKey]->move($rutaDevoluciones, $fotoNombre);
+            }
+
+            // Foto del documento de facturación en la empresa externa (mismo
+            // manejo que la de devolución, carpeta compartida).
+            $fotoExternaNombre = null;
+            $fileKeyExterna    = 'foto_externa_' . $det->id;
+
+            if (isset($fotos[$fileKeyExterna]) && $fotos[$fileKeyExterna]->isValid() && !$fotos[$fileKeyExterna]->hasMoved()) {
+                $fotoExternaNombre = $fotos[$fileKeyExterna]->getRandomName();
+                $fotos[$fileKeyExterna]->move($rutaDevoluciones, $fotoExternaNombre);
             }
 
             $fechaDevolucion = null;
@@ -920,17 +933,28 @@ class ConsignacionesController extends BaseController
                 $fechaDevolucion = $lin['fecha_devolucion'];
             }
 
+            $fechaFacturaExterna = null;
+            if ($cantExt > 0 && !empty($lin['fecha_factura_externa'])) {
+                $fechaFacturaExterna = $lin['fecha_factura_externa'];
+            }
+
             $cierreDetId = $cierreDetModel->insert([
-                'cierre_id'               => $cierreId,
-                'detalle_id'              => $det->id,
-                'producto_id'             => $det->producto_id,
-                'cantidad_facturada'      => $cantFact,
-                'cantidad_devuelta'       => $cantDev,
-                'cantidad_stock_vendedor' => $cantStock,
-                'fecha_devolucion'        => $fechaDevolucion,
-                'doc_devolucion'          => $lin['doc_devolucion'] ?? null,
-                'foto_devolucion'         => $fotoNombre,
-                'comentario_devolucion'   => $lin['comentario_devolucion'] ?? null,
+                'cierre_id'                   => $cierreId,
+                'detalle_id'                  => $det->id,
+                'producto_id'                 => $det->producto_id,
+                'cantidad_facturada'          => $cantFact,
+                'cantidad_devuelta'           => $cantDev,
+                'cantidad_stock_vendedor'     => $cantStock,
+                'fecha_devolucion'            => $fechaDevolucion,
+                'doc_devolucion'              => $lin['doc_devolucion'] ?? null,
+                'foto_devolucion'             => $fotoNombre,
+                'comentario_devolucion'       => $lin['comentario_devolucion'] ?? null,
+                'cantidad_facturada_externa'  => $cantExt,
+                'doc_factura_externa'         => $lin['doc_factura_externa'] ?? null,
+                'lote_factura_externa'        => $lin['lote_factura_externa'] ?? null,
+                'fecha_factura_externa'       => $fechaFacturaExterna,
+                'foto_factura_externa'        => $fotoExternaNombre,
+                'comentario_factura_externa'  => $lin['comentario_factura_externa'] ?? null,
             ]);
 
             // Facturas asociadas a esta línea
@@ -984,6 +1008,14 @@ class ConsignacionesController extends BaseController
             if ($cantStock > 0) {
                 $partes[] = 'En stock del vendedor ' . number_format($cantStock, 2);
             }
+            if ($cantExt > 0) {
+                $detalleExterna = [];
+                if (!empty($lin['doc_factura_externa']))  $detalleExterna[] = 'doc: ' . $lin['doc_factura_externa'];
+                if (!empty($lin['lote_factura_externa'])) $detalleExterna[] = 'lote: ' . $lin['lote_factura_externa'];
+                if ($fechaFacturaExterna) $detalleExterna[] = 'fecha: ' . date('d/m/Y', strtotime($fechaFacturaExterna));
+                $partes[] = 'Facturado en empresa externa ' . number_format($cantExt, 2)
+                    . (!empty($detalleExterna) ? ' (' . implode(', ', $detalleExterna) . ')' : '');
+            }
 
             $productoLabel = trim(($det->producto_codigo ? '[' . $det->producto_codigo . '] ' : '') . $det->producto_nombre);
             $resumenLineas[] = $productoLabel . ': ' . (!empty($partes) ? implode('; ', $partes) : 'sin movimiento');
@@ -1035,6 +1067,18 @@ class ConsignacionesController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso para resubir la foto.']);
         }
 
+        // 'devolucion' (por defecto) o 'externa' — misma línea de cierre puede
+        // tener una foto de devolución Y una foto de factura en empresa
+        // externa, cada una en su propia columna.
+        $tipo = $this->request->getPost('tipo') === 'externa' ? 'externa' : 'devolucion';
+
+        $campoCantidad = $tipo === 'externa' ? 'cantidad_facturada_externa' : 'cantidad_devuelta';
+        $campoFoto     = $tipo === 'externa' ? 'foto_factura_externa'       : 'foto_devolucion';
+        $etiqueta      = $tipo === 'externa' ? 'Foto de factura externa resubida' : 'Foto de devolución resubida';
+        $mensajeCantidadRequerida = $tipo === 'externa'
+            ? 'Solo se puede adjuntar foto en líneas facturadas en empresa externa.'
+            : 'Solo se puede adjuntar foto en líneas con devolución.';
+
         $cierreDetModel = new ConsignacionCierreDetalleModel();
         $cierreModel    = new ConsignacionCierreModel();
 
@@ -1048,8 +1092,8 @@ class ConsignacionesController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Cierre no encontrado.']);
         }
 
-        if ((float)$cierreDet->cantidad_devuelta <= 0) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Solo se puede adjuntar foto en líneas con devolución.']);
+        if ((float)($cierreDet->{$campoCantidad} ?? 0) <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => $mensajeCantidadRequerida]);
         }
 
         $foto = $this->request->getFile('foto');
@@ -1062,11 +1106,11 @@ class ConsignacionesController extends BaseController
             mkdir($rutaDevoluciones, 0755, true);
         }
 
-        $fotoAnterior = $cierreDet->foto_devolucion;
+        $fotoAnterior = $cierreDet->{$campoFoto} ?? null;
         $fotoNombre   = $foto->getRandomName();
         $foto->move($rutaDevoluciones, $fotoNombre);
 
-        $cierreDetModel->update($cierreDetalleId, ['foto_devolucion' => $fotoNombre]);
+        $cierreDetModel->update($cierreDetalleId, [$campoFoto => $fotoNombre]);
 
         // Elimina la foto anterior del disco para no acumular archivos huérfanos
         // (a veces esa foto anterior es justamente la que quedó rota por el bug
@@ -1080,7 +1124,7 @@ class ConsignacionesController extends BaseController
 
         $this->registrarLog(
             (int)$cierre->consignacion_id,
-            'Foto de devolución resubida',
+            $etiqueta,
             $productoLabel . ($fotoAnterior ? ' (reemplaza foto anterior)' : ' (sin foto previa)')
         );
 

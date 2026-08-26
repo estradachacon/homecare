@@ -33,7 +33,8 @@
     }
 
     .bloque-devolucion,
-    .bloque-facturas {
+    .bloque-facturas,
+    .bloque-facturado-externo {
         display: none;
     }
 
@@ -140,7 +141,7 @@
 
                                     <div class="row g-3">
                                         <!-- Cantidad facturada -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="form-label small text-muted">Cantidad facturada</label>
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_facturada]"
@@ -150,7 +151,7 @@
                                                 data-id="<?= $d->id ?>">
                                         </div>
                                         <!-- Cantidad devuelta -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="form-label small text-muted">Cantidad devuelta</label>
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_devuelta]"
@@ -160,11 +161,21 @@
                                                 data-id="<?= $d->id ?>">
                                         </div>
                                         <!-- Stock vendedor -->
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
                                             <label class="form-label small text-muted">En stock del vendedor</label>
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_stock_vendedor]"
                                                 class="form-control input-stock"
+                                                min="0" step="0.01" value="0"
+                                                data-max="<?= $d->cantidad ?>"
+                                                data-id="<?= $d->id ?>">
+                                        </div>
+                                        <!-- Facturado en empresa externa (otro sistema, no relacionado) -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small text-muted">Facturado empresa externa</label>
+                                            <input type="number"
+                                                name="lineas[<?= $d->id ?>][cantidad_facturada_externa]"
+                                                class="form-control input-facturada-externa"
                                                 min="0" step="0.01" value="0"
                                                 data-max="<?= $d->cantidad ?>"
                                                 data-id="<?= $d->id ?>">
@@ -336,6 +347,54 @@
                                         </div>
                                     </div>
 
+                                    <!-- Bloque facturación en empresa externa (visible si facturada_externa > 0) -->
+                                    <div class="bloque-facturado-externo mt-3 p-3 border rounded bg-light" id="facturado_externo_<?= $d->id ?>">
+                                        <p class="mb-2 small fw-bold text-secondary"><i class="fa-solid fa-building"></i> Facturado en empresa externa</p>
+                                        <small class="text-muted d-block mb-2">Para cuando el producto se facturó en otra empresa, en un sistema aparte que no tiene relación con este.</small>
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="small text-muted">Documento (ej. CCF 00500 SD)</label>
+                                                <input type="text" name="lineas[<?= $d->id ?>][doc_factura_externa]"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Nº documento y referencia de la empresa externa">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="small text-muted">Lote</label>
+                                                <input type="text" name="lineas[<?= $d->id ?>][lote_factura_externa]"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Nº de lote facturado">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="small text-muted">Fecha de la factura externa</label>
+                                                <input type="date" name="lineas[<?= $d->id ?>][fecha_factura_externa]"
+                                                    class="form-control form-control-sm"
+                                                    value="<?= date('Y-m-d') ?>"
+                                                    max="<?= date('Y-m-d') ?>">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small text-muted">Foto del documento (opcional)</label>
+                                                <div class="foto-devolucion-wrap">
+                                                    <input type="file" name="foto_externa_<?= $d->id ?>"
+                                                        id="foto_externa_input_<?= $d->id ?>"
+                                                        class="d-none foto-devolucion-input"
+                                                        accept="image/*" capture="environment">
+                                                    <button type="button"
+                                                        class="btn btn-outline-secondary btn-sm w-100 btn-tomar-foto"
+                                                        data-target="foto_externa_input_<?= $d->id ?>">
+                                                        <i class="fa-solid fa-camera"></i> Tomar foto
+                                                    </button>
+                                                    <small class="d-block text-truncate mt-1 foto-devolucion-nombre text-muted"></small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small text-muted">Comentario</label>
+                                                <input type="text" name="lineas[<?= $d->id ?>][comentario_factura_externa]"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Nota adicional">
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Bloque facturas (visible si facturada > 0) -->
                                     <div class="bloque-facturas mt-3 p-3 border rounded bg-light" id="facturas_<?= $d->id ?>">
                                         <p class="mb-2 small fw-bold text-primary"><i class="fa-solid fa-file-invoice"></i> Facturas asociadas</p>
@@ -455,7 +514,8 @@
             const fact = parseFloat($(`[name="lineas[${id}][cantidad_facturada]"]`).val()) || 0;
             const dev = parseFloat($(`[name="lineas[${id}][cantidad_devuelta]"]`).val()) || 0;
             const stock = parseFloat($(`[name="lineas[${id}][cantidad_stock_vendedor]"]`).val()) || 0;
-            const suma = fact + dev + stock;
+            const ext = parseFloat($(`[name="lineas[${id}][cantidad_facturada_externa]"]`).val()) || 0;
+            const suma = fact + dev + stock + ext;
             const bloqueLotes = $(`#lotes_traslado_${id}`);
             const totalLotes = parseInt(bloqueLotes.data('total-lotes') || 0);
             const bloqueLotesFacturados = $(`#lotes_facturados_${id}`);
@@ -509,6 +569,12 @@
                 $(`#facturas_${id}`).show();
             } else {
                 $(`#facturas_${id}`).hide();
+            }
+
+            if (ext > 0) {
+                $(`#facturado_externo_${id}`).show();
+            } else {
+                $(`#facturado_externo_${id}`).hide();
             }
         }
 
@@ -601,7 +667,7 @@
         }
 
         // Escuchar cambios en inputs de cantidad
-        $(document).on('input', '.input-facturada, .input-devuelta, .input-stock', function() {
+        $(document).on('input', '.input-facturada, .input-devuelta, .input-stock, .input-facturada-externa', function() {
             const id = $(this).data('id');
             validarLinea(id);
         });
@@ -647,7 +713,8 @@
                         const fact = parseFloat($(`[name="lineas[${id}][cantidad_facturada]"]`).val()) || 0;
                         const dev = parseFloat($(`[name="lineas[${id}][cantidad_devuelta]"]`).val()) || 0;
                         const stock = parseFloat($(`[name="lineas[${id}][cantidad_stock_vendedor]"]`).val()) || 0;
-                        const suma = fact + dev + stock;
+                        const ext = parseFloat($(`[name="lineas[${id}][cantidad_facturada_externa]"]`).val()) || 0;
+                        const suma = fact + dev + stock + ext;
                         if (Math.abs(suma - max) > 0.01) hayError = true;
                         if (!validarLotesTraslado(id)) hayError = true;
                         if (!validarLotesFacturados(id)) hayError = true;

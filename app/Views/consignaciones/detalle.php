@@ -347,7 +347,7 @@
                                     $cd = $mapCierreDetalle[$d->id];
                                     $lotesCierre = $lotesCierrePorDetalle[$d->id] ?? [];
                                 ?>
-                                    <?php if ($cd->cantidad_facturada > 0 || $cd->cantidad_devuelta > 0 || $cd->cantidad_stock_vendedor > 0 || $cd->doc_devolucion || $cd->comentario_devolucion): ?>
+                                    <?php if ($cd->cantidad_facturada > 0 || $cd->cantidad_devuelta > 0 || $cd->cantidad_stock_vendedor > 0 || ($cd->cantidad_facturada_externa ?? 0) > 0 || $cd->doc_devolucion || $cd->comentario_devolucion || ($cd->doc_factura_externa ?? null)): ?>
                                         <tr>
                                             <td colspan="6" class="bg-light">
                                                 <small class="text-muted">Resultado del cierre:</small><br>
@@ -359,6 +359,9 @@
                                                 <?php endif; ?>
                                                 <?php if ($cd->cantidad_stock_vendedor > 0): ?>
                                                     <span class="badge badge-info mr-1">Stock vendedor: <?= number_format($cd->cantidad_stock_vendedor, 2) ?></span>
+                                                <?php endif; ?>
+                                                <?php if (($cd->cantidad_facturada_externa ?? 0) > 0): ?>
+                                                    <span class="badge badge-secondary mr-1">Facturado empresa externa: <?= number_format($cd->cantidad_facturada_externa, 2) ?></span>
                                                 <?php endif; ?>
                                                 <?php if (!empty($cd->fecha_devolucion)): ?>
                                                     <div class="mt-1"><strong>Fecha devolución:</strong> <?= date('d/m/Y', strtotime($cd->fecha_devolucion)) ?></div>
@@ -386,7 +389,8 @@
                                                         <input type="file" accept="image/*" capture="environment"
                                                             id="foto_resubir_input_<?= $cd->id ?>"
                                                             class="d-none foto-resubir-input"
-                                                            data-cierre-detalle="<?= $cd->id ?>">
+                                                            data-cierre-detalle="<?= $cd->id ?>"
+                                                            data-tipo="devolucion">
                                                         <button type="button"
                                                             class="btn btn-outline-secondary btn-sm btn-resubir-foto"
                                                             data-target="foto_resubir_input_<?= $cd->id ?>">
@@ -395,6 +399,52 @@
                                                         </button>
                                                     </div>
                                                 <?php endif; ?>
+
+                                                <?php if (($cd->cantidad_facturada_externa ?? 0) > 0): ?>
+                                                    <div class="mt-2 pt-2 border-top">
+                                                        <small class="text-muted d-block mb-1"><i class="fa-solid fa-building"></i> Facturado en empresa externa</small>
+                                                        <?php if (!empty($cd->fecha_factura_externa)): ?>
+                                                            <div class="mt-1"><strong>Fecha:</strong> <?= date('d/m/Y', strtotime($cd->fecha_factura_externa)) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($cd->doc_factura_externa ?? null): ?>
+                                                            <div class="mt-1"><strong>Documento:</strong> <?= esc($cd->doc_factura_externa) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($cd->lote_factura_externa ?? null): ?>
+                                                            <div class="mt-1"><strong>Lote:</strong> <?= esc($cd->lote_factura_externa) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($cd->comentario_factura_externa ?? null): ?>
+                                                            <div><strong>Comentario:</strong> <?= esc($cd->comentario_factura_externa) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($cd->foto_factura_externa ?? null): ?>
+                                                            <div class="mt-2 foto-devolucion-preview" id="foto_externa_preview_<?= $cd->id ?>">
+                                                                <img src="<?= base_url('upload/devoluciones/' . $cd->foto_factura_externa) ?>"
+                                                                    class="foto-devolucion-thumb"
+                                                                    style="max-height:80px; border-radius:5px; cursor:pointer;"
+                                                                    title="Ver en grande"
+                                                                    onerror="this.closest('.foto-devolucion-preview').querySelector('.foto-devolucion-rota').classList.remove('d-none'); this.remove();">
+                                                                <div class="text-danger small d-none foto-devolucion-rota">
+                                                                    <i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar la foto.
+                                                                </div>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <?php if (tienePermiso('resubir_foto_devolucion')): ?>
+                                                            <div class="mt-2 foto-externa-resubir-wrap">
+                                                                <input type="file" accept="image/*" capture="environment"
+                                                                    id="foto_resubir_externa_input_<?= $cd->id ?>"
+                                                                    class="d-none foto-resubir-input"
+                                                                    data-cierre-detalle="<?= $cd->id ?>"
+                                                                    data-tipo="externa">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-secondary btn-sm btn-resubir-foto"
+                                                                    data-target="foto_resubir_externa_input_<?= $cd->id ?>">
+                                                                    <i class="fa-solid fa-camera-retro"></i>
+                                                                    <?= ($cd->foto_factura_externa ?? null) ? 'Resubir foto' : 'Subir foto' ?>
+                                                                </button>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endif; ?>
+
                                                 <?php if (!empty($lotesCierre)): ?>
                                                     <div class="mt-2">
                                                         <?php foreach (['facturado' => 'Lotes facturados', 'stock_vendedor' => 'Lotes stock vendedor'] as $tipo => $titulo): ?>
@@ -1146,15 +1196,20 @@
         $(document).on('change', '.foto-resubir-input', function() {
             const input           = this;
             const cierreDetalleId = $(input).data('cierre-detalle');
+            // 'devolucion' (default) o 'externa' — decide qué columna actualiza el
+            // backend y en qué contenedor de vista previa se muestra el resultado,
+            // ya que una misma línea puede tener las dos fotos por separado.
+            const tipo             = $(input).data('tipo') || 'devolucion';
             const file             = input.files && input.files[0];
             if (!file) return;
 
-            const btn           = $(`.btn-resubir-foto[data-target="foto_resubir_input_${cierreDetalleId}"]`);
+            const btn           = $(`.btn-resubir-foto[data-target="${input.id}"]`);
             const labelOriginal  = btn.html();
             btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Subiendo...');
 
             const formData = new FormData();
             formData.append('foto', file);
+            formData.append('tipo', tipo);
 
             fetch(`<?= base_url('consignaciones/cierre-detalle') ?>/${cierreDetalleId}/foto`, {
                     method: 'POST',
@@ -1168,12 +1223,17 @@
                         return;
                     }
 
-                    let preview = document.getElementById(`foto_devolucion_preview_${cierreDetalleId}`);
+                    const previewId = tipo === 'externa'
+                        ? `foto_externa_preview_${cierreDetalleId}`
+                        : `foto_devolucion_preview_${cierreDetalleId}`;
+                    const wrapSelector = tipo === 'externa' ? '.foto-externa-resubir-wrap' : '.foto-devolucion-resubir-wrap';
+
+                    let preview = document.getElementById(previewId);
                     if (!preview) {
                         preview = document.createElement('div');
                         preview.className = 'mt-2 foto-devolucion-preview';
-                        preview.id = `foto_devolucion_preview_${cierreDetalleId}`;
-                        $(input).closest('.foto-devolucion-resubir-wrap').before(preview);
+                        preview.id = previewId;
+                        $(input).closest(wrapSelector).before(preview);
                     }
                     preview.innerHTML = `<img src="${data.foto_url}?t=${Date.now()}" class="foto-devolucion-thumb" style="max-height:80px; border-radius:5px; cursor:pointer;" title="Ver en grande">`;
                     btn.html('<i class="fa-solid fa-camera-retro"></i> Resubir foto');

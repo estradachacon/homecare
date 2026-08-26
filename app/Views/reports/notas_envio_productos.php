@@ -8,6 +8,7 @@
 .row-facturado td { background: #f0fff4 !important; }
 .row-cambiado td  { background: #fffbf0 !important; }
 .row-devuelto td  { background: #f0f4ff !important; }
+.row-facturado-externo td { background: #f2f2f2 !important; }
 
 /* ── Print ────────────────────────────────────────── */
 .print-header { display: none; }
@@ -54,6 +55,7 @@
     .row-facturado td { background: #e8f5e9 !important; print-color-adjust: exact !important; }
     .row-cambiado td  { background: #fff8e1 !important; print-color-adjust: exact !important; }
     .row-devuelto td  { background: #e8eaf6 !important; print-color-adjust: exact !important; }
+    .row-facturado-externo td { background: #eeeeee !important; print-color-adjust: exact !important; }
     tfoot td {
         background: #e2efda !important; print-color-adjust: exact !important;
         font-weight: bold !important; font-size: 7pt !important;
@@ -128,6 +130,7 @@
                 <option value="pendiente" <?= $estadoLinea === 'pendiente' ? 'selected' : '' ?>>Solo pendientes</option>
                 <option value="facturado" <?= $estadoLinea === 'facturado' ? 'selected' : '' ?>>Solo facturadas</option>
                 <option value="devuelto" <?= $estadoLinea === 'devuelto' ? 'selected' : '' ?>>Solo devueltas</option>
+                <option value="facturado_externo" <?= $estadoLinea === 'facturado_externo' ? 'selected' : '' ?>>Solo facturadas en empresa externa</option>
               </select>
             </div>
 
@@ -232,6 +235,7 @@
               <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
               <th>Estado</th>
               <th>Fecha Devolución</th>
+              <th>Facturado Empresa Externa</th>
             </tr>
           </thead>
           <tbody>
@@ -256,6 +260,9 @@
               } elseif (!empty($l->numero_nueva_ne)) {
                   $estado   = 'Cambio → NE ' . $l->numero_nueva_ne;
                   $rowClass = 'row-cambiado';
+              } elseif ((float)($l->cantidad_facturada_externa ?? 0) > 0) {
+                  $estado   = 'Facturado empresa externa';
+                  $rowClass = 'row-facturado-externo';
               } elseif ((float)($l->cantidad_devuelta ?? 0) > 0) {
                   $estado   = 'Devuelto';
                   $rowClass = 'row-devuelto';
@@ -311,11 +318,26 @@
                 <span class="badge badge-warning text-dark"><?= esc($estado) ?></span>
               <?php elseif ($rowClass === 'row-devuelto'): ?>
                 <span class="badge badge-primary"><?= esc($estado) ?></span>
+              <?php elseif ($rowClass === 'row-facturado-externo'): ?>
+                <span class="badge badge-secondary"><?= esc($estado) ?></span>
               <?php else: ?>
                 <span class="text-muted small"><?= esc($estado) ?></span>
               <?php endif; ?>
             </td>
             <td><?= !empty($l->fecha_devolucion) ? date('d/m/Y', strtotime($l->fecha_devolucion)) : '—' ?></td>
+            <td>
+              <?php if ((float)($l->cantidad_facturada_externa ?? 0) > 0): ?>
+                <?= number_format((float)$l->cantidad_facturada_externa, 2) ?>
+                <?php if (!empty($l->doc_factura_externa)): ?>
+                  <br><small class="text-muted"><?= esc($l->doc_factura_externa) ?></small>
+                <?php endif; ?>
+                <?php if (!empty($l->lote_factura_externa)): ?>
+                  <br><small class="text-muted">Lote: <?= esc($l->lote_factura_externa) ?></small>
+                <?php endif; ?>
+              <?php else: ?>
+                —
+              <?php endif; ?>
+            </td>
           </tr>
           <?php endforeach; ?>
           </tbody>
@@ -324,6 +346,7 @@
               <td colspan="12" class="text-right">TOTALES</td>
               <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
               <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
+              <td></td>
               <td></td>
               <td></td>
             </tr>

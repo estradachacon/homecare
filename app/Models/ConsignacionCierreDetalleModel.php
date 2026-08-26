@@ -15,6 +15,8 @@ class ConsignacionCierreDetalleModel extends Model
         'cierre_id', 'detalle_id', 'producto_id',
         'cantidad_facturada', 'cantidad_devuelta', 'cantidad_stock_vendedor',
         'fecha_devolucion', 'doc_devolucion', 'foto_devolucion', 'comentario_devolucion',
+        'cantidad_facturada_externa', 'doc_factura_externa', 'lote_factura_externa',
+        'fecha_factura_externa', 'foto_factura_externa', 'comentario_factura_externa',
     ];
 
     public function getPorCierre(int $cierreId): array
