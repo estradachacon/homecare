@@ -824,7 +824,7 @@
                                     ${factura.clienteDuplicado ? `
                                         <div class="mt-1">
                                             <span class="badge bg-warning text-dark">
-                                                <i class="fas fa-exclamation-triangle"></i> Documento duplicado — elige la ficha
+                                                <i class="fas fa-exclamation-triangle"></i> NIT encontrado en dos clientes — elige la ficha a la que pertenece esta factura:
                                             </span>
                                             <select class="cliente-duplicado-select form-control form-control-sm mt-1"
                                                 data-index="${index}" style="width:280px;">
