@@ -2974,11 +2974,20 @@ class ReportesController extends Controller
             LEFT JOIN sellers s         ON s.id  = fh.vendedor_id
 
             -- Ruta 1: la factura se generó cerrando una NE (consignaciones_cierres_facturas
-            -- guarda el enlace exacto detalle_id ↔ factura_id que dejó el cierre)
-            LEFT JOIN consignaciones_cierres_facturas ccf
-                       ON ccf.factura_id = fh.id
-            LEFT JOIN consignaciones_detalles cd_ccf
-                       ON cd_ccf.id = ccf.detalle_id AND cd_ccf.producto_id = fd.producto_id
+            -- guarda el enlace exacto detalle_id ↔ factura_id que dejó el cierre).
+            -- Una factura puede tener varias filas en ccf (una por producto que se
+            -- cerró contra ella); resolver con subquery correlada a factura_id Y
+            -- producto_id A LA VEZ evita que cada fila de ccf se combine con cada
+            -- fila de fd (lo que duplicaba líneas en el reporte, mostrando incluso
+            -- combinaciones donde el producto del ccf no coincide con el de la fd).
+            LEFT JOIN consignaciones_detalles cd_ccf ON cd_ccf.id = (
+                SELECT cdx.id
+                FROM consignaciones_cierres_facturas ccf2
+                INNER JOIN consignaciones_detalles cdx ON cdx.id = ccf2.detalle_id
+                WHERE ccf2.factura_id = fh.id AND cdx.producto_id = fd.producto_id
+                ORDER BY ccf2.id DESC
+                LIMIT 1
+            )
             LEFT JOIN consignaciones_head ch_ccf
                        ON ch_ccf.id = cd_ccf.consignacion_id
             LEFT JOIN pedidos_head ph_ccf ON ph_ccf.id = (
