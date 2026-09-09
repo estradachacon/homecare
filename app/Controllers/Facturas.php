@@ -402,6 +402,20 @@ class Facturas extends BaseController
 
             $clienteModel = new ClienteModel();
             $vendedorId = $sellerIds[$index] ?? null;
+
+            // Nota de crédito: el vendedor SIEMPRE es el de la factura original que
+            // acredita, nunca el que se haya seleccionado/enviado en la carga (el
+            // front ya lo bloquea, pero se refuerza aquí por si llega manipulado).
+            if ($tipoDte === '05' && !empty($codigoRelacionado)) {
+                $facturaOriginalNC = $facturaHeadModel
+                    ->select('vendedor_id')
+                    ->where('codigo_generacion', $codigoRelacionado)
+                    ->first();
+                if ($facturaOriginalNC) {
+                    $vendedorId = $facturaOriginalNC->vendedor_id;
+                }
+            }
+
             $tipoVentaId = $tipoVentaIds[$index] ?? 1; // fallback Privados
             $plazo = $plazos[$index] ?? null;
 
@@ -3184,9 +3198,10 @@ CCF YA VIENE SIN IVA
         $model = new FacturaHeadModel();
 
         $factura = $model
-            ->select('id, numero_control, saldo, total_pagar')
-            ->where('codigo_generacion', $codigo)
-            ->where('anulada', 0)
+            ->select('facturas_head.id, facturas_head.numero_control, facturas_head.saldo, facturas_head.total_pagar, facturas_head.vendedor_id, sellers.seller AS vendedor_nombre')
+            ->join('sellers', 'sellers.id = facturas_head.vendedor_id', 'left')
+            ->where('facturas_head.codigo_generacion', $codigo)
+            ->where('facturas_head.anulada', 0)
             ->first();
 
         if (!$factura) {
@@ -3200,7 +3215,9 @@ CCF YA VIENE SIN IVA
             'id' => $factura->id,
             'numero_control' => $factura->numero_control,
             'saldo' => (float)$factura->saldo,
-            'total' => (float)$factura->total_pagar
+            'total' => (float)$factura->total_pagar,
+            'vendedor_id' => $factura->vendedor_id,
+            'vendedor_nombre' => $factura->vendedor_nombre,
         ]);
     }
     public function cambiarVendedor()
@@ -3237,6 +3254,16 @@ CCF YA VIENE SIN IVA
                 'message' => 'Factura no encontrada.'
             ]);
         }
+
+        // La Nota de Crédito siempre hereda el vendedor de la factura que acredita
+        // (ver procesarCarga()); no se puede cambiar directamente aquí.
+        if ((string)$factura->tipo_dte === '05') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'El vendedor de una Nota de Crédito se hereda de la factura original y no se puede cambiar aquí.'
+            ]);
+        }
+
         if (!puedeVerDocumentosTodosVendedores()) {
             $sellerScope = vendedorUsuarioActual();
             if (!$sellerScope || (int)$factura->vendedor_id !== (int)$sellerScope) {
@@ -3258,6 +3285,8 @@ CCF YA VIENE SIN IVA
             ]);
         }
 
+        $userId = session()->get('id'); // ojo: la clave de sesión es 'id', no 'user_id' (ver AuthController::login)
+
         $facturaModel->update($facturaId, [
             'vendedor_id' => $vendedorId
         ]);
@@ -3268,12 +3297,46 @@ CCF YA VIENE SIN IVA
             'Se cambió el vendedor de la factura Nº ' .
                 substr($factura->numero_control, -6) .
                 ' a ' . $vendedor->seller,
-            session()->get('user_id')
+            $userId
         );
+
+        // Cascada: las notas de crédito que acreditan esta factura heredan el
+        // mismo vendedor (ver también el bloqueo al cargarlas en procesarCarga()).
+        $notasActualizadas = 0;
+        if (!empty($factura->codigo_generacion)) {
+            $notasCredito = $facturaModel
+                ->where('tipo_dte', '05')
+                ->where('codigo_generacion_relacionado', $factura->codigo_generacion)
+                ->findAll();
+
+            foreach ($notasCredito as $nc) {
+                if ((int)$nc->vendedor_id === (int)$vendedorId) continue;
+
+                $facturaModel->update($nc->id, ['vendedor_id' => $vendedorId]);
+                $notasActualizadas++;
+
+                registrar_bitacora(
+                    'Cambio de vendedor en factura',
+                    'Facturas',
+                    'Se cambió el vendedor de la Nota de Crédito Nº ' . substr($nc->numero_control, -6) .
+                        ' a ' . $vendedor->seller . ' (heredado de la factura Nº ' .
+                        substr($factura->numero_control, -6) . ').',
+                    $userId
+                );
+            }
+        }
+
+        $mensaje = 'Vendedor actualizado correctamente.';
+        if ($notasActualizadas > 0) {
+            $mensaje .= ' También se actualizó en ' . $notasActualizadas .
+                ' nota' . ($notasActualizadas > 1 ? 's' : '') .
+                ' de crédito asociada' . ($notasActualizadas > 1 ? 's' : '') . '.';
+        }
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Vendedor actualizado correctamente.'
+            'message' => $mensaje,
+            'notas_actualizadas' => $notasActualizadas,
         ]);
     }
 }

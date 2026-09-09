@@ -494,7 +494,7 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
 
                             <small class="text-muted mt-2 d-block">Vendedor</small>
                             <div class="fw-semibold">
-                                <?php if (tienePermiso('editar_vendedor_en_detalle')): ?>
+                                <?php if (tienePermiso('editar_vendedor_en_detalle') && $factura->tipo_dte !== '05'): ?>
 
                                     <strong
                                         id="editarVendedorFactura"
@@ -505,6 +505,13 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
                                         <?= esc($factura->vendedor ?? 'N/D') ?>
 
                                     </strong>
+
+                                <?php elseif ($factura->tipo_dte === '05'): ?>
+
+                                    <strong><?= esc($factura->vendedor ?? 'N/D') ?></strong>
+                                    <small class="text-muted d-block" style="font-size:0.75rem;">
+                                        Heredado de la factura original, no se puede cambiar aquí.
+                                    </small>
 
                                 <?php else: ?>
 
@@ -1209,10 +1216,18 @@ $tipoVenta = $factura->tipo_venta_nombre ?? null;
     document.getElementById('editarVendedorFactura')?.addEventListener('click', function() {
 
         const facturaId = this.dataset.factura;
+        const notasCreditoAsociadas = <?= (int)count($notasCredito ?? []) ?>;
+        const avisoNotasCredito = notasCreditoAsociadas > 0
+            ? `<div class="alert alert-warning text-start py-2 px-3 mt-2" style="font-size:0.85rem;">
+                   <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                   Esta factura tiene ${notasCreditoAsociadas} nota${notasCreditoAsociadas > 1 ? 's' : ''} de crédito asociada${notasCreditoAsociadas > 1 ? 's' : ''}.
+                   Al guardar, se le${notasCreditoAsociadas > 1 ? 's' : ''} cambiará el vendedor también.
+               </div>`
+            : '';
 
         Swal.fire({
             title: 'Cambiar vendedor',
-            html: `<select id="swalSellerSelect" style="width:100%"></select>`,
+            html: `<select id="swalSellerSelect" style="width:100%"></select>${avisoNotasCredito}`,
             showCancelButton: true,
             confirmButtonText: 'Guardar',
             cancelButtonText: 'Cancelar',

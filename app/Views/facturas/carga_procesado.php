@@ -289,6 +289,11 @@
                         let documentoRelacionado = json.documentoRelacionado?.[0]?.numeroDocumento ?? null;
                         const correlativoInterno = numeroControlCompleto ? numeroControlCompleto.slice(-6) : '------';
 
+                        // Nota de crédito: el vendedor se hereda de la factura original
+                        // (nunca se elige manualmente, ver bloque tipoDte === "05" abajo)
+                        let vendedorNCId   = null;
+                        let vendedorNCText = null;
+
                         if (tipoDte === "05") {
 
                             if (!documentoRelacionado) {
@@ -386,6 +391,9 @@
 
                                 return;
                             }
+
+                            vendedorNCId   = data.vendedor_id ?? null;
+                            vendedorNCText = data.vendedor_nombre ?? null;
                         }
 
                         if (!codigo || !numeroControlCompleto) return;
@@ -414,7 +422,9 @@
                             cliente: clienteDte.nombre ?? 'N/D',
                             total: obtenerTotalDte(json),
                             productos: json.cuerpoDocumento ?? [],
-                            seller_id: null,
+                            seller_id: vendedorNCId,
+                            seller_text: vendedorNCText,
+                            vendedor_bloqueado: (tipoDte === "05"),
                             tipo_venta_id: null,
                             condicion_operacion: parseInt(json.resumen?.condicionOperacion ?? 1),
                             plazo_credito: (json.resumen?.condicionOperacion == 2) ? 30 : null,
@@ -846,7 +856,8 @@
 
                                     <div style="width: 50%; padding:2px;">
                                         <select class="seller-select form-control form-control-sm"
-                                            data-index="${index}">
+                                            data-index="${index}"
+                                            ${factura.vendedor_bloqueado ? 'disabled title="Nota de crédito: hereda el vendedor de la factura original, no se puede cambiar."' : ''}>
                                         </select>
                                     </div>
 
