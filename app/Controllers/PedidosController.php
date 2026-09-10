@@ -469,7 +469,18 @@ class PedidosController extends BaseController
 
         $tipoDoc  = $this->request->getPost('tipo_documento');
 
-        $vendedorId = (int)($pedido->vendedor_id ?? 0);
+        // Con el permiso "ver_documentos_todos_vendedores" se puede reasignar
+        // el vendedor de la NP. Sin el permiso, o si el valor enviado no
+        // corresponde a un vendedor real, se conserva el vendedor actual.
+        $vendedorIdFinal = (int)($pedido->vendedor_id ?? 0);
+        if (tienePermiso('ver_documentos_todos_vendedores')) {
+            $vendedorIdPost = (int)($this->request->getPost('vendedor_id') ?: 0);
+            if ($vendedorIdPost && $db->table('sellers')->where('id', $vendedorIdPost)->countAllResults() > 0) {
+                $vendedorIdFinal = $vendedorIdPost;
+            }
+        }
+
+        $vendedorId = $vendedorIdFinal;
 
         $productoIds = array_values(array_unique(array_filter(array_map(static function ($p) {
             return (int)($p['producto_id'] ?? 0);
@@ -573,6 +584,7 @@ class PedidosController extends BaseController
 
         $headModel->update($id, [
             'cliente_id'     => $clienteId,
+            'vendedor_id'    => $vendedorIdFinal,
             'tipo_documento' => $tipoDoc,
             'tipo_pago'      => $tipoPago,
             'dias_credito'   => $diasCredito,

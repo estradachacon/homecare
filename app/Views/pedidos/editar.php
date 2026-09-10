@@ -110,7 +110,12 @@
                         </div>
                         <div class="col-md-5">
                             <label class="form-label text-muted small">Vendedor</label>
-                            <input type="text" class="form-control" value="<?= esc($pedido->vendedor_nombre) ?>" readonly>
+                            <?php if (tienePermiso('ver_documentos_todos_vendedores')): ?>
+                                <select name="vendedor_id" id="selectVendedorNP" class="form-control" required></select>
+                            <?php else: ?>
+                                <input type="text" class="form-control" value="<?= esc($pedido->vendedor_nombre) ?>" readonly>
+                                <input type="hidden" name="vendedor_id" value="<?= (int)$pedido->vendedor_id ?>">
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label text-muted small">Cliente <span class="text-danger">*</span></label>
@@ -592,6 +597,26 @@ function limpiarProductos() {
 
 // ── Select2 cliente + carga de filas existentes ───────────────────────────
 $(function () {
+
+    // Select2 Vendedor (solo con permiso "ver_documentos_todos_vendedores")
+    if (document.getElementById('selectVendedorNP')) {
+        $('#selectVendedorNP').select2({
+            language: 'es',
+            placeholder: 'Buscar vendedor...',
+            width: '100%',
+            ajax: {
+                url: '<?= base_url('sellers/searchAjax') ?>',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term || '', select2: 1 }),
+                processResults: data => ({ results: data.results }),
+            },
+        });
+
+        <?php if ($pedido->vendedor_id): ?>
+        $('#selectVendedorNP').append(new Option(<?= json_encode($pedido->vendedor_nombre) ?>, <?= (int)$pedido->vendedor_id ?>, true, true)).trigger('change');
+        <?php endif; ?>
+    }
 
     // Cargar filas de productos existentes (Select2 ya disponible aquí)
     detallesExistentes.forEach((d, i) => {
