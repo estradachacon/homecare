@@ -2488,9 +2488,15 @@ class ReportesController extends Controller
             LEFT  JOIN consignaciones_cierres cc
                        ON cc.consignacion_id = ch.id
             LEFT  JOIN consignaciones_cierres_detalles ccd
-                       ON ccd.detalle_id = cd.id
+                       ON ccd.detalle_id = cd.id AND ccd.cierre_id = cc.id
+            -- ccf.detalle_id referencia consignaciones_cierres_detalles.id (NO
+            -- consignaciones_detalles.id directamente; ver procesarCierre(), que
+            -- inserta como detalle_id el id de la fila recién insertada en
+            -- consignaciones_cierres_detalles). Unirlo contra cd.id hacía que
+            -- coincidiera por casualidad numérica con el id de OTRA línea de
+            -- OTRA NE, atribuyendo facturas a la NE equivocada.
             LEFT  JOIN consignaciones_cierres_facturas ccf
-                       ON ccf.detalle_id = cd.id AND ccf.cierre_id = cc.id
+                       ON ccf.detalle_id = ccd.id AND ccf.cierre_id = cc.id
             LEFT  JOIN facturas_head fh        ON fh.id  = ccf.factura_id  AND fh.anulada = 0
             LEFT  JOIN clientes cl             ON cl.id  = fh.receptor_id
             LEFT  JOIN consignaciones_head ne2 ON ne2.id = cc.nueva_consignacion_id
@@ -2980,10 +2986,20 @@ class ReportesController extends Controller
             -- producto_id A LA VEZ evita que cada fila de ccf se combine con cada
             -- fila de fd (lo que duplicaba líneas en el reporte, mostrando incluso
             -- combinaciones donde el producto del ccf no coincide con el de la fd).
+            -- ccf2.detalle_id referencia consignaciones_cierres_detalles.id, NO
+            -- consignaciones_detalles.id directamente (ver procesarCierre(), que
+            -- inserta como detalle_id el id de la fila recién insertada en
+            -- consignaciones_cierres_detalles, no el id de la línea original de
+            -- la NE). Hay que pasar por esa tabla intermedia para llegar a la
+            -- línea real de la NE (ccdx.detalle_id);
+            -- unir directo contra consignaciones_detalles.id coincidía por
+            -- casualidad numérica con una línea de OTRA NE, atribuyendo la
+            -- factura a la NE equivocada.
             LEFT JOIN consignaciones_detalles cd_ccf ON cd_ccf.id = (
                 SELECT cdx.id
                 FROM consignaciones_cierres_facturas ccf2
-                INNER JOIN consignaciones_detalles cdx ON cdx.id = ccf2.detalle_id
+                INNER JOIN consignaciones_cierres_detalles ccdx ON ccdx.id = ccf2.detalle_id AND ccdx.cierre_id = ccf2.cierre_id
+                INNER JOIN consignaciones_detalles cdx ON cdx.id = ccdx.detalle_id
                 WHERE ccf2.factura_id = fh.id AND cdx.producto_id = fd.producto_id
                 ORDER BY ccf2.id DESC
                 LIMIT 1
