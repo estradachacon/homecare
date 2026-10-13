@@ -510,9 +510,81 @@ class ConsignacionesController extends BaseController
 
         $consignacion = $headModel->getConVendedor($id);
 
-        if (!$consignacion || $consignacion->estado !== 'abierta') {
+        if (!$consignacion || !in_array($consignacion->estado, ['abierta', 'cerrada'], true)) {
             return redirect()->to('/consignaciones/' . $id)
                 ->with('error', 'Esta nota no puede cerrarse.');
+        }
+
+        $esReprocesar   = ($consignacion->estado === 'cerrada');
+        $valoresPrevios = [];
+
+        if ($esReprocesar) {
+            $db              = \Config\Database::connect();
+            $cierreModel     = new ConsignacionCierreModel();
+            $cierreDetModel  = new ConsignacionCierreDetalleModel();
+            $cierreLoteModel = new ConsignacionCierreLoteModel();
+
+            $cierreExistente = $cierreModel->getPorConsignacion($id);
+
+            if (!$cierreExistente) {
+                return redirect()->to('/consignaciones/' . $id)
+                    ->with('error', 'No se encontró un cierre previo para reprocesar.');
+            }
+
+            if (!empty($cierreExistente->nueva_consignacion_id)) {
+                return redirect()->to('/consignaciones/' . $id)
+                    ->with('error', 'Esta nota generó una nota de traslado al cerrarse; no se puede reprocesar automáticamente.');
+            }
+
+            $ccdRows = $cierreDetModel->where('cierre_id', $cierreExistente->id)->findAll();
+
+            foreach ($ccdRows as $ccd) {
+                $facs = $db->table('consignaciones_cierres_facturas cf')
+                    ->select('cf.factura_id, fh.numero_control')
+                    ->join('facturas_head fh', 'fh.id = cf.factura_id', 'left')
+                    ->where('cf.detalle_id', $ccd->id)
+                    ->where('cf.cierre_id', $cierreExistente->id)
+                    ->get()
+                    ->getResult();
+
+                $facturasArr = [];
+                foreach ($facs as $f) {
+                    $facturasArr[] = ['id' => $f->factura_id, 'texto' => '#' . substr((string)$f->numero_control, -6)];
+                }
+
+                $lotesFact = $cierreLoteModel->where('cierre_id', $cierreExistente->id)
+                    ->where('detalle_id', $ccd->detalle_id)
+                    ->where('tipo', 'facturado')
+                    ->findAll();
+                $lotesStock = $cierreLoteModel->where('cierre_id', $cierreExistente->id)
+                    ->where('detalle_id', $ccd->detalle_id)
+                    ->where('tipo', 'stock_vendedor')
+                    ->findAll();
+
+                $lotesFactArr = [];
+                foreach ($lotesFact as $lf) $lotesFactArr[$lf->lote_id] = (float)$lf->cantidad;
+                $lotesStockArr = [];
+                foreach ($lotesStock as $ls) $lotesStockArr[$ls->lote_id] = (float)$ls->cantidad;
+
+                $valoresPrevios[$ccd->detalle_id] = [
+                    'cantidad_facturada'         => (float)$ccd->cantidad_facturada,
+                    'cantidad_devuelta'          => (float)$ccd->cantidad_devuelta,
+                    'cantidad_stock_vendedor'    => (float)$ccd->cantidad_stock_vendedor,
+                    'cantidad_facturada_externa' => (float)$ccd->cantidad_facturada_externa,
+                    'doc_devolucion'             => $ccd->doc_devolucion,
+                    'fecha_devolucion'           => $ccd->fecha_devolucion,
+                    'comentario_devolucion'      => $ccd->comentario_devolucion,
+                    'foto_devolucion'            => $ccd->foto_devolucion,
+                    'doc_factura_externa'        => $ccd->doc_factura_externa,
+                    'lote_factura_externa'       => $ccd->lote_factura_externa,
+                    'fecha_factura_externa'      => $ccd->fecha_factura_externa,
+                    'comentario_factura_externa' => $ccd->comentario_factura_externa,
+                    'foto_factura_externa'       => $ccd->foto_factura_externa,
+                    'facturas'                   => $facturasArr,
+                    'lotes_facturados'           => $lotesFactArr,
+                    'lotes_stock'                => $lotesStockArr,
+                ];
+            }
         }
 
         $detalles = $detModel->getPorConsignacion($id);
@@ -600,6 +672,8 @@ class ConsignacionesController extends BaseController
             'detalles'               => $detalles,
             'lotesPorDetalle'        => $lotesPorDetalle,
             'sugerenciasPorProducto' => $sugerenciasPorProducto,
+            'esReprocesar'           => $esReprocesar,
+            'valoresPrevios'         => $valoresPrevios,
         ]);
     }
 
@@ -674,9 +748,26 @@ class ConsignacionesController extends BaseController
         $cierreLoteModel   = new ConsignacionCierreLoteModel();
 
         $consignacion = $headModel->find($id);
-        if (!$consignacion || $consignacion->estado !== 'abierta') {
+        if (!$consignacion || !in_array($consignacion->estado, ['abierta', 'cerrada'], true)) {
             return redirect()->to('/consignaciones/' . $id)
                 ->with('error', 'Esta nota no puede cerrarse.');
+        }
+
+        $esReprocesar    = ($consignacion->estado === 'cerrada');
+        $cierreExistente = null;
+
+        if ($esReprocesar) {
+            $cierreExistente = $cierreModel->getPorConsignacion($id);
+
+            if (!$cierreExistente) {
+                return redirect()->to('/consignaciones/' . $id)
+                    ->with('error', 'No se encontró un cierre previo para reprocesar.');
+            }
+
+            if (!empty($cierreExistente->nueva_consignacion_id)) {
+                return redirect()->to('/consignaciones/' . $id)
+                    ->with('error', 'Esta nota generó una nota de traslado al cerrarse; no se puede reprocesar automáticamente.');
+            }
         }
 
         $detalles    = $detModel->getPorConsignacion($id);
@@ -695,6 +786,18 @@ class ConsignacionesController extends BaseController
             if ($cantFact < 0 || $cantDev < 0 || $cantStock < 0 || $cantExt < 0) {
                 return redirect()->back()->withInput()
                     ->with('error', 'No se permiten cantidades negativas en el producto ' . $det->producto_nombre . '.');
+            }
+
+            foreach (['facturada' => $cantFact, 'devuelta' => $cantDev, 'en stock del vendedor' => $cantStock, 'facturada en empresa externa' => $cantExt] as $etiquetaCant => $valorCant) {
+                if (abs($valorCant - round($valorCant)) > 0.0001) {
+                    return redirect()->back()->withInput()
+                        ->with('error', 'La cantidad ' . $etiquetaCant . ' del producto ' . $det->producto_nombre . ' debe ser un número entero.');
+                }
+            }
+
+            if ($esReprocesar && $cantStock > 0) {
+                return redirect()->back()->withInput()
+                    ->with('error', 'Al reprocesar un cierre no se puede dejar cantidad en stock del vendedor (' . $det->producto_nombre . '): esa función solo está disponible en el cierre original, porque genera una nota de traslado nueva.');
             }
 
             $suma = $cantFact + $cantDev + $cantStock + $cantExt;
@@ -733,9 +836,90 @@ class ConsignacionesController extends BaseController
             ];
         }
 
+        // Respaldo en texto del cierre anterior (antes de tocar nada), para
+        // dejarlo en el historial de observaciones de la nota, y nombres de
+        // fotos ya subidas, para conservarlas si no se sube una nueva ahora.
+        $dumpCierreAnterior    = null;
+        $fotosViejasPorDetalle = [];
+
+        if ($esReprocesar) {
+            $ccdViejos  = $cierreDetModel->where('cierre_id', $cierreExistente->id)->findAll();
+            $lineasDump = [];
+
+            foreach ($ccdViejos as $ccdv) {
+                $detRef = null;
+                foreach ($detalles as $d) {
+                    if ((int)$d->id === (int)$ccdv->detalle_id) {
+                        $detRef = $d;
+                        break;
+                    }
+                }
+                $nombreProducto = $detRef
+                    ? trim(($detRef->producto_codigo ? '[' . $detRef->producto_codigo . '] ' : '') . $detRef->producto_nombre)
+                    : ('Detalle #' . $ccdv->detalle_id);
+
+                $facsViejas = $db->table('consignaciones_cierres_facturas cf')
+                    ->select('fh.numero_control')
+                    ->join('facturas_head fh', 'fh.id = cf.factura_id', 'left')
+                    ->where('cf.detalle_id', $ccdv->id)
+                    ->where('cf.cierre_id', $cierreExistente->id)
+                    ->get()
+                    ->getResult();
+                $facturasTextoViejo = [];
+                foreach ($facsViejas as $fv) {
+                    if (!empty($fv->numero_control)) $facturasTextoViejo[] = '#' . substr((string)$fv->numero_control, -6);
+                }
+
+                $partesViejas = [];
+                if ((float)$ccdv->cantidad_facturada > 0) {
+                    $partesViejas[] = 'Facturado ' . number_format((float)$ccdv->cantidad_facturada, 2)
+                        . (!empty($facturasTextoViejo) ? ' (' . implode(', ', $facturasTextoViejo) . ')' : ' (sin factura seleccionada)');
+                }
+                if ((float)$ccdv->cantidad_devuelta > 0) {
+                    $detDev = [];
+                    if ($ccdv->fecha_devolucion) $detDev[] = 'fecha: ' . date('d/m/Y', strtotime($ccdv->fecha_devolucion));
+                    if (!empty($ccdv->doc_devolucion)) $detDev[] = 'doc: ' . $ccdv->doc_devolucion;
+                    if (!empty($ccdv->foto_devolucion)) $detDev[] = 'foto: ' . $ccdv->foto_devolucion;
+                    $partesViejas[] = 'Devuelto ' . number_format((float)$ccdv->cantidad_devuelta, 2)
+                        . (!empty($detDev) ? ' (' . implode(', ', $detDev) . ')' : '');
+                }
+                if ((float)$ccdv->cantidad_stock_vendedor > 0) {
+                    $partesViejas[] = 'En stock del vendedor ' . number_format((float)$ccdv->cantidad_stock_vendedor, 2);
+                }
+                if ((float)$ccdv->cantidad_facturada_externa > 0) {
+                    $detExt = [];
+                    if (!empty($ccdv->doc_factura_externa)) $detExt[] = 'doc: ' . $ccdv->doc_factura_externa;
+                    if (!empty($ccdv->lote_factura_externa)) $detExt[] = 'lote: ' . $ccdv->lote_factura_externa;
+                    if ($ccdv->fecha_factura_externa) $detExt[] = 'fecha: ' . date('d/m/Y', strtotime($ccdv->fecha_factura_externa));
+                    if (!empty($ccdv->foto_factura_externa)) $detExt[] = 'foto: ' . $ccdv->foto_factura_externa;
+                    $partesViejas[] = 'Facturado en empresa externa ' . number_format((float)$ccdv->cantidad_facturada_externa, 2)
+                        . (!empty($detExt) ? ' (' . implode(', ', $detExt) . ')' : '');
+                }
+
+                $lineasDump[] = $nombreProducto . ': ' . (!empty($partesViejas) ? implode('; ', $partesViejas) : 'sin movimiento');
+
+                $fotosViejasPorDetalle[(int)$ccdv->detalle_id] = [
+                    'devolucion' => $ccdv->foto_devolucion,
+                    'externa'    => $ccdv->foto_factura_externa,
+                ];
+            }
+
+            $dumpCierreAnterior = 'Observaciones del cierre anterior: '
+                . ($cierreExistente->observaciones ?: '(sin observaciones)') . "\n"
+                . implode(' | ', $lineasDump);
+        }
+
         $db->transStart();
 
         $nuevoId = null;
+
+        if ($esReprocesar) {
+            $this->registrarLog($id, 'Cierre reprocesado (respaldo del cierre anterior)', $dumpCierreAnterior);
+
+            $db->table('consignaciones_cierres_detalles')->where('cierre_id', $cierreExistente->id)->delete();
+            $db->table('consignaciones_cierres_facturas')->where('cierre_id', $cierreExistente->id)->delete();
+            $db->table('consignaciones_cierres_lotes')->where('cierre_id', $cierreExistente->id)->delete();
+        }
 
         $hayStockVendedor = false;
         foreach ($lineas as $lin) {
@@ -745,8 +929,9 @@ class ConsignacionesController extends BaseController
             }
         }
 
-        // Si hay stock que queda con el vendedor → crear nueva nota
-        if ($hayStockVendedor) {
+        // Si hay stock que queda con el vendedor → crear nueva nota (nunca
+        // aplica al reprocesar: ya se bloqueó cantidad_stock_vendedor > 0 arriba)
+        if ($hayStockVendedor && !$esReprocesar) {
             $nuevoNumero = $headModel->siguienteNumero();
             $nuevoSubtotal = 0;
 
@@ -860,13 +1045,22 @@ class ConsignacionesController extends BaseController
             }
         }
 
-        // Crear registro de cierre
-        $cierreId = $cierreModel->insert([
-            'consignacion_id'       => $id,
-            'nueva_consignacion_id' => $nuevoId,
-            'observaciones'         => $obsGenerales,
-            'created_by'            => $session->get('id'),
-        ]);
+        // Crear registro de cierre (o reutilizar el existente al reprocesar,
+        // que ya quedó limpio de sus líneas/facturas/lotes viejos arriba)
+        if ($esReprocesar) {
+            $cierreId = $cierreExistente->id;
+            $cierreModel->update($cierreId, [
+                'observaciones' => $obsGenerales,
+                'created_by'    => $session->get('id'),
+            ]);
+        } else {
+            $cierreId = $cierreModel->insert([
+                'consignacion_id'       => $id,
+                'nueva_consignacion_id' => $nuevoId,
+                'observaciones'         => $obsGenerales,
+                'created_by'            => $session->get('id'),
+            ]);
+        }
 
         // Manejar fotos devolucion
         $fotos = $this->request->getFiles();
@@ -914,8 +1108,10 @@ class ConsignacionesController extends BaseController
                 // la vista de detalle la muestra con base_url('upload/devoluciones/...'),
                 // que solo resuelve a archivos públicamente accesibles. Guardarla en
                 // WRITEPATH la dejaba fuera del webroot y la imagen salía rota.
-                $fotoNombre = $fotos[$fileKey]->getRandomName();
-                $fotos[$fileKey]->move($rutaDevoluciones, $fotoNombre);
+                $fotoNombre = $this->_guardarFotoWebp($fotos[$fileKey], $rutaDevoluciones);
+            } elseif ($esReprocesar) {
+                // No se subió una foto nueva: conservar la que ya estaba guardada.
+                $fotoNombre = $fotosViejasPorDetalle[$det->id]['devolucion'] ?? null;
             }
 
             // Foto del documento de facturación en la empresa externa (mismo
@@ -924,8 +1120,9 @@ class ConsignacionesController extends BaseController
             $fileKeyExterna    = 'foto_externa_' . $det->id;
 
             if (isset($fotos[$fileKeyExterna]) && $fotos[$fileKeyExterna]->isValid() && !$fotos[$fileKeyExterna]->hasMoved()) {
-                $fotoExternaNombre = $fotos[$fileKeyExterna]->getRandomName();
-                $fotos[$fileKeyExterna]->move($rutaDevoluciones, $fotoExternaNombre);
+                $fotoExternaNombre = $this->_guardarFotoWebp($fotos[$fileKeyExterna], $rutaDevoluciones);
+            } elseif ($esReprocesar) {
+                $fotoExternaNombre = $fotosViejasPorDetalle[$det->id]['externa'] ?? null;
             }
 
             $fechaDevolucion = null;
@@ -1032,18 +1229,19 @@ class ConsignacionesController extends BaseController
         }
 
         registrar_bitacora(
-            'Cerrar nota de envío',
+            $esReprocesar ? 'Reprocesar cierre de nota de envío' : 'Cerrar nota de envío',
             'Consignaciones',
-            'Se cerró la nota ' . $consignacion->numero . ($nuevoId ? ' y se generó traslado.' : '.'),
+            ($esReprocesar ? 'Se reprocesó el cierre de la nota ' : 'Se cerró la nota ')
+                . $consignacion->numero . ($nuevoId ? ' y se generó traslado.' : '.'),
             $session->get('id')
         );
         $detalleLog = implode(' | ', $resumenLineas);
         if ($nuevoId) {
             $detalleLog .= ($detalleLog !== '' ? ' | ' : '') . 'Se generó nota de traslado.';
         }
-        $this->registrarLog($id, 'Nota cerrada', $detalleLog !== '' ? $detalleLog : null);
+        $this->registrarLog($id, $esReprocesar ? 'Cierre reprocesado' : 'Nota cerrada', $detalleLog !== '' ? $detalleLog : null);
 
-        $msg = 'Nota cerrada correctamente.';
+        $msg = $esReprocesar ? 'Cierre reprocesado correctamente.' : 'Nota cerrada correctamente.';
         if ($nuevoId) {
             $nuevaNota = $db->table('consignaciones_head')
                 ->where('id', $nuevoId)
@@ -1107,8 +1305,11 @@ class ConsignacionesController extends BaseController
         }
 
         $fotoAnterior = $cierreDet->{$campoFoto} ?? null;
-        $fotoNombre   = $foto->getRandomName();
-        $foto->move($rutaDevoluciones, $fotoNombre);
+        $fotoNombre   = $this->_guardarFotoWebp($foto, $rutaDevoluciones);
+
+        if (!$fotoNombre) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se pudo procesar la foto.']);
+        }
 
         $cierreDetModel->update($cierreDetalleId, [$campoFoto => $fotoNombre]);
 
@@ -2091,6 +2292,12 @@ class ConsignacionesController extends BaseController
             'lotes_autorizados_at'  => date('Y-m-d H:i:s'),
         ]);
 
+        registrar_bitacora(
+            'Autorizar lotes de nota de envío',
+            'Consignaciones',
+            'Se autorizó la edición de lotes de la nota ' . $nota->numero . '.',
+            $session->get('id')
+        );
         $this->registrarLog($id, 'Lotes autorizados', 'Se habilitó la edición de lotes.');
 
         return $this->response->setJSON(['success' => true, 'message' => 'Lotes autorizados correctamente.']);
@@ -2221,6 +2428,39 @@ class ConsignacionesController extends BaseController
             'detalle'         => $detalle,
             'created_at'      => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Guarda una foto subida (devolución / facturado externo) convertida a
+     * WebP, mucho más liviana que el JPG/PNG que suele entregar la cámara del
+     * celular — así pesan menos al mostrarlas después en pantalla. Si el
+     * formato no lo puede leer GD (p. ej. HEIC de iPhone), guarda el archivo
+     * original tal cual, para no perder la evidencia.
+     */
+    private function _guardarFotoWebp(\CodeIgniter\Http\Files\UploadedFile $file, string $rutaDestino): ?string
+    {
+        if (!$file->isValid() || $file->hasMoved()) {
+            return null;
+        }
+
+        $datos = @file_get_contents($file->getTempName());
+        $img   = $datos !== false ? @imagecreatefromstring($datos) : false;
+
+        if (!$img) {
+            $nombre = $file->getRandomName();
+            $file->move($rutaDestino, $nombre);
+            return $nombre;
+        }
+
+        imagepalettetotruecolor($img);
+        imagealphablending($img, true);
+        imagesavealpha($img, true);
+
+        $nombre = pathinfo($file->getRandomName(), PATHINFO_FILENAME) . '.webp';
+        $ok     = imagewebp($img, $rutaDestino . $nombre, 80);
+        imagedestroy($img);
+
+        return $ok ? $nombre : null;
     }
 
     public function reporteClientes()

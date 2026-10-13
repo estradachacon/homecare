@@ -17,6 +17,10 @@ class ConsignacionCierreModel extends Model
 
     public function getPorConsignacion(int $consignacionId)
     {
-        return $this->where('consignacion_id', $consignacionId)->first();
+        // Puede haber más de un cierre por NE (reapertura automática por NC/
+        // anulación); sin ORDER BY, first() no garantiza traer el más reciente.
+        return $this->where('consignacion_id', $consignacionId)
+            ->orderBy('id', 'DESC')
+            ->first();
     }
 }

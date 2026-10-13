@@ -77,10 +77,21 @@
                 <strong>stock del vendedor</strong>. La suma debe ser igual a la cantidad original.
             </div>
 
+            <?php $esReprocesar = $esReprocesar ?? false; $valoresPrevios = $valoresPrevios ?? []; ?>
+
+            <?php if ($esReprocesar): ?>
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-rotate"></i>
+                    Estás <strong>reprocesando</strong> el cierre ya guardado de esta nota. Los campos se precargaron
+                    con los valores anteriores; puedes modificarlos y guardar. El cierre anterior quedará respaldado
+                    en texto dentro del historial de la nota.
+                </div>
+            <?php endif; ?>
+
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
                     <h4 class="header-title mb-0">
-                        Cerrar Nota <strong><?= esc($consignacion->numero) ?></strong>
+                        <?= $esReprocesar ? 'Reprocesar cierre de' : 'Cerrar Nota' ?> <strong><?= esc($consignacion->numero) ?></strong>
                         &nbsp;–&nbsp; <?= esc($consignacion->vendedor_nombre) ?>
                     </h4>
                     <a href="<?= base_url('consignaciones/' . $consignacion->id) ?>" class="btn btn-secondary btn-sm">
@@ -96,6 +107,7 @@
 
                         <!-- Una tarjeta por producto -->
                         <?php foreach ($detalles as $d): ?>
+                            <?php $prev = $valoresPrevios[$d->id] ?? null; ?>
                             <div class="card card-linea mb-4" data-detalle-id="<?= $d->id ?>">
                                 <div class="card-body">
                                     <div class="row align-items-center mb-3">
@@ -146,7 +158,7 @@
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_facturada]"
                                                 class="form-control input-facturada"
-                                                min="0" step="0.01" value="0"
+                                                min="0" step="1" value="<?= (int)($prev['cantidad_facturada'] ?? 0) ?>"
                                                 data-max="<?= $d->cantidad ?>"
                                                 data-id="<?= $d->id ?>">
                                         </div>
@@ -156,7 +168,7 @@
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_devuelta]"
                                                 class="form-control input-devuelta"
-                                                min="0" step="0.01" value="0"
+                                                min="0" step="1" value="<?= (int)($prev['cantidad_devuelta'] ?? 0) ?>"
                                                 data-max="<?= $d->cantidad ?>"
                                                 data-id="<?= $d->id ?>">
                                         </div>
@@ -166,9 +178,10 @@
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_stock_vendedor]"
                                                 class="form-control input-stock"
-                                                min="0" step="0.01" value="0"
+                                                min="0" step="1" value="0"
                                                 data-max="<?= $d->cantidad ?>"
-                                                data-id="<?= $d->id ?>">
+                                                data-id="<?= $d->id ?>"
+                                                <?= $esReprocesar ? 'readonly title="No disponible al reprocesar un cierre: esto generaría una nota de traslado nueva."' : '' ?>>
                                         </div>
                                         <!-- Facturado en empresa externa (otro sistema, no relacionado) -->
                                         <div class="col-md-3">
@@ -176,7 +189,7 @@
                                             <input type="number"
                                                 name="lineas[<?= $d->id ?>][cantidad_facturada_externa]"
                                                 class="form-control input-facturada-externa"
-                                                min="0" step="0.01" value="0"
+                                                min="0" step="1" value="<?= (int)($prev['cantidad_facturada_externa'] ?? 0) ?>"
                                                 data-max="<?= $d->cantidad ?>"
                                                 data-id="<?= $d->id ?>">
                                         </div>
@@ -228,7 +241,7 @@
                                                                                 name="lineas[<?= $d->id ?>][lotes_stock][<?= $lote->lote_id ?>]"
                                                                                 class="form-control form-control-sm text-end input-lote-stock"
                                                                                 min="0"
-                                                                                step="0.01"
+                                                                                step="1"
                                                                                 value="0"
                                                                                 data-detalle="<?= $d->id ?>"
                                                                                 data-max-lote="<?= $lote->cantidad ?>">
@@ -287,8 +300,8 @@
                                                                                 name="lineas[<?= $d->id ?>][lotes_facturados][<?= $lote->lote_id ?>]"
                                                                                 class="form-control form-control-sm text-end input-lote-facturado"
                                                                                 min="0"
-                                                                                step="0.01"
-                                                                                value="0"
+                                                                                step="1"
+                                                                                value="<?= (int)($prev['lotes_facturados'][$lote->lote_id] ?? 0) ?>"
                                                                                 data-detalle="<?= $d->id ?>"
                                                                                 data-max-lote="<?= $lote->cantidad ?>">
                                                                         </td>
@@ -314,17 +327,26 @@
                                                 <label class="small text-muted">Documento con el que se recibió</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][doc_devolucion]"
                                                     class="form-control form-control-sm"
+                                                    value="<?= esc($prev['doc_devolucion'] ?? '') ?>"
                                                     placeholder="Nº documento o referencia">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="small text-muted">Fecha en que el vendedor devolvió</label>
                                                 <input type="date" name="lineas[<?= $d->id ?>][fecha_devolucion]"
                                                     class="form-control form-control-sm"
-                                                    value="<?= date('Y-m-d') ?>"
+                                                    value="<?= esc($prev['fecha_devolucion'] ?? date('Y-m-d')) ?>"
                                                     max="<?= date('Y-m-d') ?>">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="small text-muted">Foto (opcional)</label>
+                                                <?php if (!empty($prev['foto_devolucion'])): ?>
+                                                    <div class="mb-1">
+                                                        <a href="<?= base_url('upload/devoluciones/' . $prev['foto_devolucion']) ?>" target="_blank">
+                                                            <img src="<?= base_url('upload/devoluciones/' . $prev['foto_devolucion']) ?>" style="max-height:48px;border-radius:4px;" loading="lazy">
+                                                        </a>
+                                                        <small class="d-block text-muted">Foto actual (se conserva si no toma una nueva)</small>
+                                                    </div>
+                                                <?php endif; ?>
                                                 <div class="foto-devolucion-wrap">
                                                     <input type="file" name="foto_<?= $d->id ?>"
                                                         id="foto_input_<?= $d->id ?>"
@@ -342,6 +364,7 @@
                                                 <label class="small text-muted">Comentario</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][comentario_devolucion]"
                                                     class="form-control form-control-sm"
+                                                    value="<?= esc($prev['comentario_devolucion'] ?? '') ?>"
                                                     placeholder="Motivo o nota adicional">
                                             </div>
                                         </div>
@@ -356,23 +379,33 @@
                                                 <label class="small text-muted">Documento (ej. CCF 00500 SD)</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][doc_factura_externa]"
                                                     class="form-control form-control-sm"
+                                                    value="<?= esc($prev['doc_factura_externa'] ?? '') ?>"
                                                     placeholder="Nº documento y referencia de la empresa externa">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="small text-muted">Lote</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][lote_factura_externa]"
                                                     class="form-control form-control-sm"
+                                                    value="<?= esc($prev['lote_factura_externa'] ?? '') ?>"
                                                     placeholder="Nº de lote facturado">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="small text-muted">Fecha de la factura externa</label>
                                                 <input type="date" name="lineas[<?= $d->id ?>][fecha_factura_externa]"
                                                     class="form-control form-control-sm"
-                                                    value="<?= date('Y-m-d') ?>"
+                                                    value="<?= esc($prev['fecha_factura_externa'] ?? date('Y-m-d')) ?>"
                                                     max="<?= date('Y-m-d') ?>">
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="small text-muted">Foto del documento (opcional)</label>
+                                                <?php if (!empty($prev['foto_factura_externa'])): ?>
+                                                    <div class="mb-1">
+                                                        <a href="<?= base_url('upload/devoluciones/' . $prev['foto_factura_externa']) ?>" target="_blank">
+                                                            <img src="<?= base_url('upload/devoluciones/' . $prev['foto_factura_externa']) ?>" style="max-height:48px;border-radius:4px;" loading="lazy">
+                                                        </a>
+                                                        <small class="d-block text-muted">Foto actual (se conserva si no toma una nueva)</small>
+                                                    </div>
+                                                <?php endif; ?>
                                                 <div class="foto-devolucion-wrap">
                                                     <input type="file" name="foto_externa_<?= $d->id ?>"
                                                         id="foto_externa_input_<?= $d->id ?>"
@@ -390,6 +423,7 @@
                                                 <label class="small text-muted">Comentario</label>
                                                 <input type="text" name="lineas[<?= $d->id ?>][comentario_factura_externa]"
                                                     class="form-control form-control-sm"
+                                                    value="<?= esc($prev['comentario_factura_externa'] ?? '') ?>"
                                                     placeholder="Nota adicional">
                                             </div>
                                         </div>
@@ -404,6 +438,9 @@
                                             class="form-control select-facturas"
                                             multiple
                                             data-vendedor="<?= $consignacion->vendedor_id ?>">
+                                            <?php foreach (($prev['facturas'] ?? []) as $pf): ?>
+                                                <option value="<?= (int)$pf['id'] ?>" selected><?= esc($pf['texto']) ?></option>
+                                            <?php endforeach; ?>
                                         </select>
                                         <small class="text-muted">Puede buscar por número de control</small>
                                     </div>
@@ -426,7 +463,7 @@
 
                         <div class="text-end">
                             <button type="submit" class="btn btn-success btn-lg" id="btnCerrar">
-                                <i class="fa-solid fa-lock"></i> Cerrar Nota de Envío
+                                <i class="fa-solid fa-lock"></i> <?= $esReprocesar ? 'Guardar cambios del cierre' : 'Cerrar Nota de Envío' ?>
                             </button>
                         </div>
 
@@ -438,6 +475,25 @@
 
 <script>
     $(document).ready(function() {
+
+        // Cantidades: solo enteros, y que el scroll del mouse no cambie el
+        // valor de un input number mientras está enfocado (comportamiento
+        // por defecto de Chrome que hace fácil cambiar la cantidad sin querer).
+        $(document).on('wheel', 'input[type="number"]', function() {
+            $(this).blur();
+        });
+
+        $(document).on('keypress', '.input-facturada, .input-devuelta, .input-stock, .input-facturada-externa, .input-lote-stock, .input-lote-facturado', function(e) {
+            if (e.key === '.' || e.key === ',' || e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+            }
+        });
+
+        $(document).on('input', '.input-facturada, .input-devuelta, .input-stock, .input-facturada-externa, .input-lote-stock, .input-lote-facturado', function() {
+            if (this.value.includes('.') || this.value.includes(',') || this.value.includes('e') || this.value.includes('E')) {
+                this.value = this.value.replace(/[^\d]/g, '');
+            }
+        });
 
         // Cargar facturas del vendedor en los select2 múltiple
         const vendedorId = <?= (int)$consignacion->vendedor_id ?>;
@@ -463,6 +519,15 @@
         $('.select-facturas').each(function() {
             cargarFacturasVendedor(this);
         });
+
+        <?php if ($esReprocesar): ?>
+            // Reprocesar: forzar el estado inicial de cada línea (mostrar/ocultar
+            // bloques de devolución, facturas y facturado externo) con los valores
+            // ya precargados, igual que si el usuario los hubiera tecleado.
+            <?php foreach ($detalles as $d): ?>
+                validarLinea(<?= $d->id ?>);
+            <?php endforeach; ?>
+        <?php endif; ?>
 
         // Aplicar/quitar sugerencia de factura desde NP asociada. Funciona como
         // un interruptor: si la factura ya estaba agregada al select múltiple,
@@ -737,17 +802,22 @@
                                 echo '(' . implode(' + ', $stocks) . ') > 0';
                                 ?>;
 
-            let html = '<p>¿Confirma el cierre de la nota <strong><?= esc($consignacion->numero) ?></strong>?</p>';
-            if (hayStock) {
-                html += '<div class="alert alert-info mt-2" style="text-align:left;font-size:13px;">Se generará automáticamente una <strong>nueva nota de envío</strong> con el producto que queda en stock del vendedor.</div>';
-            }
+            <?php if ($esReprocesar): ?>
+                let html = '<p>¿Confirma guardar los cambios del cierre de la nota <strong><?= esc($consignacion->numero) ?></strong>?</p>'
+                    + '<div class="alert alert-warning mt-2" style="text-align:left;font-size:13px;">El cierre anterior quedará respaldado en texto dentro del historial de la nota.</div>';
+            <?php else: ?>
+                let html = '<p>¿Confirma el cierre de la nota <strong><?= esc($consignacion->numero) ?></strong>?</p>';
+                if (hayStock) {
+                    html += '<div class="alert alert-info mt-2" style="text-align:left;font-size:13px;">Se generará automáticamente una <strong>nueva nota de envío</strong> con el producto que queda en stock del vendedor.</div>';
+                }
+            <?php endif; ?>
 
             Swal.fire({
-                title: 'Confirmar cierre',
+                title: <?= $esReprocesar ? "'Confirmar cambios'" : "'Confirmar cierre'" ?>,
                 html: html,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Sí, cerrar',
+                confirmButtonText: <?= $esReprocesar ? "'Sí, guardar'" : "'Sí, cerrar'" ?>,
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#198754',
             }).then(result => {
@@ -756,7 +826,7 @@
                     // sin este loader la pantalla se queda "trabada" mientras
                     // el servidor procesa el cierre (mueve lotes, sube fotos, etc.)
                     Swal.fire({
-                        title: 'Cerrando nota...',
+                        title: <?= $esReprocesar ? "'Guardando cambios...'" : "'Cerrando nota...'" ?>,
                         text: 'Por favor espera, esto puede tardar unos segundos.',
                         allowOutsideClick: false,
                         allowEscapeKey: false,

@@ -182,6 +182,12 @@
                                 <a href="<?= base_url('consignaciones/' . $consignacion->id . '/cerrar') ?>" class="btn btn-warning btn-sm mr-1"> <i class="fa-solid fa-lock mr-1"></i> Cerrar</a>
                             <?php endif; ?>
 
+                            <?php if ($consignacion->estado === 'cerrada' && tienePermiso('cerrar_consignaciones')): ?>
+                                <a href="<?= base_url('consignaciones/' . $consignacion->id . '/cerrar') ?>" class="btn btn-outline-warning btn-sm mr-1" title="Editar los datos del cierre ya guardado">
+                                    <i class="fa-solid fa-rotate mr-1"></i> Reprocesar cierre
+                                </a>
+                            <?php endif; ?>
+
                             <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
                                 <button class="btn btn-danger btn-sm" id="btnAnular"> <i class="fa-solid fa-ban mr-1"></i> Anular</button>
                             <?php endif; ?>
@@ -378,6 +384,7 @@
                                                             class="foto-devolucion-thumb"
                                                             style="max-height:80px; border-radius:5px; cursor:pointer;"
                                                             title="Ver en grande"
+                                                            loading="lazy"
                                                             onerror="this.closest('.foto-devolucion-preview').querySelector('.foto-devolucion-rota').classList.remove('d-none'); this.remove();">
                                                         <div class="text-danger small d-none foto-devolucion-rota">
                                                             <i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar la foto.
@@ -421,6 +428,7 @@
                                                                     class="foto-devolucion-thumb"
                                                                     style="max-height:80px; border-radius:5px; cursor:pointer;"
                                                                     title="Ver en grande"
+                                                                    loading="lazy"
                                                                     onerror="this.closest('.foto-devolucion-preview').querySelector('.foto-devolucion-rota').classList.remove('d-none'); this.remove();">
                                                                 <div class="text-danger small d-none foto-devolucion-rota">
                                                                     <i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar la foto.
@@ -714,6 +722,16 @@
 <script>
     $(function() {
         const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+        // ── Historial de actividad: al abrirlo, ir directo al final ─────
+        // (el log está ordenado del más viejo al más nuevo, así que el más
+        // reciente queda al fondo del cuadro con scroll).
+        function irAlFinalHistorial() {
+            const caja = document.querySelector('#logSection .card-body');
+            if (caja) caja.scrollTop = caja.scrollHeight;
+        }
+        $('#logSection').on('shown.bs.collapse', irAlFinalHistorial);
+        irAlFinalHistorial();
 
         // ── Anular ──────────────────────────────────────────────
         <?php if ($consignacion->estado === 'abierta' && tienePermiso('anular_consignaciones')): ?>
