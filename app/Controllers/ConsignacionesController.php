@@ -691,21 +691,44 @@ class ConsignacionesController extends BaseController
             return true; // sin ambigüedad: la NP solo está vinculada a esta NE
         }
 
-        $db = \Config\Database::connect();
-
-        $cantidadPedida = (float)($db->table('pedidos_detalles')
-            ->selectSum('cantidad')
-            ->where('pedido_id', $pedidoId)
-            ->where('producto_id', $productoId)
-            ->get()->getRow()->cantidad ?? 0);
-
-        if ($cantidadPedida <= 0.0001) {
-            return false;
+        foreach ($this->_consumoLotesNPPorProducto($pedidoId, $productoId, $neIds) as $c) {
+            if ($c['ne_id'] === $consignacionId) {
+                return true;
+            }
         }
 
-        $inList = implode(',', array_unique($neIds));
+        return false;
+    }
+
+    /**
+     * Simula el consumo FIFO (por NE y luego por lote) de los lotes de
+     * $productoId entre TODAS las Notas de Pedido activas que compiten por
+     * esas mismas NE ($neIds), en el orden en que se crearon (pedido_id
+     * ascendente — la NP más antigua tiene primera opción sobre el lote
+     * compartido). Devuelve, para $pedidoId en particular, exactamente qué
+     * le tocó a ESA NP: una lista de {ne_id, ne_numero, numero_lote,
+     * fecha_vencimiento, cantidad}, ya restando lo que las NP anteriores ya
+     * se llevaron de esos mismos lotes.
+     *
+     * Esto es lo que _neAportoProductoANp() necesitaba y no hacía: antes
+     * cada NP se resolvía sola, contra la cantidad COMPLETA del lote, sin
+     * enterarse de que otra NP anterior ya había consumido ese mismo lote —
+     * por eso dos NP distintas podían quedar atribuidas a la misma NE para
+     * el mismo producto, superando su cantidad real.
+     */
+    public function _consumoLotesNPPorProducto(int $pedidoId, int $productoId, array $neIds): array
+    {
+        $neIds = array_values(array_unique($neIds));
+        if (empty($neIds)) {
+            return [];
+        }
+
+        $db     = \Config\Database::connect();
+        $inList = implode(',', $neIds);
+
         $lotesFilas = $db->query("
-            SELECT ch.id AS ne_id, cl.id AS lote_id, SUM(cdl.cantidad) AS cantidad
+            SELECT ch.id AS ne_id, ch.numero AS ne_numero, cl.id AS lote_id,
+                   cl.numero_lote, cl.fecha_vencimiento, SUM(cdl.cantidad) AS cantidad
             FROM consignaciones_detalles cd
             INNER JOIN consignaciones_head ch          ON ch.id = cd.consignacion_id
             INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
@@ -715,17 +738,124 @@ class ConsignacionesController extends BaseController
             ORDER BY ch.numero ASC, cl.numero_lote ASC
         ", [$productoId])->getResult();
 
-        $restante = $cantidadPedida;
-        foreach ($lotesFilas as $lf) {
-            if ($restante <= 0.0001) break;
-            $consumo = min((float)$lf->cantidad, $restante);
-            if ($consumo > 0.0001 && (int)$lf->ne_id === $consignacionId) {
-                return true;
-            }
-            $restante -= $consumo;
+        if (empty($lotesFilas)) {
+            return [];
         }
 
-        return false;
+        // Todas las NP activas (no anuladas) que piden este producto y están
+        // vinculadas a alguna de estas NE, en el orden en que se crearon.
+        $orConds = [];
+        $binds   = [];
+        foreach ($neIds as $nid) {
+            $orConds[] = 'ph.consignacion_id = ?';
+            $binds[]   = $nid;
+        }
+        foreach ($neIds as $nid) {
+            $orConds[] = "(ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?)))";
+            $binds[]   = (string)$nid;
+        }
+
+        $pedidosFilas = $db->query("
+            SELECT ph.id AS pedido_id, ph.consignacion_id, ph.consignacion_ids,
+                   (SELECT COALESCE(SUM(pd.cantidad), 0) FROM pedidos_detalles pd
+                    WHERE pd.pedido_id = ph.id AND pd.producto_id = ?) AS cantidad,
+                   (SELECT pd.consignacion_id FROM pedidos_detalles pd
+                    WHERE pd.pedido_id = ph.id AND pd.producto_id = ? AND pd.consignacion_id IS NOT NULL
+                    LIMIT 1) AS linea_fijada
+            FROM pedidos_head ph
+            WHERE ph.anulada = 0 AND (" . implode(' OR ', $orConds) . ")
+            ORDER BY ph.id ASC
+        ", array_merge([$productoId, $productoId], $binds))->getResult();
+
+        $ledger = [];
+        foreach ($lotesFilas as $lf) {
+            $ledger[] = [
+                'ne_id'             => (int)$lf->ne_id,
+                'ne_numero'         => $lf->ne_numero,
+                'numero_lote'       => $lf->numero_lote,
+                'fecha_vencimiento' => $lf->fecha_vencimiento,
+                'disponible'        => (float)$lf->cantidad,
+            ];
+        }
+
+        $consumoDelPedido = [];
+
+        foreach ($pedidosFilas as $pf) {
+            $restante = (float)$pf->cantidad;
+            if ($restante <= 0.0001) continue;
+
+            $esElPedido = ((int)$pf->pedido_id === $pedidoId);
+
+            // Línea con NE fijada explícitamente (desde la herramienta de
+            // corregir vinculación): se descuenta directo de esa NE en
+            // particular, sin pasar por el reparto FIFO genérico de abajo —
+            // es una decisión manual del admin, no algo para recalcular.
+            if ($pf->linea_fijada !== null) {
+                $fijadoA = (int)$pf->linea_fijada;
+
+                foreach ($ledger as &$l) {
+                    if ($restante <= 0.0001) break;
+                    if ($l['ne_id'] !== $fijadoA) continue;
+                    if ($l['disponible'] <= 0.0001) continue;
+
+                    $consumo          = min($l['disponible'], $restante);
+                    $l['disponible'] -= $consumo;
+                    $restante        -= $consumo;
+
+                    if ($esElPedido && $consumo > 0.0001) {
+                        $consumoDelPedido[] = [
+                            'ne_id'             => $l['ne_id'],
+                            'ne_numero'         => $l['ne_numero'],
+                            'numero_lote'       => $l['numero_lote'],
+                            'fecha_vencimiento' => $l['fecha_vencimiento'],
+                            'cantidad'          => $consumo,
+                        ];
+                    }
+                }
+                unset($l);
+                continue;
+            }
+
+            // Cada NP solo puede tomar de las NE a las que ELLA MISMA está
+            // vinculada — no de todo el conjunto combinado que se le pasó a
+            // esta función para resolver $pedidoId. Sin este filtro, una NP
+            // vinculada solo a NE-156 podía "robarle" por error un lote de
+            // NE-140 simplemente por venir primero en el orden del ledger.
+            $neIdsPropios = [];
+            if ($pf->consignacion_id) $neIdsPropios[] = (int)$pf->consignacion_id;
+            if ($pf->consignacion_ids) {
+                $decoded = json_decode($pf->consignacion_ids, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $nid) {
+                        $nid = (int)$nid;
+                        if ($nid && !in_array($nid, $neIdsPropios, true)) $neIdsPropios[] = $nid;
+                    }
+                }
+            }
+
+            foreach ($ledger as &$l) {
+                if ($restante <= 0.0001) break;
+                if ($l['disponible'] <= 0.0001) continue;
+                if (!in_array($l['ne_id'], $neIdsPropios, true)) continue;
+
+                $consumo          = min($l['disponible'], $restante);
+                $l['disponible'] -= $consumo;
+                $restante        -= $consumo;
+
+                if ($esElPedido && $consumo > 0.0001) {
+                    $consumoDelPedido[] = [
+                        'ne_id'             => $l['ne_id'],
+                        'ne_numero'         => $l['ne_numero'],
+                        'numero_lote'       => $l['numero_lote'],
+                        'fecha_vencimiento' => $l['fecha_vencimiento'],
+                        'cantidad'          => $consumo,
+                    ];
+                }
+            }
+            unset($l);
+        }
+
+        return $consumoDelPedido;
     }
 
     // ─────────────────────────────────────────────
@@ -2514,12 +2644,21 @@ class ConsignacionesController extends BaseController
 
     public function searchParaPedidoAjax()
     {
-        $chk = requerirPermiso('crear_pedidos');
-        if ($chk !== true) return $this->response->setJSON(['results' => []]);
+        // Modo reparación: la herramienta de corregir vinculación NE de una
+        // NP ya facturada busca aquí para AGREGAR una NE a la vinculación, y
+        // quien la usa puede no tener el permiso de crear pedidos ni el de
+        // ver todos los vendedores — pero sí el de editar pedidos, que es el
+        // que ya protege el acceso a esa herramienta.
+        $modoReparacion = $this->request->getGet('modo') === 'reparacion' && tienePermiso('editar_pedidos');
+
+        if (!$modoReparacion) {
+            $chk = requerirPermiso('crear_pedidos');
+            if ($chk !== true) return $this->response->setJSON(['results' => []]);
+        }
 
         $session       = session();
         $db            = \Config\Database::connect();
-        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores');
+        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores') || $modoReparacion;
 
         $q              = trim($this->request->getGet('q') ?? '');
         $vendedorFiltro = (int)($this->request->getGet('vendedor_id') ?? 0);
@@ -2660,11 +2799,19 @@ class ConsignacionesController extends BaseController
      *
      * @return array<int, float> producto_id => cantidad
      */
-    private function _comprometidoPorProductoNE(int $consignacionId): array
+    /**
+     * Cantidad por producto ya comprometida en Notas de Pedido ACTIVAS (no
+     * anuladas) vinculadas a esta NE — "vivas" (pendientes) y "finalizadas"
+     * (ya facturadas) por igual, ya que ambas siguen tomando stock de la NE.
+     * $excluirPedidoId permite ignorar una NP puntual (p. ej. al editarla,
+     * para no contar sus propias líneas como "ya comprometidas contra sí
+     * misma" y bloquear erróneamente su propio guardado).
+     */
+    public function _comprometidoPorProductoNE(int $consignacionId, int $excluirPedidoId = 0): array
     {
         $db = \Config\Database::connect();
 
-        $rows = $db->query("
+        $sql = "
             SELECT
                 pd.producto_id,
                 pd.cantidad,
@@ -2679,7 +2826,15 @@ class ConsignacionesController extends BaseController
                   ph.consignacion_id = ?
                   OR (ph.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph.consignacion_ids, JSON_QUOTE(?)))
               )
-        ", [$consignacionId, (string)$consignacionId])->getResult();
+        ";
+        $binds = [$consignacionId, (string)$consignacionId];
+
+        if ($excluirPedidoId > 0) {
+            $sql .= ' AND ph.id != ?';
+            $binds[] = $excluirPedidoId;
+        }
+
+        $rows = $db->query($sql, $binds)->getResult();
 
         $creditos = $db->query("
             SELECT
@@ -2773,15 +2928,22 @@ class ConsignacionesController extends BaseController
         $chk = requerirPermiso('crear_pedidos');
         if ($chk !== true) return $this->response->setJSON(['success' => false, 'message' => 'Sin permiso.']);
 
-        $session       = session();
-        $db            = \Config\Database::connect();
-        $puedeVerTodos = tienePermiso('ver_documentos_todos_vendedores');
+        $session = session();
+        $db      = \Config\Database::connect();
 
-        $builderNE = $db->table('consignaciones_head')
-            ->where('id', $id)
-            ->where('estado', 'abierta')
-            ->where('aprobacion_estado', 'aprobada')
-            ->where('lotes_autorizados_por IS NOT NULL', null, false);
+        // Modo reparación: la herramienta de corregir vinculación NE de una
+        // NP ya facturada necesita poder apuntar a una NE YA CERRADA (o sin
+        // aprobar/sin lotes autorizados) — es, al fin y al cabo, lo que se
+        // está arreglando. Solo se habilita con permiso de editar pedidos.
+        $modoReparacion = $this->request->getGet('modo') === 'reparacion' && tienePermiso('editar_pedidos');
+        $puedeVerTodos  = tienePermiso('ver_documentos_todos_vendedores') || $modoReparacion;
+
+        $builderNE = $db->table('consignaciones_head')->where('id', $id);
+        if (!$modoReparacion) {
+            $builderNE->where('estado', 'abierta')
+                ->where('aprobacion_estado', 'aprobada')
+                ->where('lotes_autorizados_por IS NOT NULL', null, false);
+        }
 
         if (!$puedeVerTodos) {
             // Comportamiento original: solo NE del propio vendedor.
@@ -2830,8 +2992,12 @@ class ConsignacionesController extends BaseController
         // anuladas) que también referencian esta NE, para no volver a
         // ofrecer lo que ya se pidió antes. Las NP no registran de qué lote
         // específico salió cada unidad, así que el descuento en los lotes
-        // se hace en el mismo orden en que se listan (FIFO).
-        $comprometidoPorProducto = $this->_comprometidoPorProductoNE($id);
+        // se hace en el mismo orden en que se listan (FIFO). En modo
+        // reparación se excluye la propia NP que se está corrigiendo, para
+        // que sus líneas actuales no cuenten como "ya comprometidas" contra
+        // la NE a la que justamente se la está volviendo a vincular.
+        $excluirPedidoId         = $modoReparacion ? (int)($this->request->getGet('excluir_pedido_id') ?: 0) : 0;
+        $comprometidoPorProducto = $this->_comprometidoPorProductoNE($id, $excluirPedidoId);
 
         $productos = [];
         foreach ($detalles as $d) {
@@ -2842,10 +3008,21 @@ class ConsignacionesController extends BaseController
                 ->get()->getResult();
 
             $comprometido      = $comprometidoPorProducto[(int)$d->producto_id] ?? 0.0;
-            $cantidadPendiente = round((float)$d->cantidad - $comprometido, 4);
+            $cantidadPendiente = max(0.0, round((float)$d->cantidad - $comprometido, 4));
 
-            // Ya se pidió todo lo disponible de este producto en esta NE.
+            // Ya se pidió todo lo disponible de este producto en esta NE: se
+            // sigue mostrando (para que se vea que el producto existe en la
+            // NE y por qué no se puede volver a pedir), pero muteado — el
+            // frontend lo deshabilita con 'agotado'.
             if ($cantidadPendiente <= 0.0001) {
+                $productos[] = [
+                    'producto_id'     => (int)$d->producto_id,
+                    'producto_text'   => trim(($d->codigo ?? '') . ' — ' . $d->descripcion),
+                    'cantidad'        => 0,
+                    'precio_unitario' => (float)$d->precio_unitario,
+                    'lotes'           => [],
+                    'agotado'         => true,
+                ];
                 continue;
             }
 
@@ -2873,6 +3050,7 @@ class ConsignacionesController extends BaseController
                 'cantidad'        => $cantidadPendiente,
                 'precio_unitario' => (float)$d->precio_unitario,
                 'lotes'           => $lotes,
+                'agotado'         => false,
             ];
         }
 

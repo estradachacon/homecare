@@ -998,6 +998,14 @@ $(function () {
                     continue;
                 }
 
+                if (res.productos.every(p => p.agotado)) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin pendiente',
+                        text: `${neText}: todos sus productos ya están incluidos en otra Nota de Pedido activa. Se muestran abajo deshabilitados para que se vea en qué quedaron.`,
+                    });
+                }
+
                 // Pre-llenar cliente solo desde la primera NE si aún no hay uno
                 if (res.cliente && !$('#selectCliente').val()) {
                     const opt = new Option(res.cliente.text, res.cliente.id, true, true);
@@ -1028,7 +1036,10 @@ $(function () {
 
         const first = nesCargadas[0];
         document.getElementById('hiddenConsignacionId').value  = first ? first.id : '';
-        document.getElementById('hiddenConsignacionIds').value = JSON.stringify(nesCargadas.map(n => n.id));
+        // Como string: todo el resto del sistema guarda este JSON como un
+        // arreglo de strings y lo busca con JSON_CONTAINS(..., JSON_QUOTE(?))
+        // — un arreglo de números aquí nunca matchearía con eso.
+        document.getElementById('hiddenConsignacionIds').value = JSON.stringify(nesCargadas.map(n => String(n.id)));
 
         // La selección visible del modal queda igual a lo que realmente se aplicó
         // (si alguna falló o no tenía pendiente, ya no queda marcada la próxima vez).
@@ -1077,6 +1088,17 @@ $(function () {
         filaEl.querySelector('.input-cantidad').value = p.cantidad;
         filaEl.querySelector('.input-precio').value   = parseFloat(p.precio_unitario).toFixed(2);
         filaEl.querySelector('.input-precio-minimo').value = '0';
+
+        // Agotado: ya se pidió todo lo disponible de este producto en esta NE
+        // en otra Nota de Pedido activa. Se muestra muteado (deshabilitado,
+        // no se envía al guardar) en vez de ocultarlo, para que se vea por
+        // qué no se puede volver a pedir.
+        if (p.agotado) {
+            filaEl.classList.add('text-muted', 'bg-light');
+            filaEl.querySelectorAll('select, input').forEach(el => el.disabled = true);
+            chip.insertAdjacentHTML('beforeend',
+                ' <span class="badge badge-secondary ml-1"><i class="fa-solid fa-lock fa-xs mr-1"></i>Ya en otra NP</span>');
+        }
 
         // Lotes de la NE
         if (p.lotes && p.lotes.length > 0) {

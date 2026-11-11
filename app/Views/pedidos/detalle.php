@@ -110,6 +110,11 @@ if (!function_exists('_nlUnidades')) {
                             <?= $pedido->estado === 'facturada' ? 'Cambiar Factura' : 'Asociar Factura' ?>
                         </button>
                     <?php endif; ?>
+                    <?php if ($pedido->estado === 'facturada' && (!empty($pedido->consignacion_id) || !empty($pedido->consignacion_ids)) && tienePermiso('editar_pedidos')): ?>
+                        <a href="<?= base_url('pedidos/' . $pedido->id . '/editar-vinculacion') ?>" class="btn btn-outline-warning btn-sm mr-1" title="Corregir a qué nota(s) de envío pertenece esta NP">
+                            <i class="fa-solid fa-link-slash"></i> Corregir vinculación NE
+                        </a>
+                    <?php endif; ?>
                     <a href="<?= base_url('pedidos/' . $pedido->id . '/imprimir') ?>" target="_blank" class="btn btn-outline-secondary btn-sm mr-1" title="Versión imprimible (doble copia)">
                         <i class="fa-solid fa-print"></i> Imprimir
                     </a>

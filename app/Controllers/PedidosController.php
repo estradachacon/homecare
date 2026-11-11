@@ -169,6 +169,15 @@ class PedidosController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Revisa los precios:<br>' . implode('<br>', $erroresPrecio));
         }
 
+        $errorDisponibilidad = $this->_validarDisponibilidadNE(
+            $productos,
+            (int)$this->request->getPost('consignacion_id') ?: null,
+            $this->request->getPost('consignacion_ids')
+        );
+        if ($errorDisponibilidad) {
+            return redirect()->back()->withInput()->with('error', $errorDisponibilidad);
+        }
+
         // Calcular totales
         $subtotal = 0;
         foreach ($productos as $p) {
@@ -207,7 +216,7 @@ class PedidosController extends BaseController
             'cliente_id'      => $clienteId,
             'vendedor_id'     => $vendedorIdFinal,
             'consignacion_id'  => (int)$this->request->getPost('consignacion_id') ?: null,
-            'consignacion_ids' => $this->request->getPost('consignacion_ids') ?: null,
+            'consignacion_ids' => $this->_normalizarConsignacionIdsJson($this->request->getPost('consignacion_ids')),
             'doctor_id'        => (int)$this->request->getPost('doctor_id')       ?: null,
             'paciente_id'      => (int)$this->request->getPost('paciente_id')     ?: null,
             'tipo_documento'  => $tipoDoc,
@@ -349,53 +358,27 @@ class PedidosController extends BaseController
             }
         }
 
+        // Qué lotes (y de qué NE) le corresponden realmente a esta NP por
+        // producto. No se puede repartir a ciegas entre las NE vinculadas en
+        // orden de número: si esta NP comparte producto con otra NP más
+        // antigua sobre las mismas NE, hay que respetar lo que esa otra NP
+        // ya consumió (ver ConsignacionesController::_consumoLotesNPPorProducto,
+        // la misma simulación que ya usa el cierre y los reportes).
         $lotesPorProducto = [];
         if (!empty($neIds)) {
-            $db     = \Config\Database::connect();
-            $inList = implode(',', $neIds);
-            $filas  = $db->query("
-                SELECT
-                    p.codigo               AS producto_codigo,
-                    ch.numero              AS ne_numero,
-                    cl.numero_lote,
-                    cl.fecha_vencimiento,
-                    SUM(cdl.cantidad)      AS cantidad
-                FROM consignaciones_detalles cd
-                INNER JOIN consignaciones_head ch          ON ch.id = cd.consignacion_id
-                INNER JOIN productos p                    ON p.id  = cd.producto_id
-                INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
-                INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
-                WHERE cd.consignacion_id IN ({$inList})
-                GROUP BY p.codigo, ch.numero, cdl.lote_id
-                ORDER BY ch.numero, cl.numero_lote
-            ")->getResultObject();
+            $consignacionesCtrl = new ConsignacionesController();
 
-            foreach ($filas as $f) {
-                $lotesPorProducto[$f->producto_codigo][] = $f;
-            }
-
-            // La NE pudo haber traído más unidades de un producto de las que
-            // finalmente se incluyeron en esta NP (p.ej. se mandaron 2 pero
-            // solo se está pidiendo facturar 1). Se recorta la lista de
-            // lotes mostrada para que nunca sume más que lo que este pedido
-            // realmente solicita de cada producto, restando en el mismo
-            // orden en que se listan los lotes (FIFO).
-            $cantidadPorCodigo = [];
             foreach ($detalles as $d) {
-                $cantidadPorCodigo[$d->producto_codigo] = ($cantidadPorCodigo[$d->producto_codigo] ?? 0) + (float)$d->cantidad;
-            }
-
-            foreach ($lotesPorProducto as $codigo => $lotes) {
-                $restante       = $cantidadPorCodigo[$codigo] ?? 0;
-                $lotesAjustados = [];
-                foreach ($lotes as $l) {
-                    if ($restante <= 0.0001) break;
-                    $cantidadLote = min((float)$l->cantidad, $restante);
-                    $restante    -= $cantidadLote;
-                    $l->cantidad  = $cantidadLote;
-                    $lotesAjustados[] = $l;
+                $consumo = $consignacionesCtrl->_consumoLotesNPPorProducto((int)$id, (int)$d->producto_id, $neIds);
+                foreach ($consumo as $c) {
+                    $lotesPorProducto[$d->producto_codigo][] = (object)[
+                        'producto_codigo'   => $d->producto_codigo,
+                        'ne_numero'         => $c['ne_numero'],
+                        'numero_lote'       => $c['numero_lote'],
+                        'fecha_vencimiento' => $c['fecha_vencimiento'],
+                        'cantidad'          => $c['cantidad'],
+                    ];
                 }
-                $lotesPorProducto[$codigo] = $lotesAjustados;
             }
         }
 
@@ -530,6 +513,20 @@ class PedidosController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Revisa los precios:<br>' . implode('<br>', $erroresPrecio));
         }
 
+        // La vinculación a NE no se edita aquí (ver guardar()): se valida
+        // contra la que el pedido ya tenía, excluyendo sus propias líneas
+        // actuales del cómputo de "ya comprometido" para no bloquearlo
+        // contra sí mismo.
+        $errorDisponibilidad = $this->_validarDisponibilidadNE(
+            $productos,
+            $pedido->consignacion_id,
+            $pedido->consignacion_ids,
+            $id
+        );
+        if ($errorDisponibilidad) {
+            return redirect()->back()->withInput()->with('error', $errorDisponibilidad);
+        }
+
         $subtotal = 0;
         foreach ($productos as $p) {
             $subtotal += (float)($p['subtotal'] ?? 0);
@@ -604,6 +601,245 @@ class PedidosController extends BaseController
         $this->log($id, 'Nota editada');
 
         return redirect()->to('/pedidos/' . $id)->with('success', 'Nota de pedido actualizada correctamente.');
+    }
+
+    // ──────────────────────────────────────────────
+    //  CORREGIR VINCULACIÓN CON NOTA(S) DE ENVÍO
+    //  (NP ya facturada — herramienta de reparación para
+    //  cuando se vinculó mal contra la(s) NE equivocada(s))
+    // ──────────────────────────────────────────────
+
+    public function editarVinculacionNE(int $id)
+    {
+        $chk = requerirPermiso('editar_pedidos');
+        if ($chk !== true) return $chk;
+
+        $headModel = new PedidoHeadModel();
+        $detModel  = new PedidoDetalleModel();
+
+        $pedido = $headModel->getConRelaciones($id);
+        if (!$pedido) {
+            return redirect()->to('/pedidos')->with('error', 'Nota no encontrada.');
+        }
+
+        if ($pedido->estado !== 'facturada' || empty($pedido->factura_id)) {
+            return redirect()->to('/pedidos/' . $id)->with('error', 'Esta herramienta es solo para notas de pedido ya facturadas.');
+        }
+
+        $neIdsActuales = $this->_neIdsDePedido($pedido);
+        if (empty($neIdsActuales)) {
+            return redirect()->to('/pedidos/' . $id)->with('error', 'Esta nota no está vinculada a ninguna nota de envío.');
+        }
+
+        $detalles = $detModel->getPorPedido($id);
+
+        $db          = \Config\Database::connect();
+        $nesActuales = $db->table('consignaciones_head ch')
+            ->select('ch.id, ch.numero, ch.estado, s.seller AS vendedor_nombre')
+            ->join('sellers s', 's.id = ch.vendedor_id', 'left')
+            ->whereIn('ch.id', $neIdsActuales)
+            ->get()->getResult();
+
+        return view('pedidos/editar_vinculacion', [
+            'pedido'      => $pedido,
+            'detalles'    => $detalles,
+            'nesActuales' => $nesActuales,
+        ]);
+    }
+
+    public function actualizarVinculacionNE(int $id)
+    {
+        $chk = requerirPermiso('editar_pedidos');
+        if ($chk !== true) return $chk;
+
+        $db      = \Config\Database::connect();
+        $session = session();
+
+        $headModel = new PedidoHeadModel();
+        $detModel  = new PedidoDetalleModel();
+
+        $pedido = $headModel->find($id);
+        if (!$pedido || $pedido->estado !== 'facturada' || empty($pedido->factura_id)) {
+            return redirect()->to('/pedidos/' . $id)->with('error', 'Esta herramienta es solo para notas de pedido ya facturadas.');
+        }
+
+        $neIdsViejos = $this->_neIdsDePedido($pedido);
+
+        $consignacionIdPost  = (int)$this->request->getPost('consignacion_id') ?: null;
+        $consignacionIdsPost = $this->_normalizarConsignacionIdsJson($this->request->getPost('consignacion_ids'));
+
+        $neIdsNuevos = [];
+        if ($consignacionIdPost) $neIdsNuevos[] = $consignacionIdPost;
+        if ($consignacionIdsPost) {
+            $decoded = json_decode($consignacionIdsPost, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $nid) {
+                    $nid = (int)$nid;
+                    if ($nid && !in_array($nid, $neIdsNuevos, true)) $neIdsNuevos[] = $nid;
+                }
+            }
+        }
+
+        if (empty($neIdsNuevos)) {
+            return redirect()->back()->with('error', 'Debe quedar al menos una nota de envío vinculada.');
+        }
+
+        // Los productos llegan reconstruidos desde las NE seleccionadas (misma
+        // lógica que al crear una NP), no como ajuste de las líneas viejas.
+        $productosPost = $this->request->getPost('productos') ?? [];
+
+        $productosParaValidar = [];
+        foreach ($productosPost as $p) {
+            if (empty($p['producto_id']) || (float)($p['cantidad'] ?? 0) <= 0) continue;
+            $productosParaValidar[] = ['producto_id' => (int)$p['producto_id'], 'cantidad' => (float)$p['cantidad']];
+        }
+
+        if (empty($productosParaValidar)) {
+            return redirect()->back()->withInput()->with('error', 'Debe incluir al menos un producto.');
+        }
+
+        $errorDisponibilidad = $this->_validarDisponibilidadNE($productosParaValidar, $consignacionIdPost, $consignacionIdsPost, $id);
+        if ($errorDisponibilidad) {
+            return redirect()->back()->withInput()->with('error', $errorDisponibilidad);
+        }
+
+        // NE que hay que reabrir: cualquiera que estuviera vinculada antes o
+        // quede vinculada ahora (la vinculación cambió, así que su cierre ya
+        // no refleja la realidad) y que esté actualmente cerrada.
+        $neIdsAfectados = array_unique(array_merge($neIdsViejos, $neIdsNuevos));
+        $nesParaReabrir = $db->table('consignaciones_head')
+            ->select('id, numero')
+            ->whereIn('id', $neIdsAfectados)
+            ->where('estado', 'cerrada')
+            ->get()->getResult();
+
+        $db->transStart();
+
+        // Se reemplazan por completo las líneas de productos: se borran las
+        // viejas y se insertan las reconstruidas desde las NE seleccionadas.
+        $db->table('pedidos_detalles')->where('pedido_id', $id)->delete();
+
+        $subtotal = 0.0;
+        foreach ($productosPost as $p) {
+            if (empty($p['producto_id']) || (float)($p['cantidad'] ?? 0) <= 0) continue;
+            $cant            = (float)$p['cantidad'];
+            $precio          = (float)($p['precio_unitario'] ?? 0);
+            $sub             = round($cant * $precio, 2);
+            $consignacionLinea = (int)($p['consignacion_id'] ?? 0) ?: null;
+            $detModel->insert([
+                'pedido_id'       => $id,
+                'producto_id'     => (int)$p['producto_id'],
+                // Fijado explícitamente desde esta herramienta: de qué NE
+                // sale esta línea en particular, sin dejarlo al cálculo FIFO.
+                'consignacion_id' => $consignacionLinea,
+                'cantidad'        => $cant,
+                'precio_unitario' => $precio,
+                'precio_minimo'   => 0,
+                'subtotal'        => $sub,
+            ]);
+            $subtotal += $sub;
+        }
+
+        $iva   = ($pedido->tipo_documento === 'credito_fiscal') ? round($subtotal * 0.13, 2) : 0;
+        $total = round($subtotal + $iva, 2);
+
+        $headModel->update($id, [
+            'consignacion_id'  => $consignacionIdPost,
+            'consignacion_ids' => $consignacionIdsPost,
+            'subtotal'         => $subtotal,
+            'iva'              => $iva,
+            'total'            => $total,
+        ]);
+
+        $userId   = $session->get('id');
+        $userName = $session->get('user_name') ?? ('Usuario #' . $userId);
+
+        foreach ($nesParaReabrir as $ne) {
+            $db->table('consignaciones_head')->where('id', $ne->id)->update(['estado' => 'abierta']);
+
+            $motivo = 'Se corrigió la vinculación de la Nota de Pedido ' . $pedido->numero . ' con esta nota de envío.';
+
+            (new \App\Models\ConsignacionLogModel())->insert([
+                'consignacion_id' => (int)$ne->id,
+                'user_id'         => $userId,
+                'user_nombre'     => $userName,
+                'accion'          => 'Nota reabierta automáticamente',
+                'detalle'         => $motivo,
+                'created_at'      => date('Y-m-d H:i:s'),
+            ]);
+
+            registrar_bitacora('Reabrir consignación', 'Consignaciones', 'La nota ' . $ne->numero . ' se reabrió automáticamente: ' . $motivo, $userId);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()->with('error', 'Error al corregir la vinculación.');
+        }
+
+        registrar_bitacora(
+            'Corregir vinculación NE de nota de pedido',
+            'Pedidos',
+            'Se corrigió la vinculación con nota(s) de envío de la nota ' . $pedido->numero . '.',
+            $userId
+        );
+        $this->log($id, 'Vinculación con NE corregida', implode(', ', array_map(fn($n) => $n->numero, $nesParaReabrir)) ?: null);
+
+        $msg = 'Vinculación corregida correctamente.';
+        if (!empty($nesParaReabrir)) {
+            $numeros = implode(', ', array_map(fn($n) => $n->numero, $nesParaReabrir));
+            $msg .= ' Se reabrió la nota ' . (count($nesParaReabrir) > 1 ? 's de envío ' : 'de envío ') . $numeros . ' para que se pueda(n) volver a cerrar.';
+        }
+
+        return redirect()->to('/pedidos/' . $id)->with('success', $msg);
+    }
+
+    /**
+     * Normaliza el JSON de consignacion_ids a un arreglo de STRINGS antes de
+     * guardarlo. Todo el resto del sistema lo busca con
+     * JSON_CONTAINS(consignacion_ids, JSON_QUOTE(?)), que solo matchea
+     * contra elementos guardados como string — un arreglo de números (p.
+     * ej. lo que produce un JSON.stringify ingenuo de IDs numéricos en JS)
+     * nunca matchearía, dejando esa NP invisible para esas búsquedas.
+     */
+    private function _normalizarConsignacionIdsJson(?string $json): ?string
+    {
+        if (!$json) {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return null;
+        }
+
+        $ids = [];
+        foreach ($decoded as $nid) {
+            $nid = (int)$nid;
+            if ($nid && !in_array((string)$nid, $ids, true)) {
+                $ids[] = (string)$nid;
+            }
+        }
+
+        return !empty($ids) ? json_encode($ids) : null;
+    }
+
+    private function _neIdsDePedido(object $pedido): array
+    {
+        $neIds = [];
+        if (!empty($pedido->consignacion_id)) {
+            $neIds[] = (int)$pedido->consignacion_id;
+        }
+        if (!empty($pedido->consignacion_ids)) {
+            $decoded = json_decode($pedido->consignacion_ids, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $nid) {
+                    $nid = (int)$nid;
+                    if ($nid && !in_array($nid, $neIds, true)) $neIds[] = $nid;
+                }
+            }
+        }
+        return $neIds;
     }
 
     // ──────────────────────────────────────────────
@@ -899,5 +1135,101 @@ class PedidosController extends BaseController
             'detalle'     => $detalle,
             'created_at'  => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    // ──────────────────────────────────────────────
+    //  HELPER PRIVADO: no superar la cantidad disponible de la NE
+    // ──────────────────────────────────────────────
+
+    /**
+     * Verifica que lo pedido por producto no supere lo realmente disponible
+     * en la(s) NE vinculada(s) a esta NP, contando lo que ya está
+     * comprometido en OTRAS Notas de Pedido activas (vivas o finalizadas,
+     * ambas restan contra la NE — solo las anuladas no cuentan).
+     * $excluirPedidoId evita que la propia NP (al editarla) se cuente
+     * contra sí misma. Devuelve null si todo cuadra, o un mensaje de error.
+     */
+    private function _validarDisponibilidadNE(array $productos, ?int $consignacionId, ?string $consignacionIdsJson, int $excluirPedidoId = 0): ?string
+    {
+        $neIds = [];
+        if ($consignacionId) $neIds[] = $consignacionId;
+        if ($consignacionIdsJson) {
+            $decoded = json_decode($consignacionIdsJson, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $nid) {
+                    $nid = (int)$nid;
+                    if ($nid && !in_array($nid, $neIds, true)) $neIds[] = $nid;
+                }
+            }
+        }
+
+        if (empty($neIds)) {
+            return null; // NP sin NE vinculada: no aplica esta validación
+        }
+
+        $pedidoPorProducto = [];
+        foreach ($productos as $p) {
+            $pid  = (int)($p['producto_id'] ?? 0);
+            $cant = (float)($p['cantidad'] ?? 0);
+            if (!$pid || $cant <= 0) continue;
+            $pedidoPorProducto[$pid] = ($pedidoPorProducto[$pid] ?? 0.0) + $cant;
+        }
+
+        if (empty($pedidoPorProducto)) {
+            return null;
+        }
+
+        $db = \Config\Database::connect();
+
+        // Capacidad total (suma de las líneas) de estas NE, por producto.
+        $capacidadRows = $db->table('consignaciones_detalles')
+            ->select('producto_id, SUM(cantidad) AS cantidad')
+            ->whereIn('consignacion_id', $neIds)
+            ->whereIn('producto_id', array_keys($pedidoPorProducto))
+            ->groupBy('producto_id')
+            ->get()->getResult();
+
+        $capacidadPorProducto = [];
+        foreach ($capacidadRows as $r) {
+            $capacidadPorProducto[(int)$r->producto_id] = (float)$r->cantidad;
+        }
+
+        // Comprometido por otras NP en cada una de esas NE. La atribución
+        // FIFO que ya hace _comprometidoPorProductoNE() por cada NE evita
+        // contar dos veces la misma unidad entre NE distintas del conjunto.
+        $consignacionesCtrl     = new ConsignacionesController();
+        $comprometidoPorProducto = [];
+        foreach ($neIds as $neId) {
+            $comp = $consignacionesCtrl->_comprometidoPorProductoNE($neId, $excluirPedidoId);
+            foreach ($comp as $pid => $cant) {
+                $comprometidoPorProducto[$pid] = ($comprometidoPorProducto[$pid] ?? 0.0) + $cant;
+            }
+        }
+
+        $nombresProductos = [];
+        $idsNecesarios     = array_keys($pedidoPorProducto);
+        $rows = $db->table('productos')->select('id, descripcion')->whereIn('id', $idsNecesarios)->get()->getResult();
+        foreach ($rows as $r) {
+            $nombresProductos[(int)$r->id] = $r->descripcion;
+        }
+
+        foreach ($pedidoPorProducto as $pid => $cantPedida) {
+            $capacidad = $capacidadPorProducto[$pid] ?? 0.0;
+            if ($capacidad <= 0.0001) {
+                continue; // este producto no viene de las NE vinculadas, no se valida aquí
+            }
+
+            $comprometido = $comprometidoPorProducto[$pid] ?? 0.0;
+            $disponible   = round($capacidad - $comprometido, 4);
+
+            if ($cantPedida - $disponible > 0.0001) {
+                $nombre = $nombresProductos[$pid] ?? "Producto #{$pid}";
+                return 'El producto ' . $nombre . ' solo tiene ' . number_format(max(0, $disponible), 2) .
+                    ' unidad(es) disponible(s) en la(s) nota(s) de envío vinculada(s) — ya hay ' .
+                    number_format($comprometido, 2) . ' comprometida(s) en otra Nota de Pedido activa.';
+            }
+        }
+
+        return null;
     }
 }

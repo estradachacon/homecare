@@ -12,7 +12,7 @@ class PedidoDetalleModel extends Model
     protected $useTimestamps = true;
 
     protected $allowedFields = [
-        'pedido_id', 'producto_id',
+        'pedido_id', 'producto_id', 'consignacion_id',
         'cantidad', 'precio_unitario', 'precio_minimo', 'subtotal',
     ];
 
