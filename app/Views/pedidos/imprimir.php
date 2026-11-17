@@ -544,7 +544,7 @@ $copias = ['Original – Cliente', 'Copia – Archivo'];
                 </thead>
                 <tbody>
                     <?php foreach ($detalles as $d):
-                        $lotes = $lotesPorProducto[$d->producto_codigo] ?? [];
+                        $lotes = $lotesPorProducto[$d->id] ?? [];
                     ?>
                     <tr>
                         <td><?= esc($d->producto_codigo) ?></td>

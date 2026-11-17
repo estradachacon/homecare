@@ -293,27 +293,35 @@ class PedidosController extends BaseController
             }
         }
 
+        // Qué lotes (y de qué NE) le corresponden realmente a esta NP por
+        // producto — la consulta vieja traía TODOS los lotes de TODAS las NE
+        // vinculadas sin filtrar, mostrando de más cuando esas NE comparten
+        // producto con otras NP (ver ConsignacionesController::
+        // _consumoLotesNPPorProducto, la misma simulación que ya usa la
+        // versión imprimible, el cierre y los reportes).
         $lotesNE = [];
         if (!empty($neIds)) {
-            $db      = \Config\Database::connect();
-            $inList  = implode(',', $neIds);
-            $lotesNE = $db->query("
-                SELECT
-                    ch.numero              AS ne_numero,
-                    p.codigo               AS producto_codigo,
-                    p.descripcion          AS producto_nombre,
-                    cl.numero_lote,
-                    cl.fecha_vencimiento,
-                    SUM(cdl.cantidad)      AS cantidad
-                FROM consignaciones_detalles cd
-                JOIN consignaciones_head ch ON ch.id = cd.consignacion_id
-                JOIN productos p            ON p.id  = cd.producto_id
-                INNER JOIN consignacion_detalle_lotes cdl ON cdl.detalle_id = cd.id
-                INNER JOIN consignacion_lotes cl          ON cl.id = cdl.lote_id
-                WHERE cd.consignacion_id IN ({$inList})
-                GROUP BY cd.id, cdl.lote_id
-                ORDER BY p.descripcion, cl.numero_lote
-            ")->getResultObject();
+            $consignacionesCtrl  = new ConsignacionesController();
+            $productosProcesados = [];
+
+            foreach ($detalles as $d) {
+                if (isset($productosProcesados[(int)$d->producto_id])) {
+                    continue;
+                }
+                $productosProcesados[(int)$d->producto_id] = true;
+
+                $consumo = $consignacionesCtrl->_consumoLotesNPPorProducto((int)$id, (int)$d->producto_id, $neIds);
+                foreach ($consumo as $c) {
+                    $lotesNE[] = (object)[
+                        'ne_numero'         => $c['ne_numero'],
+                        'producto_codigo'   => $d->producto_codigo,
+                        'producto_nombre'   => $d->producto_nombre,
+                        'numero_lote'       => $c['numero_lote'],
+                        'fecha_vencimiento' => $c['fecha_vencimiento'],
+                        'cantidad'          => $c['cantidad'],
+                    ];
+                }
+            }
         }
 
         return view('pedidos/detalle', [
@@ -358,26 +366,61 @@ class PedidosController extends BaseController
             }
         }
 
-        // Qué lotes (y de qué NE) le corresponden realmente a esta NP por
-        // producto. No se puede repartir a ciegas entre las NE vinculadas en
+        // Qué lotes (y de qué NE) le corresponden realmente a cada LÍNEA de
+        // esta NP. No se puede repartir a ciegas entre las NE vinculadas en
         // orden de número: si esta NP comparte producto con otra NP más
         // antigua sobre las mismas NE, hay que respetar lo que esa otra NP
         // ya consumió (ver ConsignacionesController::_consumoLotesNPPorProducto,
         // la misma simulación que ya usa el cierre y los reportes).
-        $lotesPorProducto = [];
+        //
+        // Se indexa por el id de la línea (detalle), no por código de
+        // producto: si el mismo producto aparece en dos líneas distintas
+        // (p.ej. una mitad importada de una NE y la otra de otra), indexar
+        // por código hacía que ambas líneas mostraran la suma combinada de
+        // las dos en vez de solo la que le toca a cada una.
+        $lotesPorProducto    = [];
+        $productosProcesados = [];
         if (!empty($neIds)) {
             $consignacionesCtrl = new ConsignacionesController();
 
             foreach ($detalles as $d) {
-                $consumo = $consignacionesCtrl->_consumoLotesNPPorProducto((int)$id, (int)$d->producto_id, $neIds);
-                foreach ($consumo as $c) {
-                    $lotesPorProducto[$d->producto_codigo][] = (object)[
-                        'producto_codigo'   => $d->producto_codigo,
-                        'ne_numero'         => $c['ne_numero'],
-                        'numero_lote'       => $c['numero_lote'],
-                        'fecha_vencimiento' => $c['fecha_vencimiento'],
-                        'cantidad'          => $c['cantidad'],
-                    ];
+                $pid = (int)$d->producto_id;
+                if (isset($productosProcesados[$pid])) {
+                    continue;
+                }
+                $productosProcesados[$pid] = true;
+
+                // La simulación ya suma TODAS las líneas de este producto en
+                // esta NP; aquí se reparte ese resultado combinado, en orden,
+                // entre cada línea individual que compartan ese producto.
+                $consumo      = $consignacionesCtrl->_consumoLotesNPPorProducto((int)$id, $pid, $neIds);
+                $lineasProd   = array_values(array_filter($detalles, fn($x) => (int)$x->producto_id === $pid));
+                $chunkIdx     = 0;
+                $chunkRestante = $consumo[0]['cantidad'] ?? 0.0;
+
+                foreach ($lineasProd as $linea) {
+                    $restanteLinea = (float)$linea->cantidad;
+
+                    while ($restanteLinea > 0.0001 && $chunkIdx < count($consumo)) {
+                        if ($chunkRestante <= 0.0001) {
+                            $chunkIdx++;
+                            $chunkRestante = $consumo[$chunkIdx]['cantidad'] ?? 0.0;
+                            continue;
+                        }
+
+                        $c       = $consumo[$chunkIdx];
+                        $tomado  = min($chunkRestante, $restanteLinea);
+                        $restanteLinea -= $tomado;
+                        $chunkRestante -= $tomado;
+
+                        $lotesPorProducto[$linea->id][] = (object)[
+                            'producto_codigo'   => $linea->producto_codigo,
+                            'ne_numero'         => $c['ne_numero'],
+                            'numero_lote'       => $c['numero_lote'],
+                            'fecha_vencimiento' => $c['fecha_vencimiento'],
+                            'cantidad'          => $tomado,
+                        ];
+                    }
                 }
             }
         }
