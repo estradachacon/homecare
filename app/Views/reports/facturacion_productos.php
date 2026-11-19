@@ -170,7 +170,15 @@
             <button class="btn btn-sm btn-outline-secondary mr-1" onclick="window.print()">
               <i class="fa-solid fa-print"></i> Imprimir
             </button>
-            <a href="<?= current_url() . '?' . http_build_query(array_merge($_GET, ['exportar' => 'excel'])) ?>"
+            <a href="<?= current_url() . '?' . http_build_query([
+              'fecha_desde'  => $fechaDesde,
+              'fecha_hasta'  => $fechaHasta,
+              'vendedor_id'  => $vendedorId,
+              'comision'     => number_format($comision, 1),
+              'estado_linea' => $estadoLinea,
+              'resumir'      => $resumir ? '1' : '0',
+              'exportar'     => 'excel'
+            ]) ?>"
               class="btn btn-sm btn-outline-success">
               <i class="fa-solid fa-file-excel"></i> Excel
             </a>
