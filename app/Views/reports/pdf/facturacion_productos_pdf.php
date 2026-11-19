@@ -217,12 +217,6 @@ $labelEstado = match ($estadoLinea ?? '') {
             </tfoot>
         </table>
 
-        <?php if (!$resumir): ?>
-            <div class="leyenda">
-                Montos calculados sobre cantidad neta (restando lo acreditado por nota de crédito). Las líneas anuladas no suman.
-            </div>
-        <?php endif; ?>
-
     <?php endif; ?>
 
 </body>

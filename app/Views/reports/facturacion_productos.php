@@ -167,9 +167,6 @@
                 <i class="fa-solid fa-compress"></i> Resumir
               </a>
             </div>
-            <button class="btn btn-sm btn-outline-secondary mr-1" onclick="window.print()">
-              <i class="fa-solid fa-print"></i> Imprimir
-            </button>
             <a href="<?= current_url() . '?' . http_build_query([
               'fecha_desde'  => $fechaDesde,
               'fecha_hasta'  => $fechaHasta,
@@ -179,7 +176,7 @@
               'resumir'      => $resumir ? '1' : '0',
               'exportar'     => 'excel'
             ]) ?>"
-              class="btn btn-sm btn-outline-success">
+              class="btn btn-sm btn-outline-success mr-1">
               <i class="fa-solid fa-file-excel"></i> Excel
             </a>
             <a href="<?= base_url('reports/facturacion-productos-pdf?' . http_build_query([
