@@ -1,98 +1,59 @@
+<?php
+$labelEstado = match ($estadoLinea ?? '') {
+    'vigente' => 'Solo vigentes',
+    'anulada' => 'Solo anuladas',
+    'con_nc'  => 'Solo con nota de crédito',
+    default   => 'Todos',
+};
+?>
 <!DOCTYPE html>
-<html lang="es">
+<html>
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Facturación por Producto</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 10pt;
-            line-height: 1.4;
+            font-family: DejaVu Sans;
+            font-size: 8px;
             color: #333;
+            margin: 5px;
         }
 
-        .header {
-            background: linear-gradient(135deg, #1f4e79 0%, #2d5a96 100%);
-            color: white;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 18pt;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            font-size: 9pt;
-            opacity: 0.9;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: #f5f5f5;
-            border-left: 4px solid #1f4e79;
-        }
-
-        .info-col {
-            flex: 1;
-        }
-
-        .info-label {
-            font-weight: bold;
-            font-size: 9pt;
-            color: #666;
+        h3 {
             margin-bottom: 3px;
+            font-size: 10px;
         }
 
-        .info-value {
-            font-size: 10pt;
-            color: #333;
+        .header-info {
+            margin-bottom: 6px;
+            font-size: 8px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
         }
 
-        thead {
-            background: #1f4e79;
-            color: white;
+        th,
+        td {
+            border: 0.4px solid #999;
+            padding: 2px 3px;
+            font-size: <?= $resumir ? '8px' : '7px' ?>;
         }
 
         th {
-            padding: 8px;
-            text-align: left;
-            font-size: 9pt;
+            background: #1f4e79;
+            color: #fff;
             font-weight: bold;
-            border: 1px solid #1f4e79;
         }
 
-        td {
-            padding: 7px;
-            border: 1px solid #ddd;
-            font-size: 9pt;
+        thead {
+            display: table-header-group;
         }
 
-        tbody tr:nth-child(odd) {
-            background: #f9f9f9;
-        }
-
-        tbody tr:hover {
-            background: #f0f5ff;
+        tr {
+            page-break-inside: avoid;
         }
 
         .text-right {
@@ -103,272 +64,167 @@
             text-align: center;
         }
 
-        .amount {
-            font-weight: 500;
-            text-align: right;
-        }
-
-        tfoot {
+        .totales {
             background: #e2efda;
             font-weight: bold;
         }
 
-        tfoot td {
+        .totales td {
             background: #e2efda;
-            border-top: 2px solid #548235;
-            padding: 10px 7px;
-            font-weight: bold;
+            border-top: 1.5px solid #548235;
         }
 
-        .row-anulada {
-            background: #ffe8e8 !important;
-        }
-
-        .row-con-nc {
-            background: #fff8e1 !important;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 8pt;
-            font-weight: bold;
-        }
-
-        .badge-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .badge-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .badge-warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .badge-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .footer {
-            margin-top: 30px;
-            padding-top: 10px;
-            border-top: 2px solid #1f4e79;
-            text-align: center;
-            font-size: 8pt;
-            color: #999;
-        }
-
-        .summary-box {
-            background: #1f4e79;
-            color: white;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-around;
-            font-size: 11pt;
-        }
-
-        .summary-item {
-            text-align: center;
-        }
-
-        .summary-label {
-            font-size: 9pt;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-
-        .summary-value {
-            font-size: 14pt;
-            font-weight: bold;
-        }
-
-        @page {
-            size: A4 landscape;
-            margin: 15mm 10mm 15mm 10mm;
-            @bottom-center {
-                content: "Página " counter(page) " de " counter(pages);
-                font-size: 8pt;
-            }
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
-
-        .legend {
-            margin-top: 10px;
-            padding: 10px;
+        .anulada {
+            color: #888;
             background: #f5f5f5;
-            border-left: 4px solid #1f4e79;
-            font-size: 8pt;
         }
 
-        .legend-item {
-            display: inline-block;
-            margin-right: 20px;
-            padding: 3px 8px;
-            margin-bottom: 5px;
+        .con-nc {
+            background: #fff8e1;
+        }
+
+        .leyenda {
+            margin-top: 6px;
+            font-size: 7px;
+            color: #555;
         }
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>REPORTE FACTURACIÓN POR PRODUCTO</h1>
-        <p><?= date('d/m/Y', strtotime($fechaDesde)) ?> al <?= date('d/m/Y', strtotime($fechaHasta)) ?></p>
+
+    <h3>
+        REPORTE DE FACTURACIÓN POR PRODUCTO - <?= $resumir ? 'RESUMEN' : 'DETALLE' ?>
+        <?= !empty($vendedorNombre) ? ' — ' . esc($vendedorNombre) : '' ?>
+    </h3>
+
+    <div class="header-info">
+        <strong>Desde:</strong> <?= date('d/m/Y', strtotime($fechaDesde)) ?>
+        &nbsp;&nbsp;&nbsp;
+        <strong>Hasta:</strong> <?= date('d/m/Y', strtotime($fechaHasta)) ?>
+        &nbsp;&nbsp;&nbsp;
+        <strong>Estado:</strong> <?= esc($labelEstado) ?>
+        &nbsp;&nbsp;&nbsp;
+        <strong>Comisión:</strong> <?= number_format($comision, 1) ?>%
+        &nbsp;&nbsp;&nbsp;
+        <strong>Generado:</strong> <?= esc($generado_en) ?>
     </div>
 
-    <div class="info-row">
-        <div class="info-col">
-            <div class="info-label">Período</div>
-            <div class="info-value"><?= date('d \d\e F \d\e Y', strtotime($fechaDesde)) ?> - <?= date('d \d\e F \d\e Y', strtotime($fechaHasta)) ?></div>
-        </div>
-        <div class="info-col">
-            <div class="info-label">Comisión Aplicada</div>
-            <div class="info-value"><?= number_format($comision, 1) ?>%</div>
-        </div>
-        <div class="info-col">
-            <div class="info-label">Modo</div>
-            <div class="info-value"><?= $resumir ? 'Resumen de Productos' : 'Detallado' ?></div>
-        </div>
-        <div class="info-col">
-            <div class="info-label">Generado</div>
-            <div class="info-value"><?= date('d/m/Y H:i:s') ?></div>
-        </div>
-    </div>
+    <?php if (empty($lineas)): ?>
 
-    <?php if (!empty($lineas)): ?>
-        <div class="summary-box">
-            <div class="summary-item">
-                <div class="summary-label">Total en Ventas</div>
-                <div class="summary-value">$ <?= number_format($totalPrecio, 2) ?></div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Comisión Total</div>
-                <div class="summary-value">$ <?= number_format($totalComision, 2) ?></div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Líneas Incluidas</div>
-                <div class="summary-value"><?= count($lineas) ?></div>
-            </div>
-        </div>
+        <p>No se encontraron líneas facturadas para los filtros seleccionados.</p>
+
+    <?php else: ?>
 
         <table>
             <thead>
                 <tr>
                     <?php if ($resumir): ?>
-                        <th>Código Producto</th>
-                        <th>Descripción</th>
-                        <th class="text-right">Cantidad Vendida</th>
-                        <th class="text-right">Acreditado NC</th>
-                        <th class="text-right">Cantidad Neta</th>
-                        <th class="text-right">Precio Unit.</th>
-                        <th class="text-right">Monto s/IVA</th>
-                        <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
+                        <th width="12%">Cód. Producto</th>
+                        <th width="38%">Descripción</th>
+                        <th width="10%" class="text-right">Cant. Vendida</th>
+                        <th width="8%" class="text-right">Acred. NC</th>
+                        <th width="8%" class="text-right">Cant. Neta</th>
+                        <th width="8%" class="text-right">Precio Prom.</th>
+                        <th width="8%" class="text-right">Monto s/IVA</th>
+                        <th width="8%" class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
                     <?php else: ?>
-                        <th>Fecha</th>
-                        <th>Doc.</th>
-                        <th>Nº Doc</th>
-                        <th>Cliente</th>
-                        <th>Vendedor</th>
-                        <th>Cód. Producto</th>
-                        <th>Descripción</th>
-                        <th class="text-right">Cantidad</th>
-                        <th class="text-right">NC</th>
-                        <th class="text-right">Monto s/IVA</th>
-                        <th class="text-right">Comisión</th>
-                        <th class="text-center">Estado</th>
+                        <th width="5%">Fecha</th>
+                        <th width="3%">Doc</th>
+                        <th width="4%">Nº Doc</th>
+                        <th width="14%">Cliente</th>
+                        <th width="9%">Vendedor</th>
+                        <th width="7%">Cód. Prod.</th>
+                        <th width="17%">Descripción</th>
+                        <th width="5%" class="text-right">Cant.</th>
+                        <th width="4%" class="text-right">NC</th>
+                        <th width="6%" class="text-right">Monto s/IVA</th>
+                        <th width="6%" class="text-right">Comisión</th>
+                        <th width="6%">Estado</th>
+                        <th width="4%">Nº NE</th>
+                        <th width="4%">Nº Ped.</th>
                     <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($lineas as $l):
-                    $monto  = $l->cantidad_neta * (float)$l->precio_factura;
-                    $comVal = $monto * ($comision / 100);
 
-                    if (!$resumir) {
+                <?php foreach ($lineas as $l):
+                    $monto  = $l->cantidad_neta * (float) $l->precio_factura;
+                    $comVal = $monto * ($comision / 100);
+                ?>
+
+                    <?php if ($resumir): ?>
+
+                        <tr>
+                            <td><?= esc($l->producto_codigo) ?></td>
+                            <td><?= esc($l->producto_descripcion) ?></td>
+                            <td class="text-right"><?= number_format((float) $l->cantidad_facturada, 2) ?></td>
+                            <td class="text-right"><?= (float) $l->cantidad_acreditada_nc > 0 ? number_format((float) $l->cantidad_acreditada_nc, 2) : '' ?></td>
+                            <td class="text-right"><?= number_format((float) $l->cantidad_neta, 2) ?></td>
+                            <td class="text-right">$ <?= number_format((float) $l->precio_factura, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($monto, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($comVal, 2) ?></td>
+                        </tr>
+
+                    <?php else:
                         $rowClass = match ($l->estado_factura) {
-                            'anulada' => 'row-anulada',
-                            'con_nc'  => 'row-con-nc',
+                            'anulada' => 'anulada',
+                            'con_nc'  => 'con-nc',
                             default   => '',
                         };
-                    } else {
-                        $rowClass = '';
-                    }
-                ?>
-                <tr class="<?= $rowClass ?>">
-                    <?php if ($resumir): ?>
-                        <td><strong><?= esc($l->producto_codigo) ?></strong></td>
-                        <td><?= esc($l->producto_descripcion) ?></td>
-                        <td class="text-right"><?= number_format((float)$l->cantidad_facturada, 2) ?></td>
-                        <td class="text-right"><?= (float)$l->cantidad_acreditada_nc > 0 ? number_format((float)$l->cantidad_acreditada_nc, 2) : '—' ?></td>
-                        <td class="text-right"><?= number_format((float)$l->cantidad_neta, 2) ?></td>
-                        <td class="text-right">$ <?= number_format((float)$l->precio_factura, 2) ?></td>
-                        <td class="amount">$ <?= number_format($monto, 2) ?></td>
-                        <td class="amount">$ <?= number_format($comVal, 2) ?></td>
-                    <?php else: ?>
-                        <td><?= date('d/m/Y', strtotime($l->fecha_emision)) ?></td>
-                        <td class="text-center"><span class="badge badge-info"><?= strtoupper(substr($l->numero_control, -6)) ?></span></td>
-                        <td><?= esc(substr($l->numero_control, -6)) ?></td>
-                        <td><?= esc($l->cliente_nombre ?? '—') ?></td>
-                        <td><?= esc($l->vendedor_nombre ?? '—') ?></td>
-                        <td><strong><?= esc($l->producto_codigo) ?></strong></td>
-                        <td><?= esc($l->producto_descripcion) ?></td>
-                        <td class="text-right"><?= number_format((float)$l->cantidad_facturada, 2) ?></td>
-                        <td class="text-right"><?= (float)$l->cantidad_acreditada_nc > 0 ? number_format((float)$l->cantidad_acreditada_nc, 2) : '—' ?></td>
-                        <td class="amount">$ <?= number_format($monto, 2) ?></td>
-                        <td class="amount">$ <?= number_format($comVal, 2) ?></td>
-                        <td class="text-center">
-                            <?php if ($l->estado_factura === 'anulada'): ?>
-                                <span class="badge badge-danger">Anulada</span>
-                            <?php elseif ($l->estado_factura === 'con_nc'): ?>
-                                <span class="badge badge-warning">Con NC</span>
-                            <?php else: ?>
-                                <span class="badge badge-success">Vigente</span>
-                            <?php endif; ?>
-                        </td>
+                        $estadoTexto = match ($l->estado_factura) {
+                            'anulada' => 'ANULADA',
+                            'con_nc'  => ($l->nc_total ?? false) ? 'Con NC (total)' : 'Con NC (parcial)',
+                            default   => 'Vigente',
+                        };
+                    ?>
+
+                        <tr class="<?= $rowClass ?>">
+                            <td><?= date('d/m/Y', strtotime($l->fecha_emision)) ?></td>
+                            <td><?= esc($siglas[$l->tipo_dte] ?? $l->tipo_dte) ?></td>
+                            <td><?= esc(str_pad(substr($l->numero_control, -6), 6, '0', STR_PAD_LEFT)) ?></td>
+                            <td><?= esc($l->cliente_nombre ?? '') ?></td>
+                            <td><?= esc($l->vendedor_nombre ?? '') ?></td>
+                            <td><?= esc($l->producto_codigo) ?></td>
+                            <td><?= esc($l->producto_descripcion) ?></td>
+                            <td class="text-right"><?= number_format((float) $l->cantidad_facturada, 2) ?></td>
+                            <td class="text-right"><?= (float) $l->cantidad_acreditada_nc > 0 ? number_format((float) $l->cantidad_acreditada_nc, 2) : '' ?></td>
+                            <td class="text-right">$ <?= number_format($monto, 2) ?></td>
+                            <td class="text-right">$ <?= number_format($comVal, 2) ?></td>
+                            <td><?= esc($estadoTexto) ?></td>
+                            <td><?= esc($l->numero_ne ?? '') ?></td>
+                            <td><?= esc($l->numero_pedido ?? '') ?></td>
+                        </tr>
+
                     <?php endif; ?>
-                </tr>
+
                 <?php endforeach; ?>
+
             </tbody>
             <tfoot>
-                <tr>
+                <tr class="totales">
                     <?php if ($resumir): ?>
-                        <td colspan="6" class="text-right">TOTALES:</td>
-                        <td class="amount">$ <?= number_format($totalPrecio, 2) ?></td>
-                        <td class="amount">$ <?= number_format($totalComision, 2) ?></td>
+                        <td colspan="6">TOTAL (<?= count($lineas) ?> productos)</td>
                     <?php else: ?>
-                        <td colspan="9" class="text-right">TOTALES:</td>
-                        <td class="amount">$ <?= number_format($totalPrecio, 2) ?></td>
-                        <td class="amount">$ <?= number_format($totalComision, 2) ?></td>
-                        <td></td>
+                        <td colspan="9">TOTAL (<?= count($lineas) ?> líneas)</td>
+                    <?php endif; ?>
+                    <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
+                    <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
+                    <?php if (!$resumir): ?>
+                        <td colspan="3"></td>
                     <?php endif; ?>
                 </tr>
             </tfoot>
         </table>
 
-        <div class="legend">
-            <strong>Leyenda:</strong>
-            <span class="legend-item"><span class="badge badge-success">Vigente</span> - Factura activa</span>
-            <span class="legend-item"><span class="badge badge-warning">Con NC</span> - Con nota de crédito parcial/total</span>
-            <span class="legend-item"><span class="badge badge-danger">Anulada</span> - Factura anulada</span>
-        </div>
-    <?php else: ?>
-        <div style="text-align: center; padding: 40px; color: #999;">
-            <p style="font-size: 12pt;">No hay datos para mostrar con los filtros seleccionados.</p>
-        </div>
+        <?php if (!$resumir): ?>
+            <div class="leyenda">
+                Montos calculados sobre cantidad neta (restando lo acreditado por nota de crédito). Las líneas anuladas no suman.
+            </div>
+        <?php endif; ?>
+
     <?php endif; ?>
 
-    <div class="footer">
-        <p>Reporte generado el <?= date('d/m/Y H:i:s') ?> • Sistema de Facturación</p>
-    </div>
 </body>
+
 </html>
