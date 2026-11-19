@@ -3168,6 +3168,164 @@ class ReportesController extends Controller
         ]);
     }
 
+    public function facturacionProductosPDF()
+    {
+        $chk = requerirPermiso('ver_reporte_ne_productos');
+        if ($chk !== true) return $chk;
+
+        $db          = \Config\Database::connect();
+        $sellerModel = new SellerModel();
+        $settingModel = new SettingModel();
+
+        $fechaDesde  = $this->request->getGet('fecha_desde')  ?: date('Y-m-01');
+        $fechaHasta  = $this->request->getGet('fecha_hasta')  ?: date('Y-m-d');
+        $vendedorId  = $this->request->getGet('vendedor_id')  ?: '';
+        $comision    = max(0, min(100, (float)($this->request->getGet('comision') ?: 7)));
+        $estadoLinea = $this->request->getGet('estado_linea') ?: '';
+        $resumir     = (bool)$this->request->getGet('resumir');
+
+        // ── Obtener datos igual que en facturacionProductos ──
+        $sql = "
+            SELECT
+                fh.id, fh.numero_control, fh.tipo_dte, fh.fecha_emision, fh.anulada AS factura_anulada,
+                fh.vendedor_id, s.seller AS vendedor_nombre, cl.nombre AS cliente_nombre,
+                fd.id AS detalle_id, fd.producto_id, p.codigo AS producto_codigo, p.descripcion AS producto_descripcion,
+                fd.cantidad AS cantidad_facturada, fd.venta_gravada,
+                COALESCE(nc.cant_acreditada, 0) AS cantidad_acreditada_nc,
+                COALESCE(ch_ccf.numero, ch_np.numero) AS numero_ne,
+                COALESCE(ch_ccf.fecha, ch_np.fecha) AS fecha_ne,
+                COALESCE(ph_ccf.numero, ph_directo.numero) AS numero_pedido
+            FROM factura_detalles fd
+            INNER JOIN facturas_head fh ON fh.id = fd.factura_id
+            LEFT JOIN productos p ON p.id = fd.producto_id
+            LEFT JOIN clientes cl ON cl.id = fh.receptor_id
+            LEFT JOIN sellers s ON s.id = fh.vendedor_id
+            LEFT JOIN consignaciones_detalles cd_ccf ON cd_ccf.id = (
+                SELECT cdx.id FROM consignaciones_cierres_facturas ccf2
+                INNER JOIN consignaciones_cierres_detalles ccdx ON ccdx.id = ccf2.detalle_id
+                INNER JOIN consignaciones_detalles cdx ON cdx.id = ccdx.detalle_id
+                WHERE ccf2.factura_id = fh.id AND cdx.producto_id = fd.producto_id
+                ORDER BY ccf2.id DESC LIMIT 1
+            )
+            LEFT JOIN consignaciones_head ch_ccf ON ch_ccf.id = cd_ccf.consignacion_id
+            LEFT JOIN pedidos_head ph_ccf ON ph_ccf.id = (
+                SELECT ph2.id FROM pedidos_head ph2
+                WHERE ph2.anulada = 0
+                  AND (ph2.consignacion_id = ch_ccf.id OR (ph2.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph2.consignacion_ids, JSON_QUOTE(CAST(ch_ccf.id AS CHAR)))))
+                  AND EXISTS (SELECT 1 FROM pedidos_detalles pdx WHERE pdx.pedido_id = ph2.id AND pdx.producto_id = fd.producto_id)
+                ORDER BY ph2.id DESC LIMIT 1
+            )
+            LEFT JOIN pedidos_head ph_directo ON ph_directo.factura_id = fh.id AND ph_directo.anulada = 0
+            LEFT JOIN consignaciones_head ch_np ON ch_np.id = (
+                SELECT ch3.id FROM consignaciones_head ch3
+                INNER JOIN consignaciones_detalles cd3 ON cd3.consignacion_id = ch3.id AND cd3.producto_id = fd.producto_id
+                WHERE ph_directo.id IS NOT NULL AND (ph_directo.consignacion_id = ch3.id OR (ph_directo.consignacion_ids IS NOT NULL AND JSON_CONTAINS(ph_directo.consignacion_ids, JSON_QUOTE(CAST(ch3.id AS CHAR)))))
+                ORDER BY ch3.id DESC LIMIT 1
+            )
+            LEFT JOIN (
+                SELECT fh_nc.codigo_generacion_relacionado, fd_nc.producto_id, SUM(fd_nc.cantidad) AS cant_acreditada
+                FROM facturas_head fh_nc
+                INNER JOIN factura_detalles fd_nc ON fd_nc.factura_id = fh_nc.id
+                WHERE fh_nc.tipo_dte = '05' AND fh_nc.anulada = 0
+                GROUP BY fh_nc.codigo_generacion_relacionado, fd_nc.producto_id
+            ) nc ON nc.codigo_generacion_relacionado = fh.codigo_generacion AND nc.producto_id = fd.producto_id
+            WHERE fh.fecha_emision >= ? AND fh.fecha_emision <= ? AND fh.tipo_dte IN ('01', '03')
+        ";
+        $binds = [$fechaDesde, $fechaHasta];
+
+        if ($vendedorId) {
+            $sql .= ' AND fh.vendedor_id = ?';
+            $binds[] = $vendedorId;
+        }
+
+        $sql .= ' ORDER BY fh.fecha_emision ASC, fh.numero_control ASC, fd.num_item ASC';
+
+        $lineas = $db->query($sql, $binds)->getResult();
+
+        foreach ($lineas as $l) {
+            $l->linea_anulada = (bool)$l->factura_anulada;
+            $cantFact  = (float)$l->cantidad_facturada;
+            $cantNC    = (float)$l->cantidad_acreditada_nc;
+            $cantNeta  = $l->linea_anulada ? 0.0 : max(0.0, $cantFact - $cantNC);
+            $l->cantidad_neta    = $cantNeta;
+            $l->precio_factura   = $cantFact > 0 ? (float)$l->venta_gravada / $cantFact : 0.0;
+
+            if ($l->linea_anulada) {
+                $l->estado_factura = 'anulada';
+            } elseif ($cantNC > 0) {
+                $l->estado_factura = 'con_nc';
+                $l->nc_total       = $cantNC >= $cantFact;
+            } else {
+                $l->estado_factura = 'vigente';
+            }
+        }
+
+        if ($estadoLinea !== '') {
+            $lineas = array_values(array_filter($lineas, fn($l) => $l->estado_factura === $estadoLinea));
+        }
+
+        if ($resumir) {
+            $resumen = [];
+            foreach ($lineas as $l) {
+                $key = $l->producto_codigo . '|' . $l->producto_id;
+                if (!isset($resumen[$key])) {
+                    $resumen[$key] = (object)[
+                        'producto_codigo' => $l->producto_codigo,
+                        'producto_id' => $l->producto_id,
+                        'producto_descripcion' => $l->producto_descripcion,
+                        'cantidad_facturada' => 0.0,
+                        'cantidad_acreditada_nc' => 0.0,
+                        'venta_gravada' => 0.0,
+                        'cantidad_neta' => 0.0,
+                        'precio_factura' => 0.0,
+                        'estado_factura' => 'vigente',
+                        'es_resumen' => true,
+                    ];
+                }
+                $resumen[$key]->cantidad_facturada   += (float)$l->cantidad_facturada;
+                $resumen[$key]->cantidad_acreditada_nc += (float)$l->cantidad_acreditada_nc;
+                $resumen[$key]->venta_gravada        += (float)$l->venta_gravada;
+                $resumen[$key]->cantidad_neta        += (float)$l->cantidad_neta;
+            }
+            foreach ($resumen as $r) {
+                if ($r->cantidad_facturada > 0) {
+                    $r->precio_factura = $r->venta_gravada / $r->cantidad_facturada;
+                }
+            }
+            $lineas = array_values($resumen);
+        }
+
+        $totalPrecio   = 0.0;
+        $totalComision = 0.0;
+        foreach ($lineas as $l) {
+            $monto = $l->cantidad_neta * (float)$l->precio_factura;
+            $totalPrecio   += $monto;
+            $totalComision += $monto * ($comision / 100);
+        }
+
+        $setting = $settingModel->first();
+        $html = view('reports/pdf/facturacion_productos_pdf', [
+            'lineas'        => $lineas,
+            'fechaDesde'    => $fechaDesde,
+            'fechaHasta'    => $fechaHasta,
+            'comision'      => $comision,
+            'totalPrecio'   => $totalPrecio,
+            'totalComision' => $totalComision,
+            'resumir'       => $resumir,
+            'setting'       => $setting,
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return $this->response
+            ->setContentType('application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="facturacion_productos_' . date('Ymd_His') . '.pdf"')
+            ->setBody($dompdf->output());
+    }
+
     private function _exportarFacturacionProductosExcel(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, string $vendedorId = '', bool $resumir = false)
     {
         $spreadsheet = new Spreadsheet();

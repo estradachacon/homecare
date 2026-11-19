@@ -182,6 +182,17 @@
               class="btn btn-sm btn-outline-success">
               <i class="fa-solid fa-file-excel"></i> Excel
             </a>
+            <a href="<?= base_url('reports/facturacion-productos-pdf?' . http_build_query([
+              'fecha_desde'  => $fechaDesde,
+              'fecha_hasta'  => $fechaHasta,
+              'vendedor_id'  => $vendedorId,
+              'comision'     => number_format($comision, 1),
+              'estado_linea' => $estadoLinea,
+              'resumir'      => $resumir ? '1' : '0'
+            ])) ?>"
+              class="btn btn-sm btn-outline-danger" target="_blank">
+              <i class="fa-solid fa-file-pdf"></i> PDF
+            </a>
           <?php endif; ?>
         </div>
       </div>
@@ -287,33 +298,6 @@
           </div>
 
         <?php else: ?>
-
-          <!-- ── INFO BANNER ────────────────────────────────────────── -->
-          <div class="alert alert-light border-left border-primary py-2 mb-3 no-print"
-            style="font-size:0.82rem;border-left-width:4px !important;">
-            <i class="fa-solid fa-circle-info text-primary mr-1"></i>
-            <?php if ($resumir): ?>
-              <strong><?= count($lineas) ?></strong> producto(s) con ventas en el rango.
-              Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong>
-              (sobre cantidad neta, restando lo acreditado por NC).
-              <strong>Vista resumida:</strong> cantidades y montos agregados por producto.
-            <?php else: ?>
-              <strong><?= count($lineas) ?></strong> línea(s) de producto facturadas en el rango.
-              Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong> (sobre cantidad neta, restando lo acreditado por NC)
-              <?php if ($estadoLinea !== ''): ?>
-                &nbsp;|&nbsp; Filtro:
-                <strong>
-                  <?= ['vigente' => 'Solo vigentes', 'anulada' => 'Solo anuladas', 'con_nc' => 'Solo con nota de crédito'][$estadoLinea] ?? '' ?>
-                </strong>
-              <?php endif; ?>
-              &nbsp;|&nbsp;
-              <span class="badge badge-success">Verde</span> = vigente
-              &nbsp;
-              <span class="badge badge-danger">Rojo</span> = anulada
-              &nbsp;
-              <span class="badge badge-warning text-dark">Amarillo</span> = con nota de crédito
-            <?php endif; ?>
-          </div>
 
           <div class="table-responsive">
             <table class="table table-bordered table-sm fp-table" style="font-size:0.79rem;">
