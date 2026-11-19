@@ -437,4 +437,33 @@
   </div>
 </div>
 
+<script>
+  // Listener para buscar automáticamente al cambiar fecha_hasta, vendedor_id o estado_linea
+  document.addEventListener('DOMContentLoaded', function() {
+    const fechaHastaInput = document.querySelector('input[name="fecha_hasta"]');
+    const vendedorSelect = document.querySelector('select[name="vendedor_id"]');
+    const estadoLineaSelect = document.querySelector('select[name="estado_linea"]');
+    const form = document.querySelector('form[method="get"]');
+
+    if (!form) return;
+
+    const autoSubmit = () => {
+      form.submit();
+    };
+
+    // Agregar listeners con un pequeño delay para evitar búsquedas múltiples
+    if (fechaHastaInput) {
+      fechaHastaInput.addEventListener('change', autoSubmit);
+    }
+
+    if (vendedorSelect) {
+      vendedorSelect.addEventListener('change', autoSubmit);
+    }
+
+    if (estadoLineaSelect) {
+      estadoLineaSelect.addEventListener('change', autoSubmit);
+    }
+  });
+</script>
+
 <?= $this->endSection() ?>
