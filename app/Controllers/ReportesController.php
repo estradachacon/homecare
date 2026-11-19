@@ -3175,6 +3175,13 @@ class ReportesController extends Controller
 
         $rango = date('d/m/Y', strtotime($fechaDesde)) . ' al ' . date('d/m/Y', strtotime($fechaHasta));
 
+        // ── Crear hoja General con todos los datos consolidados ──
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('General');
+        $subtitulo = 'Reporte Facturación por Producto (GENERAL) — ' . $rango;
+        $this->_escribirHojaFacturacionProductos($sheet, $lineas, $siglas, $comision, $subtitulo, $resumir);
+
+        // ── Crear hojas separadas por vendedor ──
         $grupos = [];
         foreach ($lineas as $l) {
             $nombre = $l->vendedor_nombre ?? 'Sin vendedor';
@@ -3185,7 +3192,7 @@ class ReportesController extends Controller
         foreach ($grupos as $nombreVendedor => $filas) {
             $sheetTitle = $nombreVendedor
                 ? mb_substr(preg_replace('/[\/\\\?\*\:\[\]]/', '', $nombreVendedor), 0, 31)
-                : 'Facturación por Producto';
+                : 'Sin Vendedor';
 
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle($sheetTitle);
