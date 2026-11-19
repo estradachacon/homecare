@@ -66,13 +66,23 @@
   <div class="col-md-12">
     <div class="card">
 
-      <div class="card-header py-2 d-flex justify-content-between no-print">
+      <div class="card-header py-2 d-flex justify-content-between align-items-center no-print">
         <h5 class="mb-0">
           <i class="fa-solid fa-file-invoice-dollar text-primary mr-2"></i>
           Reporte Facturación por Producto
         </h5>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
           <?php if (!empty($lineas)): ?>
+          <div class="btn-group btn-group-sm" role="group">
+            <a href="<?= current_url() . '?' . http_build_query(array_merge($_GET, ['resumir' => '0'])) ?>"
+               class="btn <?= !$resumir ? 'btn-outline-primary active' : 'btn-outline-secondary' ?>">
+              <i class="fa-solid fa-list"></i> Detallado
+            </a>
+            <a href="<?= current_url() . '?' . http_build_query(array_merge($_GET, ['resumir' => '1'])) ?>"
+               class="btn <?= $resumir ? 'btn-outline-primary active' : 'btn-outline-secondary' ?>">
+              <i class="fa-solid fa-compress"></i> Resumir
+            </a>
+          </div>
           <button class="btn btn-sm btn-outline-secondary mr-1" onclick="window.print()">
             <i class="fa-solid fa-print"></i> Imprimir
           </button>
@@ -187,41 +197,59 @@
         <div class="alert alert-light border-left border-primary py-2 mb-3 no-print"
              style="font-size:0.82rem;border-left-width:4px !important;">
           <i class="fa-solid fa-circle-info text-primary mr-1"></i>
-          <strong><?= count($lineas) ?></strong> línea(s) de producto facturadas en el rango.
-          Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong> (sobre cantidad neta, restando lo acreditado por NC)
-          <?php if ($estadoLinea !== ''): ?>
-            &nbsp;|&nbsp; Filtro:
-            <strong>
-              <?= ['vigente' => 'Solo vigentes', 'anulada' => 'Solo anuladas', 'con_nc' => 'Solo con nota de crédito'][$estadoLinea] ?? '' ?>
-            </strong>
+          <?php if ($resumir): ?>
+            <strong><?= count($lineas) ?></strong> producto(s) con ventas en el rango.
+            Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong>
+            (sobre cantidad neta, restando lo acreditado por NC).
+            <strong>Vista resumida:</strong> cantidades y montos agregados por producto.
+          <?php else: ?>
+            <strong><?= count($lineas) ?></strong> línea(s) de producto facturadas en el rango.
+            Comisión aplicada: <strong><?= number_format($comision, 1) ?>%</strong> (sobre cantidad neta, restando lo acreditado por NC)
+            <?php if ($estadoLinea !== ''): ?>
+              &nbsp;|&nbsp; Filtro:
+              <strong>
+                <?= ['vigente' => 'Solo vigentes', 'anulada' => 'Solo anuladas', 'con_nc' => 'Solo con nota de crédito'][$estadoLinea] ?? '' ?>
+              </strong>
+            <?php endif; ?>
+            &nbsp;|&nbsp;
+            <span class="badge badge-success">Verde</span> = vigente
+            &nbsp;
+            <span class="badge badge-danger">Rojo</span> = anulada
+            &nbsp;
+            <span class="badge badge-warning text-dark">Amarillo</span> = con nota de crédito
           <?php endif; ?>
-          &nbsp;|&nbsp;
-          <span class="badge badge-success">Verde</span> = vigente
-          &nbsp;
-          <span class="badge badge-danger">Rojo</span> = anulada
-          &nbsp;
-          <span class="badge badge-warning text-dark">Amarillo</span> = con nota de crédito
         </div>
 
         <div class="table-responsive">
         <table class="table table-bordered table-sm fp-table" style="font-size:0.79rem;">
           <thead class="table-dark">
             <tr>
-              <th>Fecha Factura</th>
-              <th>Doc Emitido</th>
-              <th>Nº Doc</th>
-              <th>Cliente</th>
-              <th>Vendedor</th>
-              <th>Cód. Producto</th>
-              <th>Descripción</th>
-              <th class="text-right">Cantidad</th>
-              <th class="text-right">Acreditado NC</th>
-              <th class="text-right">Monto s/IVA</th>
-              <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
-              <th>Estado</th>
-              <th>Nº NE</th>
-              <th>Fecha NE</th>
-              <th>Nº Pedido</th>
+              <?php if ($resumir): ?>
+                <th>Cód. Producto</th>
+                <th>Descripción</th>
+                <th class="text-right">Cantidad Vendida</th>
+                <th class="text-right">Acreditado NC</th>
+                <th class="text-right">Cantidad Neta</th>
+                <th class="text-right">Precio Unitario</th>
+                <th class="text-right">Monto s/IVA</th>
+                <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
+              <?php else: ?>
+                <th>Fecha Factura</th>
+                <th>Doc Emitido</th>
+                <th>Nº Doc</th>
+                <th>Cliente</th>
+                <th>Vendedor</th>
+                <th>Cód. Producto</th>
+                <th>Descripción</th>
+                <th class="text-right">Cantidad</th>
+                <th class="text-right">Acreditado NC</th>
+                <th class="text-right">Monto s/IVA</th>
+                <th class="text-right">Comisión <?= number_format($comision, 1) ?>%</th>
+                <th>Estado</th>
+                <th>Nº NE</th>
+                <th>Fecha NE</th>
+                <th>Nº Pedido</th>
+              <?php endif; ?>
             </tr>
           </thead>
           <tbody>
@@ -229,57 +257,80 @@
               $monto  = $l->cantidad_neta * (float)$l->precio_factura;
               $comVal = $monto * ($comision / 100);
 
-              $rowClass = match ($l->estado_factura) {
-                  'anulada' => 'row-anulada',
-                  'con_nc'  => 'row-con-nc',
-                  default   => 'row-vigente',
-              };
-              $estadoTexto = match ($l->estado_factura) {
-                  'anulada' => 'Anulada',
-                  'con_nc'  => ($l->nc_total ?? false) ? 'Con NC (total)' : 'Con NC (parcial)',
-                  default   => 'Vigente',
-              };
-              $docSigla = $siglas[$l->tipo_dte] ?? $l->tipo_dte;
-              $docNum   = substr($l->numero_control, -6);
+              if (!$resumir) {
+                  $rowClass = match ($l->estado_factura) {
+                      'anulada' => 'row-anulada',
+                      'con_nc'  => 'row-con-nc',
+                      default   => 'row-vigente',
+                  };
+                  $estadoTexto = match ($l->estado_factura) {
+                      'anulada' => 'Anulada',
+                      'con_nc'  => ($l->nc_total ?? false) ? 'Con NC (total)' : 'Con NC (parcial)',
+                      default   => 'Vigente',
+                  };
+                  $docSigla = $siglas[$l->tipo_dte] ?? $l->tipo_dte;
+                  $docNum   = substr($l->numero_control, -6);
+              } else {
+                  $rowClass = 'row-vigente';
+              }
           ?>
           <tr class="<?= $rowClass ?>">
-            <td><?= date('d/m/Y', strtotime($l->fecha_emision)) ?></td>
-            <td class="text-center"><span class="badge bg-info text-white"><?= esc($docSigla) ?></span></td>
-            <td><?= esc($docNum) ?></td>
-            <td><?= esc($l->cliente_nombre ?? '—') ?></td>
-            <td><?= esc($l->vendedor_nombre ?? '—') ?></td>
-            <td><code><?= esc($l->producto_codigo) ?></code></td>
-            <td><?= esc($l->producto_descripcion) ?></td>
-            <td class="text-right"><?= number_format((float)$l->cantidad_facturada, 2) ?></td>
-            <td class="text-right">
-              <?= (float)$l->cantidad_acreditada_nc > 0 ? number_format((float)$l->cantidad_acreditada_nc, 2) : '—' ?>
-            </td>
-            <td class="text-right">$ <?= number_format($monto, 2) ?></td>
-            <td class="text-right">$ <?= number_format($comVal, 2) ?></td>
-            <td>
-              <?php if ($l->estado_factura === 'anulada'): ?>
-                <span class="badge badge-danger"><?= esc($estadoTexto) ?></span>
-              <?php elseif ($l->estado_factura === 'con_nc'): ?>
-                <span class="badge badge-warning text-dark"><?= esc($estadoTexto) ?></span>
-              <?php else: ?>
-                <span class="badge badge-success"><?= esc($estadoTexto) ?></span>
-              <?php endif; ?>
-            </td>
-            <td class="font-weight-bold"><?= esc($l->numero_ne ?? '—') ?></td>
-            <td><?= $l->fecha_ne ? date('d/m/Y', strtotime($l->fecha_ne)) : '—' ?></td>
-            <td><?= esc($l->numero_pedido ?? '—') ?></td>
+            <?php if ($resumir): ?>
+              <td><code><?= esc($l->producto_codigo) ?></code></td>
+              <td><?= esc($l->producto_descripcion) ?></td>
+              <td class="text-right"><?= number_format((float)$l->cantidad_facturada, 2) ?></td>
+              <td class="text-right">
+                <?= (float)$l->cantidad_acreditada_nc > 0 ? number_format((float)$l->cantidad_acreditada_nc, 2) : '—' ?>
+              </td>
+              <td class="text-right"><?= number_format((float)$l->cantidad_neta, 2) ?></td>
+              <td class="text-right">$ <?= number_format((float)$l->precio_factura, 2) ?></td>
+              <td class="text-right">$ <?= number_format($monto, 2) ?></td>
+              <td class="text-right">$ <?= number_format($comVal, 2) ?></td>
+            <?php else: ?>
+              <td><?= date('d/m/Y', strtotime($l->fecha_emision)) ?></td>
+              <td class="text-center"><span class="badge bg-info text-white"><?= esc($docSigla) ?></span></td>
+              <td><?= esc($docNum) ?></td>
+              <td><?= esc($l->cliente_nombre ?? '—') ?></td>
+              <td><?= esc($l->vendedor_nombre ?? '—') ?></td>
+              <td><code><?= esc($l->producto_codigo) ?></code></td>
+              <td><?= esc($l->producto_descripcion) ?></td>
+              <td class="text-right"><?= number_format((float)$l->cantidad_facturada, 2) ?></td>
+              <td class="text-right">
+                <?= (float)$l->cantidad_acreditada_nc > 0 ? number_format((float)$l->cantidad_acreditada_nc, 2) : '—' ?>
+              </td>
+              <td class="text-right">$ <?= number_format($monto, 2) ?></td>
+              <td class="text-right">$ <?= number_format($comVal, 2) ?></td>
+              <td>
+                <?php if ($l->estado_factura === 'anulada'): ?>
+                  <span class="badge badge-danger"><?= esc($estadoTexto) ?></span>
+                <?php elseif ($l->estado_factura === 'con_nc'): ?>
+                  <span class="badge badge-warning text-dark"><?= esc($estadoTexto) ?></span>
+                <?php else: ?>
+                  <span class="badge badge-success"><?= esc($estadoTexto) ?></span>
+                <?php endif; ?>
+              </td>
+              <td class="font-weight-bold"><?= esc($l->numero_ne ?? '—') ?></td>
+              <td><?= $l->fecha_ne ? date('d/m/Y', strtotime($l->fecha_ne)) : '—' ?></td>
+              <td><?= esc($l->numero_pedido ?? '—') ?></td>
+            <?php endif; ?>
           </tr>
           <?php endforeach; ?>
           </tbody>
           <tfoot>
             <tr class="font-weight-bold">
-              <td colspan="9" class="text-right">TOTALES</td>
-              <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
-              <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <?php if ($resumir): ?>
+                <td colspan="6" class="text-right">TOTALES</td>
+                <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
+                <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
+              <?php else: ?>
+                <td colspan="9" class="text-right">TOTALES</td>
+                <td class="text-right">$ <?= number_format($totalPrecio, 2) ?></td>
+                <td class="text-right">$ <?= number_format($totalComision, 2) ?></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              <?php endif; ?>
             </tr>
           </tfoot>
         </table>

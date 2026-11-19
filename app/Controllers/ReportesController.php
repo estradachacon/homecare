@@ -2941,6 +2941,7 @@ class ReportesController extends Controller
         $comision    = max(0, min(100, (float)($this->request->getGet('comision') ?: 7)));
         $exportar    = $this->request->getGet('exportar'); // 'excel' | null
         $estadoLinea = $this->request->getGet('estado_linea') ?: ''; // '' | 'vigente' | 'anulada' | 'con_nc'
+        $resumir     = (bool)$this->request->getGet('resumir'); // true si se quiere modo resumen
 
         // ── Query principal: una fila por línea de producto de cada factura ──
         // Solo documentos de venta real (Factura y CCF); Notas de Crédito y
@@ -3091,6 +3092,41 @@ class ReportesController extends Controller
             $lineas = array_values(array_filter($lineas, fn($l) => $l->estado_factura === $estadoLinea));
         }
 
+        // ── Resumen por producto ────────────────────────────────────────────
+        if ($resumir) {
+            $resumen = [];
+            foreach ($lineas as $l) {
+                $key = $l->producto_codigo . '|' . $l->producto_id;
+                if (!isset($resumen[$key])) {
+                    $resumen[$key] = (object)[
+                        'producto_codigo'      => $l->producto_codigo,
+                        'producto_id'          => $l->producto_id,
+                        'producto_descripcion' => $l->producto_descripcion,
+                        'cantidad_facturada'   => 0.0,
+                        'cantidad_acreditada_nc' => 0.0,
+                        'venta_gravada'        => 0.0,
+                        'cantidad_neta'        => 0.0,
+                        'precio_factura'       => 0.0,
+                        'estado_factura'       => 'vigente',
+                        'es_resumen'           => true,
+                    ];
+                }
+                $resumen[$key]->cantidad_facturada   += (float)$l->cantidad_facturada;
+                $resumen[$key]->cantidad_acreditada_nc += (float)$l->cantidad_acreditada_nc;
+                $resumen[$key]->venta_gravada        += (float)$l->venta_gravada;
+                $resumen[$key]->cantidad_neta        += (float)$l->cantidad_neta;
+            }
+
+            // Recalcular precio_factura para cada producto (promedio ponderado)
+            foreach ($resumen as $r) {
+                if ($r->cantidad_facturada > 0) {
+                    $r->precio_factura = $r->venta_gravada / $r->cantidad_facturada;
+                }
+            }
+
+            $lineas = array_values($resumen);
+        }
+
         // ── Siglas DTE ──────────────────────────────────────────────────────
         $siglas = dte_siglas();
 
@@ -3104,7 +3140,7 @@ class ReportesController extends Controller
         }
 
         if ($exportar === 'excel') {
-            return $this->_exportarFacturacionProductosExcel($lineas, $siglas, $comision, $fechaDesde, $fechaHasta, $vendedorId);
+            return $this->_exportarFacturacionProductosExcel($lineas, $siglas, $comision, $fechaDesde, $fechaHasta, $vendedorId, $resumir);
         }
 
         return view('reports/facturacion_productos', [
@@ -3118,10 +3154,11 @@ class ReportesController extends Controller
             'totalPrecio'   => $totalPrecio,
             'totalComision' => $totalComision,
             'estadoLinea'   => $estadoLinea,
+            'resumir'       => $resumir,
         ]);
     }
 
-    private function _exportarFacturacionProductosExcel(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, string $vendedorId = '')
+    private function _exportarFacturacionProductosExcel(array $lineas, array $siglas, float $comision, string $fechaDesde, string $fechaHasta, string $vendedorId = '', bool $resumir = false)
     {
         $spreadsheet = new Spreadsheet();
         $spreadsheet->removeSheetByIndex(0);
