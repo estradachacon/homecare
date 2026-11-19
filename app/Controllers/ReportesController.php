@@ -3117,6 +3117,7 @@ class ReportesController extends Controller
                         'numero_ne'            => '',
                         'fecha_ne'             => null,
                         'numero_pedido'        => '',
+                        'fecha_pedido'         => null,
                         'nc_total'             => false,
                     ];
                 }
