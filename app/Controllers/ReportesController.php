@@ -3175,16 +3175,12 @@ class ReportesController extends Controller
 
         $rango = date('d/m/Y', strtotime($fechaDesde)) . ' al ' . date('d/m/Y', strtotime($fechaHasta));
 
-        if ($vendedorId) {
-            $grupos = ['' => $lineas];
-        } else {
-            $grupos = [];
-            foreach ($lineas as $l) {
-                $nombre = $l->vendedor_nombre ?? 'Sin vendedor';
-                $grupos[$nombre][] = $l;
-            }
-            ksort($grupos);
+        $grupos = [];
+        foreach ($lineas as $l) {
+            $nombre = $l->vendedor_nombre ?? 'Sin vendedor';
+            $grupos[$nombre][] = $l;
         }
+        ksort($grupos);
 
         foreach ($grupos as $nombreVendedor => $filas) {
             $sheetTitle = $nombreVendedor
