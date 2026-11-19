@@ -3175,13 +3175,7 @@ class ReportesController extends Controller
 
         $rango = date('d/m/Y', strtotime($fechaDesde)) . ' al ' . date('d/m/Y', strtotime($fechaHasta));
 
-        // ── Crear hoja General con todos los datos consolidados ──
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('General');
-        $subtitulo = 'Reporte Facturación por Producto (GENERAL) — ' . $rango;
-        $this->_escribirHojaFacturacionProductos($sheet, $lineas, $siglas, $comision, $subtitulo, $resumir);
-
-        // ── Crear hojas separadas por vendedor ──
+        // ── Agrupar por vendedor ──
         $grupos = [];
         foreach ($lineas as $l) {
             $nombre = $l->vendedor_nombre ?? 'Sin vendedor';
@@ -3189,17 +3183,41 @@ class ReportesController extends Controller
         }
         ksort($grupos);
 
-        foreach ($grupos as $nombreVendedor => $filas) {
-            $sheetTitle = $nombreVendedor
-                ? mb_substr(preg_replace('/[\/\\\?\*\:\[\]]/', '', $nombreVendedor), 0, 31)
-                : 'Sin Vendedor';
-
+        // ── Si NO hay vendedor seleccionado: crear hoja General + hojas por vendedor ──
+        // ── Si HAY vendedor seleccionado: solo la hoja del vendedor (o General en modo resumido) ──
+        if (!$vendedorId) {
+            // Sin filtro de vendedor: mostrar General + vendedores individuales
             $sheet = $spreadsheet->createSheet();
-            $sheet->setTitle($sheetTitle);
+            $sheet->setTitle('General');
+            $subtitulo = 'Reporte Facturación por Producto (GENERAL) — ' . $rango;
+            $this->_escribirHojaFacturacionProductos($sheet, $lineas, $siglas, $comision, $subtitulo, $resumir);
 
-            $subtitulo = 'Reporte Facturación por Producto' . ($nombreVendedor ? ' — ' . $nombreVendedor : '') . ' — ' . $rango;
+            foreach ($grupos as $nombreVendedor => $filas) {
+                $sheetTitle = $nombreVendedor
+                    ? mb_substr(preg_replace('/[\/\\\?\*\:\[\]]/', '', $nombreVendedor), 0, 31)
+                    : 'Sin Vendedor';
 
-            $this->_escribirHojaFacturacionProductos($sheet, $filas, $siglas, $comision, $subtitulo, $resumir);
+                $sheet = $spreadsheet->createSheet();
+                $sheet->setTitle($sheetTitle);
+
+                $subtitulo = 'Reporte Facturación por Producto' . ($nombreVendedor ? ' — ' . $nombreVendedor : '') . ' — ' . $rango;
+
+                $this->_escribirHojaFacturacionProductos($sheet, $filas, $siglas, $comision, $subtitulo, $resumir);
+            }
+        } else {
+            // Con filtro de vendedor: solo mostrar ese vendedor
+            foreach ($grupos as $nombreVendedor => $filas) {
+                $sheetTitle = $nombreVendedor
+                    ? mb_substr(preg_replace('/[\/\\\?\*\:\[\]]/', '', $nombreVendedor), 0, 31)
+                    : 'Sin Vendedor';
+
+                $sheet = $spreadsheet->createSheet();
+                $sheet->setTitle($sheetTitle);
+
+                $subtitulo = 'Reporte Facturación por Producto' . ($nombreVendedor ? ' — ' . $nombreVendedor : '') . ' — ' . $rango;
+
+                $this->_escribirHojaFacturacionProductos($sheet, $filas, $siglas, $comision, $subtitulo, $resumir);
+            }
         }
 
         $spreadsheet->setActiveSheetIndex(0);
