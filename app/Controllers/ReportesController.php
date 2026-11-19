@@ -3109,6 +3109,15 @@ class ReportesController extends Controller
                         'precio_factura'       => 0.0,
                         'estado_factura'       => 'vigente',
                         'es_resumen'           => true,
+                        'fecha_emision'        => '',
+                        'tipo_dte'             => '',
+                        'numero_control'       => '',
+                        'cliente_nombre'       => '',
+                        'vendedor_nombre'      => '',
+                        'numero_ne'            => '',
+                        'fecha_ne'             => null,
+                        'numero_pedido'        => '',
+                        'nc_total'             => false,
                     ];
                 }
                 $resumen[$key]->cantidad_facturada   += (float)$l->cantidad_facturada;
