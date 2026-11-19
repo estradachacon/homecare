@@ -3196,7 +3196,7 @@ class ReportesController extends Controller
 
             $subtitulo = 'Reporte Facturación por Producto' . ($nombreVendedor ? ' — ' . $nombreVendedor : '') . ' — ' . $rango;
 
-            $this->_escribirHojaFacturacionProductos($sheet, $filas, $siglas, $comision, $subtitulo);
+            $this->_escribirHojaFacturacionProductos($sheet, $filas, $siglas, $comision, $subtitulo, $resumir);
         }
 
         $spreadsheet->setActiveSheetIndex(0);
@@ -3209,14 +3209,21 @@ class ReportesController extends Controller
         exit;
     }
 
-    private function _escribirHojaFacturacionProductos(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $lineas, array $siglas, float $comision, string $titulo): void
+    private function _escribirHojaFacturacionProductos(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $lineas, array $siglas, float $comision, string $titulo, bool $resumir = false): void
     {
-        $cols = ['A'=>'Fecha Factura','B'=>'Doc Emitido','C'=>'Nº Doc','D'=>'Cliente',
-                 'E'=>'Vendedor','F'=>'Cód. Producto','G'=>'Descripción','H'=>'Cantidad Facturada',
-                 'I'=>'Cant. Acreditada NC','J'=>'Precio s/IVA','K'=>'Comisión ' . number_format($comision, 1) . '%',
-                 'L'=>'Estado','M'=>'Nº NE','N'=>'Fecha NE','O'=>'Nº Pedido','P'=>'Fecha Pedido'];
+        if ($resumir) {
+            $cols = ['A'=>'Cód. Producto','B'=>'Descripción','C'=>'Cantidad Vendida',
+                     'D'=>'Acreditado NC','E'=>'Cantidad Neta','F'=>'Precio Unitario',
+                     'G'=>'Monto s/IVA','H'=>'Comisión ' . number_format($comision, 1) . '%'];
+        } else {
+            $cols = ['A'=>'Fecha Factura','B'=>'Doc Emitido','C'=>'Nº Doc','D'=>'Cliente',
+                     'E'=>'Vendedor','F'=>'Cód. Producto','G'=>'Descripción','H'=>'Cantidad Facturada',
+                     'I'=>'Cant. Acreditada NC','J'=>'Precio s/IVA','K'=>'Comisión ' . number_format($comision, 1) . '%',
+                     'L'=>'Estado','M'=>'Nº NE','N'=>'Fecha NE','O'=>'Nº Pedido','P'=>'Fecha Pedido'];
+        }
 
-        $sheet->mergeCells('A1:P1');
+        $lastCol = $resumir ? 'H' : 'P';
+        $sheet->mergeCells("A1:{$lastCol}1");
         $sheet->setCellValue('A1', $titulo);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('1F4E79');
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -3226,11 +3233,15 @@ class ReportesController extends Controller
         foreach ($cols as $col => $label) {
             $sheet->setCellValue("{$col}{$row}", $label);
         }
-        $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
+        $sheet->getStyle("A{$row}:{$lastCol}{$row}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E79']],
         ]);
-        $sheet->getStyle("H{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        if ($resumir) {
+            $sheet->getStyle("C{$row}:H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        } else {
+            $sheet->getStyle("H{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        }
         $sheet->getRowDimension($row)->setRowHeight(14);
         $sheet->freezePane('A3');
         $row = 3;
@@ -3244,63 +3255,103 @@ class ReportesController extends Controller
             $totalPrecio   += $monto;
             $totalComision += $comVal;
 
-            $estadoTexto = match ($l->estado_factura) {
-                'anulada' => 'Anulada',
-                'con_nc'  => ($l->nc_total ?? false) ? 'Con nota de crédito (total)' : 'Con nota de crédito (parcial)',
-                default   => 'Vigente',
-            };
+            if ($resumir) {
+                // Modo resumido: columnas simplificadas
+                $sheet->setCellValue("A{$row}", $l->producto_codigo ?? '');
+                $sheet->setCellValue("B{$row}", $l->producto_descripcion ?? '');
+                $sheet->setCellValue("C{$row}", (float)$l->cantidad_facturada);
+                if ((float)$l->cantidad_acreditada_nc > 0) {
+                    $sheet->setCellValue("D{$row}", (float)$l->cantidad_acreditada_nc);
+                }
+                $sheet->setCellValue("E{$row}", (float)$l->cantidad_neta);
+                $sheet->setCellValue("F{$row}", (float)$l->precio_factura);
+                $sheet->getStyle("F{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->setCellValue("G{$row}", $monto);
+                $sheet->getStyle("G{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->setCellValue("H{$row}", $comVal);
+                $sheet->getStyle("H{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle("C{$row}:H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            } else {
+                // Modo detallado: columnas originales
+                $estadoTexto = match ($l->estado_factura) {
+                    'anulada' => 'Anulada',
+                    'con_nc'  => ($l->nc_total ?? false) ? 'Con nota de crédito (total)' : 'Con nota de crédito (parcial)',
+                    default   => 'Vigente',
+                };
 
-            $sheet->setCellValue("A{$row}", date('d/m/Y', strtotime($l->fecha_emision)));
-            $sheet->setCellValue("B{$row}", $siglas[$l->tipo_dte] ?? $l->tipo_dte);
-            $sheet->setCellValue("C{$row}", substr($l->numero_control, -6));
-            $sheet->setCellValue("D{$row}", $l->cliente_nombre ?? '');
-            $sheet->setCellValue("E{$row}", $l->vendedor_nombre ?? '');
-            $sheet->setCellValue("F{$row}", $l->producto_codigo ?? '');
-            $sheet->setCellValue("G{$row}", $l->producto_descripcion ?? '');
-            $sheet->setCellValue("H{$row}", (float)$l->cantidad_facturada);
-            if ((float)$l->cantidad_acreditada_nc > 0) {
-                $sheet->setCellValue("I{$row}", (float)$l->cantidad_acreditada_nc);
+                $sheet->setCellValue("A{$row}", date('d/m/Y', strtotime($l->fecha_emision)));
+                $sheet->setCellValue("B{$row}", $siglas[$l->tipo_dte] ?? $l->tipo_dte);
+                $sheet->setCellValue("C{$row}", substr($l->numero_control, -6));
+                $sheet->setCellValue("D{$row}", $l->cliente_nombre ?? '');
+                $sheet->setCellValue("E{$row}", $l->vendedor_nombre ?? '');
+                $sheet->setCellValue("F{$row}", $l->producto_codigo ?? '');
+                $sheet->setCellValue("G{$row}", $l->producto_descripcion ?? '');
+                $sheet->setCellValue("H{$row}", (float)$l->cantidad_facturada);
+                if ((float)$l->cantidad_acreditada_nc > 0) {
+                    $sheet->setCellValue("I{$row}", (float)$l->cantidad_acreditada_nc);
+                }
+                $sheet->setCellValue("J{$row}", $monto);
+                $sheet->getStyle("J{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->setCellValue("K{$row}", $comVal);
+                $sheet->getStyle("K{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->setCellValue("L{$row}", $estadoTexto);
+                $sheet->setCellValue("M{$row}", $l->numero_ne ?? '');
+                $sheet->setCellValue("N{$row}", $l->fecha_ne ? date('d/m/Y', strtotime($l->fecha_ne)) : '');
+                $sheet->setCellValue("O{$row}", $l->numero_pedido ?? '');
+                $sheet->setCellValue("P{$row}", $l->fecha_pedido ? date('d/m/Y', strtotime($l->fecha_pedido)) : '');
+
+                if ($l->estado_factura === 'anulada') {
+                    $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFDDE2');
+                } elseif ($l->estado_factura === 'con_nc') {
+                    $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF3CD');
+                }
+
+                $sheet->getStyle("H{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             }
-            $sheet->setCellValue("J{$row}", $monto);
-            $sheet->getStyle("J{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->setCellValue("K{$row}", $comVal);
-            $sheet->getStyle("K{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->setCellValue("L{$row}", $estadoTexto);
-            $sheet->setCellValue("M{$row}", $l->numero_ne ?? '');
-            $sheet->setCellValue("N{$row}", $l->fecha_ne ? date('d/m/Y', strtotime($l->fecha_ne)) : '');
-            $sheet->setCellValue("O{$row}", $l->numero_pedido ?? '');
-            $sheet->setCellValue("P{$row}", $l->fecha_pedido ? date('d/m/Y', strtotime($l->fecha_pedido)) : '');
 
-            if ($l->estado_factura === 'anulada') {
-                $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFDDE2');
-            } elseif ($l->estado_factura === 'con_nc') {
-                $sheet->getStyle("A{$row}:P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFF3CD');
-            }
-
-            $sheet->getStyle("H{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
             $sheet->getRowDimension($row)->setRowHeight(13);
             $row++;
         }
 
-        $sheet->mergeCells("A{$row}:I{$row}");
-        $sheet->setCellValue("A{$row}", 'TOTALES');
-        $sheet->setCellValue("J{$row}", $totalPrecio);
-        $sheet->setCellValue("K{$row}", $totalComision);
-        $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
-            'font' => ['bold' => true],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
-        ]);
-        $sheet->getStyle("J{$row}:K{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
-        $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("J{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        if ($resumir) {
+            $sheet->mergeCells("A{$row}:F{$row}");
+            $sheet->setCellValue("A{$row}", 'TOTALES');
+            $sheet->setCellValue("G{$row}", $totalPrecio);
+            $sheet->setCellValue("H{$row}", $totalComision);
+            $sheet->getStyle("A{$row}:H{$row}")->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+            ]);
+            $sheet->getStyle("G{$row}:H{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("G{$row}:H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $lastColStyle = "H";
+        } else {
+            $sheet->mergeCells("A{$row}:I{$row}");
+            $sheet->setCellValue("A{$row}", 'TOTALES');
+            $sheet->setCellValue("J{$row}", $totalPrecio);
+            $sheet->setCellValue("K{$row}", $totalComision);
+            $sheet->getStyle("A{$row}:P{$row}")->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+            ]);
+            $sheet->getStyle("J{$row}:K{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("J{$row}:K{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $lastColStyle = "P";
+        }
         $sheet->getRowDimension($row)->setRowHeight(14);
 
-        $sheet->getStyle("A2:P{$row}")->applyFromArray([
+        $sheet->getStyle("A2:{$lastColStyle}{$row}")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
         ]);
 
-        $widths = ['A'=>12,'B'=>8,'C'=>10,'D'=>28,'E'=>18,'F'=>12,'G'=>36,'H'=>14,
-                   'I'=>16,'J'=>14,'K'=>14,'L'=>24,'M'=>12,'N'=>12,'O'=>12,'P'=>12];
+        if ($resumir) {
+            $widths = ['A'=>12,'B'=>36,'C'=>18,'D'=>16,'E'=>16,'F'=>14,'G'=>14,'H'=>14];
+        } else {
+            $widths = ['A'=>12,'B'=>8,'C'=>10,'D'=>28,'E'=>18,'F'=>12,'G'=>36,'H'=>14,
+                       'I'=>16,'J'=>14,'K'=>14,'L'=>24,'M'=>12,'N'=>12,'O'=>12,'P'=>12];
+        }
         foreach ($widths as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
         }
